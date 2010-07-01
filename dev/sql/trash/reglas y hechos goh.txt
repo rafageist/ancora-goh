@@ -1,0 +1,656 @@
+
+drop table if exists hrt_act_especifica cascade;
+create table hrt_act_especifica(
+	herencia varchar not null references herencia_de_restricciones(id) on delete cascade on update cascade, 
+	clasif_act varchar not null references clasificacion_de_actividad(id) on delete cascade on update cascade, 
+	primary key (herencia,clasif_act)
+);
+
+-- hechos y reglas
+
+drop table if exists hecho cascade;
+create table hecho (
+	id varchar primary key,
+	descrip varchar, 
+	planificacion varchar references planificacion(id) on delete cascade on update cascade,
+
+	-- para los opcionales elementos en un hecho,
+	-- pueden ser obligatorio
+	--	exactamente N   exa
+	--	al menos N	min
+	--	no mas de N     max
+	
+	periodo_exa bigint default -1, -- por defecto ninguno, examente 0 significa ninguno, y exactamente se convierte en excepto
+	periodo_min bigint default 1, -- por defecto uno
+	periodo_max bigint default -1,  -- por defecto todos
+
+	turnos_exa bigint default -1, -- por defecto ninguno
+	turnos_min bigint default 1, -- por defecto uno
+	turnos_max bigint default -1,  -- por defecto todos
+
+	dias_exa bigint default -1, -- por defecto ninguno
+	dias_min bigint default 1, -- por defecto uno
+	dias_max bigint default -1,  -- por defecto todos
+
+	especialidad_exa bigint default -1, -- por defecto ninguno
+	especialidad_min bigint default 1, -- por defecto uno
+	especialidad_max bigint default -1,  -- por defecto todos
+	
+	brigada_exa bigint default -1, -- por defecto ninguno
+	brigada_min bigint default 1, -- por defecto uno
+	brigada_max bigint default -1,  -- por defecto todos
+
+	asig_exa bigint default -1, -- por defecto ninguno
+	asig_min bigint default 1, -- por defecto uno
+	asig_max bigint default -1,  -- por defecto todos
+
+	clasif_exa bigint default -1, -- por defecto ninguno
+	clasif_min bigint default 1, -- por defecto uno
+	clasif_max bigint default -1,  -- por defecto todos
+
+	profe_exa bigint default -1, -- por defecto ninguno
+	profe_min bigint default 1, -- por defecto uno
+	profe_max bigint default -1,  -- por defecto todos
+
+	lugar_exa bigint default -1, -- por defecto ninguno
+	lugar_min bigint default 1, -- por defecto uno
+	lugar_max bigint default -1,  -- por defecto todos
+
+	orecurso_exa bigint default -1, -- por defecto ninguno
+	orecurso_min bigint default 1, -- por defecto uno
+	orecurso_max bigint default -1,  -- por defecto todos
+
+	nivel_exa bigint default -1, -- por defecto ninguno
+	nivel_min bigint default 1, -- por defecto uno
+	nivel_max bigint default -1  -- por defecto todos
+	
+
+);
+
+drop table if exists hecho_periodo cascade;
+create table hecho_periodo (
+	hecho varchar references hecho (id) on delete cascade on update cascade,
+	periodo varchar references periodo (id) on delete cascade on update cascade,
+	opcional boolean default true,
+	primary key (hecho, periodo)
+);
+
+drop table if exists hecho_turnos_periodo cascade;
+create table hecho_turnos_periodo (
+	hecho varchar references hecho (id) on delete cascade on update cascade,
+	periodo varchar references periodo (id) on delete cascade on update cascade,
+	dia_ini integer,
+	dia_fin integer,
+	turno_ini integer,
+	turno_fin integer,
+	discreto boolean default true,
+	opcional boolean default true,
+	primary key (hecho, dia_ini, dia_fin, turno_ini, turno_fin),
+	check (dia_ini > 0),
+	check (dia_fin >= dia_ini),
+	check ((turno_ini >= turno_fin and discreto = true) or discreto = false)	
+);
+
+drop table if exists hecho_dia_planificacion cascade;
+create table hecho_dia_planificacion (
+	hecho varchar references hecho (id) on delete cascade on update cascade,
+	dia_ini integer,
+	dia_fin integer,
+	opcional boolean default true,
+	primary key (hecho, dia_ini, dia_fin),
+	check (dia_ini > 0),
+	check (dia_fin >= dia_ini)
+);
+
+drop table if exists hecho_especialidad cascade;
+create table hecho_especialidad (
+	hecho varchar references hecho (id) on delete cascade on update cascade,
+	especialidad varchar references especialidad (id) on delete cascade on update cascade,
+	opcional boolean default true,
+	primary key (hecho, especialidad)
+);
+
+drop table if exists hecho_brigada cascade;
+create table hecho_brigada (
+	hecho varchar references hecho (id) on delete cascade on update cascade,
+	brigada varchar references brigada (id) on delete cascade on update cascade,
+	opcional boolean default true,
+	primary key (hecho, brigada)
+);
+
+drop table if exists hecho_asignatura cascade;
+create table hecho_asignatura(
+	hecho varchar references hecho(id) on delete cascade on update cascade,
+	asignatura varchar references asignatura(id) on delete cascade on update cascade,
+	opcional boolean default true,
+	primary key (hecho, asignatura)
+);
+
+drop table if exists hecho_clasif_act cascade;
+create table hecho_clasif_act(
+	hecho varchar references hecho(id) on delete cascade on update cascade,
+	clasif_act varchar references clasificacion_de_actividad(id) on delete cascade on update cascade,
+	opcional boolean default true,
+	primary key (hecho, clasif_act)
+);
+
+drop table if exists hecho_profesor cascade;
+create table hecho_profesor(
+	hecho varchar references hecho(id) on delete cascade on update cascade,
+	profesor varchar references profesor(id) on delete cascade on update cascade,
+	opcional boolean default true,
+	primary key (hecho, profesor)
+);
+
+
+drop table if exists hecho_lugar cascade;
+create table hecho_lugar(
+	hecho varchar references hecho(id) on delete cascade on update cascade,
+	lugar varchar references lugar(id) on delete cascade on update cascade,
+	opcional boolean default true,
+	primary key (hecho, lugar)
+);
+
+
+drop table if exists hecho_otro_recurso cascade;
+create table hecho_otro_recurso(
+	hecho varchar references hecho(id) on delete cascade on update cascade,
+	otro_recurso varchar references otro_recurso(id) on delete cascade on update cascade,
+	opcional boolean default true,
+	primary key (hecho, otro_recurso)
+);
+
+drop table if exists hecho_nivel cascade;
+create table hecho_nivel(
+	hecho varchar references hecho(id) on delete cascade on update cascade,
+	nivel varchar references nivel(id) on delete cascade on update cascade,
+	opcional boolean default true,
+	primary key (hecho, nivel)
+);
+
+-- condiciones (ejemplo: and not hecho1 and hecho2 and hecho3 or hecho4 or not hecho 5.....)
+drop table if exists condicion cascade;
+create table condicion(
+	id varchar primary key,
+	descripcion varchar,
+	planificacion varchar references planificacion(id) on delete cascade on update cascade 	
+);
+
+drop table if exists condicion_termino cascade;
+create table condicion_termino(
+	condicion varchar not null references condicion(id) on delete cascade on update cascade,
+	hecho varchar not null references hecho(id) on delete cascade on update cascade,
+	operador boolean default true, -- true = AND y false = OR
+	negado boolean default false,
+	primary key (condicion,hecho,operador,negado)
+);
+
+-- ----------------------------- FUNCIONES DEL GENERADOR -------------------------------
+
+-- hechos y reglas
+
+create or replace function esta_turno_en_rango(dia integer, turno integer, duracion integer, dia_ini integer, dia_fin integer, turno_ini integer, turno_fin integer, discreto boolean) returns boolean as
+$$
+	
+	begin
+		IF dia < dia_ini THEN
+			RETURN FALSE;
+		END IF;
+
+		IF dia > dia_fin THEN
+			RETURN FALSE;
+		END IF;
+		
+		IF discreto = true THEN
+			IF turno + duracion - 1 < turno_ini THEN
+				RETURN FALSE;
+			END IF;
+			IF turno > turno_fin THEN
+				RETURN FALSE;
+			END IF;
+		ELSE
+			IF dia = dia_ini AND turno + duracion - 1< turno_ini THEN
+				RETURN FALSE;
+			END IF;
+			IF dia = dia_fin AND turno > turno_fin THEN
+				RETURN FALSE;
+			END IF;
+		END IF;
+		RETURN TRUE;
+	end;
+$$
+language 'plpgsql';
+
+create or replace function esta_dia_en_rango_planificacion(pdia integer, idperiodo varchar, dia_ini integer, dia_fin integer) returns boolean as
+$$
+	declare r record;
+	begin
+		select * into r from periodicidad where periodo = idperiodo and (dia+pdia >=dia_ini AND dia+pdia<=dia_fin);
+		IF FOUND THEN
+			return true;
+		END IF;
+		
+		return false;
+	end;
+$$
+language 'plpgsql';
+
+--
+-- Esta funcion analiza si un hecho ocurre. Precisamente "hecho", viene de que "si lo que está sucediendo ya es un hecho"
+create or replace function ocurre_hecho(pid varchar, 
+				nueva_plantilla varchar, nuevo_grupo varchar, nuevo_dia integer, nuevo_turno integer, nuevo_profesor varchar, nuevo_lugar varchar, nuevos_recursos[] varchar) returns boolean as
+$$
+	DECLARE rhecho record;
+		r record;
+		r1 record;
+		c bigint;
+		v boolean;
+	BEGIN		
+		SELECT * INTO rhecho FROM hecho WHERE id = pid;
+
+		-- ----------------------------------------------------
+		-- analizando actividades en periodos
+		-- ----------------------------------------------------
+		
+		c := 0;
+		FOR r IN SELECT * FROM hecho_periodo where hecho = pid LOOP
+
+			SELECT * INTO r1 FROM actividad WHERE r.periodo = dame_periodo_plantilla_de_actividad(plantilla) LIMIT 1;
+
+			v := false;
+
+			IF nueva_plantilla is not null THEN
+				v := iif(r.periodo = dame_periodo_plantilla_de_actividad(nueva_plantilla),true,false);
+			END IF;
+			
+			IF (NOT FOUND AND v = false) AND r.opcional = false THEN
+				RETURN false;
+			END IF;
+
+			IF (FOUND OR v = true) AND r.opcional = true THEN
+				c := c + 1;
+			END IF;
+			
+		END LOOP;
+
+		IF c <> rhecho.periodo_exa AND rhecho.periofo_exa > -1 THEN
+			RETURN FALSE;
+		END IF;
+
+		IF c < rhecho.periodo_min AND rhecho.periodo_min > -1 THEN
+			RETURN FALSE;
+		END IF;
+
+		IF c > rhecho.periodo_max AND rhecho.periodo_max > -1 THEN
+			RETURN FALSE;
+		END IF;
+
+		-- ----------------------------------------------
+		-- analizando actividades en turnos
+		-- ----------------------------------------------
+
+		c := 0;
+
+		FOR r IN SELECT * FROM hecho_turnos_periodo where hecho = pid LOOP
+
+			SELECT * INTO r1 FROM actividad WHERE r.periodo = dame_periodo_plantilla_de_actividad(plantilla) AND esta_turno_en_rango(dia,turno,dame_duracion_plantilla_de_actividad(plantilla),r.dia_ini,r.dia_fin,r.turno_ini,r.turno_fin, r.discreto) = true LIMIT 1;
+
+			v := false;
+
+			IF nueva_plantilla is not null THEN
+				v := iif(r.periodo = dame_periodo_plantilla_de_actividad(nueva_plantilla) AND esta_turno_en_rango(nuevo_dia,nuevo_turno,dame_duracion_plantilla_de_actividad(nueva_plantilla),r.dia_ini,r.dia_fin,r.turno_ini,r.turno_fin, r.discreto) = true, true, false);
+			END IF;
+			
+			IF (NOT FOUND AND v = false) AND r.opcional = false THEN
+				RETURN false;
+			END IF;
+
+			IF (FOUND OR v = true) AND r.opcional = true THEN
+				c := c + 1;
+			END IF;
+			
+		END LOOP;
+
+		IF c <> rhecho.turnos_exa AND rhecho.turnos_exa > -1 THEN
+			RETURN FALSE;
+		END IF;
+
+		IF c < rhecho.turnos_min AND rhecho.turnos_min > -1 THEN
+			RETURN FALSE;
+		END IF;
+
+		IF c > rhecho.turnos_max AND rhecho.turnos_max > -1 THEN
+			RETURN FALSE;
+		END IF;
+
+		-- -------------------------------
+		-- analizando actividades en dias
+		-- -------------------------------
+
+		c := 0;
+
+		FOR r IN SELECT * FROM hecho_dia_planificacion where hecho = pid LOOP
+
+			SELECT * INTO r1 FROM actividad WHERE esta_dia_en_rango_planificacion(dia, dame_periodo_plantilla_de_actividad(plantilla), r.dia_ini, r.dia_fin) = true LIMIT 1;
+
+			v := false;
+
+			IF nueva_plantilla is not null THEN
+				v := iif(esta_dia_en_rango_planificacion(nuevo_dia, dame_periodo_plantilla_de_actividad(nueva_plantilla), r.dia_ini, r.dia_fin) = true, true, false);
+			END IF;
+			
+			IF (NOT FOUND AND v = false) AND r.opcional = false THEN
+				RETURN false;
+			END IF;
+
+			IF (FOUND OR v = true) AND r.opcional = true THEN
+				c := c + 1;
+			END IF;
+			
+		END LOOP;
+
+		IF c <> rhecho.dias_exa AND rhecho.dias_exa > -1 THEN
+			RETURN FALSE;
+		END IF;
+
+		IF c < rhecho.dias_min AND rhecho.dias_min > -1 THEN
+			RETURN FALSE;
+		END IF;
+
+		IF c > rhecho.dias_max AND rhecho.dias_max > -1 THEN
+			RETURN FALSE;
+		END IF;
+
+		-- -----------------------------------------
+		-- analizando actividades de especialidades
+		-- -----------------------------------------
+
+		c := 0;
+
+		FOR r IN SELECT * FROM hecho_especialidad where hecho = pid LOOP
+
+			SELECT * INTO r1 FROM actividad WHERE dame_especialidad_de_asignatura(dame_asignatura_desglose(dame_desglose_de_plantilla(plantilla))) = r.especialidad  LIMIT 1;
+
+			v := false;
+
+			IF nueva_plantilla is not null THEN
+				v := iif(dame_especialidad_de_asignatura(dame_asignatura_desglose(dame_desglose_de_plantilla(nueva_plantilla))) = r.especialidad , r.dia_ini, r.dia_fin) = true, true, false);
+			END IF;
+			
+			IF (NOT FOUND AND v = false) AND r.opcional = false THEN
+				RETURN false;
+			END IF;
+
+			IF (FOUND OR v = true) AND r.opcional = true THEN
+				c := c + 1;
+			END IF;
+			
+		END LOOP;
+
+		IF c <> rhecho.especialidad_exa AND rhecho.especialidad_exa > -1 THEN
+			RETURN FALSE;
+		END IF;
+
+		IF c < rhecho.especialidad_min AND rhecho.especialidad_min > -1 THEN
+			RETURN FALSE;
+		END IF;
+
+		IF c > rhecho.especialidad_max AND rhecho.especialidad_max > -1 THEN
+			RETURN FALSE;
+		END IF;
+
+		-- ------------------------------------
+		-- analizando actividades de brigadas
+		-- ------------------------------------
+		c := 0;
+
+		FOR r IN SELECT * FROM hecho_brigada where hecho = pid LOOP
+
+			SELECT * INTO r1 FROM actividad WHERE matrix.get_pos_of(dame_lista_id_brigadas_de_grupo(grupo), r.brigada) > -1 LIMIT 1;
+
+			v := false;
+
+			IF nueva_plantilla is not null THEN
+				v := iif(matrix.get_pos_of(dame_lista_id_brigadas_de_grupo(nuevo_grupo), r.brigada) > -1, true, false);
+			END IF;
+			
+			IF (NOT FOUND AND v = false) AND r.opcional = false THEN
+				RETURN false;
+			END IF;
+
+			IF (FOUND OR v = true) AND r.opcional = true THEN
+				c := c + 1;
+			END IF;
+			
+		END LOOP;
+
+		IF c <> rhecho.brigada_exa AND rhecho.brigada_exa > -1 THEN
+			RETURN FALSE;
+		END IF;
+
+		IF c < rhecho.brigada_min AND rhecho.brigada_min > -1 THEN
+			RETURN FALSE;
+		END IF;
+
+		IF c > rhecho.brigada_max AND rhecho.brigada_max > -1 THEN
+			RETURN FALSE;
+		END IF;
+		
+		-- -------------------------------------
+		-- analizando actividades de asignaturas
+		-- -------------------------------------
+
+		c := 0;
+
+		FOR r IN SELECT * FROM hecho_asignatura where hecho = pid LOOP
+
+			SELECT * INTO r1 FROM actividad WHERE dame_asignatura_desglose(dame_desglose_de_plantilla(plantilla)) = r.asignatura  LIMIT 1;
+
+			v := false;
+
+			IF nueva_plantilla is not null THEN
+				v := iif(dame_asignatura_desglose(dame_desglose_de_plantilla(nueva_plantilla)) = r.asignatura, true, false);
+			END IF;
+			
+			IF (NOT FOUND AND v = false) AND r.opcional = false THEN
+				RETURN false;
+			END IF;
+
+			IF (FOUND OR v = true) AND r.opcional = true THEN
+				c := c + 1;
+			END IF;
+			
+		END LOOP;
+
+		IF c <> rhecho.asignatura_exa AND rhecho.asignatura_exa > -1 THEN
+			RETURN FALSE;
+		END IF;
+
+		IF c < rhecho.asignatura_min AND rhecho.asignatura_min > -1 THEN
+			RETURN FALSE;
+		END IF;
+
+		IF c > rhecho.asignatura_max AND rhecho.asignatura_max > -1 THEN
+			RETURN FALSE;
+		END IF;
+		
+		-- -------------------------------------
+		-- analizando actividades de la clasif
+		-- -------------------------------------
+
+		c := 0;
+
+		FOR r IN SELECT * FROM hecho_clasif_act where hecho = pid LOOP
+
+			SELECT * INTO r1 FROM actividad WHERE dame_clasif_plantilla_de_actividad(plantilla) = r.clasif_act  LIMIT 1;
+
+			v := false;
+
+			IF nueva_plantilla is not null THEN
+				v := iif(dame_clasif_plantilla_de_actividad(nueva_plantilla) = r.clasif_act, true, false);
+			END IF;
+			
+			IF (NOT FOUND AND v = false) AND r.opcional = false THEN
+				RETURN false;
+			END IF;
+
+			IF (FOUND OR v = true) AND r.opcional = true THEN
+				c := c + 1;
+			END IF;
+			
+		END LOOP;
+
+		IF c <> rhecho.clasif_exa AND rhecho.clasif_exa > -1 THEN
+			RETURN FALSE;
+		END IF;
+
+		IF c < rhecho.clasif_min AND rhecho.clasif_min > -1 THEN
+			RETURN FALSE;
+		END IF;
+
+		IF c > rhecho.clasif_max AND rhecho.clasif_max > -1 THEN
+			RETURN FALSE;
+		END IF;		
+
+		-- --------------------------------------
+		-- analizando actividades de profesores
+		-- --------------------------------------
+		c := 0;
+
+		FOR r IN SELECT * FROM hecho_profesor where hecho = pid LOOP
+
+			SELECT * INTO r1 FROM actividad WHERE profesor = r.profesor LIMIT 1;
+
+			v := false;
+
+			IF nueva_plantilla is not null THEN
+				v := iif(nuevo_profesor = r.profesor, true, false);
+			END IF;
+			
+			IF (NOT FOUND AND v = false) AND r.opcional = false THEN
+				RETURN false;
+			END IF;
+
+			IF (FOUND OR v = true) AND r.opcional = true THEN
+				c := c + 1;
+			END IF;
+			
+		END LOOP;
+
+		IF c <> rhecho.profe_exa AND rhecho.profe_exa > -1 THEN
+			RETURN FALSE;
+		END IF;
+
+		IF c < rhecho.profe_min AND rhecho.profe_min > -1 THEN
+			RETURN FALSE;
+		END IF;
+
+		IF c > rhecho.profe_max AND rhecho.profe_max > -1 THEN
+			RETURN FALSE;
+		END IF;	
+		
+		-- --------------------------------------
+		-- analizando actividades de lugares
+		-- --------------------------------------
+		c := 0;
+
+		FOR r IN SELECT * FROM hecho_lugar where hecho = pid LOOP
+
+			SELECT * INTO r1 FROM actividad WHERE lugar = r.lugar LIMIT 1;
+
+			v := false;
+
+			IF nueva_plantilla is not null THEN
+				v := iif(nuevo_lugar = r.lugar, true, false);
+			END IF;
+			
+			IF (NOT FOUND AND v = false) AND r.opcional = false THEN
+				RETURN false;
+			END IF;
+
+			IF (FOUND OR v = true) AND r.opcional = true THEN
+				c := c + 1;
+			END IF;
+			
+		END LOOP;
+
+		IF c <> rhecho.lugar_exa AND rhecho.lugar_exa > -1 THEN
+			RETURN FALSE;
+		END IF;
+
+		IF c < rhecho.lugar_min AND rhecho.lugar_min > -1 THEN
+			RETURN FALSE;
+		END IF;
+
+		IF c > rhecho.lugar_max AND rhecho.lugar_max > -1 THEN
+			RETURN FALSE;
+		END IF;	
+
+		-- -----------------------------------------
+		-- analizando actividades de otros recursos
+		-- -----------------------------------------
+		c := 0;
+
+		FOR r IN SELECT * FROM hecho_otro_recurso where hecho = pid LOOP
+
+			SELECT * INTO r1 FROM otros_recursos_usados WHERE otro_recurso = r.otro_recurso LIMIT 1;
+
+			IF NOT FOUND AND r.opcional = false THEN
+				RETURN false;
+			END IF;
+
+			IF FOUND AND r.opcional = true THEN
+				c := c + 1;
+			END IF;
+			
+		END LOOP;
+
+		IF c <> rhecho.orecurso_exa AND rhecho.orecurso_exa > -1 THEN
+			RETURN FALSE;
+		END IF;
+
+		IF c < rhecho.orecurso_min AND rhecho.orecurso_min > -1 THEN
+			RETURN FALSE;
+		END IF;
+
+		IF c > rhecho.orecurso_max AND rhecho.orecurso_max > -1 THEN
+			RETURN FALSE;
+		END IF;	
+
+		-- ---------------------------------
+		-- analizando actividades de niveles
+		-- ---------------------------------
+
+		c := 0;
+
+		FOR r IN SELECT * FROM hecho_nivel where hecho = pid LOOP
+
+			SELECT * INTO r1 FROM actividad WHERE dame_nivel_de_asignatura(dame_asignatura_desglose(dame_desglose_de_plantilla(plantilla))) = r.nivel  LIMIT 1;
+
+			IF NOT FOUND AND r.opcional = false THEN
+				RETURN false;
+			END IF;
+
+			IF FOUND AND r.opcional = true THEN
+				c := c + 1;
+			END IF;
+			
+		END LOOP;
+
+		IF c <> rhecho.nivel_exa AND rhecho.nivel_exa > -1 THEN
+			RETURN FALSE;
+		END IF;
+
+		IF c < rhecho.nivel_min AND rhecho.nivel_min > -1 THEN
+			RETURN FALSE;
+		END IF;
+
+		IF c > rhecho.nivel_max AND rhecho.nivel_max > -1 THEN
+			RETURN FALSE;
+		END IF;
+
+		
+		RETURN TRUE;
+	END;
+$$
+language 'plpgsql';

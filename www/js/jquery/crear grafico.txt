@@ -1,0 +1,31 @@
+<!--page core includes-->
+<script type="text/javascript" src="/site_media/libs/jqBarGraph.min.js"></script>
+
+
+
+/**	@createGraph
+Agrega a la pagina un graficoParametros
+Parametros:
+	Strig id el <div> donde mostrar el graficoParametros
+	Array Arreglo multidimensional para con los valores y las etiquetas
+	Strig Titulo del grafico
+	Integer ancho
+	Integer alto
+ej -> createGraph('grafico',[['10','motos'],['20','carros'],['30','aviones']],'Medios de transportes mas usados',200,null);
+*/
+function createGraph(divId,values,title,width,height){
+	title = title ? title : '';
+	width = width ? width : 400;
+	height = height ? height : 300;
+
+	$('#'+divId).jqBarGraph({
+		data: values,
+		title: title,
+		width: width,
+		height: height, 
+		color: '#006633'
+	});
+}
+
+
+createGraph('grafico',{{ datos|safe }},null,735);

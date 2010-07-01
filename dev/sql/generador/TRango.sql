@@ -1,0 +1,5 @@
+DROP TYPE IF EXISTS TRango CASCADE;
+CREATE TYPE TRango AS (
+    ini INTEGER,
+    fin INTEGER
+);

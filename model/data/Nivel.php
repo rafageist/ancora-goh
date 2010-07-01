@@ -1,0 +1,130 @@
+<?php 
+   class Nivel{ 
+       var $id; 
+       var $descripcion; 
+       var $creador; 
+       var $data;  
+          /** 
+            * @name: Nivel 
+            * @desc: Class constructor 
+            * @updated: 20/06/10 10:40:55 
+            * @version: 1.0 
+            */ 
+       public function Nivel($descripcion,$creador,$id = '',$construct = true, $data = false, $load = true){ 
+              global $dbconnection;
+              if ($data == false) $this->data = new NivelModel($dbconnection); else $this->data = $data;
+
+              //construir el objeto e insertarlo en la base de datos 
+              if ($construct == true) { 
+                  $replicas = $this->data->add($descripcion,$creador); 
+                    $this->id = $replicas["id"]; 
+                    $this->descripcion = $descripcion; 
+                    $this->creador = $creador; 
+              } 
+              else if ($load == true) { // cargar el objeto de la base de datos
+                  $r = $this->data->get($id); 
+                  $this->id = $r->id;
+                  $this->descripcion = $r->descripcion;
+                  $this->creador = $r->creador;
+              } 
+              else { // construir el objeto a partir de los parametros
+                  $this->id = $id;
+                  $this->descripcion = $descripcion;
+                  $this->creador = $creador;
+              }
+       } 
+          /** 
+            * @name: getId 
+            * @desc: Get value of property "Id" 
+            * @updated: 20/06/10 10:40:55 
+            * @version: 1.0 
+            */ 
+       public function getId(){ 
+              $r = $this->data->get($this->id); 
+              $this->id = $r->id; 
+              return $this->id;
+       } 
+          /** 
+            * @name: setDescripcion 
+            * @desc: Set value of property "Descripcion" 
+            * @updated: 20/06/10 10:40:55 
+            * @version: 1.0 
+            */ 
+       public function setDescripcion($value){ 
+              $this->descripcion = $value; 
+              $this->data->setBy("id = '".$this->id."'", "descripcion = '$value'"); 
+       } 
+          /** 
+            * @name: getDescripcion 
+            * @desc: Get value of property "Descripcion" 
+            * @updated: 20/06/10 10:40:55 
+            * @version: 1.0 
+            */ 
+       public function getDescripcion(){ 
+              $r = $this->data->get($this->id); 
+              $this->descripcion = $r->descripcion; 
+              return $this->descripcion;
+       } 
+          /** 
+            * @name: setCreador 
+            * @desc: Set value of property "Creador" 
+            * @updated: 20/06/10 10:40:55 
+            * @version: 1.0 
+            */ 
+       public function setCreador($value){ 
+              $this->creador = $value; 
+              $this->data->setBy("id = '".$this->id."'", "creador = '$value'"); 
+       } 
+          /** 
+            * @name: getCreador 
+            * @desc: Get value of property "Creador" 
+            * @updated: 20/06/10 10:40:55 
+            * @version: 1.0 
+            */ 
+       public function getCreador(){ 
+              $r = $this->data->get($this->id); 
+              $this->creador = $r->creador; 
+              return $this->creador;
+       } 
+       public function addGrupo($clasificacion,$descripcion,$especialidad,$planificacion){ 
+              $nivel = $this->id; 
+              $obj = new GrupoClass($clasificacion,$descripcion,$especialidad,$nivel,$planificacion,"",true,false); 
+              return $obj;
+       } 
+       public function getGrupo(){ 
+          $collection = new GrupoCollection($this->data->db);
+          $collection->Load(null,null,"*","nivel = '".$this->id."'");
+           return $collection;
+       } 
+       public function addBrigada($descripcion,$especialidad,$matricula,$creador){ 
+              $nivel = $this->id; 
+              $obj = new BrigadaClass($descripcion,$especialidad,$nivel,$matricula,$creador,"",true,false); 
+              return $obj;
+       } 
+       public function getBrigada(){ 
+          $collection = new BrigadaCollection($this->data->db);
+          $collection->Load(null,null,"*","nivel = '".$this->id."'");
+           return $collection;
+       } 
+       public function addRestriccionCondicional($planificacion,$activa,$clasif_act,$asig,$brigada,$profesor,$lugar,$otro_recurso,$especialidad,$fecha_ini,$fecha_fin,$hora_ini,$hora_fin,$discreto_exacto,$dia_ini_planif,$dia_fin_planif,$hora_ini_planif,$hora_fin_planif,$discreto_exacto_planif,$periodo,$dia_ini,$dia_fin,$turno_ini,$turno_fin,$discreto,$hoy,$ahora,$dia_relativo_anterior,$cant_dias_relativo_anterior,$dia_relativo_posterior,$cant_dias_relativo_posterior,$rango_tiempo_relativo_anterior_ini,$rango_tiempo_relativo_anterior_tamano,$turno_relativo_anterior,$cant_turnos_relativo_anterior,$turno_relativo_posterior,$cant_turnos_relativo_posterior,$rango_tiempo_relativo_posterior_ini,$rango_tiempo_relativo_posterior_tamano,$entre_dias_antes,$entre_dias_despues,$entre_turnos_antes,$entre_turnos_despues,$entre_tiempo_antes,$entre_tiempo_despues,$cant_exa,$cant_min,$cant_max,$consec_brigada,$consec_profesor,$consec_lugar,$consec_otro_recurso,$consec_periodo,$consec_dia_ini,$consec_dia_fin,$consec_turno_ini,$consec_turno_fin,$consec_discreto,$siempre,$valor){ 
+              $nivel = $this->id; 
+              $obj = new RestriccionCondicionalClass($planificacion,$activa,$clasif_act,$asig,$brigada,$profesor,$lugar,$otro_recurso,$especialidad,$nivel,$fecha_ini,$fecha_fin,$hora_ini,$hora_fin,$discreto_exacto,$dia_ini_planif,$dia_fin_planif,$hora_ini_planif,$hora_fin_planif,$discreto_exacto_planif,$periodo,$dia_ini,$dia_fin,$turno_ini,$turno_fin,$discreto,$hoy,$ahora,$dia_relativo_anterior,$cant_dias_relativo_anterior,$dia_relativo_posterior,$cant_dias_relativo_posterior,$rango_tiempo_relativo_anterior_ini,$rango_tiempo_relativo_anterior_tamano,$turno_relativo_anterior,$cant_turnos_relativo_anterior,$turno_relativo_posterior,$cant_turnos_relativo_posterior,$rango_tiempo_relativo_posterior_ini,$rango_tiempo_relativo_posterior_tamano,$entre_dias_antes,$entre_dias_despues,$entre_turnos_antes,$entre_turnos_despues,$entre_tiempo_antes,$entre_tiempo_despues,$cant_exa,$cant_min,$cant_max,$consec_brigada,$consec_profesor,$consec_lugar,$consec_otro_recurso,$consec_periodo,$consec_dia_ini,$consec_dia_fin,$consec_turno_ini,$consec_turno_fin,$consec_discreto,$siempre,$valor,"",true,false); 
+              return $obj;
+       } 
+       public function getRestriccionCondicional(){ 
+          $collection = new RestriccionCondicionalCollection($this->data->db);
+          $collection->Load(null,null,"*","nivel = '".$this->id."'");
+           return $collection;
+       } 
+       public function addAsignatura($descripcion,$especialidad,$creador){ 
+              $nivel = $this->id; 
+              $obj = new AsignaturaClass($descripcion,$especialidad,$nivel,$creador,"",true,false); 
+              return $obj;
+       } 
+       public function getAsignatura(){ 
+          $collection = new AsignaturaCollection($this->data->db);
+          $collection->Load(null,null,"*","nivel = '".$this->id."'");
+           return $collection;
+       } 
+} 
+?>

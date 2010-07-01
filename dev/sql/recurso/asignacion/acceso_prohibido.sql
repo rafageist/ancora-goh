@@ -1,0 +1,6 @@
+DROP table IF EXISTS acceso_prohibido CASCADE;
+CREATE TABLE acceso_prohibido(
+    grupo VARCHAR NOT NULL REFERENCES grupo(id) ON DELETE CASCADE ON UPDATE CASCADE, 
+    lugar VARCHAR NOT NULL REFERENCES lugar(id) ON DELETE CASCADE ON UPDATE CASCADE, 
+    PRIMARY KEY (grupo,lugar)
+);

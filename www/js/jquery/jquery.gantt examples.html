@@ -1,0 +1,237 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml"><head>
+
+
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<link rel="stylesheet" type="text/css" href="jquery.gantt%20examples_files/style.css">
+<script language="javascript" type="text/javascript" src="jquery.gantt%20examples_files/jquery_002.js"></script>
+<script language="javascript" type="text/javascript" src="jquery.gantt%20examples_files/jquery.js"></script>
+<link rel="stylesheet" type="text/css" href="jquery.gantt%20examples_files/jquery.css">
+<script language="javascript" type="text/javascript">
+<!--
+function getDateText(y, m, d){
+	if (m < 10){
+		m = '0'+m;
+	}
+	if (d < 10){
+		d = '0'+d;
+	}
+	return ''+y+m+d;
+}
+function getCalcDate(y, m, d, r, t){
+	switch(t){
+		case 'month':
+			m += parseInt(r);
+		break;
+		default:
+			d += parseInt(r);
+		break;
+	}
+	var o = new Date(y, m-1, d);
+	return getDateText(o.getFullYear(), o.getMonth()+1, o.getDate());
+}
+function example01(){
+	$('#gantt01').addTask({ 'titles': 'Task04', 'start_date': '20081229', 'end_date': '20090110' });
+
+}
+function example02(){
+	$('#gantt01').addTask({
+		'titles': 'Task05',
+		'start_date': date05_s,
+		'end_date': date05_e,
+		'color': '#0000FF',
+		'text': 'Task05'
+	});
+}
+$(function(){
+	var dateObj = new Date();
+	var nowY = dateObj.getFullYear();
+	var nowM = dateObj.getMonth()+1;
+	var nowD = dateObj.getDate();
+	date01_s = getCalcDate(nowY, nowM, nowD, 1);
+	$(".date01_s").html(date01_s);
+	date01_e = getCalcDate(nowY, nowM, nowD, 10);
+	$(".date01_e").html(date01_e);
+	date02_s = getCalcDate(nowY, nowM, nowD, 5);
+	$(".date02_s").html(date02_s);
+	date02_e = getCalcDate(nowY, nowM, nowD, 19);
+	$(".date02_e").html(date02_e);
+	date03_s = getCalcDate(nowY, nowM, nowD, 15);
+	$(".date03_s").html(date03_s);
+	date03_e = getCalcDate(nowY, nowM, nowD, 40);
+	$(".date03_e").html(date03_e);
+	date04_s = getCalcDate(nowY, nowM, nowD, 18);
+	$(".date04_s").html(date04_s);
+	date04_e = getCalcDate(nowY, nowM, nowD, 30);
+	$(".date04_e").html(date04_e);
+	date05_s = getCalcDate(nowY, nowM, nowD, 22);
+	$(".date05_s").html(date05_s);
+	date05_e = getCalcDate(nowY, nowM, nowD, 35);
+	$(".date05_e").html(date05_e);
+	date06_s = getCalcDate(nowY, nowM, nowD, 100);
+	$(".date06_s").html(date06_s);
+	date06_e = getCalcDate(nowY, nowM, nowD, 800);
+	$(".date06_e").html(date06_e);
+	date07_s = getCalcDate(nowY, nowM, nowD, 600);
+	$(".date07_s").html(date07_s);
+	date07_e = getCalcDate(nowY, nowM, nowD, 1300);
+	$(".date07_e").html(date07_e);
+	$("#gantt01").gantt({
+		'tasks':[
+			{'titles': 'Task01', 'start_date':date01_s, 'end_date': date01_e},
+			{'titles': 'Task02', 'start_date':date02_s, 'end_date': date02_e},
+			{'titles': 'Task03', 'start_date':date03_s, 'end_date': date03_e}
+		]
+	});
+	$("#gantt02").gantt({
+		'type': 'month',
+		'range': 50,
+		'titles': ['title01', 'title02'],
+		'tasks':[
+			{'titles': ['Task01', 'hoge'], 'start_date':date06_s, 'end_date': date06_e},
+			{'titles': ['Task02', 'hoo'], 'start_date':date07_s, 'end_date': date07_e}
+		]
+	});
+	$('a.GNT_now').click(function(){
+		$('#gantt01').setPeriod();
+		return false;
+	});
+	$('a.GNT_next').click(function(){
+		$('#gantt01').setPeriod('+');
+		return false;
+	});
+	$('a.GNT_next2').click(function(){
+		$('#gantt01').setPeriod('+7');
+		return false;
+	});
+	$('a.GNT_prev').click(function(){
+		$('#gantt01').setPeriod('-');
+		return false;
+	});
+	$('a.GNT_prev2').click(function(){
+		$('#gantt01').setPeriod('-7');
+		return false;
+	});
+	$('a.GNT_type_date').click(function(){
+		$('#gantt01').setType('date');
+		return false;
+	});
+	$('a.GNT_type_month').click(function(){
+		$('#gantt01').setType('month');
+		return false;
+	});
+});
+//-->
+</script>
+<style type="text/css">
+<!--
+#example01, #example02{
+	margin-bottom: 30px;
+}
+-->
+</style>
+<title>jquery.gantt examples</title>
+</head><div firebugversion="1.5.3" style="display: none;" id="_firebugConsole"></div><body>
+<div id="wrapper">
+<div id="head"><h1>jquery.gantt</h1>
+</div>
+<div id="download" class="divide">
+<h2>Download</h2>
+<strong>Version 0.3 [2010/05/10]</strong><br>
+Download: <a href="http://www.maro-z.com/examples/jquery.gantt/jquery.gantt.zip">jquery.gantt.zip</a><br>
+Download: <a href="http://www.maro-z.com/examples/jquery.gantt/jquery.gantt/jquery.gantt.js">jquery.gantt.js(Script Only)</a><br>
+require <a href="http://jquery.com/">jQuery</a> 1.2.6 or later</div>
+<div id="changelog" class="divide">
+<h2>ChangeLog</h2>
+<ul>
+<li><strong>Version 0.3 [2010.05.10]
+</strong>
+<div>selectable "Month" style.
+ (<strong>'YYYY/MM' </strong>or <strong>'January YYYY'</strong> or '<strong>Jan YYYY'</strong>) <br>
+selectable "Day of the week" style(Japanese or English)
+<div class="source">
+<p> <span class="text02"><strong>Line: 12-</strong></span><br>
+gnt.lang = 'j';<br>
+<span class="text01">/* <br>
+* j : Japanese<br>
+* e : english<br>
+*/</span><br>
+gnt.monthNameType = 1;<br>
+<span class="text01">/* <br>
+* 1 : YYYY/MM<br>
+* 2 : January YYYY<br>
+* 3 : Jan YYYY<br>
+*/</span></p>
+</div>
+<a href="http://www.maro-z.com/archives/190/comment-page-1#comment-25495">Helpful Matt's comment </a></div>
+</li>
+<li><strong>Version 0.2 [2009.01.19] 
+</strong>
+<div>Fixed some bugs.</div></li>
+<li><strong>Version 0.1 [2008.12.12]
+</strong>
+<div>Alpha release.</div></li>
+</ul>
+</div>
+<div id="example01" class="divide">
+<h2>Example</h2>
+<!--
+<a href="#" onClick="$('.gantt01').removeGantt();return false;">clear</a>
+<a href="#" onClick="$('.gantt01').writeGantt();return false;">write</a>
+-->
+<a href="#" class="GNT_prev">[&lt;&lt;]</a>
+<a href="#" class="GNT_prev2">[&lt;]</a>
+<a href="#" class="GNT_now">now</a>
+<a href="#" class="GNT_next2">[&gt;]</a>
+<a href="#" class="GNT_next">[&gt;&gt;]</a>
+ | 
+<a href="#" onclick="$('#gantt01').setType('date');;return false;">[Date]</a>
+/
+<a href="#" onclick="$('#gantt01').setType('month');;return false;">[Month]</a>
+<div class="gantt01" id="gantt01"><table class="GNT_tbl" border="0" cellpadding="0" cellspacing="0"><tbody><tr><th class="GNT_head">Task</th><th class="GNT_cal"><ul style="width: 420px;"><ul class="GNT_calList GNT_monthList"><li><div style="width: 252px;" class="GNT_month">2010/5</div><div style="width: 252px; background-position: -120px 0pt;" class="GNT_date GNT_date_j"></div></li><li><div style="width: 168px;" class="GNT_month">2010/6</div><div style="width: 168px; background-position: 0px 0pt;" class="GNT_date GNT_date_j"></div></li></ul><li style="background-position: -24px 0pt;" class="GNT_day GNT_day_j"></li></ul></th></tr><tr class="GNT_task"><td class="GNT_title">Task01</td><td style="background-position: -24px 0pt;" class="GNT_chart GNT_chart_date"><div style="left: 12px; width: 120px;" class="GNT_bar"><div class="GNT_bar_body">&nbsp;</div></div></td></tr><tr class="GNT_task"><td class="GNT_title">Task02</td><td style="background-position: -24px 0pt;" class="GNT_chart GNT_chart_date"><div style="left: 60px; width: 180px;" class="GNT_bar"><div class="GNT_bar_body">&nbsp;</div></div></td></tr><tr class="GNT_task"><td class="GNT_title">Task03</td><td style="background-position: -24px 0pt;" class="GNT_chart GNT_chart_date"><div style="left: 180px; width: 240px;" class="GNT_bar"><div class="GNT_bar_body">&nbsp;</div></div></td></tr></tbody></table></div>
+<h3>source</h3>
+<div class="source">
+<pre>&lt;html&gt;
+&lt;head&gt;
+&lt;link rel="stylesheet" type="text/css" href="jquery.gantt/jquery.gantt.css" /&gt;
+&lt;script language="javascript" type="text/javascript" src="jquery.js"&gt;&lt;/script&gt;<br>&lt;script language="javascript" type="text/javascript" src="jquery.gantt.js"&gt;&lt;/script&gt;<br>&lt;script language="javascript" type="text/javascript"&gt;<br>&lt;!--<br>$(function(){<br>	$("#<span class="text01">gantt01</span>").gantt({<br>		'tasks':[<br>			{ 'titles': 'Task01', 'start_date': '<span class="date01_s">20100512</span>', 'end_date': '<span class="date01_e">20100521</span>' },<br>			{ 'titles': 'Task02', 'start_date': '<span class="date02_s">20100516</span>', 'end_date': '<span class="date02_e">20100530</span>' },<br>			{ 'titles': 'Task03', 'start_date': '<span class="date03_s">20100526</span>', 'end_date': '<span class="date03_e">20100620</span>' }<br>		]<br>	});<br>});<br>//--&gt;<br>&lt;/script&gt;
+&lt;/head&gt;
+&lt;body&gt;
+&lt;div id="<span class="text01">gantt01</span>"&gt;&lt;/div&gt;
+&lt;/body&gt;
+&lt;/html&gt;</pre>
+</div>
+<h3>Manipulation</h3>
+<div class="source">
+<pre><span class="text02">// Add Task
+</span>$('<span class="text01">#gantt01</span>').addTask({ 'titles': 'Task04', 'start_date': '<span class="date04_s">20100529</span>', 'end_date': '<span class="date04_e">20100610</span>' }); <a href="#gantt01" onclick="example01()">[test]</a>
+$('<span class="text01">#gantt01</span>').addTask({
+	'titles': 'Task05',
+	'start_date': '<span class="date05_s">20100602</span>',
+	'end_date': '<span class="date05_e">20100615</span>',
+	'color': '#0000FF',
+	'text': 'Task05'
+}); <a href="#gantt01" onclick="example02()">[test]</a>
+
+<span class="text02">// Today</span><br>$('#<span class="text01">gantt01</span>').setPeriod(<span class="text03"></span>);
+
+<span class="text02">// Next Page</span><br>$('#<span class="text01">gantt01</span>').setPeriod(<span class="text03">'+'</span>);
+
+<span class="text02">// +7th</span><br>$('#<span class="text01">gantt01</span>').setPeriod(<span class="text03">'+7'</span>);
+
+<span class="text02">// Prev Page</span><br>$('#<span class="text01">gantt01</span>').setPeriod(<span class="text03">'-'</span>);
+
+<span class="text02">// -7th</span><br>$('#<span class="text01">gantt01</span>').setPeriod(<span class="text03">'-7'</span>);</pre>
+</div>
+<h3>Expansions</h3>
+<div id="gantt02" style="margin-bottom: 10px;"><table class="GNT_tbl" border="0" cellpadding="0" cellspacing="0"><tbody><tr><th class="GNT_head">title01</th><th class="GNT_head">title02</th><th class="GNT_cal"><ul style="width: 600px;"><ul class="GNT_calList GNT_yearList"><li><div style="width: 96px;" class="GNT_year">2010</div><div style="width: 96px; background-position: -48px 0pt;" class="GNT_date GNT_date_j"></div></li><li><div style="width: 144px;" class="GNT_year">2011</div><div style="width: 144px; background-position: 0px 0pt;" class="GNT_date GNT_date_j"></div></li><li><div style="width: 144px;" class="GNT_year">2012</div><div style="width: 144px; background-position: 0px 0pt;" class="GNT_date GNT_date_j"></div></li><li><div style="width: 144px;" class="GNT_year">2013</div><div style="width: 144px; background-position: 0px 0pt;" class="GNT_date GNT_date_j"></div></li><li><div style="width: 72px;" class="GNT_year">2014</div><div style="width: 72px; background-position: 0px 0pt;" class="GNT_date GNT_date_j"></div></li></ul></ul></th></tr><tr class="GNT_task"><td class="GNT_title">Task01</td><td class="GNT_title">hoge</td><td style="background-position: -24px 0pt;" class="GNT_chart GNT_chart_month"><div style="left: 36px; width: 288px;" class="GNT_bar"><div class="GNT_bar_body">&nbsp;</div></div></td></tr><tr class="GNT_task"><td class="GNT_title">Task02</td><td class="GNT_title">hoo</td><td style="background-position: -24px 0pt;" class="GNT_chart GNT_chart_month"><div style="left: 240px; width: 288px;" class="GNT_bar"><div class="GNT_bar_body">&nbsp;</div></div></td></tr></tbody></table></div>
+<div class="source">
+<pre>$("<span class="text01">#gantt02</span>").gantt({
+	'type': 'month'
+	'range': 50,
+	'titles': ['title01', 'title02']<br>	'tasks':[<br>		{ 'titles': [ 'Task01', 'hoge' ], 'start_date': '<span class="date06_s">20100819</span>', 'end_date': '<span class="date06_e">20120719</span>' },<br>		{ 'titles': [ 'Task02', 'hoo' ], 'start_date':'<span class="date07_s">20120101</span>, 'end_date': '<span class="date07_e">20131201</span> }<br>	]<br>});</pre>
+</div>
+
+</div>
+</div>
+</body></html>

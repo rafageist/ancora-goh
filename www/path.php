@@ -1,0 +1,3 @@
+<?php
+  $relative_path = "../";
+?>

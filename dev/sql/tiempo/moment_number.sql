@@ -1,0 +1,4 @@
+-- (60*24*60/100) = 864
+CREATE OR REPLACE FUNCTION tiempo.moment_number(fecha BIGINT, hora DOUBLE PRECISION) RETURNS DOUBLE PRECISION as
+    'SELECT ($1 - 1) * 864 + $2;'
+LANGUAGE 'sql';

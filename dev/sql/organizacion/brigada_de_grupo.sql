@@ -1,0 +1,6 @@
+DROP table IF EXISTS brigada_de_grupo CASCADE;
+CREATE TABLE brigada_de_grupo(
+    brigada VARCHAR NOT NULL REFERENCES brigada(id) ON DELETE CASCADE ON UPDATE CASCADE, 
+    grupo VARCHAR NOT NULL REFERENCES grupo(id) ON DELETE CASCADE ON UPDATE CASCADE, 
+    PRIMARY KEY (brigada,grupo)
+);

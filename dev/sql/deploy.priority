@@ -1,0 +1,283 @@
+# Ancora GOH, Generacion y Organizacion de Horarios
+# Objetos de la base de datos
+# formato:   tipo_objeto: paquete.archivo_sql -- comentario @ dependencia, dependencia, ....
+
+# Lenguaje procedural
+language: language.plpgsql @ Lenguage procedural PL/PgSQL @
+function: miscelanea.iif @ Simula el IIF de Visual Basic o el operador ? de C++ @
+function: miscelanea.crear_cadena_aleatoria @ Devuelve una cadena de caracteres alfanumericos aleatorios @
+function: miscelanea.crear_id_de_replica @ Crea una cadena de caracteres unica para una columna de una tabla @ crear_cadena_aleatoria
+function: miscelanea.bool_to_str @ Convierte un valor BOOLEAN a un VARCHAR donde 'TRUE' = TRUE y 'FALSE' = FALSE @
+function: miscelanea.bool_to_int @ Convierte un valor BOOLEAN a un INTEGER donde 1 = TRUE y 0 = FALSE @
+
+# Trabajo con matrices
+schema: matrix.matrix @ Trabajo con matrices @
+function: matrix.create_numeric_list @ Crea un arreglo unidimencional de numeros @
+function: matrix.create_numeric_matrix @ Crea un arreglo bidimensional de numeros @
+function: matrix.create_string_matrix @ Crea un arreglo bidimensional de cadenas @
+function: matrix.create_string_list @ Crea un arreglo unidimencional de cadenas @
+function: matrix.create_boolean_list @ Crea un arreglo unidimencional de booleanos @
+function: matrix.create_boolean_matrix @ Crea un arreglo bidimencional de booleanos @
+function: matrix.create_boolean_cube @ Crea un arreglo tridimensional de booleanos @
+function: matrix.get_length_of @ Obtiene la longitud de una de las dimensiones de un arreglo @
+function: matrix.set_matrix_in_cube @ Copia una matriz en una de las capas de un cubo @ matrix.get_length_of
+function: matrix.get_pos_of @ Obtiene la posicion de un elemento en un arreglo unidimensional @ matrix.get_length_of
+function: matrix.extract_boolean_column @ Extrae una columna de un matriz de booleanos @ matrix.get_length_of
+function: matrix.extract_numeric_column @ Extrae una columna de un matriz de numeros @ matrix.get_length_of
+function: matrix.extract_string_column @ Extrae una columna de un matriz de cadenas @ matrix.get_length_of
+function: matrix.get_count_of_dims @ Obtiene la cantidad de dimensiones de un arreglo @
+function: matrix.get_count_of_value_in @ Obtiene la cantidad de elementos en un arreglo igual a un elemento dado @ matrix.get_count_of_dims, matrix.get_length_of
+function: matrix.echo @ Muestra en contenido de un arreglo mediante mensajes RAISE NOTICE
+function: matrix.get_min_pos @ Obtiene la posicion del minimo en un arreglo unidimensional @ matrix.get_length_of
+function: matrix.get_max_pos @ Obtiene la posicion del maximo en un arreglo unidimensional @ matrix.get_length_of
+function: matrix.get_min @ Obtiene el minimo en un arreglo unidimensional @ matrix.get_max_pos
+function: matrix.get_max @ Obtiene el maximo en un arreglo unidimensional @ matrix.get_min_pos
+function: generador.get_max_colocation @ Dado un arreglo de posibles inicios de una actividad devuelve la mma cantidad de colocaciones posibles @ matrix.get_length_of
+
+# El metodo prioriza
+schema: prioriza.prioriza @ El Metodo Prioriza
+function: prioriza.nivelar @ Nivelar una columna de valores @ matrix.get_length_of, matrix.create_numeric_list
+function: prioriza.nivelar_matrix @ Nivelar una tabla de valores @ matrix.get_length_of, prioriza.nivelar
+
+# Funciones para el trabajo con el tiempo
+schema: tiempo.tiempo @ Funciones para el trabajo con el tiempo, fechas y horas @
+type: tiempo.ancora_date @ Tipo fecha de ancora @
+type: tiempo.ancora_hour @ Tipo hora de ancora @
+function: tiempo.countdays_of_month @ Devuelve la cantidad de dias de un mes @
+function: tiempo.current_hour_number @ Devuelve la hora actual como numero @ tiempo.hour_to_number
+function: tiempo.date_number_from_moment_number @ Devuelve la fecha como numero de un momento como numero @
+function: tiempo.day_number @ Devuelve el numero de un dia @ miscelanea.bool_to_int, tiempo.is_leap_year
+function: tiempo.date_to_number @ Convierte de fecha a numero @ tiempo.day_number, miscelanea.bool_to_int
+function: tiempo.hour_number_from_date_number @ Devuelve la hora a partir de un momento @
+function: tiempo.hour_to_number @ Convierte una hora en numero @
+function: tiempo.is_leap_year @ Saber si un a&ntilde;o es bisiesto @
+function: tiempo.moment_number @ Saber el numero de un momento @
+function: tiempo.moment_now @ Devuelve el numero de ahora @ tiempo.today_number, tiempo.current_hour_number, tiempo.moment_number
+function: tiempo.month_from_day_number @ Obtener el mes a partir del numero de un dia @ miscelanea.bool_to_int, @tiempo.is_leap_year
+function: tiempo.number_to_date @ Obtener la fecha de un numero @ tiempo.ancora_date, tiempo.date_to_number, tiempo.month_from_day_number, tiempo.day_number, tiempo.date_to_number, tiempo.countdays_of_month
+function: tiempo.number_to_hour @ Obtener la hora de un numero @ tiempo.ancora_hour
+function: tiempo.today_number @ Obtener el numero de hoy @ tiempo.date_to_number
+
+# Seguridad del sistema
+schema: seguridad.seguridad @ Cuestiones de seguridad, usuarios, roles, permisos @
+table: seguridad.rol @ Roles de usuarios @
+table: seguridad.usuario @ Usuarios @ miscelanea.crear_id_de_replica, tiempo.moment_now
+table: seguridad.rol_de_usuario @ Roles de los usuarios @ seguridad.rol, seguridad.usuario
+table: seguridad.permiso @ Permisos de los roles de usuario @ seguridad.rol
+function: seguridad.tiene_permiso @ Conocer si un usuario tiene permisos @ seguridad.permiso, seguridad.usuario, seguridad.rol_de_usuario
+table: seguridad.traza @ Trazas del sistema @ seguridad.usuario
+table: seguridad.host @ Seguridad por host @ seguridad.usuario
+function: seguridad.check_host @ Saber si un usuario puede autenticarse desde un host determinado @ seguridad.usurio, seguridad.host
+
+# Configuracion de tiempo
+table: tiempo.configuracion.planificacion @ Planificaciones @ miscelanea.crear_id_de_replica, seguridad.usuario
+table: tiempo.configuracion.periodo @ Periodos de tiempo @  miscelanea.crear_id_de_replica, tiempo.configuracion.planificacion
+table: tiempo.configuracion.receso @ Receso entre turnos @ tiempo.configuracion.periodo
+function: tiempo.configuracion.dame_planificacion_de_periodo @ Devuelve la planificacion de un periodo @ tiempo.configuracion.periodo
+table: tiempo.configuracion.periodicidad @ Periodicidades @ miscelanea.crear_id_de_replica, tiempo.configuracion.periodo
+
+# Actividades
+table: actividad.clasificacion_de_actividad @ Clasificaciones de actividades @ miscelanea.crear_id_de_replica, seguridad.usuario
+function: actividad.dame_creador_de_clasifact @ Obtener el creador de una clasificacion de actividad @ actividad.clasificacion_de_actividad
+table: organizacion.grupo @ Grupos por clasificacion de actividades @ actividad.clasificacion_de_actividad, miscelanea.crear_id_de_replica
+table: organizacion.especialidad @ Especialidades @ seguridad.usuario, miscelanea.crear_id_de_replica
+table: organizacion.nivel @ Niveles @ seguridad.usuario,miscelanea.crear_id_de_replica
+table: organizacion.brigada @ Brigadas de estudiantes @ organizacion.especialidad, organizacion.nivel, seguridad.usuario, miscelanea.crear_id_de_replica
+table: organizacion.brigada_de_grupo @ Brigadas que conforman los grupos por clasificacion de actividad @ organizacion.brigada, organizacion.grupo
+table: actividad.asignatura @ Asignaturas @ organizacion.especialidad, organizacion.nivel, seguridad.usuario, miscelanea.crear_id_de_replica
+table: actividad.desglose @ Desgloses de actividades por periodo @ miscelanea.crear_id_de_replica, actividad.asignatura, tiempo.configuracion.periodo
+table: actividad.plantilla_de_actividad @ Plantillas de actividades @ miscelanea.crear_id_de_replica, actividad.clasificacion_de_actividad, actividad.desglose
+function: actividad.dame_clasif_plantilla_de_actividad @ Obtener la clasificacion de una plantilla de actividad @ actividad.plantilla_de_actividad
+function: actividad.dame_duracion_clasif_de_actividad @ Conocer la duracion de una clasificacion de actividad @ actividad.clasificacion_de_actividad
+function: actividad.dame_duracion_plantilla_de_actividad @ Conocer la duracion de una plantilla de actividad @ actividad.dame_duracion_clasif_de_actividad, actividad.plantilla_de_actividad
+function: recurso.plantilla_exige_profesor @ Saber si una plantilla exige profesor @ actividad.plantilla_de_actividad
+function: recurso.plantilla_exige_lugar @ Saber si una plantilla exige lugar @ actividad.plantilla_de_actividad
+table: tiempo.zpriori.zpriori @ Zonas de prioridad para las clasificaciones de actividades @ actividad.clasificacion_de_actividad, tiempo.configuracion.periodo
+table: recurso.profesor @ Profesores @ miscelanea.crear_id_de_replica, seguridad.usuario
+table: recurso.lugar @ Lugares @ miscelanea.crear_id_de_replica, seguridad.usuario
+table: recurso.otro_recurso @ Otros recursos @ miscelanea.crear_id_de_replica, seguridad.usuario
+table: recurso.asignacion.otro_grupo_de_recursos_para_actividad @ Otro grupo de recursos para actividad @ miscelanea.crear_id_de_replica, seguridad.usuario, actividad.plantilla_de_actividad
+table: recurso.asignacion.otro_recurso_para_actividad @ Otro recurso para actividad @ recurso.asignacion.otro_grupo_de_recursos_para_actividad, recurso.otro_recurso
+table: actividad.actividad @ Actividades @ miscelanea.crear_id_de_replica, seguridad.usuario, actividad.plantilla_de_actividad, organizacion.grupo, recurso.profesor, recurso.lugar, seguridad.usuario
+table: actividad.otros_recursos_usados @ Otros recursos usados en actividades @ recurso.otro_recurso, actividad.actividad, seguridad.usuario
+table: recurso.asignacion.lugar_para_actividad @ Lugares para actividades @ actividad.plantilla_de_actividad, recurso.lugar
+table: recurso.asignacion.acceso_prohibido @ Acceso prohibido a lugares @ organizacion.grupo, recurso.lugar
+table: recurso.asignacion.lugar_fijo @ Lugares fijos para grupos @ organizacion.grupo, recurso.lugar
+table: recurso.asignacion.profesor_para_actividad @ Profesores asignados a actividades @ miscelanea.crear_id_de_replica, actividad.plantilla_de_actividad, recurso.profesor
+table: recurso.asignacion.profesor_para_grupo @ Profesores asignados a grupos @ recurso.asignacion.profesor_para_actividad, organizacion.grupo
+table: recurso.costo_de_traslado @ Costos de traslado entre lugares @ recurso.lugar  
+function: actividad.dame_periodo_desglose @ Obtener el periodo de un desglose @ actividad.desglose
+function: actividad.dame_periodo_plantilla_de_actividad @ Obtener el periodo de una plantilla de actividad @ actividad.dame_periodo_desglose, actividad.plantilla_de_actividad
+
+# Higiene educacional 
+table: actividad.higiene.higiene_para_profesor @ Configuracion de higiene educacional para el profesor @ tiempo.configuracion.periodo, recurso.profesor
+table: actividad.higiene.higiene_para_brigada @ Configuracion de higiene educacional para la brigada @ tiempo.configuracion.periodo, organizacion.brigada
+function: actividad.higiene.dame_gasto_de_plantilla @ Obtener el gasto de una plantilla de actividad @ actividad.dame_clasif_plantilla_de_actividad, actividad.clasificacion_de_actividad 
+function: actividad.higiene.es_higienico_brigada @ Saber si es higienico una nueva actividad para una brigada @ actividad.dame_periodo_plantilla_de_actividad, actividad.higiene.dame_gasto_de_plantilla, actividad.higiene.higiene_para_brigada
+function: actividad.higiene.es_higienico_profesor @ Saber si es higienico una nueva actividad para un profesor @ actividad.dame_periodo_plantilla_de_actividad, actividad.higiene.dame_gasto_de_plantilla, actividad.higiene.higiene_para_profesor
+
+function: tiempo.configuracion.dame_hora_inicial_turno @ Obtener la hora inicial de un turno @ tiempo.configuracion.periodo, tiempo.configuracion.receso
+
+
+
+# Restricciones
+
+function: tiempo.restriccion.herencia.check_hrt @ Chequear herencia de restricciones @ miscelanea.iif
+table: tiempo.restriccion.herencia.herencia_de_restricciones  @ Herencia de restricciones en tiempo @ miscelanea.crear_id_de_replica, tiempo.configuracion.planificacion, organizacion.brigada, recurso.profesor, recurso.lugar, recurso.otro_recurso, tiempo.restriccion.herencia.check_hrt  
+function: tiempo.restriccion.herencia.dame_tipo_hijo_hrt @ Obtener tipo de hijo en herencia de restricciones @ tiempo.restriccion.herencia.herencia_de_restricciones
+function: tiempo.restriccion.herencia.dame_tipo_padre_hrt @ Obtener tipo de padre en herencia de restricciones @ tiempo.restriccion.herencia.herencia_de_restricciones
+table: tiempo.restriccion.herencia.excepcion_de_hrt @ Excepciones de herencia de restricciones @  tiempo.restriccion.herencia.herencia_de_restricciones, tiempo.configuracion.periodo
+
+# Restricciones condicionales
+table: tiempo.restriccion.condicional.restriccion_condicional @ Restricciones condicionales @ miscelanea.crear_id_de_replica, tiempo.configuracion.planificacion, actividad.clasificacion_de_actividad, activida.asignatura, organizacion.brigada, recurso.profesor, recurso.lugar, recurso.otro_recurso, organizacion.especialidad, organizacion.nivel, tiempo.configuracion.periodo
+function: tiempo.restriccion.condicional.dame_tipo_consec_rest_cond @ Conocer tipo de consecuencia de restriccion condicional @ tiempo.restriccion.condicional.restriccion_condicional
+
+function: tiempo.configuracion.esta_dia_en_rango_planificacion @ Saber si un dia esta en el rango de una planificacion
+
+# Restricciones nominales
+table: tiempo.restriccion.nominal.restriccion_de_periodo @ Restricciones de periodo @ tiempo.configuracion.periodo
+table: tiempo.restriccion.nominal.restriccion_de_especialidad @ Restricciones de especialidad @ tiempo.configuracion.periodo, organizacion.especialidad
+table: tiempo.restriccion.nominal.restriccion_de_brigada @ Restricciones de brigada @ tiempo.configuracion.periodo, organizacion.brigada, actividad.actividad
+table: tiempo.restriccion.nominal.restriccion_de_asignatura @ Restricciones de asignatura @ tiempo.configuracion.periodo, actividad.asignatura
+table: tiempo.restriccion.nominal.restriccion_de_clasif_act @ Restricciones de clasificacion de actividad @ tiempo.configuracion.periodo, actividad.clasificacion_de_actividad
+table: tiempo.restriccion.nominal.restriccion_de_profesor @ Restricciones de profesor @ tiempo.configuracion.periodo, recurso.profesor, actividad.actividad
+table: tiempo.restriccion.nominal.restriccion_de_lugar @ Restricciones de lugar @ tiempo.configuracion.periodo, recurso.lugar, actividad.actividad
+table: tiempo.restriccion.nominal.restriccion_de_otro_recurso @ Restricciones de otro recurso @ tiempo.configuracion.periodo, recurso.otro_recurso, actividad.actividad
+
+# Restricciones reales
+
+table: tiempo.restriccion.real.restriccion_real @ Restricciones de lugar @
+function: tiempo.configuracion.dame_dia_real_planificacion @ Obtener dia real de una planificacion @ tiempo.configuracion.planificacion
+table: tiempo.restriccion.real.restriccion_real_de_periodo @ Restriccion real de periodo @ tiempo.restriccion.nominal.restriccion_de_periodo, tiempo.configuracion.periodicidad, tiempo.configuracion.periodo
+table: tiempo.restriccion.real.restriccion_real_de_asignatura @ Restriccion real de asignatura @ tiempo.restriccion.nominal.restriccion_de_asignatura, tiempo.configuracion.periodicidad, actividad.asignatura
+table: tiempo.restriccion.real.restriccion_real_de_brigada @ Restriccion real de brigada @ tiempo.restriccion.nominal.restriccion_de_brigada, tiempo.configuracion.periodicidad, organizacion.brigada
+table: tiempo.restriccion.real.restriccion_real_de_especialidad @ Restriccion real de especialidad @ tiempo.restriccion.nominal.restriccion_de_especialidad, tiempo.configuracion.periodicidad, organizacion.especialidad
+table: tiempo.restriccion.real.restriccion_real_de_profesor @ Restriccion real de profesor @ tiempo.restriccion.nominal.restriccion_de_profesor, tiempo.configuracion.periodicidad, recurso.profesor
+table: tiempo.restriccion.real.restriccion_real_de_lugar @ Restriccion real de lugar @ tiempo.restriccion.nominal.restriccion_de_lugar, tiempo.configuracion.periodicidad, recurso.lugar
+table: tiempo.restriccion.real.restriccion_real_de_otro_recurso @ Restriccion real de otro recurso @ tiempo.restriccion.nominal.restriccion_de_otro_recurso, tiempo.configuracion.periodicidad, recurso.otro_recurso
+table: tiempo.restriccion.real.restriccion_real_de_clasif_act @ Restriccion real de clasificacion de actividad @ tiempo.restriccion.nominal.restriccion_de_clasif_act, tiempo.configuracion.periodicidad, actividad.clasificacion_de_actividad
+
+# Restricciones por actividad
+table: tiempo.restriccion.nominal.restriccion_por_actividad @ Restriccion por actividad @ 
+table: tiempo.restriccion.nominal.restriccion_por_actividad_de_profesor @ Restriccion por actividad de profesor @ tiempo.restriccion.nominal.restriccion_de_profesor, actividad.actividad
+table: tiempo.restriccion.nominal.restriccion_por_actividad_de_lugar @ Restriccion por actividad de lugar @  tiempo.restriccion.nominal.restriccion_de_lugar, actividad.actividad
+table: tiempo.restriccion.nominal.restriccion_por_actividad_de_otro_recurso @ Restriccion por actividad de otro recurso @ tiempo.restriccion.nominal.restriccion_de_otro_recurso, actividad.actividad
+table: tiempo.restriccion.nominal.restriccion_por_actividad_de_brigada @ Restriccion por actividad de otro recurso @ tiempo.restriccion.nominal.restriccion_de_obrigada, actividad.actividad
+function: organizacion.dame_lista_id_brigadas_de_grupo @ Obtener la lista de id de las brigadas de un grupo @ organizacion.brigada_de_grupo, matrix.get_length_of, miscelanea.crea_id_de_replica, tiempo.restriccion.nominal.restriccion_de_brigada, tiempo.restriccion.nominal.restriccion_por_actividad_de_brigada, tiempo.restriccion.nominal.restriccion_de_profesor, tiempo.restriccion.nominal.restriccion_por_actividad_de_profesor, tiempo.restriccion.nominal.restriccion_de_lugar, tiempo.restriccion.nominal.restriccion_por_actividad_de_lugar 
+function: tiempo.restriccion.nominal.restringe_segun_actividad @ Restringir segun una actividad @ actividad.plantilla_de_actividad, organizacion.dame_lista_id_brigadas_de_grupo 
+function: tiempo.restriccion.nominal.restringe_por_uso_de_otro_recurso @ Restringir por uso de otros recursos @ actividad.actividad, actividad.plantilla_de_actividad, tiempo.restriccion.nominal.restriccion_de_otro_recurso, tiempo.restriccion.nominal.restriccion_por_actividad_de_otro_recurso
+function: tiempo.configuracion.dame_duracion_turno_periodo @ Obtener la duracion de los turnos de un periodo @ tiempo.configuracion.periodo
+function: tiempo.configuracion.turnos_se_solapan @ Saber si dos turnos de diferentes periodos se solapan @ tiempo.configuracion.dame_planificacion_de_periodo, tiempo.configuracion.dame_dia_real_planificacion, tiempo.configuracion.dame_hora_inicial_turno, tiempo.configuracion.dame_duracion_turno_periodo, tiempo.configuracion.periodicidad
+function: tiempo.configuracion.dias_se_solapan @ Saber si dos dias de diferentes periodos se solapan @ tiempo.configuracion.dame_planificacion_de_periodo, tiempo.configuracion.dame_dia_real_planificacion, tiempo.configuracion.periodicidad
+function: actividad.dame_asignatura_desglose @ Conocer la asignatura de un desglose @ actividad.desglose
+function: actividad.dame_asignatura_plantilla_de_actividad @ Conocer la asignatura de la plantilla de actividad @ actividad.dame_asignatura_desglose 
+function: actividad.dame_especialidad_de_asignatura @ Conocer la especialidad de una asignatura @ actividad.asignatura
+function: actividad.dame_nivel_de_asignatura @ Conocer el nivel de una asignatura @ actividad.asignatura
+function: tiempo.restriccion.condicional.ocurre_causa_rest_cond @ Saber si ocurre la causa de una restriccion condicional a partir de la consecuencia @ tiempo.configuracion.dame_periodo_plantilla_de_actividad, actividad.dame_clasif_plantilla_de_actividad, actividad.dame_asignatura_plantilla_de_actividad, matrix.get_pos_of, organizacion.dame_lista_id_brigadas_de_grupo, actividad.dame_especialidad_de_asignatura, actividad.dame_nivel_de_asignatura, actividad.otros_recursos_usados, tiempo.configuracion.dame_hora_inicial_turno, tiempo.configuracion.dame_duracion_turno_periodo, tiempo.configuracion.periodicidad, tiempo.configuracion.dame_dia_real_planificacion, tiempo.restriccion.real.restriccion_real, tiempo.restriccion.condicional.restriccion_condicional, tiempo.moment_number
+
+function: tiempo.restriccion.nominal.dame_idobjeto_de_restriccion_de_periodo @ Conocer el periodo de una restriccion de periodo @ tiempo.restriccion.nominal.restriccion_de_periodo
+function: tiempo.restriccion.nominal.dame_idobjeto_de_restriccion_de_especialidad @ Conocer la especialidad de una restriccion de especialidad @ tiempo.restriccion.nominal.restriccion_de_especialidad
+function: tiempo.restriccion.nominal.dame_idobjeto_de_restriccion_de_brigada @ Conocer la brigada de una restriccion de brigada @ tiempo.restriccion.nominal.restriccion_de_brigada
+
+
+function: tiempo.restriccion.valor_restriccion_generica
+function: tiempo.restriccion.condicional.valor_restriccion_condicional
+function: tiempo.restriccion.valor_restriccion_periodo
+function: tiempo.restriccion.valor_restriccion_asignatura
+function: tiempo.restriccion.valor_restriccion_brigada
+function: tiempo.restriccion.valor_restriccion_clasif_act
+function: tiempo.restriccion.valor_restriccion_especialidad
+function: tiempo.restriccion.valor_restriccion_lugar
+function: tiempo.restriccion.valor_restriccion_profesor
+function: tiempo.zpriori.valor_zpriori
+function: actividad.dame_duracion_actividad
+function: tiempo.configuracion.dame_creador_de_planificacion
+function: actividad.dame_max_priori_clasif_act
+function: actividad.dame_cant_act
+function: actividad.dame_asig_segun_esp_anno_per
+view: actividad.asignaturas_cant_act
+function: actividad.max_cant_act
+view: recurso.uso_de_otros_recursos
+function: recurso.dame_uso_de_otro_recurso
+function: actividad.dame_asig_segun_esp_anno
+function: actividad.dame_cant_asig_de_esp_anno
+function: actividad.dame_clasif_de_asignaturas
+function: actividad.dame_cant_clasif
+function: actividad.dame_lista_id_clasif
+function: recurso.asignacion.dame_cant_profes_asignados
+function: actividad.dame_id_plantilla
+function: tiempo.configuracion.dame_cant_dias
+function: tiempo.configuracion.dame_cant_turnos
+function: recurso.asignacion.existe_grupo_de_profesor
+function: recurso.asignacion.dame_lista_id_profes_asignados_al_grupo
+function: recurso.asignacion.dame_lista_id_profes_asignados
+function: recurso.asignacion.dame_cant_lugares_asignados
+function: recurso.asignacion.dame_lista_id_lugares_asignados
+function: recurso.asignacion.dame_lista_id_grupos_de_recursos_asignados
+function: recurso.asignacion.dame_lista_id_otros_recursos_asignados
+function: recurso.asignacion.dame_cant_grupos_de_recursos_asignados
+function: recurso.asignacion.dame_cant_otros_recursos_asignados
+function: recurso.asignacion.dame_lista_id_brigadas_de_esp
+function: generador.posible_inicio
+function: tiempo.restriccion.dame_cant_rest_asignatura
+function: tiempo.restriccion.dame_cant_rest_profe
+function: recurso.asignacion.dame_cant_otros_recursos_imprescindibles
+function: recurso.asignacion.dame_total_otros_recursos_asignados
+function: recurso.asignacion.dame_cant_accesos_prohibidos_al_grupo
+function: organizacion.dame_especialidad_de_brigada
+function: organizacion.dame_nivel_de_brigada
+function: organizacion.dame_clasificacion_de_grupo
+function: organizacion.dame_grupos
+function: organizacion.dame_matricula
+function: organizacion.dame_matricula_total
+function: recurso.dame_capacidad
+function: generador.quita_segun_prohibidos
+function: generador.quita_segun_capacidad
+function: recurso.asignacion.es_lugar_prohibido
+function: organizacion.dame_grupos_de_brigadas
+function: organizacion.dame_grupo
+function: generador.and_mpi
+function: generador.TRango
+function: generador.rango
+function: tiempo.zpriori.dame_zpriori
+function: actividad.dame_desglose_de_plantilla
+function: generador.dia_minimo_impacto
+function: generador.lugar_permanece_en
+function: generador.extraer_lugares_que_no_permanecen
+function: generador.dame_lugares_utilizados_en_el_dia
+function: generador.dame_gasto_lugares_en_el_dia
+function: generador.busca_lugar_mas_utilizado_por
+function: generador.busca_lugar_menos_utilizado_por
+function: generador.busca_lugar_menos_costoso
+function: generador.dame_lugares_usados_alrededor_de
+function: generador.dame_costo_trasladar_recurso
+function: generador.agrega_actividad
+function: tiempo.restriccion.valor_rest_entre_config_distintas
+function: generador.generar
+
+function: actividad.dame_max_orden_act @ Devuelve el orden maximo de las actividades de un desglose @ actividad.plantilla_de_actividad
+
+trigger: disparadores.nuevo_desglose_cuando_nuevo_periodo @ Crea los desgloses correspondientes para asignaturas, cuando se inserta nuevo periodo @ tiempo.configuracion.periodo, actividad.asignatura, actividad.desglose
+trigger: disparadores.nuevo_desglose_cuando_nueva_asignatura @ Crea los desgloses correspondientes para una asignatura nueva @  tiempo.configuracion.periodo, actividad.asignatura, actividad.desglose
+
+function: actividad.dame_cant_act_desglose @ Devuelve la cantidad de actividades de un desglose @ actividad.desglose, actividad.plantilla_de_actividad
+
+function: actividad.actualiza_orden_plantillas @ Actualiza el orden de las plantillas de actividades @ actividad.dame_cant_act_desglose, matrix.create_string_list,  actividad.plantilla_de_actividad
+
+trigger: disparadores.actualiza_orden_act_after_delete
+trigger: disparadores.actualiza_orden_act_after_insert
+trigger: disparadores.actualiza_orden_act_after_update
+trigger: disparadores.actualiza_orden_act_before_insert
+trigger: disparadores.actualiza_orden_act_before_update
+
+function: actividad.baja_orden_de_plantilla @ Sube de posicion a una plantilla @ actividad.actualiza_orden_plantillas, actividad.plantilla_de_actividad
+function: actividad.sube_orden_de_plantilla @ Baja de posicion a una plantilla @ actividad.actualiza_orden_plantillas, actividad.plantilla_de_actividad
+
+function: tiempo.restriccion.real.actualiza_restriccion_real @ Actualizar restriccion real @ tiempo.configuracion.periodo, tiempo.configuracion.planificacion, tiempo.configuracion.dame_dia_real_planificacion, tiempo.configuracion.dame_hora_inicial_turno, tiempo.configuracion.periodicidad, tiempo.restriccion.real.restriccion_real_de_*
+
+function: organizacion.dame_brigadas_sin_grupo
+function: organizacion.dame_nivel_de_grupo
+function: organizacion.dame_brigadas_de_grupo
+function: organizacion.mueve_o_crea_brigada_de_grupo
+
+data: datos.datos_por_defecto @ Datos por defecto @ seguridad.rol, seguridad.usuario, seguridad.rol_de_usuario, seguridad.permiso

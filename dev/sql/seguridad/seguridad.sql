@@ -1,0 +1,2 @@
+DROP SCHEMA IF EXISTS seguridad CASCADE;
+CREATE SCHEMA seguridad;

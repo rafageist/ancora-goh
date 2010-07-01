@@ -1,0 +1,34 @@
+{
+	id: "profesor",
+	php_flags: ["for_new"],
+	fields: [
+		{
+			id: "id",
+			type: "hidden",
+			caption: "",
+			description: ""
+		},
+		{
+			id: "nombre",
+			type: "text",
+			caption: "Nombre",
+			description: "Nombre y apellidos del profesor"
+		}
+	],
+	confirmation_delete: true,
+	buttons: [
+		{
+			caption: "Aceptar",
+			onclick: [
+			    {
+					flag: "for_new",
+					value: "true",
+					quotes: false,
+					execute: "ancoragoh.client.forms.profesor.event.agregar();",
+					execute_else: "ancoragoh.client.forms.profesor.event.modificar();"
+				},			
+			],
+		}
+	]
+
+}
