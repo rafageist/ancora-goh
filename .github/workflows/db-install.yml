@@ -1,0 +1,66 @@
+# Fresh PostgreSQL install from dev/sql/ sources (issue #9).
+# Uses a throwaway, socket-only cluster created inside the job
+# (dev/sql/tools/with-ephemeral-pg.sh): no service container, no TCP listener,
+# no historical dump, no credentials.
+name: PostgreSQL fresh install
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  install:
+    name: install from sources (PostgreSQL ${{ matrix.pg }})
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        pg: ['16']
+    env:
+      PG_BINDIR: /usr/lib/postgresql/${{ matrix.pg }}/bin
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          coverage: none
+          tools: none
+
+      - name: PostgreSQL ${{ matrix.pg }} server binaries
+        run: |
+          if [ ! -x "$PG_BINDIR/initdb" ]; then
+            sudo apt-get update -q
+            sudo apt-get install -y -q "postgresql-${{ matrix.pg }}"
+          fi
+          sudo systemctl stop postgresql || true
+          "$PG_BINDIR/postgres" --version
+
+      - name: Bundler self-test (strict dependencies, determinism)
+        run: dev/sql/tools/test-bundler.sh
+
+      - name: Build bundle artifact
+        run: |
+          php dev/sql/compilasql.php --out result.sql
+          php dev/sql/compilasql.php --with-data --out result-with-data.sql
+          sha256sum result.sql result-with-data.sql
+
+      - name: Compile every source, install, smoke check
+        run: |
+          dev/sql/tools/with-ephemeral-pg.sh bash -euo pipefail -c '
+            dev/sql/tools/check-sources.sh
+            dev/sql/install.sh agoh
+            dev/sql/tools/smoke-check.sh agoh
+            dev/sql/install.sh --with-data agoh_data
+            dev/sql/tools/test-installer.sh
+          '
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ancoragoh-sql-bundle-pg${{ matrix.pg }}
+          path: |
+            result.sql
+            result-with-data.sql

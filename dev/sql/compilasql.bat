@@ -1,1 +1,1 @@
-php .\compilasql.php
+php .\compilasql.php --out .\result.sql %*
