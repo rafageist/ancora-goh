@@ -1,0 +1,5 @@
+# LBR retirement records (issue #38). One row per baseline file, or per baseline directory ("dir/").
+# Only status "verified" lowers C; it needs all columns, the PR and merged commit, and the old file must be gone
+# from HEAD (path and content). Rename, move, formatting or wrapping is never a retirement.
+#
+# id	path	status	responsibility	replacement	evidence	pr	commit	reviewed_by
