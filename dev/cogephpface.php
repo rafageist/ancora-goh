@@ -366,7 +366,15 @@ TPL
             fputs($file_event, '   $obj = $col->getItem('.$pllaves.');'."\n");
                 
             foreach ($tabla->fields as $campo){
-                if ($campo->type != 'replica'){
+                if ($campo->type == 'md5'){
+                    // #14: password fields change only when a new value was posted;
+                    // the "null" placeholder must not become a password (it is hashed)
+                    $post = '$_POST["field_'.$classname."_".$campo->name.'"]';
+                    fputs($file_event, "// #14: only change the password when a new one was posted; the \"null\"\n");
+                    fputs($file_event, "// placeholder above must not become a password (it is hashed now)\n");
+                    fputs($file_event, 'if (isset('.$post.') && is_string('.$post.') && '.$post.' !== \'\') $obj->set'.capitalLetter($campo->name).'($'.$campo->name.');'."\n");
+                }
+                else if ($campo->type != 'replica'){
                     fputs($file_event, '$obj->set'.capitalLetter($campo->name).'($'.$campo->name.');'."\n");
                 }
             }
