@@ -26,6 +26,8 @@
 # Exit status is non-zero on any FAIL, XPASS or XWRONG.
 set -uo pipefail
 here=$(cd "$(dirname "$0")" && pwd)
+. "$here/../tools/disposable-guard.sh"
+agoh_require_disposable || exit 3
 work=$(mktemp -d "${TMPDIR:-/tmp}/agoh-tests.XXXXXX")
 tpl="agoh_test_tpl_$$"
 cleanup() { dropdb --if-exists "$tpl" >/dev/null 2>&1; rm -rf "$work"; }

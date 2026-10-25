@@ -11,6 +11,8 @@ set -euo pipefail
 all=0; [ "${1:-}" = --all ] && { all=1; shift; }
 ref=$1; cand=$2
 here=$(cd "$(dirname "$0")" && pwd)
+. "$here/disposable-guard.sh"
+agoh_require_disposable || exit 3
 work=$(mktemp -d "${TMPDIR:-/tmp}/agoh-cmp.XXXXXX"); trap 'rm -rf "$work"' EXIT
 for side in ref cand; do
   db=${!side}

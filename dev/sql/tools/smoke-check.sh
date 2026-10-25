@@ -11,6 +11,8 @@
 # Exit status non-zero on any mismatch.
 set -euo pipefail
 here=$(cd "$(dirname "$0")" && pwd)
+. "$here/disposable-guard.sh"
+agoh_require_disposable || exit 3
 update=0; [ "${1:-}" = --update ] && { update=1; shift; }
 db=$1
 expected=$here/expected-objects.tsv
