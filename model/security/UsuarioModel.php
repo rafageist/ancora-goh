@@ -31,7 +31,7 @@
              $replicas = array();
              $id = getReplica("seguridad.usuario");
              $replicas["id"] = $id;
-             $r = $this->getAnything("INSERT INTO seguridad.usuario (id,nombre,info,correo,momento_ingreso,nick,contrasena) VALUES ('$id',".("'".$nombre."'").",".("'".$info."'").",".("'".$correo."'").",".($momento_ingreso).",".("'".$nick."'").",'".md5($contrasena)."');"); 
+             $r = $this->getAnything("INSERT INTO seguridad.usuario (id,nombre,info,correo,momento_ingreso,nick,contrasena) VALUES ('$id',".("'".$nombre."'").",".("'".$info."'").",".("'".$correo."'").",".($momento_ingreso).",".("'".$nick."'").",'".PasswordUtil::hash($contrasena)."');"); 
              return $replicas; 
             }
           /** 

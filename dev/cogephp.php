@@ -313,8 +313,8 @@ include "cogephp.common.php";
 			if ($campo->type=='replica')
 			fputs($file_model,'\'$'.$campo->name.'\'');
 			else{
-				if ($campo->type=='md5')
-				fputs($file_model,"'".'".md5($'.$campo->name.')."'."'");
+				if ($campo->type=='md5') // #14: password_hash() via PasswordUtil, no longer unsalted md5()
+				fputs($file_model,"'".'".PasswordUtil::hash($'.$campo->name.')."'."'");
 				else {
 					// #13: this used to emit (name==null?'null':...) with a bare
 					// constant `name`, always false on PHP 5/7 and an Error on
@@ -826,6 +826,8 @@ include "cogephp.common.php";
 				fputComentario($ficheroclass,"set".capitalLetter($campo->name),'Set value of property "'.capitalLetter($campo->name).'"',array());
 
 				fputs($ficheroclass, "       public function set".capitalLetter($campo->name).'($value){'." \n");
+				if ($campo->type=='md5') // #14: store password_hash(), never the plain value
+					fputs($ficheroclass, '              if (!is_string($value) || $value === \'\') return false; '."\n".'              $value = PasswordUtil::hash($value); '."\n");
 				fputs($ficheroclass, '              $this->'.$campo->name.' = $value; '."\n");
 
 				if ($campo->type=='bool' || $campo->type=='boolean') {

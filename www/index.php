@@ -1,5 +1,7 @@
 <?php
-   session_start();
+   // #14: strict mode, HttpOnly/SameSite cookies (see SessionUtil)
+   include_once "../lib/basic/security/SessionUtil.php";
+   SessionUtil::start();
    
    if (file_exists("path.php")) include "path.php";
    
@@ -12,6 +14,7 @@
    
    // Main imports
    import("lib.basic.file.PropertiesFile");
+   import("lib.basic.security.PasswordUtil");
    import("lib.enterprise.gendb.PostgresDatabaseImpl");
    import("lib.basic.string.StringUtils");
    import("lib.basic.php.PHPUtils");
