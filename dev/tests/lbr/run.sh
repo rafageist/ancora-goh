@@ -3,8 +3,10 @@
 #
 # Works in a throwaway clone (the working tree is never written):
 # - every frozen set reproduces; tampering with a baseline or its rules is detected;
-# - a retirement is credited only when it is verified, merged, and the old file is
-#   gone from HEAD by path, by relocated path and by content;
+# - a retirement is credited only when it is verified, merged, has evidence and a
+#   reviewer, and the old file is gone from the ACTIVE tree by path, relocated path
+#   and content; an archival copy under legacy/ (dev/lbr/archive.json) may remain if
+#   no active file references it, its original path or its directories;
 # - deleting, moving or relocating a file without a record credits nothing;
 # - an unfrozen set reports no metric and accepts no records; sets are never combined.
 set -uo pipefail
@@ -71,18 +73,51 @@ rec() { printf '%s\n' "$1" >> $sd/retirements.tsv; }
 reset_rec() { git checkout -q -- $sd/retirements.tsv; }
 C0=$(json C)
 
-# relocation (as in the move into legacy/, #68): still counted, not missing, not retirable
-mkdir -p "legacy/$(dirname "$victim")" && git mv "$victim" "legacy/$victim"
-printf '%s\tlegacy/%s\n' "$(dirname "$victim")/" "$(dirname "$victim")/" > dev/lbr/relocations.tsv
-git add -A && git commit -qm "relocate"
-[ "$(json C)" = "$C0" ] && ok "a relocated file stays in C" || bad "relocation credited"
-[ "$(json relocated_files)" -ge 1 ] && ok "relocated files are reported" || bad "relocated files not reported"
-if lbr report --set=$S | grep -qF -- "- \`$victim\`"; then bad "a relocated file is reported missing"; else ok "a relocated file is not reported missing"; fi
-echo "// edited after the move" >> "legacy/$victim"; git commit -qam "edit relocated"
+# ---- archive (#66, #68): the whole legacy app moves into legacy/, as #68 will do
+dirs="control lib model view www bin"
+mkdir -p legacy
+: > dev/lbr/relocations.tsv
+for d in $dirs; do git mv "$d" "legacy/$d"; printf '%s/\tlegacy/%s/\n' "$d" "$d" >> dev/lbr/relocations.tsv; done
+git add -A && git commit -qm "move into legacy/"
+arch="legacy/$victim"
+[ "$(json C)" = "$C0" ] && ok "(a) move only: 0 bytes retired" || bad "(a) the move was credited"
+[ "$(json relocated_files)" -ge 1 ] && ok "(a) relocated files are reported" || bad "(a) relocated files not reported"
+if lbr report --set=$S | grep -qF -- "- \`$victim\`"; then bad "(a) a relocated file is reported missing"; else ok "(a) a relocated file is not reported missing"; fi
 head=$(git rev-parse HEAD)
-rec "LBR-001	$victim	verified	responsibility	eliminated: test	unit tests	#1	$head	maint"
-expect "a retirement of a file still present at its relocated path is rejected" 1 lbr check --set=$S; reset_rec
-git rm -q "legacy/$victim" && git rm -q dev/lbr/relocations.tsv && git commit -qm "really remove"
+good="LBR-001	$victim	verified	desktop window replaced by a Drupal module	modern/ancora module X	functional test FooTest	#1	$head	maint"
+rec "$good"
+expect "(b) archived, inactive, complete record: verified retirement accepted" 0 lbr check --set=$S
+[ "$(json C)" = "$((C0 - vbytes))" ] && ok "(b) C drops by exactly the retired bytes ($vbytes) while the archive copy stays" || bad "(b) C=$(json C), expected $((C0 - vbytes))"
+reset_rec
+rec "LBR-001	$victim	verified	r	modern X	-	#1	$head	maint"
+expect "(c) archived copy without test evidence is blocked" 1 lbr check --set=$S; reset_rec
+rec "LBR-001	$victim	verified	r	modern X	tests	#1	$head	-"
+expect "(c) archived copy without a reviewer is blocked" 1 lbr check --set=$S; reset_rec
+mkdir -p modern
+for needle in "$arch" "$victim" "$(dirname "$arch")"; do
+  printf 'run %s\n' "$needle" > modern/uses-legacy.txt; git add -A && git commit -qm "active reference" -q
+  rec "$good"
+  expect "(c) blocked while an active file references '$needle'" 1 lbr check --set=$S
+  reset_rec; git rm -q modern/uses-legacy.txt && git commit -qm "drop reference"
+done
+printf 'excluded: %s\n' "$arch" > docs/archive-note.md; git add -A && git commit -qm "doc mention"
+rec "$good"
+expect "(b) a mention in exempt documentation does not block" 0 lbr check --set=$S
+reset_rec; git rm -q docs/archive-note.md && git commit -qm "drop doc"
+git show "eca8aa7:$victim" > copy-outside.txt && git add copy-outside.txt && git commit -qm "copy outside archive"
+rec "$good"
+expect "(c) blocked while an identical copy exists outside the archive" 1 lbr check --set=$S
+reset_rec; git rm -q copy-outside.txt && git commit -qm "drop copy"
+# relocation into a non-archive directory is never retirable
+d=${victim%%/*}
+git mv "legacy/$d" "other-$d" && sed -i "s#^$d/\tlegacy/$d/#$d/\tother-$d/#" dev/lbr/relocations.tsv && git add -A && git commit -qm "move outside archive"
+rec "LBR-001	$victim	verified	r	modern X	tests	#1	$(git rev-parse HEAD)	maint"
+expect "(c) a file relocated outside the archive is blocked" 1 lbr check --set=$S
+reset_rec
+# back to the original layout for the remaining cases
+git mv "other-$d" "$d" && for x in $dirs; do [ -d "legacy/$x" ] && git mv "legacy/$x" "$x"; done
+git rm -q dev/lbr/relocations.tsv && git add -A && git commit -qm "restore layout"
+git rm -q "$victim" && git commit -qm "really remove"
 
 # deletion without a record: nothing credited, reported as missing
 [ "$(json C)" = "$C0" ] && ok "a deletion without a record credits nothing" || bad "deletion credited"

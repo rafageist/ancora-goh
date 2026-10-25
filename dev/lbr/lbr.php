@@ -25,7 +25,10 @@
  * Only a "verified" record lowers C. Deleting, moving or renaming a baseline
  * file retires nothing. dev/lbr/relocations.tsv maps moved directories (for
  * example the move into legacy/, #68) so a relocated file is still found at
- * HEAD and still counted. Everything is read from git objects.
+ * HEAD and still counted. A verified record may retire a file whose only
+ * remaining copy is under an archive prefix (dev/lbr/archive.json), provided
+ * no active file references the archived copy, its original path or its
+ * directories. Everything is read from git objects.
  * Exit status: 0 ok, 1 validation failure, 2 usage error.
  */
 
@@ -258,6 +261,82 @@ function relocations(string $dir): array
     return $map;
 }
 
+/** @return array{prefixes: list<string>, exempt: list<string>} */
+function archiveConfig(string $dir): array
+{
+    $file = "$dir/archive.json";
+    if (!is_file($file)) {
+        return ['prefixes' => [], 'exempt' => []];
+    }
+    $c = json_decode((string) file_get_contents($file), true);
+    if (!is_array($c) || !is_array($c['archive_prefixes'] ?? null)) {
+        fail('archive.json: archive_prefixes must be a list');
+    }
+    foreach ($c['archive_prefixes'] as $a) {
+        if (!is_string($a) || !preg_match('#^[A-Za-z0-9._-]+/$#', $a)) {
+            fail("archive.json: invalid archive prefix '$a' (top-level directory ending in /)");
+        }
+    }
+    return ['prefixes' => $c['archive_prefixes'], 'exempt' => array_values($c['reference_scan_exempt'] ?? [])];
+}
+
+function inArchive(string $path, array $archive): bool
+{
+    foreach ($archive['prefixes'] as $a) {
+        if (str_starts_with($path, $a)) {
+            return true;
+        }
+    }
+    return false;
+}
+
+/**
+ * Strings whose presence in an active file means the archived file is still
+ * used: its archived path and its original path, plus the archived parent
+ * directories below the second level (a runner may load a whole directory).
+ * @return list<string>
+ */
+function referenceNeedles(string $original, string $archived): array
+{
+    $needles = [$archived, $original];
+    $parts = explode('/', $archived);
+    for ($n = count($parts) - 1; $n >= 3; $n--) {
+        $needles[] = implode('/', array_slice($parts, 0, $n));
+    }
+    return array_values(array_unique($needles));
+}
+
+/**
+ * Active files (outside the archive and the exempt paths) that mention any
+ * needle. The scan reads blob contents from git, so it matches what is
+ * committed. @return list<string> "file: needle"
+ */
+function activeReferences(string $repo, array $head, array $archive, array $needles): array
+{
+    static $cache = [];
+    $hits = [];
+    foreach ($head as $path => $e) {
+        if (inArchive($path, $archive)) {
+            continue;
+        }
+        foreach ($archive['exempt'] as $x) {
+            if ($path === $x || (str_ends_with($x, '/') && str_starts_with($path, $x))) {
+                continue 2;
+            }
+        }
+        if ($e['bytes'] > 2000000) {
+            continue;
+        }
+        $cache[$e['blob']] ??= (string) shell_exec('git -C ' . escapeshellarg($repo) . ' cat-file blob ' . escapeshellarg($e['blob']));
+        foreach ($needles as $n) {
+            if (strpos($cache[$e['blob']], $n) !== false) {
+                $hits[] = "$path: $n";
+            }
+        }
+    }
+    return $hits;
+}
+
 /** Where a baseline path may be at HEAD: itself and every relocation of it. @return list<string> */
 function locations(string $path, array $map): array
 {
@@ -283,6 +362,7 @@ function checkRetirements(string $repo, string $dir, array $set, array $baseline
 {
     $files = $baseline['files'];
     $map = relocations($dir);
+    $archive = archiveConfig($dir);
     $headBlobs = [];
     foreach ($head as $p => $e) {
         $headBlobs[$e['blob']][] = $p;
@@ -331,13 +411,26 @@ function checkRetirements(string $repo, string $dir, array $set, array $baseline
             $errors[] = "$at: commit '{$r['commit']}' is not an ancestor of HEAD";
         }
         foreach ($paths as $p) {
+            $archived = [];
             foreach (locations($p, $map) as $loc) {
-                if (isset($head[$loc])) {
-                    $errors[] = "$at: $p is still present at HEAD" . ($loc === $p ? '' : " as $loc (relocated)") . '; the old implementation must be gone';
+                if (!isset($head[$loc])) {
+                    continue;
+                }
+                if (inArchive($loc, $archive)) {
+                    $archived[] = $loc; // archival copy: allowed if nothing active uses it
+                } else {
+                    $errors[] = "$at: $p is still present at HEAD" . ($loc === $p ? '' : " as $loc (relocated outside the archive)") . '; the active implementation must be gone';
                 }
             }
-            if (isset($headBlobs[$files[$p]['blob']])) {
-                $errors[] = "$at: the content of $p still exists at HEAD as " . implode(', ', $headBlobs[$files[$p]['blob']]) . ' (a move is not a retirement)';
+            $copies = array_filter($headBlobs[$files[$p]['blob']] ?? [], fn ($c) => !inArchive($c, $archive));
+            if ($copies !== []) {
+                $errors[] = "$at: the content of $p still exists outside the archive as " . implode(', ', $copies) . ' (a move or copy is not a retirement)';
+            }
+            foreach ($archived as $loc) {
+                $refs = activeReferences($repo, $head, $archive, referenceNeedles($p, $loc));
+                if ($refs !== []) {
+                    $errors[] = "$at: the archived copy $loc is still referenced by active files: " . implode('; ', array_slice($refs, 0, 5));
+                }
             }
             $retired[$p] = $r['id'];
         }

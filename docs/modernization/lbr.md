@@ -9,13 +9,20 @@ After the Drupal decision (#66) the tool measures **named sets**, each with its 
 | Set | Scope | Status |
 | --- | --- | --- |
 | `historic-2010` | First-party legacy source that already existed in the July 2010 import, measured at `eca8aa7`. It is a **historical comparator** (§1–§2 below). | frozen: B = 854,831 bytes, 572 files |
-| `pre-drupal-cut` | **Comprehensive** cut (#67): every maintained first-party implementation file existing at the transition commit, including the 2026 recovery work (tests, tooling, Docker, CI, codegen), before the move into `legacy/` (#68). Excluded, with recorded reasons: the Drupal target `modern/`, docs, archival dumps, derived and generated outputs, third-party code. | **frozen at `f532e91`** (merge of PR #80, the last in-flight PR), revision 1, as a **proposal**: maintainer approval is required before #68 |
+| `pre-drupal-cut` | **Comprehensive source-code cut** (#67): every maintained first-party implementation file at the transition commit, including the 2026 recovery work (tests, tooling, Docker, CI, codegen), before the move into `legacy/` (#68). Excluded, each with a recorded reason: `modern/`, docs, archival dumps, derived and generated outputs, third-party code, **binary UI images**. | frozen at `f532e91`, **revision 2**, a proposal awaiting the maintainer's explicit approval of the cut |
+| `pre-drupal-cut-ui-assets` | The binary UI images at the same commit (`www/images/**`), measured separately and **never combined** with the source-code set (#67 review) | frozen at `f532e91`, revision 1 |
 
-Frozen `pre-drupal-cut` at `f532e91`: **B = 4,795,406 bytes in 843 files**. C = B; retired 0. The cut commit was chosen as the merge of the last in-flight PR (#80, Divengine Codegen). The standalone portal (PR #78) is a draft outside `master`, so it is not part of the cut.
+Revision history of `pre-drupal-cut`:
+- **revision 1** (not approved): B = 4,795,406 bytes / 843 files, images included.
+- **revision 2**: per the maintainer's review on #67, the images move to their own set.
 
-| Stream | Files | Bytes |
+| Set at `f532e91` | Files | B (bytes) |
 | --- | ---: | ---: |
-| legacy-ui-assets (first-party images) | 117 | 3,445,826 |
+| **pre-drupal-cut (source code), revision 2** | **726** | **1,349,580** |
+| pre-drupal-cut-ui-assets | 117 | 3,445,826 |
+
+| `pre-drupal-cut` stream | Files | Bytes |
+| --- | ---: | ---: |
 | legacy-ui | 145 | 299,395 |
 | codegen (cogePHP + Divengine Codegen at the cut) | 70 | 249,378 |
 | sql-domain | 246 | 196,229 |
@@ -26,9 +33,18 @@ Frozen `pre-drupal-cut` at `f532e91`: **B = 4,795,406 bytes in 843 files**. C = 
 | operations (Docker, CI workflows) | 20 | 47,613 |
 | scripts-config | 7 | 40,496 |
 
-**Decision for the maintainer (approval of the cut).** The first-party images are 74 % of the comprehensive B, so retiring the old desktop's icons would dominate the completion percentage. The method allows this (byte weighting is a known limit of LBR), but the maintainer may prefer to exclude binary assets (a documented revision 2), or to keep them and read the per-stream figures.
+The cut commit is the merge of the last in-flight PR (#80, Divengine Codegen). The standalone portal (PR #78) is a draft outside `master`, so it is not part of the cut.
 
-**Relocation.** `dev/lbr/relocations.tsv` maps moved directories (for example `control/` → `legacy/control/`). A relocated file is still found at HEAD, still counted in C and listed as relocated. A retirement record for it is rejected while it exists at the new path. A move never retires anything.
+**Relocation.** `dev/lbr/relocations.tsv` maps moved directories (for example `control/` → `legacy/control/`). A relocated file is still found at HEAD, still counted in C and listed as relocated. A move never retires anything.
+
+**Archive (`dev/lbr/archive.json`, prefix `legacy/`).** The archived legacy implementation may stay in the repository as historical evidence. A baseline file can then be retired while its copy remains under `legacy/`, but only by a **verified record**:
+- the active responsibility is replaced or eliminated, with test evidence, a reviewer, a PR and a merged commit;
+- the file and its content no longer exist anywhere **outside** the archive;
+- **no active file references** the archived path, the original path, or the archived parent directories below the second level (a runner may load a whole directory).
+
+  "Active" means every tracked file outside the archive. The exempt paths are listed in `archive.json`: docs, the LBR records, `.gitignore`, `.dockerignore`. So archived code still imported, executed, shipped or loaded by CI blocks the retirement.
+
+A file relocated anywhere other than an archive prefix can never be retired while it exists.
 
 ## 1. Historical baseline (`historic-2010`)
 
@@ -128,4 +144,7 @@ The baseline is frozen:
 
 A scope change needs an explicit revision (`freeze --force-revision`, a new `revision=` number, and a documented reason in this file), reported next to the original B, never instead of it.
 
-Tests: `dev/tests/lbr/run.sh` (32 checks, run in a throwaway clone, including relocation, unfrozen sets and separate reporting).
+Tests: `dev/tests/lbr/run.sh` (41 checks, run in a throwaway clone). The archive cases simulate the #68 move:
+- (a) a move only → 0 retired;
+- (b) archived, inactive, complete record → retired, with C reduced exactly;
+- (c) blocked when the evidence or the reviewer is missing, when an active file references the archived path, the original path or the directory, when a copy exists outside the archive, and when a file was relocated outside the archive.

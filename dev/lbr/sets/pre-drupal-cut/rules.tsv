@@ -6,6 +6,8 @@
 # Single no-double-count policy: generated outputs are counted once through
 # their generator; derived files and third-party code are never counted.
 # Changing this file after the freeze requires a documented baseline revision.
+# Revision 2 (maintainer review on #67): binary UI images moved out of this
+# source-code set into pre-drupal-cut-ui-assets.
 #
 # pattern	action	stream	component	reason
 # ---------------------------------------------------------------- excluded
@@ -36,7 +38,7 @@ view/custom/**	include	legacy-ui	ui.templates	handwritten view templates
 view/windows.php	include	legacy-ui	ui.windows	desktop window registry
 view/wins/**	include	legacy-ui	ui.windows	desktop window definitions
 www/*.html	include	legacy-ui	ui.web-entry	web root pages
-www/images/**	include	legacy-ui-assets	ui.images	first-party icons, logos and wallpapers of the desktop UI
+www/images/**	exclude	-	-	binary UI assets, measured separately in set pre-drupal-cut-ui-assets
 # ---------------------------------------------------------------- application PHP
 www/*.php	include	application-php	app.web-entry	web root entry points and debug pages
 control/*.php	include	application-php	app.dispatcher	request dispatcher and connection
