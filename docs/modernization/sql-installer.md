@@ -21,7 +21,9 @@ dev/sql/install.sh --with-data agoh     # + datos/datos_por_defecto.sql (default
 
 **Any SQL error aborts the installation, exits non-zero and drops the half-created database.** It is an empty-database installer, not an upgrade path: many sources start with `DROP … CASCADE`.
 
-`--with-data` creates an administrator with a well-known default password stored as unsalted MD5. Use it only on disposable servers and change the password immediately (`security-privacy.md` C5; hashing is #14).
+`--with-data` creates an administrator with a well-known default password stored as unsalted MD5 (`security-privacy.md` C5). Use it only on disposable servers.
+
+Maintainer decision (2026-10-25): a known seeded administrator password must never be valid in a production installation. Once #14 (PR #20) is in, legacy MD5 logins are refused unless `legacy_md5_login = true` is set in `bin/security.conf`, and the default is off. Set the administrator's password with `php bin/setpassword.php -nick <nick>` before first use. The seed file itself is unchanged. Replacing its hash with an unusable marker is a possible follow-up.
 
 You need PHP ≥ 8.1 (CLI only) and the PostgreSQL ≥ 16 client. The ephemeral runner additionally needs the server binaries (`PG_BINDIR`).
 
@@ -62,7 +64,7 @@ The output is deterministic:
 
 Two builds are byte-identical, on PHP 8.3 and on PHP 8.4 (verified; SHA-256 prefix `94e7e9b1c1a9a4eb` for the schema-only bundle at this commit).
 
-Sources listed in `tools/known-broken.txt` (only `restringe_por_uso_de_otro_recurso`, decision D-05 in `sql-reconciliation.md`) are wrapped in `SET check_function_bodies = off` … `RESET`. This loads them exactly as the 2010 `pg_dump` did. A repair still needs the maintainer's decision. Everything else is compiled with body checks on.
+Sources listed in `tools/known-broken.txt` (only `restringe_por_uso_de_otro_recurso`, decision D-05 in `sql-reconciliation.md`) are wrapped in `SET check_function_bodies = off` … `RESET`. This loads them exactly as the 2010 `pg_dump` did. The maintainer approved keeping D-05 as a documented known defect (2026-10-25), with the occupancy RULE left installed. Its repair belongs to a separate behavioral-fix issue. Everything else is compiled with body checks on.
 
 `data:` entries are included only with `--with-data`.
 
