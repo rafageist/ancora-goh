@@ -10,6 +10,7 @@ CREATE OR REPLACE FUNCTION generar(idesp VARCHAR, idnivel VARCHAR, idperiodo VAR
 $$
     DECLARE
 	v integer;
+	v_sin_orden varchar; -- #23: first template without orden, if any
 	ddia integer;
 	tturno integer;
 	dduracion integer;
@@ -189,6 +190,24 @@ $$
         RAISE NOTICE '[INFO] Obteniendo listado de asignaturas implicadas...';
         
         asigEnCurso := dame_asig_segun_esp_anno_per(idesp, idnivel, idperiodo);
+
+        -- #23: every activity template must have an "orden" (the PHP UI always
+        -- sets it; templates are looked up by subject, period and orden). A
+        -- template without one used to make the generator loop forever, so it
+        -- is rejected before anything is placed.
+        SELECT plantilla_de_actividad.id INTO v_sin_orden
+          FROM plantilla_de_actividad
+         INNER JOIN desglose ON desglose.id = plantilla_de_actividad.desglose
+         WHERE desglose.periodo = idperiodo
+           AND desglose.asignatura = ANY (asigEnCurso)
+           AND plantilla_de_actividad.orden IS NULL
+         ORDER BY plantilla_de_actividad.id
+         LIMIT 1;
+        IF FOUND THEN
+            RAISE EXCEPTION 'generar: activity template % has no orden', v_sin_orden
+                USING ERRCODE = 'not_null_violation',
+                      HINT = 'Set plantilla_de_actividad.orden for every template of the period.';
+        END IF;
 
         -------------------------------------------------------------------
         IF generador.fue_cancelado(idesp, idnivel, idperiodo) = TRUE THEN
@@ -1050,6 +1069,11 @@ $$
 
                                         kk := CicloIni;
                                         LOOP
+						-- #23: do not search an empty (CicloIni > CicloFin) or undefined
+						-- day range; the exit at the end of this loop only tests
+						-- kk = CicloFin, so such a range used to loop forever.
+						-- A valid range never takes this exit.
+						EXIT WHEN CicloFin IS NULL OR kk IS NULL OR kk > CicloFin;
 						k := kk;
         -------------------------------------------------------------------
         IF generador.fue_cancelado(idesp, idnivel, idperiodo) = TRUE THEN
