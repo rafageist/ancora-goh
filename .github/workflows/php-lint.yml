@@ -28,3 +28,6 @@ jobs:
 
       - name: PHP 8 compatibility checks (static + constructor smoke)
         run: dev/ci/php84-check.sh
+
+      - name: Generated code matches its generator (cogePHP)
+        run: dev/ci/check-generated.sh

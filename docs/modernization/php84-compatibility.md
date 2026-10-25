@@ -111,6 +111,12 @@ always ran; PHP 8 throws `Error: Undefined constant`.
   behaviour change (with loose `==`, `''` and `0` would become SQL `NULL`,
   e.g. day/slot `0`). Whether missing values should become `NULL` belongs
   to SQL characterisation (#10) / generated-layer decision (PHP-08).
+  **Maintainer decision (2026-10-25):** keep the historical behaviour in
+  this PR. A future implementation must distinguish PHP `null` strictly
+  from `0` and `''` (`=== null`, never loose `==`), and must send values
+  as parameters (`pg_query_params`) instead of building quoted SQL. That
+  is a generator change (`dev/cogephp.php`), regenerated and checked by
+  `dev/ci/check-generated.sh`, not a hand edit of the models.
 - Static check after the change: 0 undefined constants in the whole tree
   (not only in the targeted pattern). **[verified]**
 
@@ -149,10 +155,26 @@ The generator was changed to emit exactly what is now committed:
   `".("'".$descripcion."'")."` and `".($dia)."`, found verbatim in
   `AsignaturaModel.php` / `ActividadModel.php`.
 
-Not verified: a full regeneration. It needs the 2010 PostgreSQL model
-database (`dev/cogephp.conf`) and would also rewrite the `@updated`
-timestamps of every file, so committed files and generator output can only
-be compared at the fragment level. `dev/cogephpservice.php` still emits
+Full regeneration **[verified]**, `dev/ci/check-generated.sh` (in CI,
+`php-lint.yml`). An earlier version of this section said regeneration
+needs the 2010 database. That was wrong. `dev/cogephp.php`,
+`dev/cogephpface.php` and `dev/cogephpservice.php` read only the committed
+JSON model (`dev/src/*.json`, `dev/services/*.json`). Only
+`dev/crea_modelo_pg.php`, which refreshes that JSON, connects to a
+database. The check copies the tracked files to a temporary directory,
+runs the three generators there and compares the results:
+
+- all 679 regenerated files match the committed ones, apart from the
+  `@updated:` timestamp line;
+- a hand edit to a generated file makes the check fail (negative test).
+
+So generated code (`model/**`, `control/data/{add,set,del}`,
+`control/view/{combo,gallery}`, `view/{combo,grid,gallery}`) must be fixed
+in the generator first and then regenerated, never edited by hand alone.
+The `dev/*.sh` wrappers are not used: they delete the output folders before
+generating.
+
+`dev/cogephpservice.php` still emits
 the historical `function <Name>($db)` (not a constructor of class
 `<Name>Service`); it was left unchanged because changing it would alter
 behaviour of regenerated services.
