@@ -83,8 +83,8 @@ ancora-php/
 ├── dev/                    # Desarrollo
 │   ├── cogephp.php         # Generador de código PHP
 │   ├── crea_modelo_pg.php  # Generador de modelo PostgreSQL
-│   └── sql/                # Scripts SQL
-│       ├── tabla.sql       # Definición de tablas
+│   └── sql/                # Scripts SQL (fuentes mantenidas; ver dev/sql/install.sh)
+│       ├── deploy.priority # Orden de instalación de las fuentes
 │       ├── generador/      # Funciones del generador MPI
 │       ├── organizacion/    # Entidades de negocio
 │       ├── recurso/         # Recursos
@@ -122,18 +122,23 @@ ancora-php/
 
 ## Requisitos
 
-### Servidor
-- PHP 5.2+ (orientado a objetos)
-- PostgreSQL 8.x+
-- Servidor web (Apache, Nginx, etc.)
+### Local installation (Docker, recommended)
 
-### Configuración
-1. Crear base de datos `ancoragoh`
-2. Ejecutar scripts SQL en orden:
-   - `dev/sql/tabla.sql` (esquema base)
-   - `dev/sql/seguridad/` (seguridad)
-   - `dev/sql/generador/` (MPI)
-3. Copiar `bin/ancoragoh.conf.example` a `bin/ancoragoh.conf` (ignorado por Git) y completar los datos de conexión; ver `docs/modernization/security-privacy.md`
+Docker Engine with the Compose plugin is the only requirement. From the repository root:
+
+```sh
+docker/manage.sh init-secrets && docker/manage.sh up && docker/manage.sh init-db && docker/manage.sh set-admin-password
+```
+
+The application then runs at <http://127.0.0.1:8087/>. This is **local use only**: the legacy application is not safe on any network. See [`docs/deployment/docker.md`](docs/deployment/docker.md) for the full guide (administrator setup, backup and restore, reset, troubleshooting).
+
+### Without Docker
+
+- PHP 8.4 with the `pgsql` extension, and a web server whose document root is `www/` only.
+- PostgreSQL 16.
+- Install the database from the maintained sources with `dev/sql/install.sh` (see [`docs/modernization/sql-installer.md`](docs/modernization/sql-installer.md)). The SQL files of 2010 that loaded the schema (`dev/sql/tabla.sql`, `dev/sql/result.sql`) no longer exist; never load the historical dump in `dev/backup/`.
+- Copy `bin/ancoragoh.conf.example` to `bin/ancoragoh.conf` (git-ignored) and fill in the connection settings; see `docs/modernization/security-privacy.md`.
+- Set the administrator password with `php bin/setpassword.php -nick admin` (run from `bin/`): the seeded account has no usable password.
 
 ## Base de Datos
 
