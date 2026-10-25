@@ -8,10 +8,12 @@ Issue: #9 (phase #6). This builds on #8 (PR #16, `sql-reconciliation.md`) and is
 # Throwaway server (socket only, deleted afterwards):
 dev/sql/tools/with-ephemeral-pg.sh dev/sql/install.sh agoh
 
-# Your own disposable server (libpq environment: PGHOST, PGPORT, PGUSER, ~/.pgpass):
-dev/sql/install.sh agoh                 # schema only
-dev/sql/install.sh --with-data agoh     # + datos/datos_por_defecto.sql (default roles and admin)
+# Inside the launcher (as above):
+#   dev/sql/install.sh agoh                 # schema only
+#   dev/sql/install.sh --with-data agoh     # + datos/datos_por_defecto.sql (default roles and admin)
 ```
+
+Since #26 the installer and every other tool that connects refuse any target that is not a verified disposable cluster started by `with-ephemeral-pg.sh`. They exit 3 before connecting. A deliberate installation into a server you chose needs `--admin-install` and a confirmation (`sql-test-safety.md`).
 
 `install.sh`:
 
