@@ -67,7 +67,7 @@ ancora-php/
 │   ├── adduser.php         # Agregar usuario
 │   ├── deluser.php         # Eliminar usuario
 │   ├── showusers.php       # Listar usuarios
-│   ├── ancoragoh.conf      # Configuración de BD
+│   ├── ancoragoh.conf.example # Plantilla de configuración de BD
 │   └── security.conf       # Configuración de seguridad
 │
 ├── control/                # Controladores (MVC)
@@ -133,7 +133,7 @@ ancora-php/
    - `dev/sql/tabla.sql` (esquema base)
    - `dev/sql/seguridad/` (seguridad)
    - `dev/sql/generador/` (MPI)
-3. Configurar `bin/ancoragoh.conf` con datos de conexión
+3. Copiar `bin/ancoragoh.conf.example` a `bin/ancoragoh.conf` (ignorado por Git) y completar los datos de conexión; ver `docs/modernization/security-privacy.md`
 
 ## Base de Datos
 
