@@ -1,0 +1,2 @@
+ancora_academic.add:
+  deriver: '\Drupal\ancora_academic\Plugin\Derivative\AcademicLocalActions'

@@ -1,0 +1,2 @@
+ancora_academic.entity:
+  deriver: '\Drupal\ancora_academic\Plugin\Derivative\AcademicLocalTasks'
