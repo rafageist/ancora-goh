@@ -2,7 +2,7 @@
     "name": "rafageist/ancora-goh-modern",
     "description": "Áncora GOH timetabling platform: the Drupal 11 application (issue #69).",
     "type": "project",
-    "license": "GPL-2.0-or-later",
+    "license": "GPL-3.0-only",
     "homepage": "https://github.com/rafageist/ancora-goh",
     "support": {
         "issues": "https://github.com/rafageist/ancora-goh/issues",
