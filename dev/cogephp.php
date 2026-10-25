@@ -147,21 +147,28 @@ include "cogephp.common.php";
         '            */'."\n".
         "\n");
 
+	// #35: the search phrase is bound ($n placeholders appended to $params);
+	// the field list and table name are checked identifiers. The historical
+	// semantics are kept: words starting with a double quote must all match
+	// (AND); the other words are OR-ed into "(TRUE OR ...)", which never
+	// filtered anything.
 	fputs($file_model,
-'        function getWHEREPartOfSearchFrase($frase,$fields){
-           $arr = explode(",",$fields); $words=explode(\' \',trim($frase));
-            $parteand =\' TRUE \';
+'        function getWHEREPartOfSearchFrase($frase, $fields, array &$params){
+           $arr = explode(",", $fields); $words = explode(\' \', trim((string)$frase));
+            foreach ($arr as $k => $field) $arr[$k] = PartModel::sqlIdentifier(trim($field), true);
+            $parteand = \' TRUE \';
             foreach($arr as $field) foreach($words as $word){
-                if (substr($word,0,1)==\'"\' || substr($word,strlen($word),1)==\'"\') {
-                     $word=str_replace(\'"\',\'\',$word);
-                     $parteand=$parteand.\' AND \'.$field." LIKE \'%".$word."%\' ";
+                if (substr($word,0,1)==\'"\') {
+                     $params[] = "%".str_replace(\'"\',\'\',$word)."%";
+                     $parteand = $parteand.\' AND CAST(\'.$field.\' AS text) LIKE $\'.count($params).\' \';
                 }
              }
-             $parteor =\' AND (TRUE\';
+             $parteor = \' AND (TRUE\';
 
             foreach($arr as $field) foreach($words as $word){
-                if (!(substr($word,0,1)==\'"\' || substr($word,strlen($word),1)==\'"\')) {
-                     $parteor=$parteor.\' OR \'.$field." LIKE \'%".$word."%\' ";
+                if (substr($word,0,1)!=\'"\') {
+                     $params[] = "%".$word."%";
+                     $parteor = $parteor.\' OR CAST(\'.$field.\' AS text) LIKE $\'.count($params).\' \';
                 }
             }
 
@@ -174,11 +181,90 @@ include "cogephp.common.php";
         '          /**'."\n".
         '            * @name getAllWithPhraseIn'."\n".
         '            * @descrip Get all records from table that cotains this phrase...'."\n".
+        '            * $extrawhere is a trusted SQL fragment; its values go in $extraparams ($1..$n).'."\n".
         '            */'."\n".
         "\n".
-        '          public function getAllWithPhraseIn($table,$fields,$phrase,$extrawhere="true", $showfields="*",$asobjects=false){'."\n".
-        '              return $this-getAnything("SELECT $showfields FROM $table WHERE (".$this->getWHEREPartOfSearchFrase($fields).") AND ($extrawhere);");'."\n".
+        '          public function getAllWithPhraseIn($table,$fields,$phrase,$extrawhere="true", $showfields="*",$asobjects=false, array $extraparams = array()){'."\n".
+        '              $params = array_values($extraparams);'."\n".
+        '              $phrasepart = $this->getWHEREPartOfSearchFrase($phrase, $fields, $params);'."\n".
+        '              return $this->getAnythingParams("SELECT ".PartModel::sqlSelectList($showfields)." FROM ".PartModel::sqlIdentifier($table, true)." WHERE ($extrawhere) AND ($phrasepart);", $params, $asobjects);'."\n".
         '          }'."\n");
+
+	// #35: parameterized execution and strict value conversion, used by
+	// every generated query that carries a value.
+	fputs($file_model, <<<'PHPCODE'
+
+          /**
+            * @name getAnythingParams
+            * @descrip Run a parameterized query: $1, $2, ... in $sql, the values
+            *          in $params. Values are sent separately from the SQL text
+            *          and never interpolated. A failed query throws, so an error
+            *          is not mistaken for an empty result. (#35)
+            */
+          public function getAnythingParams($sql, array $params, $asobjects = false){
+               if ($asobjects == true) $r = $this->db->getAsObjectsParams($sql, $params);
+               else $r = $this->db->getAsArrayParams($sql, $params);
+               if ($r === false) throw new RuntimeException("query failed: ".$sql);
+               return $r;
+          }
+
+          /**
+            * @name sqlValue
+            * @descrip Convert a PHP value into a bound parameter of the given
+            *          kind: "text", "number" or "bool". Only null (===) is SQL
+            *          NULL; 0, "0" and "" are values. Anything that is not a
+            *          valid value of the kind is rejected. (#35)
+            */
+          public static function sqlValue($value, $kind = "text"){
+               if ($value === null) return null;
+               if ($kind == "bool") {
+                    if ($value === true || $value === 1 || $value === "1") return "t";
+                    if ($value === false || $value === 0 || $value === "0") return "f";
+                    if (is_string($value)) {
+                         $v = strtolower(trim($value));
+                         if (in_array($v, array("t", "true", "y", "yes", "on"), true)) return "t";
+                         if (in_array($v, array("f", "false", "n", "no", "off"), true)) return "f";
+                    }
+                    throw new InvalidArgumentException("not a boolean value");
+               }
+               if ($kind == "number") {
+                    if (is_int($value)) return (string)$value;
+                    if (is_float($value) && is_finite($value)) return (string)$value;
+                    if (is_string($value) && is_numeric($value)) return trim($value);
+                    throw new InvalidArgumentException("not a numeric value");
+               }
+               if (is_string($value)) return $value;
+               if (is_int($value) || (is_float($value) && is_finite($value))) return (string)$value;
+               throw new InvalidArgumentException("not a text value");
+          }
+
+          /**
+            * @name sqlIdentifier
+            * @descrip Check a column or table name: letters, digits and "_",
+            *          optionally qualified (schema.table.column) when
+            *          $qualified. (#35)
+            */
+          public static function sqlIdentifier($name, $qualified = false){
+               $part = "[A-Za-z_][A-Za-z0-9_]*";
+               $re = $qualified ? "/^$part(\.$part){0,2}$/" : "/^$part$/";
+               if (is_string($name) && preg_match($re, $name)) return $name;
+               throw new InvalidArgumentException("invalid SQL identifier");
+          }
+
+          /**
+            * @name sqlSelectList
+            * @descrip Check a select list ("*", columns, function calls and
+            *          aliases). Quotes, literals, placeholders, semicolons and
+            *          comments are rejected. It is still SQL text: never build
+            *          it from request values. (#35)
+            */
+          public static function sqlSelectList($fields){
+               if (is_string($fields) && preg_match('/^[A-Za-z0-9_.,*() ]+$/', $fields)) return $fields;
+               throw new InvalidArgumentException("invalid SQL select list");
+          }
+
+PHPCODE
+);
 
 
 	fputs($file_model,"}\n ?> \n");
@@ -212,6 +298,40 @@ include "cogephp.common.php";
 
 	
 
+	// #35: kind of bound parameter for a model field type (PartModel::sqlValue):
+	// booleans, the types that were interpolated unquoted, and text.
+	function sqlKindOf($type){
+		if ($type == 'bool' || $type == 'boolean') return 'bool';
+		if (!isEntreComillas($type)) return 'number';
+		return 'text';
+	}
+
+	// #35: PHP expression binding $expr as a parameter of a field type
+	function sqlBind($expr, $type){
+		return 'PartModel::sqlValue('.$expr.', "'.sqlKindOf($type).'")';
+	}
+
+	// #35: type of a field of a table in the model ('string' if unknown)
+	function fieldTypeOf($tabla, $name){
+		foreach ($tabla->fields as $campo) if ($campo->name == $name) return $campo->type;
+		return 'string';
+	}
+
+	// #35: "pk1 = $n AND pk2 = $n+1" for the primary key, numbered after $offset
+	function pkWhere($tabla, $offset = 0){
+		$parts = array();
+		foreach ($tabla->primary_key as $llave) $parts[] = $llave.' = $'.($offset + count($parts) + 1);
+		return implode(' AND ', $parts);
+	}
+
+	// #35: bound values of the primary key, read from $prefix.name
+	// ("$" for parameters, "$this->" for properties)
+	function pkBinds($tabla, $prefix){
+		$binds = array();
+		foreach ($tabla->primary_key as $llave) $binds[] = sqlBind($prefix.$llave, fieldTypeOf($tabla, $llave));
+		return implode(', ', $binds);
+	}
+
 	foreach ($modelo->data->tables as $tabla){
 		$classname = getClassNameOf($tabla->schema, $tabla->name);
 		$carpeta = dame_carpeta_de($classname, $tabla->schema);
@@ -243,6 +363,7 @@ include "cogephp.common.php";
 		//obtener la cantidad
 		fputComentario($file_model,"length",'Get count of "'.$tnombre.'"',array());
 		fputs($file_model,"          public function length(".'$fieldcount="id"'."){ \n");
+		fputs($file_model,'              if ($fieldcount !== "*") PartModel::sqlIdentifier($fieldcount);'."\n");
 		fputs($file_model,'              $r = $this->getAnything("'."SELECT ".'count($fieldcount)'." as c FROM $tnombre; \"); \n");
 		fputs($file_model,'              if (isset($r[0])) return $r[0]["c"];'."\n");
 		fputs($file_model,"              return 0; \n");
@@ -292,68 +413,40 @@ include "cogephp.common.php";
 			}
 		}
 
-		foreach ($tabla->fields as $campo){
-			if ($campo->type=='bool' || $campo->type=='boolean') {
-				fputs($file_model, '               if ($'.$campo->name.' == true || $'.$campo->name.' == 1 || $'.$campo->name.' == "t") $'.$campo->name.' = "true"; '."\n");
-				fputs($file_model, '               else if ($'.$campo->name.'== true || $'.$campo->name.' == 0 || $'.$campo->name.' == "f") $'.$campo->name.' = "false"; '."\n");
-			}
-		}
-			
-
-		fputs($file_model,'             $r = $this->getAnything("'."INSERT INTO $tnombre ($campossql) VALUES (");
-
+		// #35: every value is a bound parameter converted by PartModel::sqlValue
+		// (booleans included: "t"/"f"), instead of being interpolated into the
+		// SQL text. md5-typed fields are stored with password_hash() (#14).
 		$i=0;
 		$entrecom = array();
-			
+		$placeholders = array();
+		$binds = array();
 		foreach ($tabla->fields as $campo){
-
 			$i++;
-			if ($i>1) fputs($file_model,",");
 			$entrecom[$campo->name] = isEntreComillas($campo->type);
-			if ($campo->type=='replica')
-			fputs($file_model,'\'$'.$campo->name.'\'');
-			else{
-				if ($campo->type=='md5') // #14: password_hash() via PasswordUtil, no longer unsalted md5()
-				fputs($file_model,"'".'".PasswordUtil::hash($'.$campo->name.')."'."'");
-				else {
-					// #13: this used to emit (name==null?'null':...) with a bare
-					// constant `name`, always false on PHP 5/7 and an Error on
-					// PHP 8; emit the branch that historically always ran.
-					if ($entrecom[$campo->name])
-					fputs($file_model,'".('.'"\'".$'.$campo->name.'."\'")."');
-					else
-					fputs($file_model,'".($'.$campo->name.')."');
-					//fputs($file_model,"$".$campo->name);
-				}
-			}
+			$placeholders[] = '$'.$i;
+			if ($campo->type=='md5')
+				$binds[] = 'PasswordUtil::hash($'.$campo->name.')';
+			else
+				$binds[] = sqlBind('$'.$campo->name, $campo->type);
 		}
 
-		fputs($file_model,');"); '."\n".'             return $replicas; '."\n".'            }'."\n");
+		fputs($file_model,'             $r = $this->getAnythingParams("'."INSERT INTO $tnombre ($campossql) VALUES (".implode(",",$placeholders).');", array('.implode(", ",$binds).'));'."\n");
+		fputs($file_model,'             return $replicas; '."\n".'            }'."\n");
 
 		//Eliminar uno
 
 		if (count($tabla->primary_key)>0) {
 			fputComentario($file_model,"remove",'Remove "'.$tnombre.'"',array());
 			fputs($file_model,"          public function remove($llaves){ \n");
-			fputs($file_model,'                  return $this->getAnything("'."DELETE FROM $tnombre WHERE ");
-			$i=0;
-			foreach ($tabla->primary_key as $llave){
-				$i++;
-				if ($i>1) fputs($file_model," AND ");
-				fputs($file_model," ".$llave." = ");
-				if ($entrecom[$llave])
-				fputs($file_model,"'$".$llave."' ");
-				else
-				fputs($file_model,"$".$llave." ");
-			}
-			fputs($file_model,';");'."\n".'            }'."\n");
+			fputs($file_model,'                  return $this->getAnythingParams("'."DELETE FROM $tnombre WHERE ".pkWhere($tabla).';", array('.pkBinds($tabla, '$').'));'."\n".'            }'."\n");
 		}
 			
 		//Eliminar varios
 
 		fputComentario($file_model,"remove","Remove '$tnombre' by ...",array());
 		fputs($file_model,
-         "          public function removeBy".'($where, $asobjects = false){'."\n".
+         "          public function removeBy".'($where, $asobjects = false, $params = null){'."\n".
+         '                 if (is_array($params)) return $this->getAnythingParams("DELETE FROM '.$tnombre.' WHERE $where;", $params, $asobjects);'."\n".
          '                 return $this->getAnything("DELETE FROM '.$tnombre.' WHERE $where;",$asobjects);'."\n".
          "          } \n");
 
@@ -367,14 +460,16 @@ include "cogephp.common.php";
 		//Actualizar a todos
 		fputComentario($file_model,"set","Set '$tnombre'",array());
 		fputs($file_model,
-         "          public function set".'($set, $asobjects = false){'."\n".
+         "          public function set".'($set, $asobjects = false, $params = null){'."\n".
+         '               if (is_array($params)) return $this->getAnythingParams("UPDATE '.$tnombre.' SET $set;", $params, $asobjects);'."\n".
          '               return $this->getAnything("UPDATE '.$tnombre.' SET $set;",$asobjects);'."\n".
          "          } \n");
 
 		//Actualizar segun...
 		fputComentario($file_model,"set","Set '$tnombre' by ...",array());
 		fputs($file_model,
-         "          public function setBy".'($where, $set, $asobjects = false){'."\n".
+         "          public function setBy".'($where, $set, $asobjects = false, $params = null){'."\n".
+         '               if (is_array($params)) return $this->getAnythingParams("UPDATE '.$tnombre.' SET $set WHERE $where;", $params, $asobjects);'."\n".
          '               return $this->getAnything("UPDATE '.$tnombre.' SET $set WHERE $where;");'."\n".
          "          } \n");
 			
@@ -382,214 +477,113 @@ include "cogephp.common.php";
 		if (count($tabla->primary_key)>0) {
 			fputComentario($file_model,"get",'Get specified "'.$tnombre.'"',array());
 			fputs($file_model,"          public function get($llaves){ \n");
-			fputs($file_model,'                  $r = $this->getAnything("'."SELECT * FROM $tnombre WHERE ");
-			$i=0;
-			foreach ($tabla->primary_key as $llave){
-				$i++;
-				if ($i>1) fputs($file_model," AND ");
-				fputs($file_model," ".$llave." = ");
-				if ($entrecom[$llave])
-				fputs($file_model,"'$".$llave."' ");
-				else
-				fputs($file_model,"$".$llave." ");
-			}
-			fputs($file_model,';",true);'."\n");
+			fputs($file_model,'                  $r = $this->getAnythingParams("'."SELECT * FROM $tnombre WHERE ".pkWhere($tabla).';", array('.pkBinds($tabla, '$').'), true);'."\n");
 			if ($cantcamposbool > 0)
                 fputs($file_model,'                   if (isset($r[0])) return $this->repairBoolean($r[0], true); else return false;'."\n".'            }'."\n");
             else
                 fputs($file_model,'                   if (isset($r[0])) return $r[0]; else return false;'."\n".'            }'."\n");
 		}
 			
+		// #35: reads. $fields is checked by PartModel::sqlSelectList; $where is a
+		// trusted SQL fragment whose values are bound when $params ($1..$n) is
+		// given; limit and offset are always bound.
+		$code_repairBool = 'if (is_array($r)) foreach($r as $key=>$item) $r[$key] = $this->repairBoolean($item, $asobjects);';
+		$repair = ($cantcamposbool > 0) ? '               '.$code_repairBool."\n" : '';
+
 		//Obtener todos
 		fputComentario($file_model,"getAll","Get all '$tnombre'",array());
-        
-        $code_repairBool = 'if (is_array($r)) foreach($r as $key=>$item) $r[$key] = $this->repairBoolean($item, $asobjects);';
-        
-        if ($cantcamposbool > 0){
-            fputs($file_model,
-             "          public function getAll".'($fields = "*", $asobjects = false){'."\n".
-             '               $r = $this->getAnything("SELECT $fields FROM '.$tnombre.';",$asobjects);'."\n".
-             '               '.$code_repairBool."\n".
-             '               return $r;'."\n".
-             "          } \n");
-             
-		} else {
-            fputs($file_model,
-             "          public function getAll".'($fields = "*", $asobjects = false){'."\n".
-             '               return $this->getAnything("SELECT $fields FROM '.$tnombre.';",$asobjects);'."\n".
-             "          } \n");
-        }
-        
+		fputs($file_model,
+		 "          public function getAll".'($fields = "*", $asobjects = false){'."\n".
+		 '               $r = $this->getAnything("SELECT ".PartModel::sqlSelectList($fields)." FROM '.$tnombre.';",$asobjects);'."\n".
+		 $repair.
+		 '               return $r;'."\n".
+		 "          } \n");
+
 		//Obtener segun...
 		fputComentario($file_model,"getAllBy","Get '$tnombre' by ...",array());
-        if ($cantcamposbool > 0){
-            fputs($file_model,
-             '          public function getAllBy($where, $fields = "*", $asobjects = false){'."\n".
-             '               $r = $this->getAnything("SELECT $fields FROM '.$tnombre.' WHERE $where;",$asobjects);'."\n".
-             '               '.$code_repairBool."\n".
-             '               return $r;'."\n".
-             "          } \n");
-        } else {
-            fputs($file_model,
-             '          public function getAllBy($where, $fields = "*", $asobjects = false){'."\n".
-             '               return $this->getAnything("SELECT $fields FROM '.$tnombre.' WHERE $where;",$asobjects);'."\n".
-             "          } \n");
-        }
-        
+		fputs($file_model,
+		 '          public function getAllBy($where, $fields = "*", $asobjects = false, $params = null){'."\n".
+		 '               $sql = "SELECT ".PartModel::sqlSelectList($fields)." FROM '.$tnombre.' WHERE $where;";'."\n".
+		 '               if (is_array($params)) $r = $this->getAnythingParams($sql, $params, $asobjects);'."\n".
+		 '               else $r = $this->getAnything($sql, $asobjects);'."\n".
+		 $repair.
+		 '               return $r;'."\n".
+		 "          } \n");
+
 		//Obtener todos limitados...
 		fputComentario($file_model,"getLimit","Limited get '$tnombre'",array());
-        if ($cantcamposbool > 0){
-            fputs($file_model,
-             "          public function getLimit".'($limit, $offset, $fields = "*", $asobjects = false){'."\n".
-             '               $r = $this->getAnything("SELECT $fields FROM '.$tnombre.' LIMIT $limit OFFSET $offset;",$asobjects);'."\n".
-             '               '.$code_repairBool."\n".
-             '               return $r;'."\n".
-             "          } \n");
-        } else {
-            fputs($file_model,
-             "          public function getLimit".'($limit, $offset, $fields = "*", $asobjects = false){'."\n".
-             '               return $this->getAnything("SELECT $fields FROM '.$tnombre.' LIMIT $limit OFFSET $offset;",$asobjects);'."\n".
-             "          } \n");        
-        }
-        
+		fputs($file_model,
+		 "          public function getLimit".'($limit, $offset, $fields = "*", $asobjects = false){'."\n".
+		 '               $r = $this->getAnythingParams("SELECT ".PartModel::sqlSelectList($fields)." FROM '.$tnombre.' LIMIT $1 OFFSET $2;", array(PartModel::sqlValue($limit, "number"), PartModel::sqlValue($offset, "number")), $asobjects);'."\n".
+		 $repair.
+		 '               return $r;'."\n".
+		 "          } \n");
+
 		//Obtener todos limitados y segun...
 		fputComentario($file_model,"getLimitBy","Limited get '$tnombre' by ...",array());
-        if ($cantcamposbool > 0){
-            fputs($file_model,
-             "          public function getLimitBy".'($limit, $offset, $where, $fields = "*", $asobjects = false){'."\n".
-             '               $r = $this->getAnything("SELECT $fields FROM '.$tnombre.' WHERE $where LIMIT $limit OFFSET $offset;", $asobjects);'."\n".
-             '               '.$code_repairBool."\n".
-             '               return $r;'."\n".
-             "          } \n");
-        } else {
-            fputs($file_model,
-             "          public function getLimitBy".'($limit, $offset, $where, $fields = "*", $asobjects = false){'."\n".
-             '               return $this->getAnything("SELECT $fields FROM '.$tnombre.' WHERE $where LIMIT $limit OFFSET $offset;", $asobjects);'."\n".
-             "          } \n");        
-        }
-        
-		//get joins
-		$funcs = array();
-		foreach($tabla->foreign_keys as $foranea){
+		fputs($file_model,
+		 "          public function getLimitBy".'($limit, $offset, $where, $fields = "*", $asobjects = false, $params = null){'."\n".
+		 '               $params = is_array($params) ? array_values($params) : array();'."\n".
+		 '               $n = count($params);'."\n".
+		 '               $params[] = PartModel::sqlValue($limit, "number");'."\n".
+		 '               $params[] = PartModel::sqlValue($offset, "number");'."\n".
+		 '               $r = $this->getAnythingParams("SELECT ".PartModel::sqlSelectList($fields)." FROM '.$tnombre.' WHERE $where LIMIT \$".($n + 1)." OFFSET \$".($n + 2).";", $params, $asobjects);'."\n".
+		 $repair.
+		 '               return $r;'."\n".
+		 "          } \n");
 
-			$tforanea = depuraEsquema($foranea->foreign_schema).$modelo->data->prefix.$foranea->foreign_table;
+		// get joins: plain, by a WHERE fragment, and by a search phrase
+		foreach (array('', 'By', 'ByPhrase') as $variante){
+			$funcs = array();
+			foreach($tabla->foreign_keys as $foranea){
 
-			$schm = capitalLetter($foranea->foreign_schema);
-			if ($schm == "Public") $schm = "";
+				$tforanea = depuraEsquema($foranea->foreign_schema).$modelo->data->prefix.$foranea->foreign_table;
 
-			$fsufijo = capitalLetter($schm).$modelo->data->prefix.capitalLetter($foranea->foreign_table);
+				$schm = capitalLetter($foranea->foreign_schema);
+				if ($schm == "Public") $schm = "";
 
-			$fname = "getJoinWith$fsufijo";
-			while (isset($funcs[$fname])) $fname .= "A";
-			$funcs[$fname] = true;
+				$fsufijo = capitalLetter($schm).$modelo->data->prefix.capitalLetter($foranea->foreign_table);
 
-			fputComentario($file_model,"getJoin",'Inner join between "'.$tnombre.'" and "'.$tforanea.'"',array());
+				$fname = "getJoinWith$fsufijo";
+				while (isset($funcs[$fname])) $fname .= "A";
+				$funcs[$fname] = true;
 
-			fputs($file_model,"          public function $fname".'($fields = "*", $asobjects = false){'."\n".
-                                  '               $r = $this->getAnything("SELECT $fields FROM '.$tnombre.' INNER JOIN '.$tforanea.' ON');
-			$i=0;
-			foreach ($foranea->fields as $campo) {
-				$i++;
-				if ($i>1) fputs($file_model,' AND ');
-				fputs($file_model,' '.$tnombre.'.'.$campo->localfield.' = '.$tforanea.'.'.$campo->foreign_key.' ');
+				$on = array();
+				foreach ($foranea->fields as $campo) $on[] = $tnombre.'.'.$campo->localfield.' = '.$tforanea.'.'.$campo->foreign_key;
+				$from = $tnombre.' INNER JOIN '.$tforanea.' ON '.implode(' AND ', $on);
+
+				if ($variante == '') {
+					fputComentario($file_model,"getJoin",'Inner join between "'.$tnombre.'" and "'.$tforanea.'"',array());
+					fputs($file_model,"          public function $fname".'($fields = "*", $asobjects = false){'."\n".
+					 '               $r = $this->getAnything("SELECT ".PartModel::sqlSelectList($fields)." FROM '.$from.';", $asobjects);'."\n");
+				}
+				else if ($variante == 'By') {
+					fputComentario($file_model,"getJoin",'Inner join between "'.$tnombre.'" and "'.$tforanea.' by ..."',array());
+					fputs($file_model,"          public function $fname".'By($where, $fields = "*", $asobjects = false, $params = null){'."\n".
+					 '               $sql = "SELECT ".PartModel::sqlSelectList($fields)." FROM '.$from.' WHERE $where;";'."\n".
+					 '               if (is_array($params)) $r = $this->getAnythingParams($sql, $params, $asobjects);'."\n".
+					 '               else $r = $this->getAnything($sql, $asobjects);'."\n");
+				}
+				else {
+					// "*" searches every column of both tables (the old code called
+					// explode() with one argument on an undefined property)
+					$todos = array();
+					foreach ($tabla->fields as $campo) $todos[] = $tnombre.'.'.$campo->name;
+					foreach ($modelo->data->tables as $tf)
+						if (SchemasIguales($tf->schema, $foranea->foreign_schema) && $tf->name == $foranea->foreign_table)
+							foreach ($tf->fields as $campo) $todos[] = $tforanea.'.'.$campo->name;
+					fputComentario($file_model,"getJoin",'Inner join between "'.$tnombre.'" and "'.$tforanea.', by phrase ..."',array());
+					fputs($file_model,"          public function $fname".'ByPhrase($phrase, $where="true", $fields="*", $asobjects = false, $params = null){'."\n".
+					 '               if ($fields == "*") $fields = "'.implode(',', $todos).'";'."\n".
+					 '               $params = is_array($params) ? array_values($params) : array();'."\n".
+					 '               $phrasepart = $this->getWHEREPartOfSearchFrase($phrase, $fields, $params);'."\n".
+					 '               $r = $this->getAnythingParams("SELECT ".PartModel::sqlSelectList($fields)." FROM '.$from.' WHERE ($where) AND ($phrasepart);", $params, $asobjects);'."\n");
+				}
+				fputs($file_model, $repair);
+				fputs($file_model,'             return $r; '."\n");
+				fputs($file_model,"          } \n");
 			}
-			fputs($file_model,'");'."\n");
-           
-            if ($cantcamposbool > 0)
-                fputs($file_model,'               '.$code_repairBool."\n");
-            
-            fputs($file_model,'             return $r; '."\n");
-
-            fputs($file_model,"          } \n");
 		}
-
-		// get joins with where
-		$funcs = array();
-		foreach($tabla->foreign_keys as $foranea){
-
-			$tforanea = depuraEsquema($foranea->foreign_schema).$modelo->data->prefix.$foranea->foreign_table;
-
-			$schm = capitalLetter($foranea->foreign_schema);
-			if ($schm == "Public") $schm = "";
-
-			$fsufijo = capitalLetter($schm).$modelo->data->prefix.capitalLetter($foranea->foreign_table);
-
-			fputComentario($file_model,"getJoin",'Inner join between "'.$tnombre.'" and "'.$tforanea.' by ..."',array());
-
-			$fname = "getJoinWith$fsufijo";
-			while (isset($funcs[$fname])) $fname .= "A";
-			$funcs[$fname] = true;
-
-			fputs($file_model,"          public function $fname".'By($where, $fields = "*", $asobjects = false){'."\n".
-                                  '               $r = $this->getAnything("SELECT $fields FROM '.$tnombre.' INNER JOIN '.$tforanea.' ON');
-			$i=0;
-			foreach ($foranea->fields as $campo) {
-				$i++;
-				if ($i>1) fputs($file_model,' AND ');
-				fputs($file_model,' '.$tnombre.'.'.$campo->localfield.' = '.$tforanea.'.'.$campo->foreign_key.' ');
-			}
-			fputs($file_model,' WHERE $where");'."\n");
-            
-            if ($cantcamposbool > 0)
-                fputs($file_model,'               '.$code_repairBool."\n");
-            
-            fputs($file_model,'             return $r; '."\n");
-            fputs($file_model,"          } \n");
-		}
-
-		$funcs = array();
-		// get joins with where and phrases
-		foreach($tabla->foreign_keys as $foranea){
-
-			$tforanea = depuraEsquema($foranea->foreign_schema).$modelo->data->prefix.$foranea->foreign_table;
-
-			$schm = capitalLetter($foranea->foreign_schema);
-			if ($schm == "Public") $schm = "";
-
-			$fsufijo = capitalLetter($schm).$modelo->data->prefix.capitalLetter($foranea->foreign_table);
-
-			fputComentario($file_model,"getJoin",'Inner join between "'.$tnombre.'" and "'.$tforanea.', by phrase ..."',array());
-
-
-			$fname = "getJoinWith$fsufijo";
-			while (isset($funcs[$fname])) $fname .= "A";
-			$funcs[$fname] = true;
-
-			fputs($file_model,
-             "          public function $fname".'ByPhrase($phrase, $where="true", $fields="*", $asobjects = false){'."\n".
-             '               if ($fields == "*") {'."\n".
-             '                    $fieldstabla = explode($this->fieldnames["'.$tnombre.'"]); '."\n".
-             '                    $fieldsforaneas = explode($this->fieldnames["'.$foranea->foreign_table.'"]); '."\n".
-             '                    $ff = "";'."\n".
-             '                    $i = 0;'."\n".
-             '                    foreach ($fieldstabla as $f) {'."\n".
-             '                        $i++; '."\n".
-             '                        if ($i>1) $ff = $ff.",";'."\n".
-             '                        $ff = $ff.$f;'."\n".
-             '                    }'."\n".
-             '                    foreach ($fieldsforaneas as $f) {'."\n".
-             '                        $i++; '."\n".
-             '                        if ($i>1) $ff = $ff.",";'."\n".
-             '                        $ff = $ff.$f;'."\n".
-             '                    }'."\n".   
-             '                    $fields=$ff;'."\n".                
-             '               }'."\n".   
-             '               $r = $this->getAnything("SELECT $fields FROM '.$tnombre.' INNER JOIN '.$tforanea.' ON');
-			$i=0;
-			foreach ($foranea->fields as $campo) {
-				$i++;
-				if ($i>1) fputs($file_model,' AND ');
-				fputs($file_model,' '.$tnombre.'.'.$campo->localfield.' = '.$modelo->data->prefix.$foranea->foreign_table.'.'.$campo->foreign_key.' ');
-			}
-			fputs($file_model,' WHERE ($where) AND (".$this->getWHEREPartOfSearchFrase($phrase, $fields).")");'."\n");
-
-            if ($cantcamposbool > 0)
-                fputs($file_model,'               '.$code_repairBool."\n");
-
-            fputs($file_model,'             return $r; '."\n");
-            fputs($file_model,'          }'."\n");
-		}
-
 		fputs($file_model,"    } \n");
 		fputs($file_model,"?>");
 
@@ -625,18 +619,19 @@ include "cogephp.common.php";
 		fputs($ficheroclass, "       } \n");
 
 		fputComentario($ficheroclass,"Load",'Load somes objects to memory collection',array(),"","       ");
-		fputs($ficheroclass, '       public function Load($offset = null, $limit = null, $fields = "*", $where = "" ){ '."\n");
+		// #35: $params binds the values of $where ($1..$n)
+		fputs($ficheroclass, '       public function Load($offset = null, $limit = null, $fields = "*", $where = "", $params = null ){ '."\n");
 		fputs($ficheroclass, '             if ($offset==null or $limit=null) {'."\n");
 		fputs($ficheroclass, '                 if ($where == "")'."\n");
 		fputs($ficheroclass, '                     $r = $this->data->getAll("*",true);'. "\n");
 		fputs($ficheroclass, '                 else '."\n");
-		fputs($ficheroclass, '                     $r = $this->data->getAllBy($where, "*",true);'. "\n");
+		fputs($ficheroclass, '                     $r = $this->data->getAllBy($where, "*",true, $params);'. "\n");
 		fputs($ficheroclass, '             }'. "\n");
 		fputs($ficheroclass, '             else {'."\n");
 		fputs($ficheroclass, '                 if ($where == "")'."\n");
 		fputs($ficheroclass, '                  $r = $this->data->getLimit($limit,$offset,$fields,true);'."\n");
 		fputs($ficheroclass, '                else '."\n");
-		fputs($ficheroclass, '                  $r = $this->data->getLimitBy($limit,$offset,$where,$fields,true);'."\n");
+		fputs($ficheroclass, '                  $r = $this->data->getLimitBy($limit,$offset,$where,$fields,true, $params);'."\n");
 		fputs($ficheroclass, '             }'."\n");
 		fputs($ficheroclass, '             // $r is a collection of value objects (VO)'."\n"."\n");
 		fputs($ficheroclass, '             foreach ($r as $item){'. "\n");
@@ -830,25 +825,9 @@ include "cogephp.common.php";
 					fputs($ficheroclass, '              if (!is_string($value) || $value === \'\') return false; '."\n".'              $value = PasswordUtil::hash($value); '."\n");
 				fputs($ficheroclass, '              $this->'.$campo->name.' = $value; '."\n");
 
-				if ($campo->type=='bool' || $campo->type=='boolean') {
-					fputs($ficheroclass, '               if ($value == true || $value == 1 || $value == "t") $value = "true"; '."\n");
-					fputs($ficheroclass, '               else if ($value == true || $value == 0 || $value == "f") $value = "false"; '."\n");
-				}
-
-				fputs($ficheroclass, '              $this->data'."->setBy(\"");
-
-				$primero=true;
-				foreach ($tabla->primary_key as $pk){
-					$com ='';
-					if ($entrecom[$pk]==true) $com="'";
-					if ($primero==false) fputs($ficheroclass, " AND ");
-					$primero=false;
-					fputs($ficheroclass, "$pk = $com\"".'.$this->'.$pk.".\"$com");
-				}
-
-				$com ='';
-				if (isEntreComillas($campo->type)==true) $com="'";
-				fputs($ficheroclass, "\", \"".$campo->name.' = '.$com.'$value'.$com.'"); '."\n");
+				// #35: the new value and the key are bound parameters
+				$valor = ($campo->type=='md5') ? '$value' : sqlBind('$value', $campo->type);
+				fputs($ficheroclass, '              $this->data->getAnythingParams("UPDATE '.$tnombre.' SET '.$campo->name.' = $1 WHERE '.pkWhere($tabla, 1).';", array('.$valor.', '.pkBinds($tabla, '$this->').')); '."\n");
 				fputs($ficheroclass, '       }'." \n");
 
 			}
@@ -953,19 +932,14 @@ include "cogephp.common.php";
 
 					fputs($ficheroclass, "       public function get".capitalLetter($table->schema).capitalLetter($table->name)."(){ \n");
 					fputs($ficheroclass, '          $collection = new '.capitalLetter($table->schema).capitalLetter($table->name).'Collection($this->data->db);'."\n");
-					fputs($ficheroclass, '          $collection->Load(null,null,"*","');
-
-					$p = true;
+					// #35: the key values are bound parameters
+					$conds = array(); $binds = array();
 					foreach ($fks as $fk)
 					foreach($fk->fields as $fkd){
-						$com="";
-						if (llevaComillas($modelo,$table->schema,$table->name,$fkd->localfield)) $com="'";
-						if ($p==false) fputs($ficheroclass," AND ");
-						$p = false;
-						fputs($ficheroclass, $fkd->localfield." = $com".'".$this->'.$fkd->foreign_key.'."'.$com);
+						$conds[] = $fkd->localfield.' = $'.(count($conds) + 1);
+						$binds[] = sqlBind('$this->'.$fkd->foreign_key, fieldTypeOf($table, $fkd->localfield));
 					}
-
-					fputs($ficheroclass, '");'."\n");
+					fputs($ficheroclass, '          $collection->Load(null,null,"*","'.implode(' AND ', $conds).'", array('.implode(', ', $binds).'));'."\n");
 					fputs($ficheroclass, '           return $collection;'."\n");
 					fputs($ficheroclass, "       } \n");
 				}
@@ -1138,21 +1112,17 @@ include "cogephp.common.php";
 			fputs($fsf, '$asobjects = false'."){ \n");
             $msql = ' ';
             if ($funcion->return == 'USER-DEFINED') $msql = "* from ";
-			fputs($fsf,'               $sql = "select '.$msql.depuraEsquema($key).$funcion->name.'(');
-
-			$i = 0;
+			// #35: arguments are bound parameters. They are untyped, like the
+			// quoted literals used before, so PostgreSQL resolves the function
+			// from its declared parameter types.
+			$placeholders = array(); $binds = array();
 			if (is_array($funcion->params))
 			foreach ($funcion->params as $param){
-				$i++;
-				if ($i>1)fputs($fsf,",");
-				if (isEntreComillas($param->data_type))
-				fputs($fsf,"'$".$param->name."'");
-				else
-				fputs($fsf,"$".$param->name);
+				$placeholders[] = '$'.(count($placeholders) + 1);
+				$binds[] = sqlBind('$'.$param->name, $param->data_type);
 			}
-			fputs($fsf,')"; '."\n");
-			fputs($fsf,'               if ($asobjects == true) return $this->db->getAsObjects($sql);'."\n");
-			fputs($fsf,'               return $this->db->getAsArray($sql);'."\n");
+			fputs($fsf,'               $sql = "select '.$msql.depuraEsquema($key).$funcion->name.'('.implode(',', $placeholders).')"; '."\n");
+			fputs($fsf,'               return $this->getAnythingParams($sql, array('.implode(', ', $binds).'), $asobjects);'."\n");
 			fputs($fsf,"           } \n");
 		}
 

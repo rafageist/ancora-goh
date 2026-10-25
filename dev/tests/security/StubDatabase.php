@@ -96,6 +96,12 @@ class StubDatabase {
 		return $out;
 	}
 
+	// #35: generated models run their queries with bound parameters
+	public function getAsArrayParams($sql, array $params) {
+		$this->calls [] = array ('method' => 'getAsArrayParams', 'sql' => $sql, 'params' => array_values ( $params ) );
+		return array ();
+	}
+
 	public function callsOf($method) {
 		$r = array ();
 		foreach ( $this->calls as $c )

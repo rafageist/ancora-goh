@@ -354,6 +354,36 @@ function cargaModelo($modelfilename){
 	return $modelo;
 }
 
+// #35: turn the "$name" / "'$name'" references of a service method's SQL
+// into $1, $2, ... placeholders (one per distinct parameter, in the order of
+// "params") and return the SQL with the PHP expressions of the bound values.
+// A "$" that is not one of the method's parameters stops the generation:
+// it would have been interpolated before.
+function serviceSqlParams($method){
+    $index = array();
+    foreach ($method->params as $i => $param) $index[$param] = $i + 1;
+    $unknown = array();
+    $sql = preg_replace_callback("/'?\\$([A-Za-z_][A-Za-z0-9_]*)'?/", function ($m) use ($index, &$unknown) {
+        if (!isset($index[$m[1]])) { $unknown[] = $m[1]; return $m[0]; }
+        $quoted = strlen($m[0]) > 1 && $m[0][0] == "'" && substr($m[0], -1) == "'";
+        if (!$quoted && ($m[0][0] == "'" || substr($m[0], -1) == "'")) { $unknown[] = $m[1]; return $m[0]; }
+        return '$'.$index[$m[1]];
+    }, $method->SQL);
+    // a placeholder inside a string literal ('%$name%') would be plain text
+    $inquote = false;
+    for ($i = 0; $i < strlen($sql); $i++) {
+        if ($sql[$i] == "'") $inquote = !$inquote;
+        else if ($inquote && $sql[$i] == '$' && $i + 1 < strlen($sql) && ctype_digit($sql[$i + 1])) $unknown[] = 'placeholder in a string literal';
+    }
+    if (count($unknown) > 0 || strpos($sql, '{$') !== false) {
+        prints("[FAIL] service method ".$method->name.": unsupported \$ reference in SQL (".implode(", ", $unknown).")");
+        exit(1);
+    }
+    $binds = array();
+    foreach ($method->params as $param) $binds[] = 'PartModel::sqlValue($'.$param.', "text")';
+    return array($sql, $binds);
+}
+
 function ValidSchema($schema){
 	global $esquemas;
 	foreach($esquemas as $esquema){
