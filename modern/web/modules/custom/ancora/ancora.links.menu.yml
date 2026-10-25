@@ -1,0 +1,6 @@
+entity.ancora_academic_term.collection:
+  title: 'Academic terms'
+  description: 'Manage the academic terms that timetables are planned for.'
+  route_name: entity.ancora_academic_term.collection
+  parent: system.admin_content
+  weight: 20

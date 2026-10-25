@@ -1,0 +1,9 @@
+view ancora status:
+  title: 'View the Áncora platform status page'
+  description: 'Shows platform versions and record counts. Grant to operators only.'
+view ancora academic terms:
+  title: 'View academic terms'
+administer ancora academic terms:
+  title: 'Administer academic terms'
+  description: 'Create, edit and delete academic terms.'
+  restrict access: true

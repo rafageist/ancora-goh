@@ -1,0 +1,5 @@
+entity.ancora_academic_term.add_form:
+  title: 'Add academic term'
+  route_name: entity.ancora_academic_term.add_form
+  appears_on:
+    - entity.ancora_academic_term.collection

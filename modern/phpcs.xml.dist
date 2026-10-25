@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Coding standards for the Áncora first-party Drupal code (issue #69). -->
+<ruleset name="ancora">
+  <description>Drupal and DrupalPractice standards for custom code, settings and scripts.</description>
+
+  <file>web/modules/custom</file>
+  <file>web/themes/custom</file>
+  <file>web/sites/default/settings.php</file>
+  <file>settings</file>
+  <file>scripts</file>
+
+  <arg name="extensions" value="php,module,inc,install,test,profile,theme,css,info,txt,md,yml"/>
+  <arg name="colors"/>
+  <arg value="sp"/>
+  <arg name="cache" value=".phpcs-cache"/>
+
+  <rule ref="Drupal"/>
+  <rule ref="DrupalPractice"/>
+</ruleset>

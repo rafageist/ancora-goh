@@ -1,0 +1,39 @@
+/**
+ * @file
+ * Status card component styles.
+ */
+
+.status-card {
+  max-width: 40rem;
+  padding: var(--ancora-space, 1rem);
+  border: 1px solid var(--ancora-line, #d9dee4);
+  border-radius: var(--ancora-radius, 6px);
+  background: var(--ancora-surface, #ffffff);
+}
+
+.status-card__heading {
+  margin: 0 0 0.75rem;
+  font-size: 1.125rem;
+}
+
+.status-card__list {
+  display: grid;
+  margin: 0;
+  gap: 0.5rem;
+}
+
+.status-card__item {
+  display: grid;
+  grid-template-columns: minmax(8rem, 1fr) 2fr;
+  gap: 1rem;
+}
+
+.status-card__label {
+  color: var(--ancora-muted, #5b6878);
+  font-weight: 600;
+}
+
+.status-card__value {
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+}

@@ -1,0 +1,13 @@
+entity.ancora_academic_term.canonical:
+  title: 'View'
+  route_name: entity.ancora_academic_term.canonical
+  base_route: entity.ancora_academic_term.canonical
+entity.ancora_academic_term.edit_form:
+  title: 'Edit'
+  route_name: entity.ancora_academic_term.edit_form
+  base_route: entity.ancora_academic_term.canonical
+entity.ancora_academic_term.delete_form:
+  title: 'Delete'
+  route_name: entity.ancora_academic_term.delete_form
+  base_route: entity.ancora_academic_term.canonical
+  weight: 10

@@ -1,0 +1,155 @@
+uuid: 3b6ddeb8-e537-4d31-9818-9e35a1a74a6d
+langcode: en
+status: true
+dependencies:
+  module:
+    - ancora
+    - datetime
+    - user
+_core:
+  default_config_hash: QSvoO4477I8EHuWGIslp0KMvyllKn0QxNoIQwouXhXk
+id: ancora_academic_terms
+label: 'Academic terms'
+module: views
+description: 'Public listing of academic terms for users who may view them.'
+tag: ancora
+base_table: ancora_academic_term
+base_field: id
+display:
+  default:
+    id: default
+    display_title: Default
+    display_plugin: default
+    position: 0
+    display_options:
+      title: 'Academic terms'
+      fields:
+        label:
+          id: label
+          table: ancora_academic_term
+          field: label
+          entity_type: ancora_academic_term
+          entity_field: label
+          plugin_id: field
+          label: Name
+          type: string
+          settings:
+            link_to_entity: true
+        code:
+          id: code
+          table: ancora_academic_term
+          field: code
+          entity_type: ancora_academic_term
+          entity_field: code
+          plugin_id: field
+          label: Code
+          type: string
+          settings:
+            link_to_entity: false
+        starts_on:
+          id: starts_on
+          table: ancora_academic_term
+          field: starts_on
+          entity_type: ancora_academic_term
+          entity_field: starts_on
+          plugin_id: field
+          label: 'First day'
+          type: datetime_default
+          settings:
+            timezone_override: ''
+            format_type: html_date
+        ends_on:
+          id: ends_on
+          table: ancora_academic_term
+          field: ends_on
+          entity_type: ancora_academic_term
+          entity_field: ends_on
+          plugin_id: field
+          label: 'Last day'
+          type: datetime_default
+          settings:
+            timezone_override: ''
+            format_type: html_date
+      pager:
+        type: full
+        options:
+          items_per_page: 50
+      exposed_form:
+        type: basic
+        options: {  }
+      access:
+        type: perm
+        options:
+          perm: 'view ancora academic terms'
+      cache:
+        type: tag
+        options: {  }
+      empty:
+        area_text_custom:
+          id: area_text_custom
+          table: views
+          field: area_text_custom
+          plugin_id: text_custom
+          empty: true
+          content: 'No academic terms yet.'
+      sorts:
+        starts_on:
+          id: starts_on
+          table: ancora_academic_term
+          field: starts_on
+          entity_type: ancora_academic_term
+          entity_field: starts_on
+          plugin_id: datetime
+          order: ASC
+          granularity: day
+      arguments: {  }
+      filters: {  }
+      style:
+        type: table
+        options:
+          grouping: {  }
+          columns:
+            label: label
+            code: code
+            starts_on: starts_on
+            ends_on: ends_on
+          default: ''
+          info: {  }
+          override: true
+          sticky: false
+          summary: ''
+          empty_table: true
+      row:
+        type: fields
+        options: {  }
+      query:
+        type: views_query
+        options: {  }
+      relationships: {  }
+      header: {  }
+      footer: {  }
+      display_extenders: {  }
+    cache_metadata:
+      max-age: -1
+      contexts:
+        - 'languages:language_content'
+        - 'languages:language_interface'
+        - url.query_args
+        - user.permissions
+      tags: {  }
+  page_1:
+    id: page_1
+    display_title: Page
+    display_plugin: page
+    position: 1
+    display_options:
+      display_extenders: {  }
+      path: ancora/terms
+    cache_metadata:
+      max-age: -1
+      contexts:
+        - 'languages:language_content'
+        - 'languages:language_interface'
+        - url.query_args
+        - user.permissions
+      tags: {  }
