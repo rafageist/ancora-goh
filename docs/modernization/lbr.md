@@ -1,15 +1,43 @@
-# Legacy Bytes Remanufacturing: baseline and measurement (issue #38)
+# Legacy Bytes Remanufacturing: baselines and measurement (issues #38, #67, #77)
 
 Method: [2026.014 — Legacy Bytes Remanufacturing](https://github.com/rafageist/blog-reflections/wiki/2026.014.-Legacy-Bytes-Remanufacturing). LBR is a **progress metric**. It shows how much of a fixed legacy baseline has been retired with verified evidence. It does **not** measure security, quality, effort or technical debt, which are tracked separately (#40–#62, CI test suites).
 
-## 1. Frozen baseline
+## 0. Two independent baselines (sets)
+
+After the Drupal decision (#66) the tool measures **named sets**, each with its own commit, rules, frozen inventory and retirement records (`dev/lbr/sets/NAME/`). **Their percentages are never combined.**
+
+| Set | Scope | Status |
+| --- | --- | --- |
+| `historic-2010` | First-party legacy source that already existed in the July 2010 import, measured at `eca8aa7`. It is a **historical comparator** (§1–§2 below). | frozen: B = 854,831 bytes, 572 files |
+| `pre-drupal-cut` | **Comprehensive** cut (#67): every maintained first-party implementation file existing at the transition commit, including the 2026 recovery work (tests, tooling, Docker, CI, codegen), before the move into `legacy/` (#68). Excluded, with recorded reasons: the Drupal target `modern/`, docs, archival dumps, derived and generated outputs, third-party code. | **not frozen**: the cut commit is chosen after the in-flight PRs are reconciled, and needs maintainer approval before #68 |
+
+Preview of `pre-drupal-cut` at `master` `bc38590` (`php dev/lbr/lbr.php preview --set=pre-drupal-cut`): **B ≈ 4,657,918 bytes in 789 files**.
+
+| Stream | Files | Bytes |
+| --- | ---: | ---: |
+| legacy-ui-assets (first-party images) | 117 | 3,445,826 |
+| legacy-ui | 145 | 299,395 |
+| sql-domain | 246 | 196,229 |
+| verification (tests, E2E) | 55 | 161,781 |
+| tooling (CI checks, SQL tools) | 20 | 131,247 |
+| application-php | 140 | 121,642 |
+| mpi-prioriza | 24 | 107,749 |
+| codegen | 15 | 106,709 |
+| operations (Docker, CI workflows) | 20 | 46,844 |
+| scripts-config | 7 | 40,496 |
+
+**Decision needed before the freeze.** The first-party images are 74 % of the comprehensive B, so retiring the old desktop's icons would dominate the completion percentage. The method allows this (byte weighting is a known limit of LBR), but the maintainer may prefer to exclude binary assets, or to keep them and read the per-stream figures.
+
+**Relocation.** `dev/lbr/relocations.tsv` maps moved directories (for example `control/` → `legacy/control/`). A relocated file is still found at HEAD, still counted in C and listed as relocated. A retirement record for it is rejected while it exists at the new path. A move never retires anything.
+
+## 1. Historical baseline (`historic-2010`)
 
 | | |
 | --- | --- |
 | Baseline commit | `eca8aa7` (merge of PR #33: recovery #2–#31 + local containerization #32). This is the last commit before remanufacturing: it builds, installs and passes the HTTP and Docker E2E. |
 | Origin commit | `b42aa03`, historical import of the July 2010 snapshot |
-| Rule | A file is in B if it exists at the baseline commit, **existed in the origin commit** and is included by `dev/lbr/rules.tsv` (first match wins; an unclassified file is an error). It is measured as its blob size at the baseline commit. |
-| **B** | **854,831 bytes in 572 files** (`dev/lbr/baseline.tsv`, revision 1) |
+| Rule | A file is in B if it exists at the baseline commit, **existed in the origin commit** and is included by `dev/lbr/sets/historic-2010/rules.tsv` (first match wins; an unclassified file is an error). It is measured as its blob size at the baseline commit. |
+| **B** | **854,831 bytes in 572 files** (`dev/lbr/sets/historic-2010/baseline.tsv`, revision 1) |
 
 Notes on the rule:
 - The **origin rule** keeps the recovery work out of B. Docker, CI, tests, the SQL installer, `PasswordUtil`, `SessionUtil` and `setpassword.php` are new code, not legacy, even where they sit in legacy directories.
@@ -80,7 +108,7 @@ The per-component breakdown is in `php dev/lbr/lbr.php report`. CI prints the re
 
 1. In the PR that replaces or eliminates a responsibility:
    - remove the old files;
-   - add a row to `dev/lbr/retirements.tsv` (one file, or a baseline directory `dir/`), with status `in-transition` until merge;
+   - add a row to the set's `retirements.tsv` (one file, or a baseline directory `dir/`), with status `in-transition` until merge;
    - give the evidence: tests, E2E, security checks.
 2. After review and merge, set the status to `verified`, with the PR number, the merged commit and the reviewer.
 3. `php dev/lbr/lbr.php check` enforces each record:
@@ -100,4 +128,4 @@ The baseline is frozen:
 
 A scope change needs an explicit revision (`freeze --force-revision`, a new `revision=` number, and a documented reason in this file), reported next to the original B, never instead of it.
 
-Tests: `dev/tests/lbr/run.sh` (21 checks, run in a throwaway clone).
+Tests: `dev/tests/lbr/run.sh` (32 checks, run in a throwaway clone, including relocation, unfrozen sets and separate reporting).

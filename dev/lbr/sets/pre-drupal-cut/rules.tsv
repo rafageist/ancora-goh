@@ -1,0 +1,79 @@
+# LBR perimeter rules, set pre-drupal-cut (issues #66, #67).
+#
+# Every file tracked at the cut commit is classified; the FIRST matching rule
+# wins; an unclassified file is an error. Unlike historic-2010 there is no
+# origin filter: code written during the 2026 recovery is legacy too.
+# Single no-double-count policy: generated outputs are counted once through
+# their generator; derived files and third-party code are never counted.
+# Changing this file after the freeze requires a documented baseline revision.
+#
+# pattern	action	stream	component	reason
+# ---------------------------------------------------------------- excluded
+modern/**	exclude	-	-	target implementation (Drupal 11, #66), not legacy
+docs/**	exclude	-	-	documentation and decision records, not implementation
+README.md	exclude	-	-	documentation, not implementation
+.gitignore	exclude	-	-	repository metadata
+dev/lbr/**	exclude	-	-	measurement tooling and records (persists into the target)
+dev/backup/**	exclude	-	-	immutable archival dumps (historical data, may hold personal data)
+dev/src/**	exclude	-	-	derived: JSON model written by the introspector
+dev/sql/trash/**	exclude	-	-	discarded 2010 drafts, not maintained and not installed
+dev/sql/generador/generador.log	exclude	-	-	runtime log (data)
+dev/sql/.gitignore	exclude	-	-	repository metadata
+model/**	exclude	-	-	generated (counted once, through the generator)
+control/data/**	exclude	-	-	generated (counted once, through the generator)
+control/view/**	exclude	-	-	generated (counted once, through the generator)
+view/combo/**	exclude	-	-	generated (counted once, through the generator)
+view/grid/**	exclude	-	-	generated (counted once, through the generator)
+view/gallery/**	exclude	-	-	generated (counted once, through the generator)
+www/js/jquery/**	exclude	-	-	third-party: jQuery, jQuery UI, plugins and themes (dependence still blocks UI retirement)
+lib/parsers/json/**	exclude	-	-	third-party: PEAR Services_JSON
+**/vendor/**	exclude	-	-	third-party: Composer dependencies
+**/composer.lock	exclude	-	-	third-party dependency lock (derived)
+# ---------------------------------------------------------------- legacy UI
+www/js/app/**	include	legacy-ui	ui.desktop-js	jQuery desktop/window client and its server calls
+www/styles/**	include	legacy-ui	ui.styles	desktop styles
+view/custom/**	include	legacy-ui	ui.templates	handwritten view templates
+view/windows.php	include	legacy-ui	ui.windows	desktop window registry
+view/wins/**	include	legacy-ui	ui.windows	desktop window definitions
+www/*.html	include	legacy-ui	ui.web-entry	web root pages
+www/images/**	include	legacy-ui-assets	ui.images	first-party icons, logos and wallpapers of the desktop UI
+# ---------------------------------------------------------------- application PHP
+www/*.php	include	application-php	app.web-entry	web root entry points and debug pages
+control/*.php	include	application-php	app.dispatcher	request dispatcher and connection
+control/custom/**	include	application-php	app.handlers	handwritten event handlers
+lib/basic/security/**	include	application-php	app.security	password hashing and session handling (#14)
+lib/**	include	application-php	app.lib	application libraries, loader and genDB
+bin/**	include	application-php	app.cli	operator command-line scripts and configuration
+# ---------------------------------------------------------------- code generator (cogePHP / Divengine Codegen at the cut)
+dev/codegen/**	include	codegen	codegen.divengine	Divengine Codegen at the cut (#35, #39)
+dev/cogephp*	include	codegen	codegen.generators	cogePHP generators, helpers and configuration
+dev/crea_modelo_pg.*	include	codegen	codegen.introspector	PostgreSQL to JSON model introspector
+dev/path.php	include	codegen	codegen.config	include path for the generators
+dev/*.sh	include	codegen	codegen.wrappers	generation wrappers
+dev/*.bat	include	codegen	codegen.wrappers	generation wrappers
+dev/interface/**	include	codegen	codegen.inputs	form model input
+dev/services/**	include	codegen	codegen.inputs	service model input
+# ---------------------------------------------------------------- MPI / Prioriza (independent stream; kept as the bounded engine, #71)
+dev/sql/generador/**	include	mpi-prioriza	mpi.generador	MPI scheduling generator (PL/pgSQL)
+dev/sql/prioriza/**	include	mpi-prioriza	mpi.prioriza	Prioriza ordering (PL/pgSQL)
+# ---------------------------------------------------------------- SQL domain
+dev/sql/tests/**	include	verification	verify.sql-characterization	SQL characterization suite (#10, #23, #24)
+dev/sql/tools/**	include	tooling	tooling.sql	SQL installer, bundler and disposable-cluster safety tools (#9, #26)
+dev/sql/deploy.*	include	scripts-config	scripts.sql-deploy	SQL deployment order and wrappers
+dev/sql/compilasql.*	include	scripts-config	scripts.sql-deploy	SQL bundler
+dev/sql/install.sh	include	scripts-config	scripts.sql-deploy	SQL installer
+dev/sql/ancoragoh.sql	include	sql-domain	sql.database	database creation script
+dev/sql/*/**	include	sql-domain	sql.schema	schema, functions, triggers and default data
+# ---------------------------------------------------------------- verification and tooling (recovery work)
+dev/tests/lbr/**	exclude	-	-	measurement tooling tests
+dev/tests/**	include	verification	verify.php	PHP security and generated-SQL tests
+dev/e2e/**	include	verification	verify.e2e	HTTP end-to-end harness and fixture
+dev/ci/**	include	tooling	tooling.ci	repository checks (lint, PHP 8, regeneration, secrets)
+dev/php84/**	include	tooling	tooling.php84	one-off PHP 8 rewriters
+# ---------------------------------------------------------------- operations
+docker/**	include	operations	ops.docker	local Docker Compose deployment of the legacy app (#32)
+compose.yaml	include	operations	ops.docker	local Docker Compose deployment of the legacy app (#32)
+.dockerignore	include	operations	ops.docker	image allowlist
+.github/**	include	operations	ops.ci	CI workflows and PR template
+# ---------------------------------------------------------------- standalone R0 portal (only if merged before the cut)
+portal/**	include	standalone-portal	portal.r0	standalone PHP R0 portal (superseded by #73)
