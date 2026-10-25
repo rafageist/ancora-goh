@@ -1,0 +1,9 @@
+name: 'Áncora academic'
+type: module
+description: 'Academic planning data for the Áncora scheduling engine: plans, periods, groups, subjects, activity templates, rooms, teachers and assignments.'
+package: Áncora
+core_version_requirement: ^11.4
+dependencies:
+  - drupal:datetime
+  - drupal:user
+  - drupal:views
