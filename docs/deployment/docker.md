@@ -2,13 +2,13 @@
 
 Issue: #32. This guide installs Áncora GOH on one computer, for development and demonstration. You do not need to know the history of the project, and you do not need PHP or PostgreSQL on the host.
 
-> **Local use only.** The legacy application still has SQL injection, missing CSRF protection and missing output escaping (`docs/modernization/php-auth-hardening.md` §6). The web port is published on `127.0.0.1` only. Do not change that address, do not put a reverse proxy in front of it, and do not open it to a network. This is not a production deployment.
+> **Local use only.** The legacy application still has SQL injection, missing CSRF protection and missing output escaping (`docs/modernization/php-auth-hardening.md` §6). By default the web port is published on `127.0.0.1` only. Opening it to a network ([Network access](#network-access)) is an explicit operator decision, for a trusted LAN only. Do not put a public reverse proxy in front of it. This is not a production deployment.
 
 ## What runs
 
 | Service | Image | Role | Network | Host port |
 | --- | --- | --- | --- | --- |
-| `web` | built from `docker/Dockerfile`, target `web` (PHP 8.4.27, Apache 2.4, Debian 13) | The application. Serves only `www/`. Runs as `www-data` on port 8080 with a read-only file system. | `backend`, `frontend` | `127.0.0.1:8087` (configurable) |
+| `web` | built from `docker/Dockerfile`, target `web` (PHP 8.4.27, Apache 2.4, Debian 13) | The application. Serves only `www/`. Runs as `www-data` on port 8080 with a read-only file system. | `backend`, `frontend` | `127.0.0.1:8087` by default (address and port configurable) |
 | `db` | `postgres:16.15-bookworm` | PostgreSQL 16. Its data is in the named volume `ancora-goh_pgdata`. | `backend` (internal) | none |
 | `setup` | target `setup` (PHP 8.4 CLI, `psql`, the SQL sources in `dev/sql`) | One-off database installer. Runs only when you call it. | `backend` | none |
 
@@ -129,7 +129,18 @@ docker compose exec -T db pg_dump -U postgres --format=custom -d ancoragoh > anc
 
 ## Changing the port
 
-Set `ANCORA_HTTP_PORT` in `.env` and run `docker/manage.sh up` again. The address is always `127.0.0.1`. To reach the application from another device, do not change the bind address. Use an SSH tunnel to this computer (`ssh -L 8087:127.0.0.1:8087 host`), and only on a network you trust.
+Set `ANCORA_HTTP_PORT` in `.env` and run `docker/manage.sh up` again.
+
+## Network access
+
+By default only this computer can open the application. There are two ways to reach it from another device:
+
+- **SSH tunnel (preferred).** On the other device, run `ssh -N -L 8087:127.0.0.1:8087 user@host` and open <http://127.0.0.1:8087/> there. Only people with SSH access to this computer can reach the application.
+- **Publish on the network.** Set `ANCORA_BIND_ADDRESS=0.0.0.0` (every interface) or one address of this computer in `.env`, then run `docker/manage.sh up`. Every device that can reach that address can open the application.
+
+> **Warning.** With a network address, anyone on that network can reach an application that still has SQL injection and no CSRF protection. Use it only on a trusted LAN, never on the internet. Ports published by Docker bypass `ufw`/firewalld rules on the host. To go back, remove the line from `.env` and run `docker/manage.sh up`.
+
+The disposable end-to-end test always uses `127.0.0.1`, whatever `.env` says.
 
 ## End-to-end test
 
@@ -192,7 +203,7 @@ A reset:
 ## Security limits
 
 These limits apply until the separate security gates of the modernization pass:
-- **Local only.** SQL injection in the generated layer, missing CSRF protection, missing output escaping and incomplete ownership checks remain.
+- **Local only by default.** SQL injection in the generated layer, missing CSRF protection, missing output escaping and incomplete ownership checks remain.
 - **Inside the `db` container, local connections are trusted.** That is the default of the official image. Anyone who can run `docker exec` on this host can read the database. Only TCP connections from `web` and `setup` need a password.
 - **The application role owns the schema.** It is not a superuser and cannot create databases or roles. There is not yet a separate, less-privileged role for the application.
 - **The images are pinned to exact versions.** Run `docker/manage.sh rebuild` to pick up rebuilt base images of the same versions.

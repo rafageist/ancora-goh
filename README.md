@@ -130,7 +130,7 @@ Docker Engine with the Compose plugin is the only requirement. From the reposito
 docker/manage.sh init-secrets && docker/manage.sh up && docker/manage.sh init-db && docker/manage.sh set-admin-password
 ```
 
-The application then runs at <http://127.0.0.1:8087/>. This is **local use only**: the legacy application is not safe on any network. See [`docs/deployment/docker.md`](docs/deployment/docker.md) for the full guide (administrator setup, backup and restore, reset, troubleshooting).
+The application then runs at <http://127.0.0.1:8087/>. By default it is published on this computer only: the legacy application is not safe on an untrusted network (`ANCORA_BIND_ADDRESS` opens it to a LAN; read the warning in the guide first). See [`docs/deployment/docker.md`](docs/deployment/docker.md) for the full guide (administrator setup, backup and restore, reset, troubleshooting).
 
 ### Without Docker
 

@@ -17,8 +17,9 @@
 #   docker/manage.sh reset                   DELETE ALL DATA (asks)
 #   docker/manage.sh e2e [--deployed|--verify-persisted]   docker/e2e.sh
 #
-# The application is published on 127.0.0.1 only (ANCORA_HTTP_PORT in .env,
-# default 8087). It is not safe for any network: docs/deployment/docker.md.
+# The application is published on 127.0.0.1:8087 by default (ANCORA_BIND_ADDRESS
+# and ANCORA_HTTP_PORT in .env). It is not safe for an untrusted network:
+# docs/deployment/docker.md.
 set -euo pipefail
 
 repo=$(cd "$(dirname "$0")/.." && pwd)
@@ -34,6 +35,11 @@ http_port() {
   local p=${ANCORA_HTTP_PORT:-}
   [ -n "$p" ] || p=$(sed -n 's/^ANCORA_HTTP_PORT=\([0-9]*\).*/\1/p' "$repo/.env" 2>/dev/null | tail -1)
   echo "${p:-8087}"
+}
+bind_address() {
+  local a=${ANCORA_BIND_ADDRESS:-}
+  [ -n "$a" ] || a=$(sed -n 's/^ANCORA_BIND_ADDRESS=\([^ #]*\).*/\1/p' "$repo/.env" 2>/dev/null | tail -1)
+  echo "${a:-127.0.0.1}"
 }
 need_secrets() {
   for f in postgres_password db_password; do
@@ -76,7 +82,13 @@ case "$cmd" in
       die "127.0.0.1:$port is already in use; set another ANCORA_HTTP_PORT in .env"
     fi
     dc up -d --build --wait --wait-timeout 240 db web
-    echo "Áncora GOH: http://127.0.0.1:$port/ (local only)"
+    addr=$(bind_address)
+    if [ "$addr" = 127.0.0.1 ]; then
+      echo "Áncora GOH: http://127.0.0.1:$port/ (local only)"
+    else
+      echo "Áncora GOH: http://127.0.0.1:$port/, published on $addr:$port"
+      echo "WARNING: reachable from the network. The application is not safe on an untrusted network."
+    fi
     ;;
 
   init-db)
