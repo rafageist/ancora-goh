@@ -8,6 +8,9 @@
  *   1. a static scan of every tracked generated file: SQL text carries no
  *      interpolated value; only the documented trusted fragments ($where,
  *      $set, $extrawhere, $phrasepart, the checked $fieldcount) remain;
+ *   1b. a static scan of the hand-written handlers, templates, web root, CLI
+ *      tools and application libraries (#44): no variable at all reaches
+ *      SQL text, with a negative control on the old patterns;
  *   2. the generated models, items, collections, function wrappers and the
  *      service class, run against a recording database: injection probes are
  *      bound parameters and never reach the SQL text;
@@ -173,6 +176,213 @@ test ( 'static: set/del handlers have no "null" string placeholder and skip unpo
 	check ( $n >= 100, "checked $n handlers" );
 } );
 
+// ============================== 1b. static scan of the hand-written code (#44)
+/**
+ * SQL sinks and the indexes of their arguments that become SQL text
+ * (a negative index counts from the end of the argument list).
+ */
+function handwritten_sink_args($name) {
+	static $sinks = array (
+		'getAllBy' => array (0, 1 ),
+		'getLimitBy' => array (2, 3 ),
+		'setBy' => array (0, 1 ),
+		'set' => array (0 ),
+		'removeBy' => array (0 ),
+		'Load' => array (2, 3 ),
+		'~^getJoinWith\w*ByPhrase$~' => array (1, 2 ),
+		'~^getJoinWith\w*By$~' => array (0, 1 ),
+		'getAllWithPhraseIn' => array (0, 1, 3, 4 ),
+		'getAnything' => array (0 ),
+		'getAnythingParams' => array (0 ),
+		'getDefault' => array (0 ),
+		'getAsObjects' => array (0 ),
+		'getAsArray' => array (0 ),
+		'getAsObjectsParams' => array (0 ),
+		'getAsArrayParams' => array (0 ),
+		'queryParams' => array (0 ),
+		'pg_query' => array (- 1 ),
+		'pg_exec' => array (- 1 ),
+		'pg_send_query' => array (- 1 ),
+		'pg_prepare' => array (- 1 ),
+		'pg_query_params' => array (- 2 )
+	);
+	foreach ( $sinks as $k => $idx )
+		if ($k [0] === '~' ? preg_match ( $k, $name ) : $k === $name) return $idx;
+	return null;
+}
+
+/** A token that makes SQL text non-constant: a variable or an interpolation. */
+function handwritten_dynamic_token($t) {
+	if (! is_array ( $t )) return $t === '`';
+	return in_array ( $t [0], array (T_VARIABLE, T_CURLY_OPEN, T_DOLLAR_OPEN_CURLY_BRACES, T_STRING_VARNAME, T_START_HEREDOC ), true );
+}
+
+/**
+ * Rules for the hand-written code, where no fragment is trusted:
+ *  A. every SQL-text argument of a sink (the raw-fragment model methods, the
+ *     database methods, the pg_* functions) is built from constant strings
+ *     only: no variable, no "$x" / "{$x}" / "${x}" interpolation, no call;
+ *  B. no string that reads as SQL interpolates a variable or is concatenated
+ *     with a non-constant.
+ * Returns "label:line what" items.
+ */
+function handwritten_sql_violations($code, $label) {
+	$found = array ();
+	$tokens = array_values ( array_filter ( token_get_all ( $code ), function ($t) {
+		return ! (is_array ( $t ) && in_array ( $t [0], array (T_WHITESPACE, T_COMMENT, T_DOC_COMMENT ), true ));
+	} ) );
+	$n = count ( $tokens );
+	$lines = array ();
+	$line = 1;
+	for ($i = 0; $i < $n; $i ++) {
+		if (is_array ( $tokens [$i] )) $line = $tokens [$i] [2];
+		$lines [$i] = $line;
+	}
+	$pgfuncs = array ('pg_query', 'pg_exec', 'pg_send_query', 'pg_query_params', 'pg_prepare' );
+
+	// A. sink arguments
+	for ($i = 0; $i < $n; $i ++) {
+		$t = $tokens [$i];
+		if (! is_array ( $t ) || $t [0] !== T_STRING || ! isset ( $tokens [$i + 1] ) || $tokens [$i + 1] !== '(') continue;
+		$prev = $i > 0 ? $tokens [$i - 1] : null;
+		$method = is_array ( $prev ) && in_array ( $prev [0], array (T_OBJECT_OPERATOR, T_NULLSAFE_OBJECT_OPERATOR, T_DOUBLE_COLON ), true );
+		$func = ! $method && in_array ( $t [1], $pgfuncs, true ) && ! (is_array ( $prev ) && $prev [0] === T_FUNCTION);
+		if (! $method && ! $func) continue;
+		$idx = handwritten_sink_args ( $t [1] );
+		if ($idx === null) continue;
+		$args = array (array () ); // token indexes of each top-level argument
+		$depth = 0;
+		for ($j = $i + 1; $j < $n; $j ++) {
+			$u = $tokens [$j];
+			$c = is_array ( $u ) ? null : $u;
+			if ($c === '(' || $c === '[' || $c === '{' || (is_array ( $u ) && in_array ( $u [0], array (T_CURLY_OPEN, T_DOLLAR_OPEN_CURLY_BRACES ), true ))) {
+				if (++ $depth == 1) continue;
+			} elseif ($c === ')' || $c === ']' || $c === '}') {
+				if (-- $depth == 0) break;
+			} elseif ($c === ',' && $depth == 1) {
+				$args [] = array ();
+				continue;
+			}
+			$args [count ( $args ) - 1] [] = $j;
+		}
+		if (count ( $args ) == 1 && count ( $args [0] ) == 0) $args = array ();
+		foreach ( $idx as $k ) {
+			$k = $k < 0 ? count ( $args ) + $k : $k;
+			if ($k < 0 || ! isset ( $args [$k] )) continue;
+			foreach ( $args [$k] as $j ) {
+				$u = $tokens [$j];
+				$call = is_array ( $u ) && $u [0] === T_STRING && isset ( $tokens [$j + 1] ) && $tokens [$j + 1] === '(';
+				if (handwritten_dynamic_token ( $u ) || $call) {
+					$found [] = "$label:{$lines[$j]} {$t[1]}() argument $k: " . (is_array ( $u ) ? $u [1] : $u);
+					break;
+				}
+			}
+		}
+	}
+
+	// B. strings that read as SQL
+	$is_sql = function ($s) {
+		return preg_match ( '/\b(select\b.*\bfrom|insert\s+into|update\b.*\bset|delete\s+from|where|order\s+by)\b/is', $s ) ||
+			preg_match ( '/(\b[a-z_][a-z0-9_.]*\s*(=|<>|!=)\s*\'?$)|^\'?\s*(and|or)\b/i', $s );
+	};
+	for ($i = 0; $i < $n; $i ++) {
+		$t = $tokens [$i];
+		if ($t === '"' || (is_array ( $t ) && $t [0] === T_START_HEREDOC)) {
+			$end = $t === '"' ? '"' : T_END_HEREDOC;
+			$text = '';
+			$vars = array ();
+			for ($j = $i + 1; $j < $n; $j ++) {
+				$u = $tokens [$j];
+				if ($u === $end || (is_array ( $u ) && $u [0] === $end)) break;
+				if (is_array ( $u ) && $u [0] === T_ENCAPSED_AND_WHITESPACE) $text .= $u [1] . " ";
+				elseif (handwritten_dynamic_token ( $u )) $vars [] = $j;
+			}
+			if ($vars && $is_sql ( $text ))
+				foreach ( $vars as $j )
+					if ($tokens [$j] [1] !== '$this') $found [] = "$label:{$lines[$j]} interpolated in SQL text: " . $tokens [$j] [1];
+			$i = $j;
+			continue;
+		}
+		if (is_array ( $t ) && $t [0] === T_CONSTANT_ENCAPSED_STRING && $is_sql ( substr ( $t [1], 1, - 1 ) )) {
+			$const = function ($k) use ($tokens) { return isset ( $tokens [$k] ) && is_array ( $tokens [$k] ) && $tokens [$k] [0] === T_CONSTANT_ENCAPSED_STRING; };
+			$next = isset ( $tokens [$i + 1] ) ? $tokens [$i + 1] : null;
+			$prev = $i > 0 ? $tokens [$i - 1] : null;
+			if (($next === '.' && ! $const ( $i + 2 )) || ($prev === '.' && ! $const ( $i - 2 )))
+				$found [] = "$label:{$lines[$i]} SQL text concatenated with a non-constant";
+		}
+	}
+	return array_values ( array_unique ( $found ) );
+}
+
+/** The hand-written PHP: handlers, templates, web root, CLI tools, application libraries. */
+function handwritten_files() {
+	global $ROOT;
+	$files = array ();
+	exec ( 'git -C ' . escapeshellarg ( $ROOT ) . ' ls-files control view/custom view/windows.php view/wins www bin lib', $files );
+	return array_values ( array_filter ( $files, function ($f) {
+		return preg_match ( '/\.(php|tpl)$/', $f ) &&
+			! preg_match ( '#^control/(data|view)/#', $f ) && // generated
+			! preg_match ( '#^www/js/#', $f ) && // third-party JavaScript bundles and their demos
+			! preg_match ( '#^lib/(parsers|enterprise/gendb)/#', $f ); // third-party parsers; the drivers are the sink
+	} ) );
+}
+
+test ( 'static: hand-written code puts no variable into SQL text (no allowlist)', function () {
+	global $ROOT;
+	$files = handwritten_files ();
+	$bad = array ();
+	$sinks = 0;
+	foreach ( $files as $f ) {
+		$code = file_get_contents ( "$ROOT/$f" );
+		$bad = array_merge ( $bad, handwritten_sql_violations ( $code, $f ) );
+		$sinks += preg_match_all ( '/->(getAllBy|getLimitBy|setBy|removeBy|Load|getAsObjectsParams|queryParams)\s*\(/', $code );
+	}
+	check ( count ( $files ) >= 200, 'scanned ' . count ( $files ) . ' hand-written files' );
+	check ( $sinks >= 80, "found $sinks sink calls" );
+	check ( count ( $bad ) == 0, count ( $bad ) . ' values in SQL text: ' . implode ( ', ', array_slice ( $bad, 0, 10 ) ) );
+} );
+
+test ( 'static: negative control, the pre-#44 hand-written patterns are detected', function () {
+	$cases = array (
+		'session in {$...}' => '<?php $m->getAllBy("creador = \'{$_SESSION[\'user\']}\' ORDER BY descripcion");',
+		'unquoted number' => '<?php $m->removeBy("periodo = \'$id\' AND dia = $dia");',
+		'POST in {$...}' => '<?php $b->getAllBy("especialidad =\'{$_POST[\'especialidad\']}\' AND nivel=\'{$_POST[\'nivel\']}\'");',
+		'${...} syntax' => '<?php $m->getAllBy("id = \'${id}\'");',
+		'Load filter' => '<?php $c->Load(null,null,"*","creador = \'{$_SESSION[\'user\']}\'");',
+		'Load filter as fields' => '<?php $c->Load(null,null,"creador = \'{$_SESSION[\'user\']}\'");',
+		'setBy number' => '<?php $m->setBy("id = \'$idpxact\'","prioridad = $prioridad");',
+		'fragment in a variable' => '<?php $w = "creador = \'" . $u . "\'"; $m->getAllBy($w);',
+		'concatenation' => '<?php $m->getAllBy("creador = \'" . $u . "\'");',
+		'function in the fragment' => '<?php $m->getAllBy(sprintf("id = %s", $x));',
+		'interpolated SELECT' => '<?php $db->getAsObjects("SELECT * FROM t WHERE id = {$id}");',
+		'pg_query' => '<?php pg_query($conn, "DELETE FROM t WHERE id = $id");',
+		'SQL string built apart' => '<?php $sql = "SELECT * FROM t WHERE nick = \'$nick\'";'
+	);
+	foreach ( $cases as $name => $code )
+		check ( count ( handwritten_sql_violations ( $code, 'neg' ) ) > 0, "detects: $name" );
+	$ok = array (
+		'<?php $m->getAllBy(\'creador = $1 ORDER BY descripcion\', "*", false, array($_SESSION[\'user\']));',
+		'<?php $c->Load(null, null, "*", \'creador = $1\', array($_SESSION[\'user\']));',
+		'<?php $m->setBy(\'id = $1\', \'prioridad = $2\', false, array($id, $p));',
+		'<?php $m->getAllBy("creador = \$1", "*, upper(nombre) as n", true, array($u));',
+		'<?php echo "<select name=\'$name\'>" . $x;'
+	);
+	foreach ( $ok as $code )
+		check ( count ( handwritten_sql_violations ( $code, 'ok' ) ) == 0, "accepts: $code" );
+	// the hand-written files as they were before #44, when the history is there
+	global $ROOT;
+	$before = 'b35df1c';
+	$git = 'git -C ' . escapeshellarg ( $ROOT );
+	exec ( "$git cat-file -e $before^{commit} 2>/dev/null", $o, $rc );
+	if ($rc === 0) {
+		$hits = array ();
+		foreach ( array ('control/custom/get_browser_Brigadas_filtradas.php', 'control/custom/get_data_especialidades.php', 'control/custom/custom_set_Restricciones_Periodo.php', 'view/custom/tree_brigadas.tpl', 'control/custom/get_minibrowser_publico.php' ) as $f ) {
+			$code = shell_exec ( "$git show " . escapeshellarg ( "$before:$f" ) . ' 2>/dev/null' );
+			check ( count ( handwritten_sql_violations ( ( string ) $code, $f ) ) > 0, "detects the pre-#44 $f" );
+		}
+	}
+} );
+
 // ================================================= 2. generated code, recorded
 test ( 'model add(): every value is bound, the SQL text is constant', function ($db) {
 	global $PROBE;
@@ -213,6 +423,42 @@ test ( 'item FK getter: the collection is loaded with a bound key', function ($d
 	$p->getActividad ();
 	$c = $db->last ();
 	check ( $c ['sql'] === 'SELECT * FROM actividad WHERE profesor = $1;' && $c ['params'] === array ($PROBE ), 'getAllBy with $1' );
+} );
+
+test ( 'collection Load(): limit and offset are applied when both are given (#44)', function ($db) {
+	global $PROBE;
+	$db->result = array (( object ) array ('id' => 'p1', 'nombre' => 'A', 'creador' => 'u' ) );
+	$c = new ProfesorCollection ( $db );
+	$c->Load ( 0, 10 );
+	$q = $db->last ();
+	check ( $q ['sql'] === 'SELECT * FROM profesor LIMIT $1 OFFSET $2;' && $q ['params'] == array (10, 0 ), 'offset 0 is a value: LIMIT 10 OFFSET 0 (' . $q ['sql'] . ')' );
+	$c->Load ( 5, 10, 'id, nombre', 'creador = $1', array ($PROBE ) );
+	$q = $db->last ();
+	check ( $q ['sql'] === 'SELECT id, nombre FROM profesor WHERE creador = $1 LIMIT $2 OFFSET $3;', 'getLimitBy numbers its placeholders after the fragment' );
+	check ( $q ['params'] == array ($PROBE, 10, 5 ), 'fragment value, limit and offset bound' );
+	$c->Load ( null, null, '*', 'creador = $1', array ($PROBE ) );
+	$q = $db->last ();
+	check ( $q ['sql'] === 'SELECT * FROM profesor WHERE creador = $1;' && $q ['params'] === array ($PROBE ), 'no limit: filtered getAllBy' );
+	$c->Load ();
+	check ( $db->last () ['sql'] === 'SELECT * FROM profesor;', 'no arguments: every row' );
+	check ( count ( $c->collection ) == 4, 'Load() appends, as before' );
+} );
+
+test ( 'collection Reload(): replays the last Load() into a fresh collection (#44)', function ($db) {
+	global $PROBE;
+	$db->result = array (( object ) array ('id' => 'p1', 'nombre' => 'A', 'creador' => 'u' ), ( object ) array ('id' => 'p2', 'nombre' => 'B', 'creador' => 'u' ) );
+	$c = new ProfesorCollection ( $db );
+	$c->Load ( 2, 3, '*', 'creador = $1', array ($PROBE ) );
+	$first = $db->last ();
+	$c->Reload ();
+	$again = $db->last ();
+	check ( count ( $db->calls ) == 2, 'Reload() ran one query' );
+	check ( $again ['sql'] === $first ['sql'] && $again ['params'] === $first ['params'], 'same SQL and parameters as the last Load()' );
+	check ( count ( $c->collection ) == 2, 'collection replaced, not duplicated' );
+	check ( $c->last_offset === 2 && $c->last_limit === 3 && $c->last_where === 'creador = $1', 'last Load() arguments recorded' );
+	$d = new ProfesorCollection ( $db );
+	$d->Reload ();
+	check ( $db->last () ['sql'] === 'SELECT * FROM profesor;', 'Reload() before any Load() loads every row' );
 } );
 
 test ( 'raw-fragment methods: values can be bound with $params; select lists are checked', function ($db) {

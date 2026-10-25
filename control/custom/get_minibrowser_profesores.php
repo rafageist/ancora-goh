@@ -5,7 +5,7 @@ import("model.data.Profesor");
 import("model.data.ProfesorCollection");
 
 $col = new ProfesorCollection($dbconnection);
-$col->Load(null,null,"*","creador = '{$_SESSION['user']}' ORDER BY nombre");
+$col->Load(null, null, "*", 'creador = $1 ORDER BY nombre', array($_SESSION['user']));
 
 $profesores = $col->collection;
 

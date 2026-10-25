@@ -11,7 +11,7 @@
     $pxact = $m->get($idpxact);
     
     $m = new ProfesorParaGrupoModel($dbconnection);
-    $pxgrp = $m->getAllBy("profesor_para_actividad = '$idpxact'");
+    $pxgrp = $m->getAllBy('profesor_para_actividad = $1', "*", false, array($idpxact));
     
     $m = new PublicFunctions($dbconnection);
     

@@ -45,23 +45,60 @@ The value-carrying queries go through the new `PartModel` helpers, which are emi
 - `getJoinWithX()` now honours `$asobjects`; it ignored it before. Nothing calls it.
 - The HTTP end-to-end runs (local and Docker) are unchanged: 8/8 placed, 0 collisions, same placement digest.
 
-## 3. What is not covered (hand-written code)
+## 3. Hand-written code (#44)
 
-The raw-fragment methods `getAllBy`, `getLimitBy`, `setBy`, `set`, `removeBy`, `getJoinWithXBy(Phrase)` and `Load` still take a **trusted SQL fragment** (`$where`, `$set`). The callers put ORDER BY clauses and function calls in them, so the fragment cannot be bound as a whole. Each method now takes an optional `$params` array, which binds `$1..$n` in the fragment.
+The raw-fragment methods `getAllBy`, `getLimitBy`, `setBy`, `set`, `removeBy`, `getJoinWithXBy(Phrase)` and `Load` still take a **trusted SQL fragment** (`$where`, `$set`). The callers put ORDER BY clauses and function calls in them, so the fragment cannot be bound as a whole. Each method takes an optional `$params` array, which binds `$1..$n` in the fragment.
 
-The hand-written callers have not been migrated. A scan of `control/`, `view/`, `www/`, `bin/` and `lib/` (generated folders excluded) finds **68 call sites in 52 files** that build the fragment from variables:
+### 3.1 Migrated call sites
 
-- 39 interpolate `$_SESSION['user']`;
-- one interpolates `$_POST` directly (`get_browser_Brigadas_filtradas.php`);
-- most of the others interpolate locals read from `$_POST`.
+The hand-written callers are now migrated (#44). The scope is `control/custom/`, `control/*.php`, `view/custom/`, `view/windows.php`, `view/wins/`, `www/` (not the third-party `www/js/`), `bin/` and the application code in `lib/` (not `lib/parsers/`, and not the database drivers in `lib/enterprise/gendb/`, which are the sink).
 
-They remain SQL injection points, and are the next slice of this work.
+Before #44 the scope had **78 call sites in 59 files** that put a value into the fragment:
 
-Related findings, not changed here:
+| Values | Call sites |
+| --- | --- |
+| `$_SESSION['user']`, the ownership filter `creador = ...` (two also bind a second value) | 44 |
+| `$_POST` read inline (`get_browser_Brigadas_filtradas.php`) | 1 |
+| Locals read from `$_POST`, including the unquoted numbers `dia`, `turno` and `prioridad` | 27 |
+| Row values in templates and loops (`{$esp['id']}`, `{$r['id']}`, ...) | 5 |
+| `bin/deluser.php` (the nick typed at the console) | 1 |
 
-- **Ownership filter lost.** 9 calls `Load(null, null, "creador = '...'")` pass the ownership filter as the *field list*. `Load()` then reads every row; the filter was never applied (an ownership gap, also reported in #14).
-- **`Load()` limit bug.** `Load()` contains `$limit=null` (an assignment), so a limit is never applied. That is a runtime defect for the PHP 8 slice of #35.
+The previous count (68 in 52) came from a grep. The token scan also finds the calls in templates and `bin/`.
+
+Each call site now has a constant fragment with `$n` placeholders and passes its values as `$params`, for example:
+
+```php
+$m->getAllBy("creador = '{$_SESSION['user']}' ORDER BY descripcion");                    // before
+$m->getAllBy('creador = $1 ORDER BY descripcion', "*", false, array($_SESSION['user']));  // now
+```
+
+Other changes:
+
+- **No dynamic identifiers.** ORDER BY clauses, select lists and function names are constant text. No call site took them from input.
+- **No trailing `;`.** The one fragment that ended in `;` (`get_browser_DesgloseDetalles.php`) lost it.
+- **`get_minibrowser_publico.php`** already bound its values (#14), but it built its SQL text from an internal allowlist. It now makes four calls with constant SQL text, and the last posted id still wins.
+
+Nothing remains to migrate. `dev/tests/codegen/run.php` scans the scope and has no allowlist.
+
+### 3.2 Behaviour changes
+
+- **The ownership filter is applied.** 10 calls `Load(null, null, "creador = '...'")` passed the filter as the *field list*, so `Load()` read every row of every user. They now pass `Load(null, null, "*", 'creador = $1', array($_SESSION['user']))`, so each user sees only their own rows. The calls are in:
+  - `get_data_especialidades`, `get_data_niveles`, `get_data_planificaciones`;
+  - `get_minibrowser_especialidades`, `get_minibrowser_niveles`;
+  - `get_browser_Organizacion` (3 calls);
+  - `custom_getui_ExploradorHorarios`;
+  - `get_form_edit_zpriori`.
+
+  The earlier count of 9 missed one.
+- **Generated `Load()`.** It tested `$limit=null` (an assignment), so a limit was never applied. It now applies limit and offset when both are given, and an offset of `0` counts as given. `Reload()` used undefined variables. `Load()` now records its arguments in `$last_offset`, `$last_limit`, `$last_fields`, `$last_where` and `$last_params`, and `Reload()` clears the collection and repeats the last `Load()`. No hand-written code passes a limit or calls `Reload()`.
+- **Failed queries throw.** A query that fails now throws `RuntimeException`, because parameterized queries go through `getAnythingParams()`. Before, it was read as "no rows". This happens, for example, when a non-numeric `prioridad` is posted.
+- **Missing values are `NULL`.** A posted value that is missing is now bound as `NULL` instead of `''`. Both match no row.
+
+### 3.3 Not changed
+
 - **MySQL driver.** `getAsArrayParams()` was added to `PostgresDatabaseImpl` only, like the #14 methods. The unused MySQL driver is untouched.
+- **`bin/deluser.php` and `bin/deluser_byid.php`** include files that no longer exist (`../lib/console.lib`, `../modelo/...`), so they cannot run. Only the call site was migrated.
+- **Ownership is enforced only on reads.** Updates and deletes by id (`setBy('id = $1', ...)`, `removeBy(...)`, generated `set_X` / `del_X`) do not check `creador`. A user who knows another user's id can still change that row. This is an authorization gap (#14), not an injection.
 
 ## 4. Tests and evidence
 
@@ -75,6 +112,17 @@ Related findings, not changed here:
 | `dev/ci/php-lint.sh`, `dev/ci/php84-check.sh` | 935 files; 935 files, 130 classes | ok |
 | `with-ephemeral-pg.sh dev/e2e/run.sh` | HTTP login, data entry, generation | 28/28; 8/8 placed, 0 collisions, digest `4199818b…` |
 | `docker/e2e.sh` | The Docker Compose deployment | 55/55 |
+
+Hand-written call sites (#44), measured on the #44 branch:
+
+| Test | What it shows | Result |
+| --- | --- | --- |
+| `php dev/tests/codegen/run.php` | Adds a token scan of 225 hand-written files, with no allowlist. Every SQL-text argument of a sink is constant, and no SQL string interpolates (`$x`, `{$x}`, `${x}`) or concatenates a variable. 13 negative patterns are detected, and so are five pre-#44 files read from git history. `Load()` applies limit and offset, including an offset of 0. `Reload()` repeats the last `Load()` without duplicating rows | 363 passed |
+| `php dev/tests/security/run.php` | Dispatches migrated handlers against `StubDatabase`: `get_browser_Brigadas_filtradas`, `get_minibrowser_profesores`, `get_browser_GruposXClasif`, `get_data_especialidades`, `get_browser_Organizacion` (fixed `Load()`), `custom_set_Restricciones_Periodo` and `set_prioridad_pxact` (numbers). Probes appear only in params, the ownership filter is in the SQL text, and only the user's own rows are listed | 654 passed |
+| `with-ephemeral-pg.sh dev/tests/codegen/pg-probes.sh` | Unchanged | 18 passed |
+| `check-generated.sh`, `php-lint.sh`, `php84-check.sh`, `check-secrets.sh` | 679 generated files match; 937 files lint-clean; 130 classes | ok |
+| `with-ephemeral-pg.sh dev/e2e/run.sh` | HTTP journey | 28/28; 8/8 placed, 0 collisions, digest `4199818b55d4f1c44f2cba24f0367e29` |
+| `docker/e2e.sh` | Docker Compose deployment | 55/55, same digest |
 
 CI: `.github/workflows/codegen-sql.yml` runs both new suites.
 

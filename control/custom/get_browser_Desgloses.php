@@ -8,16 +8,16 @@
 	import("model.data.PlanificacionCollection");
 	
 	$m = new EspecialidadModel($dbconnection);
-	$especs = $m->getAllBy("creador = '{$_SESSION['user']}' ORDER BY descripcion");
+	$especs = $m->getAllBy('creador = $1 ORDER BY descripcion', "*", false, array($_SESSION['user']));
 	
 	$m = new NivelModel($dbconnection);
-	$niveles = $m->getAllBy("creador = '{$_SESSION['user']}' ORDER BY descripcion");
+	$niveles = $m->getAllBy('creador = $1 ORDER BY descripcion', "*", false, array($_SESSION['user']));
 
 	$asigmodel = new AsignaturaModel($dbconnection);	
 	
 	$coll = new PlanificacionCollection($dbconnection);
 	
-	$coll->Load(null,null,"*","creador = '{$_SESSION['user']}'");
+	$coll->Load(null, null, "*", 'creador = $1', array($_SESSION['user']));
 		
 	$planifs = $coll->collection;
 	

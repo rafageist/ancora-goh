@@ -19,7 +19,7 @@
 	        	ancoragoh.client.browsers.desgloses.seleccionaNivel(\"".$nivel['id']."\");
 	        	ancoragoh.client.forms.asignatura.showForNew(\"".$esp['id']."\",\"".$nivel['id']."\")' style = 'cursor: pointer;' title = 'Nueva asignatura para este nivel y esta especialidad'> <img src='images/asignatura_add_lite.png'></label></td></tr></table>";
 	            
-	            $as = $asigmodel->getAllBy("especialidad ='{$esp['id']}' AND nivel = '{$nivel['id']}' ORDER BY descripcion");
+	            $as = $asigmodel->getAllBy('especialidad = $1 AND nivel = $2 ORDER BY descripcion', "*", false, array($esp['id'], $nivel['id']));
 	            
 	            echo "<ul id='$id'>";
 	            

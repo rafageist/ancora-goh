@@ -720,6 +720,124 @@ test ( 'public viewer: get_minibrowser_publico binds request values', function (
 	check ( $c [4] ['sql'] === 'SELECT * FROM periodo WHERE id = $1;' && $c [4] ['params'] === array ($per ), 'period id bound' );
 } );
 
+// ================================= 9. hand-written handlers bind values (#44)
+function run_handler($name) {
+	$app = new Application ();
+	ob_start ();
+	$app->dispatchEvent ( $name );
+	return ob_get_clean ();
+}
+
+function probe_not_in_sql($probes) {
+	global $dbconnection;
+	foreach ( $dbconnection->calls as $c )
+		foreach ( $probes as $p )
+			if (strpos ( $c ['sql'], $p ) !== false) return false;
+	return true;
+}
+
+test ( 'handlers: get_browser_Brigadas_filtradas binds the posted values', function () {
+	global $dbconnection;
+	$esp = "e' OR '1'='1";
+	$niv = "n'); DROP TABLE brigada; --";
+	$_SESSION ['user'] = 'owner-1';
+	$_POST = array ('especialidad' => $esp, 'nivel' => $niv );
+	run_handler ( 'get_browser_Brigadas_filtradas' );
+	check ( count ( $dbconnection->rawCalls () ) == 0, 'no interpolated SQL' );
+	$c = $dbconnection->callsOf ( 'getAsArrayParams' );
+	check ( count ( $c ) == 1, 'one parameterized query' );
+	check ( $c [0] ['sql'] === 'SELECT * FROM brigada WHERE especialidad = $1 AND nivel = $2 ORDER BY descripcion;', 'SQL text constant: ' . $c [0] ['sql'] );
+	check ( $c [0] ['params'] === array ($esp, $niv ), 'both values bound' );
+	check ( probe_not_in_sql ( array ($esp, $niv, "'1'='1", 'DROP' ) ), 'no probe in the SQL text' );
+} );
+
+test ( 'handlers: get_minibrowser_profesores filters by the session user, bound', function () {
+	global $dbconnection;
+	$user = "u1' OR '1'='1";
+	$_SESSION ['user'] = $user;
+	$dbconnection->tables ['profesor'] = array (
+		( object ) array ('id' => 'p-own', 'nombre' => 'Own Teacher', 'creador' => $user ),
+		( object ) array ('id' => 'p-other', 'nombre' => 'Other Teacher', 'creador' => 'someone-else' ) );
+	$out = run_handler ( 'get_minibrowser_profesores' );
+	check ( count ( $dbconnection->rawCalls () ) == 0, 'no interpolated SQL' );
+	$c = $dbconnection->callsOf ( 'getAsObjectsParams' );
+	check ( count ( $c ) == 1 && $c [0] ['sql'] === 'SELECT * FROM profesor WHERE creador = $1 ORDER BY nombre;', 'ownership filter and ORDER BY in constant SQL' );
+	check ( $c [0] ['params'] === array ($user ), 'session user bound' );
+	check ( probe_not_in_sql ( array ("'1'='1" ) ), 'no probe in the SQL text' );
+	check ( strpos ( $out, 'Own Teacher' ) !== false && strpos ( $out, 'Other Teacher' ) === false, 'only the own row is listed' );
+} );
+
+test ( 'handlers: get_browser_GruposXClasif filters classifications by the session user', function () {
+	global $dbconnection;
+	$user = "u2'; DELETE FROM clasificacion_de_actividad; --";
+	$_SESSION ['user'] = $user;
+	$_POST = array ('especialidad' => 'e', 'nivel' => 'n' );
+	$dbconnection->tables ['clasificacion_de_actividad'] = array (
+		( object ) array ('id' => 'c-own', 'descripcion' => 'Own Class', 'creador' => $user ),
+		( object ) array ('id' => 'c-other', 'descripcion' => 'Other Class', 'creador' => 'someone-else' ) );
+	$out = run_handler ( 'get_browser_GruposXClasif' );
+	check ( count ( $dbconnection->rawCalls () ) == 0, 'no interpolated SQL' );
+	$c = $dbconnection->callsOf ( 'getAsArrayParams' );
+	check ( count ( $c ) == 1 && $c [0] ['sql'] === 'SELECT * FROM clasificacion_de_actividad WHERE creador = $1;' && $c [0] ['params'] === array ($user ), 'session user bound' );
+	check ( probe_not_in_sql ( array ('DELETE' ) ), 'no probe in the SQL text' );
+	check ( strpos ( $out, 'Own Class' ) !== false && strpos ( $out, 'Other Class' ) === false, 'only the own row is listed' );
+} );
+
+test ( 'handlers: get_data_especialidades applies the ownership filter (fixed Load())', function () {
+	global $dbconnection;
+	// before #44 the filter was passed as the field list and ignored
+	$user = "u3' OR '1'='1";
+	$_SESSION ['user'] = $user;
+	$dbconnection->tables ['especialidad'] = array (
+		( object ) array ('id' => 'e-own', 'descripcion' => 'Own Specialty', 'creador' => $user ),
+		( object ) array ('id' => 'e-other', 'descripcion' => 'Other Specialty', 'creador' => 'someone-else' ) );
+	$out = run_handler ( 'get_data_especialidades' );
+	check ( count ( $dbconnection->rawCalls () ) == 0, 'no interpolated SQL, no unfiltered SELECT' );
+	$c = $dbconnection->callsOf ( 'getAsObjectsParams' );
+	check ( count ( $c ) == 1 && $c [0] ['sql'] === 'SELECT * FROM especialidad WHERE creador = $1;' && $c [0] ['params'] === array ($user ), 'ownership filter applied and bound' );
+	check ( strpos ( $out, 'e-own' ) !== false && strpos ( $out, 'e-other' ) === false, 'only the own row is returned' );
+} );
+
+test ( 'handlers: get_browser_Organizacion applies the three ownership filters', function () {
+	global $dbconnection, $WARNINGS;
+	$user = 'owner-4';
+	$_SESSION ['user'] = $user;
+	foreach ( array ('especialidad', 'nivel', 'planificacion' ) as $t )
+		$dbconnection->tables [$t] = array (
+			( object ) array ('id' => "$t-own", 'descripcion' => "Own $t", 'creador' => $user ),
+			( object ) array ('id' => "$t-other", 'descripcion' => "Other $t", 'creador' => 'someone-else' ) );
+	$out = run_handler ( 'get_browser_Organizacion' );
+	check ( strpos ( $out, 'Own especialidad' ) !== false && strpos ( $out, 'Other ' ) === false, 'only own rows are shown' );
+	// the template reads $idfirst_* variables that no handler sets (legacy notices)
+	$WARNINGS = array_values ( array_filter ( $WARNINGS, function ($w) { return strpos ( $w, 'Undefined variable $idfirst_' ) !== 0; } ) );
+	check ( count ( $dbconnection->rawCalls () ) == 0, 'no unfiltered SELECT' );
+	$sql = array_map ( function ($c) { return $c ['sql']; }, $dbconnection->callsOf ( 'getAsObjectsParams' ) );
+	foreach ( array ('especialidad', 'nivel', 'planificacion' ) as $t )
+		check ( in_array ( "SELECT * FROM $t WHERE creador = \$1;", $sql, true ), "$t filtered by owner" );
+	foreach ( $dbconnection->callsOf ( 'getAsObjectsParams' ) as $c )
+		check ( $c ['params'] === array ($user ), 'owner bound' );
+} );
+
+test ( 'handlers: numeric values (dia, turno, prioridad) are bound too', function () {
+	global $dbconnection;
+	$_SESSION ['user'] = 'owner-5';
+	$_POST = array ('field_Periodo_id' => "p'; DROP TABLE periodo; --", 'field_Restricciones' => '0' );
+	run_handler ( 'custom_set_Restricciones_Periodo' );
+	$c = $dbconnection->callsOf ( 'getAsArrayParams' );
+	check ( count ( $dbconnection->rawCalls () ) == 0, 'no interpolated SQL' );
+	check ( count ( $c ) == 1 && $c [0] ['sql'] === 'DELETE FROM restriccion_de_periodo WHERE periodo = $1 AND dia = $2 AND turno = $3;', 'DELETE text constant' );
+	check ( $c [0] ['params'] === array ("p'; DROP TABLE periodo; --", 1, 1 ), 'period, day and shift bound' );
+
+	reset_request ();
+	$_SESSION ['user'] = 'owner-5';
+	$_POST = array ('pxact' => "x' OR '1'='1", 'prioridad' => '1, creador = creador; --' );
+	run_handler ( 'set_prioridad_pxact' );
+	$c = $dbconnection->callsOf ( 'getAsArrayParams' );
+	check ( count ( $dbconnection->rawCalls () ) == 0, 'no interpolated SQL' );
+	check ( count ( $c ) == 1 && $c [0] ['sql'] === 'UPDATE profesor_para_actividad SET prioridad = $2 WHERE id = $1;', 'UPDATE text constant' );
+	check ( $c [0] ['params'] === array ("x' OR '1'='1", '1, creador = creador; --' ), 'key and priority bound' );
+} );
+
 // ---------------------------------------------------------------- report
 restore_error_handler ();
 if (session_status () === PHP_SESSION_ACTIVE)

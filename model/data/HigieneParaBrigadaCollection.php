@@ -2,8 +2,11 @@
    class HigieneParaBrigadaCollection{ 
        var $data;  
        var $collection;  
-       var $last_offest;  
+       var $last_offset;  
        var $last_limit;  
+       var $last_fields = "*";  
+       var $last_where = "";  
+       var $last_params;  
        /** 
          * @name: HigieneParaBrigadaCollection 
          * @desc: Class constructor 
@@ -31,7 +34,9 @@
          * @version: 1.0 
          */ 
        public function Load($offset = null, $limit = null, $fields = "*", $where = "", $params = null ){ 
-             if ($offset==null or $limit=null) {
+             $this->last_offset = $offset; $this->last_limit = $limit;
+             $this->last_fields = $fields; $this->last_where = $where; $this->last_params = $params;
+             if ($offset === null || $limit === null) {
                  if ($where == "")
                      $r = $this->data->getAll("*",true);
                  else 
@@ -58,7 +63,8 @@
          * @version: 1.0 
          */ 
        public function Reload(){ 
-            $this->Load($last_offset, $last_limit); 
+            $this->collection = array(); 
+            $this->Load($this->last_offset, $this->last_limit, $this->last_fields, $this->last_where, $this->last_params); 
        } 
        /** 
          * @name: getItem 

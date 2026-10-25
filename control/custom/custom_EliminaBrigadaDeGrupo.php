@@ -10,6 +10,6 @@
     
     $m = new BrigadaDeGrupoModel($dbconnection);
     
-    $m->removeBy("brigada = '$idbrg' AND dame_planificacion_de_grupo(grupo) = '$idplanif' AND dame_clasificacion_de_grupo(grupo) = '$idclasif' AND dame_nivel_de_grupo(grupo) = '$idnivel' AND dame_especialidad_de_grupo(grupo) = '$idesp'");
+    $m->removeBy('brigada = $1 AND dame_planificacion_de_grupo(grupo) = $2 AND dame_clasificacion_de_grupo(grupo) = $3 AND dame_nivel_de_grupo(grupo) = $4 AND dame_especialidad_de_grupo(grupo) = $5', false, array($idbrg, $idplanif, $idclasif, $idnivel, $idesp));
 
 ?>

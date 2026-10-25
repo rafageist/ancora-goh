@@ -22,7 +22,7 @@ $periodo = $periodos->getItem ( $id );
 
 
 $planificaciones = new PlanificacionCollection ( $dbconnection );
-$planificaciones->Load ( null, null, "*", "creador = '{$_SESSION['user']}'" );
+$planificaciones->Load(null, null, "*", 'creador = $1', array($_SESSION['user']));
 
 $planif = $planificaciones->getItem ( $periodo->planificacion );
 
@@ -37,7 +37,7 @@ $duracion_del_turno = $periodo->duracion_del_turno;
 
 $col = new PeriodicidadCollection ( $dbconnection );
 
-$col->Load ( null, null, "*", "periodo = '$id'" );
+$col->Load ( null, null, "*", 'periodo = $1', array ($id ) );
 
 $periodicidades = array ();
 

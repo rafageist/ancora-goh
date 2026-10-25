@@ -7,7 +7,7 @@
 		
 	$m = new ProfesorParaActividadModel($dbconnection);
 
-	$pxact = $m->getAllBy("plantilla = '$idplantilla'");
+	$pxact = $m->getAllBy('plantilla = $1', "*", false, array($idplantilla));
 	
 	$profemodel = new ProfesorModel($dbconnection);
 	

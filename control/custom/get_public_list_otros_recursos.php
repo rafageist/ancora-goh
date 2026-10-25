@@ -10,7 +10,7 @@
 	// not from the request.
 	$recursos = array();
 	if (isset($_SESSION['user']))
-		$recursos = $m->getAllBy("creador = '{$_SESSION['user']}'");
+		$recursos = $m->getAllBy('creador = $1', "*", false, array($_SESSION['user']));
 	
 	include "../view/custom/public_list_otros_recursos.tpl";
 

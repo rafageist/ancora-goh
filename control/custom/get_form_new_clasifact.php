@@ -8,7 +8,7 @@
 	
 	$col = new ClasificacionDeActividadCollection($dbconnection);
 	
-	$col->Load(null,null,"*","creador = '{$_SESSION['user']}'");
+	$col->Load(null, null, "*", 'creador = $1', array($_SESSION['user']));
 		
 	$prioridad = count($col->collection) + 1;
 
