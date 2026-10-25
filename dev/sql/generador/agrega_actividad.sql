@@ -19,7 +19,9 @@ $$
         IF cant > 0 THEN
 		i := 1;
 		LOOP
-		    INSERT INTO otros_recursos_usados (otro_recurso, actividad) VALUES (idrecursos[i], pid);
+		    -- #24: "creador" is NOT NULL; the resource usage belongs to the same
+		    -- user as the activity it is part of (pcreador, inserted above)
+		    INSERT INTO otros_recursos_usados (otro_recurso, actividad, creador) VALUES (idrecursos[i], pid, pcreador);
 		    EXIT WHEN i = cant;
 		    i := i + 1;
 		END LOOP;

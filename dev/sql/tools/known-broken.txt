@@ -5,4 +5,4 @@
 # check-sources.sh loads them with check_function_bodies = off, exactly as the
 # 2010 pg_dump did, and reports them as KNOWN instead of failing.
 # path	decision	reason
-tiempo/restriccion/nominal/restringe_por_uso_de_otro_recurso.sql	D-05	EXIT outside a loop; undefined idplantilla, crea_id_de_replica, ractividad.periodo; identical in the dump
+# (empty since #24: D-05 was repaired)
