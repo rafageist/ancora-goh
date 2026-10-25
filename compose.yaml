@@ -1,0 +1,119 @@
+# Áncora GOH: local Docker Compose deployment (#32).
+#
+# LOCAL USE ONLY. The legacy application still has SQL injection, CSRF and
+# output-escaping gaps: the web port is published on 127.0.0.1 only and must
+# never be exposed on another interface, a reverse proxy or the internet.
+#
+# First run and everyday commands: docs/deployment/docker.md
+# (short form: docker/manage.sh init-secrets, up, init-db, set-admin-password).
+name: ancora-goh
+
+services:
+  db:
+    image: postgres:16.15-bookworm
+    environment:
+      POSTGRES_PASSWORD_FILE: /run/secrets/postgres_password
+      # Same encoding and collation as the tested baseline
+      # (dev/sql/tools/with-ephemeral-pg.sh): timetable ordering depends on it.
+      POSTGRES_INITDB_ARGS: --encoding=UTF8 --locale=C.UTF-8 --auth-host=scram-sha-256
+    secrets:
+      - postgres_password
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    networks:
+      - backend
+    # No "ports:": the database is reachable only from the backend network.
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -q -U postgres -d postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 30s
+    security_opt:
+      - no-new-privileges:true
+    restart: unless-stopped
+
+  setup:
+    # One-off installer; runs only when called: docker compose run --rm setup
+    profiles: ["setup"]
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+      target: setup
+    environment:
+      PGHOST: db
+      ANCORA_DB_NAME: ${ANCORA_DB_NAME:-ancoragoh}
+      ANCORA_DB_USER: ${ANCORA_DB_USER:-ancoragoh}
+    secrets:
+      - postgres_password
+      - db_password
+    networks:
+      - backend
+    depends_on:
+      db:
+        condition: service_healthy
+    read_only: true
+    tmpfs:
+      - /tmp:mode=1777
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    restart: "no"
+
+  web:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+      target: web
+    environment:
+      ANCORA_DB_HOST: db
+      ANCORA_DB_NAME: ${ANCORA_DB_NAME:-ancoragoh}
+      ANCORA_DB_USER: ${ANCORA_DB_USER:-ancoragoh}
+    secrets:
+      - db_password
+    ports:
+      # Loopback only, by design. Change the port in .env, never the address.
+      - "127.0.0.1:${ANCORA_HTTP_PORT:-8087}:8080"
+    networks:
+      - backend
+      - frontend
+    depends_on:
+      db:
+        condition: service_healthy
+    read_only: true
+    tmpfs:
+      - /tmp:mode=1777
+      - /run/ancora:uid=33,gid=33,mode=0700
+      - /run/apache2:uid=33,gid=33,mode=0755
+      - /run/lock/apache2:uid=33,gid=33,mode=0755
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "-o", "/dev/null", "http://127.0.0.1:8080/images/ancoragoh.gif"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    restart: unless-stopped
+
+networks:
+  # internal: no route to the host or the internet; only db, setup and web.
+  backend:
+    internal: true
+  # Only for publishing the web port on the host loopback.
+  frontend: {}
+
+volumes:
+  # All database data. Survives "down" and rebuilds; removed only by an
+  # explicit reset (docs/deployment/docker.md, data-loss warning).
+  pgdata: {}
+
+secrets:
+  # Created by docker/manage.sh init-secrets; git-ignored; never in an image.
+  postgres_password:
+    file: ${ANCORA_SECRETS_DIR:-./secrets}/postgres_password
+  db_password:
+    file: ${ANCORA_SECRETS_DIR:-./secrets}/db_password

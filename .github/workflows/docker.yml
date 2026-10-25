@@ -1,0 +1,37 @@
+# Docker Compose deployment (issue #32): validate compose.yaml, build both
+# images and run the containerized end-to-end test (docker/e2e.sh) in a
+# disposable Compose project on 127.0.0.1. Synthetic data and throwaway
+# secrets only; the project, its volume and its images are removed at the end.
+name: Docker Compose (PHP 8.4 + PostgreSQL 16)
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  compose:
+    name: compose config, image build, HTTP generation, restart persistence
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Docker and Compose versions
+        run: |
+          docker version --format 'Docker {{.Server.Version}}'
+          docker compose version
+
+      - name: compose.yaml is valid with placeholder secrets
+        run: |
+          d=$(mktemp -d); printf 'x%.0s' $(seq 32) > "$d/postgres_password"; cp "$d/postgres_password" "$d/db_password"
+          ANCORA_SECRETS_DIR=$d docker compose --profile setup config -q
+          # loopback-only publication is part of the contract
+          ANCORA_SECRETS_DIR=$d docker compose config --format json | grep -q '"host_ip": "127.0.0.1"'
+          ! ANCORA_SECRETS_DIR=$d docker compose config --format json | grep -q '"host_ip": "0.0.0.0"'
+          rm -rf "$d"
+
+      - name: Containerized end-to-end test (fails on any failed check)
+        timeout-minutes: 25
+        run: docker/e2e.sh

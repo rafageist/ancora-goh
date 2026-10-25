@@ -1,0 +1,42 @@
+# Docker build context for docker/Dockerfile (#32). This is an allowlist:
+# everything is excluded unless re-included below. Not in any image: .git,
+# docs, worktrees, dev/ (except the SQL sources the setup image installs),
+# dev/backup (historical dumps), local secrets and configuration, debug and
+# demo scripts.
+*
+
+!bin/
+!control/
+!lib/
+!model/
+!view/
+!www/
+!docker/web/
+!docker/setup/
+!dev/sql/
+
+# Local configuration and secrets, wherever they are
+**/ancoragoh.conf
+**/*.local.conf
+**/.env
+**/.env.*
+
+# Debug and demo scripts that must not be served or shipped
+bin/test.php
+www/test.php
+www/test2.php
+www/test.html
+www/query.log
+www/js/jquery/jquery-treeview/demo
+www/js/jquery/external/bgiframe/test
+www/js/jquery/external/bgiframe/docs
+
+# SQL: only the maintained sources and the installer reach the setup image
+dev/sql/tests
+dev/sql/trash
+dev/sql/generador/generador.log
+dev/sql/deploy.sh
+dev/sql/deploy.bat
+dev/sql/compilasql.bat
+dev/sql/**/*.backup
+dev/sql/**/*.dump

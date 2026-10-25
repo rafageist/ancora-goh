@@ -9,3 +9,7 @@
 
 # Local database dumps/backups produced by dev/backup scripts (historical copies are tracked on purpose)
 /dev/backup/ancoragoh.backup
+
+# Docker Compose deployment (#32): local secrets and database backups
+/secrets/
+/backups/
