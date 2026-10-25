@@ -1,7 +1,7 @@
 <?php 
    class RolModel extends PartModel { 
  
-          public function RolModel($db){ 
+          public function __construct($db){ 
                 $this->db = $db; 
           } 
          /** 
@@ -29,7 +29,7 @@
             */ 
           public function add($nombre,$descripcion){ 
              $replicas = array();
-             $r = $this->getAnything("INSERT INTO seguridad.rol (nombre,descripcion) VALUES (".(nombre==null?'null':"'".$nombre."'").",".(descripcion==null?'null':"'".$descripcion."'").");"); 
+             $r = $this->getAnything("INSERT INTO seguridad.rol (nombre,descripcion) VALUES (".("'".$nombre."'").",".("'".$descripcion."'").");"); 
              return $replicas; 
             }
           /** 

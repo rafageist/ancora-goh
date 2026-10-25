@@ -1,7 +1,7 @@
 <?php 
    class ExcepcionDeHrtModel extends PartModel { 
  
-          public function ExcepcionDeHrtModel($db){ 
+          public function __construct($db){ 
                 $this->db = $db; 
           } 
          /** 
@@ -29,7 +29,7 @@
             */ 
           public function add($herencia,$periodo,$dia,$turno){ 
              $replicas = array();
-             $r = $this->getAnything("INSERT INTO excepcion_de_hrt (herencia,periodo,dia,turno) VALUES (".(herencia==null?'null':"'".$herencia."'").",".(periodo==null?'null':"'".$periodo."'").",".(dia==null?'null':$dia).",".(turno==null?'null':$turno).");"); 
+             $r = $this->getAnything("INSERT INTO excepcion_de_hrt (herencia,periodo,dia,turno) VALUES (".("'".$herencia."'").",".("'".$periodo."'").",".($dia).",".($turno).");"); 
              return $replicas; 
             }
           /** 

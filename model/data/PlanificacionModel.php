@@ -1,7 +1,7 @@
 <?php 
    class PlanificacionModel extends PartModel { 
  
-          public function PlanificacionModel($db){ 
+          public function __construct($db){ 
                 $this->db = $db; 
           } 
          /** 
@@ -41,7 +41,7 @@
              $replicas["id"] = $id;
                if ($activa == true || $activa == 1 || $activa == "t") $activa = "true"; 
                else if ($activa== true || $activa == 0 || $activa == "f") $activa = "false"; 
-             $r = $this->getAnything("INSERT INTO planificacion (id,descripcion,fecha_inicial,cant_dias,activa,creador) VALUES ('$id',".(descripcion==null?'null':"'".$descripcion."'").",".(fecha_inicial==null?'null':$fecha_inicial).",".(cant_dias==null?'null':$cant_dias).",".(activa==null?'null':$activa).",".(creador==null?'null':"'".$creador."'").");"); 
+             $r = $this->getAnything("INSERT INTO planificacion (id,descripcion,fecha_inicial,cant_dias,activa,creador) VALUES ('$id',".("'".$descripcion."'").",".($fecha_inicial).",".($cant_dias).",".($activa).",".("'".$creador."'").");"); 
              return $replicas; 
             }
           /** 

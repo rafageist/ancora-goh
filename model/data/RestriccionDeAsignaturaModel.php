@@ -1,7 +1,7 @@
 <?php 
    class RestriccionDeAsignaturaModel extends PartModel { 
  
-          public function RestriccionDeAsignaturaModel($db){ 
+          public function __construct($db){ 
                 $this->db = $db; 
           } 
          /** 
@@ -31,7 +31,7 @@
              $replicas = array();
              $id = getReplica("restriccion_de_asignatura");
              $replicas["id"] = $id;
-             $r = $this->getAnything("INSERT INTO restriccion_de_asignatura (id,asignatura,periodo,dia,turno,valor) VALUES ('$id',".(asignatura==null?'null':"'".$asignatura."'").",".(periodo==null?'null':"'".$periodo."'").",".(dia==null?'null':$dia).",".(turno==null?'null':$turno).",".(valor==null?'null':$valor).");"); 
+             $r = $this->getAnything("INSERT INTO restriccion_de_asignatura (id,asignatura,periodo,dia,turno,valor) VALUES ('$id',".("'".$asignatura."'").",".("'".$periodo."'").",".($dia).",".($turno).",".($valor).");"); 
              return $replicas; 
             }
           /** 

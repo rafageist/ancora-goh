@@ -10,7 +10,7 @@
             * @updated: 20/06/10 10:40:54 
             * @version: 1.0 
             */ 
-       public function CostoDeTraslado($origen,$destino,$costo,$construct = true, $data = false, $load = true){ 
+       public function __construct($origen,$destino,$costo,$construct = true, $data = false, $load = true){ 
               global $dbconnection;
               if ($data == false) $this->data = new CostoDeTrasladoModel($dbconnection); else $this->data = $data;
 

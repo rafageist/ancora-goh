@@ -13,7 +13,7 @@
             * @updated: 20/06/10 10:40:55 
             * @version: 1.0 
             */ 
-       public function RestriccionDeClasifAct($clasificacion,$periodo,$dia,$turno,$valor,$id = '',$construct = true, $data = false, $load = true){ 
+       public function __construct($clasificacion,$periodo,$dia,$turno,$valor,$id = '',$construct = true, $data = false, $load = true){ 
               global $dbconnection;
               if ($data == false) $this->data = new RestriccionDeClasifActModel($dbconnection); else $this->data = $data;
 

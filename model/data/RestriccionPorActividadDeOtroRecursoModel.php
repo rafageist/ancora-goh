@@ -1,7 +1,7 @@
 <?php 
    class RestriccionPorActividadDeOtroRecursoModel extends PartModel { 
  
-          public function RestriccionPorActividadDeOtroRecursoModel($db){ 
+          public function __construct($db){ 
                 $this->db = $db; 
           } 
          /** 
@@ -29,7 +29,7 @@
             */ 
           public function add($restriccion_nominal,$actividad){ 
              $replicas = array();
-             $r = $this->getAnything("INSERT INTO restriccion_por_actividad_de_otro_recurso (restriccion_nominal,actividad) VALUES (".(restriccion_nominal==null?'null':"'".$restriccion_nominal."'").",".(actividad==null?'null':"'".$actividad."'").");"); 
+             $r = $this->getAnything("INSERT INTO restriccion_por_actividad_de_otro_recurso (restriccion_nominal,actividad) VALUES (".("'".$restriccion_nominal."'").",".("'".$actividad."'").");"); 
              return $replicas; 
             }
           /** 

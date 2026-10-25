@@ -1,7 +1,7 @@
 <?php 
    class LugarModel extends PartModel { 
  
-          public function LugarModel($db){ 
+          public function __construct($db){ 
                 $this->db = $db; 
           } 
          /** 
@@ -31,7 +31,7 @@
              $replicas = array();
              $id = getReplica("lugar");
              $replicas["id"] = $id;
-             $r = $this->getAnything("INSERT INTO lugar (id,nombre,capacidad,creador) VALUES ('$id',".(nombre==null?'null':"'".$nombre."'").",".(capacidad==null?'null':$capacidad).",".(creador==null?'null':"'".$creador."'").");"); 
+             $r = $this->getAnything("INSERT INTO lugar (id,nombre,capacidad,creador) VALUES ('$id',".("'".$nombre."'").",".($capacidad).",".("'".$creador."'").");"); 
              return $replicas; 
             }
           /** 

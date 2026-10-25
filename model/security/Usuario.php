@@ -14,7 +14,7 @@
             * @updated: 20/06/10 10:40:56 
             * @version: 1.0 
             */ 
-       public function Usuario($nombre,$info,$correo,$momento_ingreso,$nick,$contrasena,$id = '',$construct = true, $data = false, $load = true){ 
+       public function __construct($nombre,$info,$correo,$momento_ingreso,$nick,$contrasena,$id = '',$construct = true, $data = false, $load = true){ 
               global $dbconnection;
               if ($data == false) $this->data = new UsuarioModel($dbconnection); else $this->data = $data;
 

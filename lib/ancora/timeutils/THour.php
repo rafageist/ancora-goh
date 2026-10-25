@@ -11,7 +11,7 @@
      /**
        * Constructor
        */
-     public function THour($h, $m, $s){
+     public function __construct($h, $m, $s){
         $this->h = $h;
         $this->m = $m;
         $this->s = $s;

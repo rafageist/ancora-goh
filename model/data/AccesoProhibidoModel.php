@@ -1,7 +1,7 @@
 <?php 
    class AccesoProhibidoModel extends PartModel { 
  
-          public function AccesoProhibidoModel($db){ 
+          public function __construct($db){ 
                 $this->db = $db; 
           } 
          /** 
@@ -29,7 +29,7 @@
             */ 
           public function add($grupo,$lugar){ 
              $replicas = array();
-             $r = $this->getAnything("INSERT INTO acceso_prohibido (grupo,lugar) VALUES (".(grupo==null?'null':"'".$grupo."'").",".(lugar==null?'null':"'".$lugar."'").");"); 
+             $r = $this->getAnything("INSERT INTO acceso_prohibido (grupo,lugar) VALUES (".("'".$grupo."'").",".("'".$lugar."'").");"); 
              return $replicas; 
             }
           /** 

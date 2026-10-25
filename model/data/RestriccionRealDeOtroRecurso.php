@@ -15,7 +15,7 @@
             * @updated: 20/06/10 10:40:56 
             * @version: 1.0 
             */ 
-       public function RestriccionRealDeOtroRecurso($restriccion_nominal,$periodicidad,$fecha,$hora_inicial,$hora_final,$por_actividad,$actividad,$objeto,$construct = true, $data = false, $load = true){ 
+       public function __construct($restriccion_nominal,$periodicidad,$fecha,$hora_inicial,$hora_final,$por_actividad,$actividad,$objeto,$construct = true, $data = false, $load = true){ 
               global $dbconnection;
               if ($data == false) $this->data = new RestriccionRealDeOtroRecursoModel($dbconnection); else $this->data = $data;
 

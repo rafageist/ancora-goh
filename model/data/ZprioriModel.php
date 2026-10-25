@@ -1,7 +1,7 @@
 <?php 
    class ZprioriModel extends PartModel { 
  
-          public function ZprioriModel($db){ 
+          public function __construct($db){ 
                 $this->db = $db; 
           } 
          /** 
@@ -29,7 +29,7 @@
             */ 
           public function add($clasificacion,$periodo,$dia,$turno,$valor){ 
              $replicas = array();
-             $r = $this->getAnything("INSERT INTO zpriori (clasificacion,periodo,dia,turno,valor) VALUES (".(clasificacion==null?'null':"'".$clasificacion."'").",".(periodo==null?'null':"'".$periodo."'").",".(dia==null?'null':$dia).",".(turno==null?'null':$turno).",".(valor==null?'null':$valor).");"); 
+             $r = $this->getAnything("INSERT INTO zpriori (clasificacion,periodo,dia,turno,valor) VALUES (".("'".$clasificacion."'").",".("'".$periodo."'").",".($dia).",".($turno).",".($valor).");"); 
              return $replicas; 
             }
           /** 

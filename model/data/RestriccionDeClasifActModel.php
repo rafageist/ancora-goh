@@ -1,7 +1,7 @@
 <?php 
    class RestriccionDeClasifActModel extends PartModel { 
  
-          public function RestriccionDeClasifActModel($db){ 
+          public function __construct($db){ 
                 $this->db = $db; 
           } 
          /** 
@@ -31,7 +31,7 @@
              $replicas = array();
              $id = getReplica("restriccion_de_clasif_act");
              $replicas["id"] = $id;
-             $r = $this->getAnything("INSERT INTO restriccion_de_clasif_act (id,clasificacion,periodo,dia,turno,valor) VALUES ('$id',".(clasificacion==null?'null':"'".$clasificacion."'").",".(periodo==null?'null':"'".$periodo."'").",".(dia==null?'null':$dia).",".(turno==null?'null':$turno).",".(valor==null?'null':$valor).");"); 
+             $r = $this->getAnything("INSERT INTO restriccion_de_clasif_act (id,clasificacion,periodo,dia,turno,valor) VALUES ('$id',".("'".$clasificacion."'").",".("'".$periodo."'").",".($dia).",".($turno).",".($valor).");"); 
              return $replicas; 
             }
           /** 

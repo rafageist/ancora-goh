@@ -1,7 +1,7 @@
 <?php 
    class RestriccionRealDeAsignaturaModel extends PartModel { 
  
-          public function RestriccionRealDeAsignaturaModel($db){ 
+          public function __construct($db){ 
                 $this->db = $db; 
           } 
          /** 
@@ -39,7 +39,7 @@
              $replicas = array();
                if ($por_actividad == true || $por_actividad == 1 || $por_actividad == "t") $por_actividad = "true"; 
                else if ($por_actividad== true || $por_actividad == 0 || $por_actividad == "f") $por_actividad = "false"; 
-             $r = $this->getAnything("INSERT INTO restriccion_real_de_asignatura (restriccion_nominal,periodicidad,fecha,hora_inicial,hora_final,por_actividad,actividad,objeto) VALUES (".(restriccion_nominal==null?'null':"'".$restriccion_nominal."'").",".(periodicidad==null?'null':"'".$periodicidad."'").",".(fecha==null?'null':$fecha).",".(hora_inicial==null?'null':$hora_inicial).",".(hora_final==null?'null':$hora_final).",".(por_actividad==null?'null':$por_actividad).",".(actividad==null?'null':"'".$actividad."'").",".(objeto==null?'null':"'".$objeto."'").");"); 
+             $r = $this->getAnything("INSERT INTO restriccion_real_de_asignatura (restriccion_nominal,periodicidad,fecha,hora_inicial,hora_final,por_actividad,actividad,objeto) VALUES (".("'".$restriccion_nominal."'").",".("'".$periodicidad."'").",".($fecha).",".($hora_inicial).",".($hora_final).",".($por_actividad).",".("'".$actividad."'").",".("'".$objeto."'").");"); 
              return $replicas; 
             }
           /** 

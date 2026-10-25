@@ -1,7 +1,7 @@
 <?php 
    class BrigadaModel extends PartModel { 
  
-          public function BrigadaModel($db){ 
+          public function __construct($db){ 
                 $this->db = $db; 
           } 
          /** 
@@ -31,7 +31,7 @@
              $replicas = array();
              $id = getReplica("brigada");
              $replicas["id"] = $id;
-             $r = $this->getAnything("INSERT INTO brigada (id,descripcion,especialidad,nivel,matricula,creador) VALUES ('$id',".(descripcion==null?'null':"'".$descripcion."'").",".(especialidad==null?'null':"'".$especialidad."'").",".(nivel==null?'null':"'".$nivel."'").",".(matricula==null?'null':$matricula).",".(creador==null?'null':"'".$creador."'").");"); 
+             $r = $this->getAnything("INSERT INTO brigada (id,descripcion,especialidad,nivel,matricula,creador) VALUES ('$id',".("'".$descripcion."'").",".("'".$especialidad."'").",".("'".$nivel."'").",".($matricula).",".("'".$creador."'").");"); 
              return $replicas; 
             }
           /** 

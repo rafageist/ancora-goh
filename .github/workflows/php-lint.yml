@@ -1,0 +1,33 @@
+# PHP 8.4 syntax lint and PHP 8 compatibility static check (issue #13).
+# Syntax/static only: no web server, no database, no secrets.
+name: PHP 8.4 lint
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  php-lint:
+    name: php -l and PHP 8 static check (PHP 8.4)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          coverage: none
+          tools: none
+          ini-values: short_open_tag=Off
+
+      - name: Lint tracked .php and .tpl files
+        run: dev/ci/php-lint.sh
+
+      - name: PHP 8 compatibility checks (static + constructor smoke)
+        run: dev/ci/php84-check.sh
+
+      - name: Generated code matches its generator (cogePHP)
+        run: dev/ci/check-generated.sh

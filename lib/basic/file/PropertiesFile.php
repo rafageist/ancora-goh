@@ -5,7 +5,7 @@ class PropertiesFile{
 
 	var $properties;
 	
-	public function PropertiesFile($path){
+	public function __construct($path){
 		
 		$this->properties = array();
 		

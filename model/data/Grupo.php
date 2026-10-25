@@ -13,7 +13,7 @@
             * @updated: 20/06/10 10:40:54 
             * @version: 1.0 
             */ 
-       public function Grupo($clasificacion,$descripcion,$especialidad,$nivel,$planificacion,$id = '',$construct = true, $data = false, $load = true){ 
+       public function __construct($clasificacion,$descripcion,$especialidad,$nivel,$planificacion,$id = '',$construct = true, $data = false, $load = true){ 
               global $dbconnection;
               if ($data == false) $this->data = new GrupoModel($dbconnection); else $this->data = $data;
 

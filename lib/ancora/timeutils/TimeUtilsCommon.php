@@ -8,21 +8,21 @@ class TimeUtilsCommon {
      /**
        * @desc Return true if is a leap year
        */
-    public function is_leap_year($pyear){
+    public static function is_leap_year($pyear){
         return ($pyear % 4 == 0 && $pyear % 100 != 0 || $pyear % 400 == 0);
     }
     
     /**
       * @desc Convert hour to number
       */ 
-    public function hour_to_number($h, $m, $s){
+    public static function hour_to_number($h, $m, $s){
             return $h * 60 + $m + $s * 0.01;
       }
       
     /**
       * @desc Return count of month
       */
-    public function countdays_of_month($m){
+    public static function countdays_of_month($m){
         $d = 31;
         if ($m == 4 || $m == 6 || $m == 9 || $m == 11) $d = 30;
         if ($m == 2) $d = 28;
@@ -33,7 +33,7 @@ class TimeUtilsCommon {
       * @desc Consecutive number of day
       * Returns the consecutive number of day
       */
-    public function day_number($d, $m, $a){
+    public static function day_number($d, $m, $a){
     
         $day_began = array(0 => 0,
             1 => 1,
@@ -64,7 +64,7 @@ class TimeUtilsCommon {
       * Returns month from consecutive number of date
       */
       
-    public function month_from_day_number($n, $a){
+    public static function month_from_day_number($n, $a){
         
         $x = (self::is_leap_year($a)?1:0);
         
@@ -79,7 +79,7 @@ class TimeUtilsCommon {
       * Consecutive number of date
       * Returns consecutive number of date
       */
-    public function date_to_number($d, $m, $a){
+    public static function date_to_number($d, $m, $a){
         // cantidad de d�as antes del mes a partir del 1ero de enero
         $cd = self::day_number($d,$m,$a);
 
@@ -90,7 +90,7 @@ class TimeUtilsCommon {
     /**
       * Return number of the moment
       */
-    public function moment_number($date_number, $hour_number){
+    public static function moment_number($date_number, $hour_number){
         return ($date_number - 1) * 1439.60 + $hour_number;
     }
 }

@@ -11,7 +11,7 @@
             * @updated: 20/06/10 10:40:56 
             * @version: 1.0 
             */ 
-       public function Traza($fecha,$usuario,$accion,$ip,$construct = true, $data = false, $load = true){ 
+       public function __construct($fecha,$usuario,$accion,$ip,$construct = true, $data = false, $load = true){ 
               global $dbconnection;
               if ($data == false) $this->data = new TrazaModel($dbconnection); else $this->data = $data;
 

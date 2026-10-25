@@ -13,7 +13,7 @@
             * @updated: 20/06/10 10:40:54 
             * @version: 1.0 
             */ 
-       public function Brigada($descripcion,$especialidad,$nivel,$matricula,$creador,$id = '',$construct = true, $data = false, $load = true){ 
+       public function __construct($descripcion,$especialidad,$nivel,$matricula,$creador,$id = '',$construct = true, $data = false, $load = true){ 
               global $dbconnection;
               if ($data == false) $this->data = new BrigadaModel($dbconnection); else $this->data = $data;
 

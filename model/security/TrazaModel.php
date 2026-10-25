@@ -1,7 +1,7 @@
 <?php 
    class TrazaModel extends PartModel { 
  
-          public function TrazaModel($db){ 
+          public function __construct($db){ 
                 $this->db = $db; 
           } 
          /** 
@@ -29,7 +29,7 @@
             */ 
           public function add($fecha,$usuario,$accion,$ip){ 
              $replicas = array();
-             $r = $this->getAnything("INSERT INTO seguridad.traza (fecha,usuario,accion,ip) VALUES (".(fecha==null?'null':"'".$fecha."'").",".(usuario==null?'null':"'".$usuario."'").",".(accion==null?'null':"'".$accion."'").",".(ip==null?'null':"'".$ip."'").");"); 
+             $r = $this->getAnything("INSERT INTO seguridad.traza (fecha,usuario,accion,ip) VALUES (".("'".$fecha."'").",".("'".$usuario."'").",".("'".$accion."'").",".("'".$ip."'").");"); 
              return $replicas; 
             }
           /** 

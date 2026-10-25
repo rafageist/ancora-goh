@@ -13,7 +13,7 @@
             * @updated: 20/06/10 10:40:55 
             * @version: 1.0 
             */ 
-       public function Planificacion($descripcion,$fecha_inicial,$cant_dias,$activa,$creador,$id = '',$construct = true, $data = false, $load = true){ 
+       public function __construct($descripcion,$fecha_inicial,$cant_dias,$activa,$creador,$id = '',$construct = true, $data = false, $load = true){ 
               global $dbconnection;
               if ($data == false) $this->data = new PlanificacionModel($dbconnection); else $this->data = $data;
 

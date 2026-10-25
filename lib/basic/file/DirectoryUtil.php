@@ -2,7 +2,7 @@
 
 class DirectoryUtil{
 
-    public function getFilesWithExtension($path,$ext){
+    public static function getFilesWithExtension($path,$ext){
         $arr = scandir($path);
         
         $result = array();

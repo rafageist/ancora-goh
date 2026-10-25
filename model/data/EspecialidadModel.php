@@ -1,7 +1,7 @@
 <?php 
    class EspecialidadModel extends PartModel { 
  
-          public function EspecialidadModel($db){ 
+          public function __construct($db){ 
                 $this->db = $db; 
           } 
          /** 
@@ -31,7 +31,7 @@
              $replicas = array();
              $id = getReplica("especialidad");
              $replicas["id"] = $id;
-             $r = $this->getAnything("INSERT INTO especialidad (id,descripcion,creador) VALUES ('$id',".(descripcion==null?'null':"'".$descripcion."'").",".(creador==null?'null':"'".$creador."'").");"); 
+             $r = $this->getAnything("INSERT INTO especialidad (id,descripcion,creador) VALUES ('$id',".("'".$descripcion."'").",".("'".$creador."'").");"); 
              return $replicas; 
             }
           /** 

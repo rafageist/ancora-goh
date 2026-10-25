@@ -1,7 +1,7 @@
 <?php 
    class RestriccionPorActividadDeLugarModel extends PartModel { 
  
-          public function RestriccionPorActividadDeLugarModel($db){ 
+          public function __construct($db){ 
                 $this->db = $db; 
           } 
          /** 
@@ -29,7 +29,7 @@
             */ 
           public function add($restriccion_nominal,$actividad){ 
              $replicas = array();
-             $r = $this->getAnything("INSERT INTO restriccion_por_actividad_de_lugar (restriccion_nominal,actividad) VALUES (".(restriccion_nominal==null?'null':"'".$restriccion_nominal."'").",".(actividad==null?'null':"'".$actividad."'").");"); 
+             $r = $this->getAnything("INSERT INTO restriccion_por_actividad_de_lugar (restriccion_nominal,actividad) VALUES (".("'".$restriccion_nominal."'").",".("'".$actividad."'").");"); 
              return $replicas; 
             }
           /** 

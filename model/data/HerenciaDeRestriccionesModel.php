@@ -1,7 +1,7 @@
 <?php 
    class HerenciaDeRestriccionesModel extends PartModel { 
  
-          public function HerenciaDeRestriccionesModel($db){ 
+          public function __construct($db){ 
                 $this->db = $db; 
           } 
          /** 
@@ -41,7 +41,7 @@
              $replicas["id"] = $id;
                if ($activa == true || $activa == 1 || $activa == "t") $activa = "true"; 
                else if ($activa== true || $activa == 0 || $activa == "f") $activa = "false"; 
-             $r = $this->getAnything("INSERT INTO herencia_de_restricciones (id,planificacion,activa,hijo_brigada,hijo_profesor,hijo_lugar,hijo_otro_recurso,padre_brigada,padre_profesor,padre_lugar,padre_otro_recurso) VALUES ('$id',".(planificacion==null?'null':"'".$planificacion."'").",".(activa==null?'null':$activa).",".(hijo_brigada==null?'null':"'".$hijo_brigada."'").",".(hijo_profesor==null?'null':"'".$hijo_profesor."'").",".(hijo_lugar==null?'null':"'".$hijo_lugar."'").",".(hijo_otro_recurso==null?'null':"'".$hijo_otro_recurso."'").",".(padre_brigada==null?'null':"'".$padre_brigada."'").",".(padre_profesor==null?'null':"'".$padre_profesor."'").",".(padre_lugar==null?'null':"'".$padre_lugar."'").",".(padre_otro_recurso==null?'null':"'".$padre_otro_recurso."'").");"); 
+             $r = $this->getAnything("INSERT INTO herencia_de_restricciones (id,planificacion,activa,hijo_brigada,hijo_profesor,hijo_lugar,hijo_otro_recurso,padre_brigada,padre_profesor,padre_lugar,padre_otro_recurso) VALUES ('$id',".("'".$planificacion."'").",".($activa).",".("'".$hijo_brigada."'").",".("'".$hijo_profesor."'").",".("'".$hijo_lugar."'").",".("'".$hijo_otro_recurso."'").",".("'".$padre_brigada."'").",".("'".$padre_profesor."'").",".("'".$padre_lugar."'").",".("'".$padre_otro_recurso."'").");"); 
              return $replicas; 
             }
           /** 

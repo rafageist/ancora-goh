@@ -1,7 +1,7 @@
 <?php 
    class ClasificacionDeActividadModel extends PartModel { 
  
-          public function ClasificacionDeActividadModel($db){ 
+          public function __construct($db){ 
                 $this->db = $db; 
           } 
          /** 
@@ -31,7 +31,7 @@
              $replicas = array();
              $id = getReplica("clasificacion_de_actividad");
              $replicas["id"] = $id;
-             $r = $this->getAnything("INSERT INTO clasificacion_de_actividad (id,descripcion,duracion,creador,prioridad,gasto) VALUES ('$id',".(descripcion==null?'null':"'".$descripcion."'").",".(duracion==null?'null':$duracion).",".(creador==null?'null':"'".$creador."'").",".(prioridad==null?'null':$prioridad).",".(gasto==null?'null':$gasto).");"); 
+             $r = $this->getAnything("INSERT INTO clasificacion_de_actividad (id,descripcion,duracion,creador,prioridad,gasto) VALUES ('$id',".("'".$descripcion."'").",".($duracion).",".("'".$creador."'").",".($prioridad).",".($gasto).");"); 
              return $replicas; 
             }
           /** 

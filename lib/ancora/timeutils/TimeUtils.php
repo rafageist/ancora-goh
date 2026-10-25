@@ -12,7 +12,7 @@
     /**
       * @desc Convert number to hour
       */ 
-    public function number_to_hour($n){
+    public static function number_to_hour($n){
         
         $t = new THour(intval(intval($n)/60), intval($n)-intval(intval($n)/60)*60, intval(($n-intval($n))*100));
 	
@@ -35,7 +35,7 @@
       * Esta funcion fue hecha el 13 de Diciembre del 2009, durante una lluvia de estrellas
       * Curioso saber que date_to_number(13,12,2009) = 4000
       */
-    public function number_to_date($n){
+    public static function number_to_date($n){
 
         if ($n <= 366) $a = 2000; else $a = intval(2000 + ($n / 365.25));
         

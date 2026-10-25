@@ -14,7 +14,7 @@
             * @updated: 20/06/10 10:40:54 
             * @version: 1.0 
             */ 
-       public function Desglose($asignatura,$periodo,$min_dias,$max_dias,$respetar_orden,$mismo_dia,$id = '',$construct = true, $data = false, $load = true){ 
+       public function __construct($asignatura,$periodo,$min_dias,$max_dias,$respetar_orden,$mismo_dia,$id = '',$construct = true, $data = false, $load = true){ 
               global $dbconnection;
               if ($data == false) $this->data = new DesgloseModel($dbconnection); else $this->data = $data;
 
