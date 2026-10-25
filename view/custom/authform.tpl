@@ -178,7 +178,9 @@ $windows [] = array ("t" => "Horarios", "id" => "publico", "ico_lite" => "horari
         <?php
 				}
 				?>
+<?php if ($this->isSecuritySwitchOn ( 'public_viewer_anonymous' )) { ?>
 <label style="position: absolute; bottom: 10px; right: 10px"
 	class="iconlink opaco"
 	onclick="ancoragoh.client.browsers.publico.show();" title="horarios"> <img
 	src="images/horarios.png"></label>
+<?php } ?>

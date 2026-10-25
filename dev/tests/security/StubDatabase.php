@@ -4,7 +4,7 @@
  *
  * It never connects anywhere. Every call is recorded as
  * array('method' => ..., 'sql' => ..., 'params' => ...). Parameterized
- * queries are answered by a small emulation of the four statements used by
+ * queries are answered by a small emulation of the statements used by
  * the authentication code, against fixture tables held in memory; values
  * are compared exactly as PostgreSQL would compare bound parameters.
  * Raw (interpolated) queries return $raw_result.
@@ -77,6 +77,14 @@ class StubDatabase {
 			foreach ( $this->permisos as $p )
 				if ($p [1] === $params [0])
 					$out [] = ( object ) array ('permiso' => $p [0] );
+			return $out;
+		}
+		if ($sql === 'UPDATE seguridad.usuario SET contrasena = $1 WHERE nick = $2 RETURNING id') {
+			foreach ( $this->usuarios as $id => $u )
+				if ($u->nick === $params [1]) {
+					$this->usuarios [$id]->contrasena = $params [0];
+					$out [] = ( object ) array ('id' => $u->id );
+				}
 			return $out;
 		}
 		if (preg_match ( '/^SELECT \* FROM ([a-z_]+) WHERE id = \$1;$/', $sql, $m ) && isset ( $this->tables [$m [1]] )) {

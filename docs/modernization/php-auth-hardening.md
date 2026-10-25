@@ -21,8 +21,8 @@ database); **[observed]** = read in the source, not executed;
 | Area | Before | After | Files |
 | --- | --- | --- | --- |
 | Login query | `getAllBy("nick = '$user' AND contrasena = '$pass'")`, with `$pass = md5($password)` | `SELECT id, nick, contrasena FROM seguridad.usuario WHERE nick = $1` through `pg_query_params`; the password is checked in PHP | `control/Application.php`, `lib/enterprise/gendb/PostgresDatabaseImpl.php` |
-| Password storage | unsalted `md5()` in `UsuarioModel::add()`; **plain text** in `Usuario::setContrasena()` | `password_hash(PASSWORD_DEFAULT)` everywhere; legacy MD5 migrated at login (§3) | `lib/basic/security/PasswordUtil.php`, `model/security/UsuarioModel.php`, `model/security/Usuario.php`, `dev/cogephp.php`, `control/data/set/set_Usuario.php`, `bin/adduser.php` |
-| Anonymous access | POST `access=public` ran **any** handler without a session | removed; explicit allowlist of 6 read-only events (§2) | `control/Application.php` |
+| Password storage | unsalted `md5()` in `UsuarioModel::add()`; **plain text** in `Usuario::setContrasena()` | `password_hash(PASSWORD_DEFAULT)` everywhere; legacy MD5 accounts log in only while `legacy_md5_login = true` (off by default) and are then rehashed; otherwise reset with `bin/setpassword.php` (§3) | `lib/basic/security/PasswordUtil.php`, `model/security/UsuarioModel.php`, `model/security/Usuario.php`, `dev/cogephp.php`, `control/data/set/set_Usuario.php`, `bin/adduser.php`, `bin/setpassword.php`, `bin/security.conf` |
+| Anonymous access | POST `access=public` ran **any** handler without a session | removed; the 6 read-only viewer events run anonymously only while `public_viewer_anonymous = true` (off by default), and the login page hides the viewer icon while it is off (§2.1) | `control/Application.php`, `bin/security.conf`, `view/custom/authform.tpl` |
 | Event permissions | `security.conf` never applied (key parsed as `event_permission`); both entries named non-existent events; every authenticated user could run every event | deny by default (§2.2); entries renamed to the real handlers | `lib/basic/file/PropertiesFile.php`, `bin/security.conf`, `control/Application.php` |
 | Handler include | `include "../control/$folder/$f.php"` with `$f` taken from the POST key, so `app_event_../../x` reached files outside the event folders **[observed]** | event names must match `^[A-Za-z0-9_]+$` | `control/Application.php` |
 | Role/permission lookup | interpolated `$_SESSION['user']` and role names | bound parameters | `control/Application.php` |
@@ -34,14 +34,38 @@ database); **[observed]** = read in the source, not executed;
 
 The new DB helpers (`queryParams`, `getAsObjectsParams`) are only on
 `PostgresDatabaseImpl`. They were not added to `IDatabase`, so the unused
-MySQL driver is untouched. The generated templates and the setter/insert
-code produced by the generators (`dev/cogephp.php`, `dev/cogephpface.php`)
-now match the committed files; for the gallery fragment this was checked by
-running the generator's `fputs` lines (identical output) **[verified]**.
+MySQL driver is untouched. The generators (`dev/cogephp.php`,
+`dev/cogephpface.php`) were changed together with their outputs: the
+gallery templates, `UsuarioModel::add()`, `Usuario::setContrasena()` and the
+password guard in `control/data/set/set_Usuario.php`. That guard was first
+committed as a hand edit only. `cogephpface.php` now emits it for every
+`md5`-typed field. A full regeneration from the committed JSON model
+(`dev/ci/check-generated.sh`, from #13) reproduces every generated file
+apart from its `@updated` line **[verified]**. Without the emitter change,
+it reverts the guard (negative control).
 
 ## 2. Authorization model
 
 ### 2.1 Anonymous allowlist (`Application::$anonymous_events`)
+
+**Maintainer decision (2026-10-25):** preserve the public timetable viewer,
+but disable anonymous access by default until an explicit publication
+policy exists. Future public access must be limited to published
+timetables and intentionally public fields. Implemented as the switch
+`public_viewer_anonymous` in `bin/security.conf`, shipped as `false`. Only
+the literal `true` turns it on; a missing line, `'true'` or `1` leave it
+off **[verified]**. While it is off:
+
+- no viewer event runs without a session (anonymous requests get "session
+  expired");
+- the login page does not show the "horarios" icon;
+- the viewer events are **not** opened to every logged-in user either.
+  Like any other event they need `todos` or a `security.conf` mapping
+  (`permission-matrix-proposal.md`).
+
+Turning the switch on restores the 2010 behaviour described below. It is
+meant for isolated test instances only: the viewer has no notion of a
+published timetable yet.
 
 Login (POST `btnLogin`) and logout (GET `logout`) are handled by
 `Application::Run()` and are not events. Before this change the client sent
@@ -66,17 +90,17 @@ on the allowlist. Otherwise it gets the "session expired" message and
 nothing runs. The `access` parameter is ignored. The client still sends it,
 and no JavaScript was changed.
 
-Whether the public viewer should exist at all is a product decision. It
-publishes the names of teachers, places and groups and every timetable to
-anonymous visitors, as the 2010 design did. Removing an entry from the
-allowlist disables it.
+With the switch on, the viewer publishes the names of teachers, places and
+groups and every timetable to anonymous visitors, as the 2010 design did.
+That is why it is off by default.
 
 ### 2.2 Authenticated users (deny by default)
 
 `Application::isEventAllowed($event, $authenticated, $permisos, $event_permissions)`:
 
 1. The event name must match `^[A-Za-z0-9_]+$`, or it is denied.
-2. If it is on the anonymous allowlist, it is allowed.
+2. If it is on the anonymous allowlist **and** `public_viewer_anonymous`
+   is `true`, it is allowed.
 3. An unauthenticated request is denied.
 4. A user holding the permission `todos` (exact, case-sensitive) is allowed.
    `todos` is seeded for the `superusuario` role in
@@ -98,11 +122,44 @@ filtering by `$permisos` is unchanged.
 **Behaviour change:** the seed data grants permissions only to
 `superusuario`, as `todos`. Users without `todos` can now run only events
 listed in `security.conf`, which currently lists two. Before, any logged-in
-user could run all ~400 handlers. Mapping the ~145 live events
-(`architecture.md` §3) to permissions is a maintainer decision and is not
-done here.
+user could run all ~400 handlers.
+
+**Maintainer decision (2026-10-25):** retain deny-by-default, and do not
+grant broad permissions merely to restore old behaviour. A proposed
+role/permission matrix for the reachable events is in
+`permission-matrix-proposal.md`. It is a proposal for review and is **not**
+applied to `bin/security.conf`.
 
 ## 3. Password storage and legacy migration
+
+**Maintainer decision (2026-10-25):** preserve a controlled migration for
+historical recovery, but require a password reset for accounts not yet
+migrated before production use. A known seeded administrator password must
+never be valid in a production installation.
+
+Implemented as the switch `legacy_md5_login` in `bin/security.conf`,
+shipped as `false` (only the literal `true` turns it on):
+
+- **Off (default):** an account whose stored value is a legacy MD5 digest
+  cannot log in, even with the correct password. Nothing is written, and
+  the same dummy `password_verify` runs as for an unknown user. This
+  includes the seeded administrator of
+  `dev/sql/datos/datos_por_defecto.sql`. That account has no usable
+  password until someone sets one:
+  `php bin/setpassword.php -nick <nick>`. The new password is read from
+  standard input and stored with `password_hash`, using one bound-parameter
+  `UPDATE … RETURNING id`.
+- **On (controlled recovery only):** the migration below runs. Use it only
+  on an isolated instance, and turn it off again afterwards.
+
+Before production use:
+
+- `legacy_md5_login` is `false`;
+- `SELECT count(*) FROM seguridad.usuario WHERE contrasena ~ '^[0-9a-fA-F]{32}$'`
+  returns 0 (reset or remove the remaining accounts);
+- the seeded administrator was given a new password with
+  `bin/setpassword.php`. This also covers the case where it was migrated
+  during a recovery: migrating keeps the *known* password, only rehashed.
 
 `seguridad.usuario.contrasena` is `VARCHAR NOT NULL` with **no length**
 (`dev/sql/seguridad/usuario.sql`, the same in `dev/sql/result.sql`), so
@@ -118,7 +175,7 @@ historical dump and the seed data were not modified.
 | anything else (plain text, truncated hex, empty) | always fails |
 | empty or non-string input | fails before any query |
 
-Login flow (`Application::VerifyAuth`):
+Login flow (`Application::VerifyAuth`), with the switch on:
 
 1. Look up `nick = $1`. Exactly one row is required, and its `nick` must be
    byte-identical to the input. If the user is unknown, a dummy
@@ -137,19 +194,22 @@ stored MD5 hash itself as the password fails (tested).
 
 Risks and limits:
 
-- Accounts that never log in **keep their MD5 hash indefinitely**. Anyone
-  who obtains the table can still crack those hashes offline. Options for
-  the maintainer: force a reset or expire MD5 accounts after a deadline, or
-  wrap them offline as `password_hash(md5)` with a marker (not done: it
-  needs a format decision).
-- The seeded administrator (`dev/sql/datos/datos_por_defecto.sql`) has a
-  known default password stored as MD5. It works through the legacy path
-  once and is then rehashed, but it remains a known password until changed.
-  The installer (#9) must require a new one (#11 C5).
+- Accounts that are never reset **keep their MD5 hash in the table**. They
+  cannot log in while the switch is off, but anyone who obtains the table
+  can still crack those hashes offline. That is why the production
+  checklist above requires zero MD5 rows. Wrapping them offline as
+  `password_hash(md5)` with a marker was not done: it needs a format
+  decision.
+- The seed data (`dev/sql/datos/datos_por_defecto.sql`) still contains the
+  administrator's known default password as MD5. It is not valid while
+  `legacy_md5_login` is off. Changing the seed itself, for example to an
+  unusable marker with the installer asking for a password, is left to a
+  follow-up so the #9 data file stays as reviewed (#11 C5).
 - The legacy path accepts any account whose stored value happens to be 32
   hex characters. A plain-text password of that shape would be treated as
   an MD5 digest, so it would not log in with itself.
 - Brute force is not limited: there is no lockout, rate limit or CAPTCHA.
+- Resets: `bin/setpassword.php` (new) and the `set_Usuario` handler.
 - New users: `bin/adduser.php` (rewritten, because it referenced files that
   no longer exist), `UsuarioModel::add()` (the `add_Usuario` handler) and
   `Usuario::setContrasena()` (the `set_Usuario` handler) all store
@@ -174,30 +234,35 @@ protection, and the GET logout link.
 ## 5. Tests
 
 All CLI. No web server and no database: `dev/tests/security/StubDatabase.php`
-records every SQL text with its bound parameters and emulates only the four
-authentication statements against in-memory fixtures. Fixture passwords and
+records every SQL text with its bound parameters and emulates only the
+authentication statements against in-memory fixtures. The default fixture
+leaves both switches off; `fixtures/security-recovery.conf` turns them on,
+and `fixtures/security-switch-strings.conf` sets look-alike values (`'true'`,
+`1`) that must stay off. Fixture passwords and
 hashes are generated at run time; there are no historical credentials.
 
 ```sh
-php dev/tests/security/run.php          # 536 checks, 0 failed (PHP 8.4.27)
-/usr/bin/php8.3 dev/tests/security/run.php   # 536 checks, 0 failed (PHP 8.3.6)
+php dev/tests/security/run.php          # 601 checks, 0 failed (PHP 8.4.27)
+/usr/bin/php8.3 dev/tests/security/run.php   # 601 checks, 0 failed (PHP 8.3.6)
 dev/ci/php-lint.sh                      # 935 files, 935 ok, 0 failed, 0 exclusions
 dev/ci/php84-check.sh                   # self-test 8/0; static check 935 files, 0 problems; smoke 130/0
 ```
 
 **[verified]** Each test also fails on any unexpected PHP warning or notice.
 As a negative control, the suite was run against the pre-change
-`Application.php` (46 failures) and the pre-change `PropertiesFile.php` (19
+`Application.php` (46 failures; 52 after the switches were added) and the pre-change `PropertiesFile.php` (19
 failures). The old `PropertiesFile` actually ran the fixture's
 `system('touch ...')` line.
 
 | Acceptance item | Tests |
 | --- | --- |
-| Anonymous requests cannot invoke arbitrary handlers | `add_Usuario`, `del_Usuario`, `set_RolDeUsuario`, a gallery, `custom_set_Restricciones`, `get_minibrowser_horarios` with and without `access=public`; mixed allowlisted + protected request; `executeEvents()` directly; each allowlisted event does run |
+| Anonymous requests cannot invoke arbitrary handlers | `add_Usuario`, `del_Usuario`, `set_RolDeUsuario`, a gallery, `custom_set_Restricciones`, `get_minibrowser_horarios` with and without `access=public`; mixed allowlisted + protected request; `executeEvents()` directly; each allowlisted event does run only with `public_viewer_anonymous = true` |
+| Public viewer off by default | with the test fixture, the shipped `bin/security.conf` and look-alike values: none of the 6 viewer events runs anonymously; a logged-in user without a mapping is denied; the login page hides the viewer icon (shown when on) |
 | An authenticated user without the permission is denied | no mapping (deny by default); 2 of 3 required permissions; a permission no role has; wrong case (`Planificar`); non-literal config value; historical misspelt key (`get_form_editPlanificacion`); `TODOS` / `todos ` are not superuser; nonexistent event; `todos` allows everything; empty `array()` = any authenticated user, never anonymous |
 | Event-name traversal | `../../bin/adduser`, `add_Usuario.php`, names with spaces or NUL are refused even for `todos` |
 | SQL injection probes in login | 7 probes in user and password: constant SQL text, input only in `$1`, input never in any SQL text, no other statement, login fails; permission lookups with a hostile session id are parameterized |
-| MD5 migration | legacy login allowed once and rehashed with a guarded UPDATE, then modern path only; wrong / case-changed / trailing-space passwords and the stored hash itself fail with no UPDATE; upper-case hex; failed UPDATE then retry; plain-text and 31-hex stored values rejected; outdated bcrypt cost rehashed |
+| MD5 accounts off by default | with the test fixture, the shipped `bin/security.conf` and look-alike values, a legacy account with the correct password is denied, with no UPDATE; modern accounts unaffected; the shipped file sets both switches to `false`; `setpassword` stores `password_hash` with bound parameters, the account then logs in with the switch off, unknown users and empty values are refused |
+| MD5 migration (switch on) | legacy login allowed once and rehashed with a guarded UPDATE, then modern path only; wrong / case-changed / trailing-space passwords and the stored hash itself fail with no UPDATE; upper-case hex; failed UPDATE then retry; plain-text and 31-hex stored values rejected; outdated bcrypt cost rehashed |
 | Sessions | strict mode / HttpOnly / SameSite; id changes on login, not on failure; logout destroys the session and shows the login form |
 | Templates no longer eval request text | no `T_EVAL` token in `view/`, `control/`, `www/`, `model/`, `lib/basic`, `lib/ancora`; all 61 gallery templates render the link and description, do not run a code payload in `fieldlink`/`fielddescrip`, and escape the link |
 | Config, user creation, public viewer | `PropertiesFile` literals and rejected expressions; `adduser`, `UsuarioModel::add`, `setContrasena` store `password_hash`; `get_minibrowser_publico` binds all five request values |
@@ -246,14 +311,18 @@ nothing writes to it any more.
 Not exercised here: no request went through `www/index.php`, `pg_connect`
 or a real `pg_query_params`. **[hypothesis]** until checked:
 
-1. A real login against the installed seed: the admin's legacy MD5 row is
-   rehashed (inspect `contrasena` before and after), and the second login
-   uses `password_verify`.
+1. A real login against the installed seed. With `legacy_md5_login` off,
+   the admin's MD5 row is refused. After `bin/setpassword.php` it logs in.
+   With the switch on in a disposable instance, the MD5 row is rehashed
+   (inspect `contrasena` before and after) and the second login uses
+   `password_verify`.
 2. Set-Cookie attributes (HttpOnly, SameSite=Lax, Secure behind HTTPS);
    strict mode rejecting a forged `PHPSESSID`; the id changing after login;
    the cookie expiring on logout.
-3. The public timetable viewer working anonymously end to end (window,
-   trees, lists, timetable), and returning nothing for injection probes.
+3. The public timetable viewer: hidden and refused by default. With
+   `public_viewer_anonymous = true` on a disposable instance it works end
+   to end (window, trees, lists, timetable) and returns nothing for
+   injection probes.
 4. Anonymous POSTs to protected events returning "session expired" with no
    side effects, and authenticated non-`todos` users getting "Acceso
    denegado" for unmapped events while the UI stays usable.

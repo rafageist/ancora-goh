@@ -16,12 +16,15 @@ import ( "lib.basic.security: PasswordUtil, SessionUtil" );
 class Application {
 
 	/**
-	 * Events that may run without a session. Each one is reachable from the
-	 * login page's public timetable viewer (view/custom/authform.tpl ->
-	 * www/js/app/client/browsers/ancoragoh_client_browsers_publico.js) and
-	 * only reads data. Every other event requires an authenticated user and
-	 * a permission (see bin/security.conf). Login (POST btnLogin) and logout
-	 * (GET logout) are not events; Run() handles them.
+	 * Events of the login page's public timetable viewer
+	 * (view/custom/authform.tpl ->
+	 * www/js/app/client/browsers/ancoragoh_client_browsers_publico.js). They
+	 * only read data. They run without a session only when bin/security.conf
+	 * sets public_viewer_anonymous = true; by default (maintainer decision,
+	 * no publication policy yet) they need a login like every other event.
+	 * Every other event requires an authenticated user and a permission (see
+	 * bin/security.conf). Login (POST btnLogin) and logout (GET logout) are
+	 * not events; Run() handles them.
 	 */
 	public static $anonymous_events = array (
 		'get_browser_publico',            // public timetable window (plans and periods)
@@ -37,6 +40,36 @@ class Application {
 	public $app_event_prefix = "app_event_";
 
 	public $security_conf = "../bin/security.conf";
+
+	private $security_properties = null;
+
+	/**
+	 * @desc bin/security.conf properties, read once per request
+	 */
+	public function getSecurityProperties() {
+		if ($this->security_properties === null) {
+			$conf = new PropertiesFile ( $this->security_conf );
+			$this->security_properties = $conf->properties;
+		}
+		return $this->security_properties;
+	}
+
+	/**
+	 * @desc True only if bin/security.conf sets the switch to the literal true
+	 * (public_viewer_anonymous, legacy_md5_login). Missing or any other value
+	 * means off.
+	 */
+	public function isSecuritySwitchOn($name) {
+		$p = $this->getSecurityProperties ();
+		return isset ( $p [$name] ) && $p [$name] === true;
+	}
+
+	/**
+	 * @desc True if the event may run without a session
+	 */
+	public function isAnonymousEvent($event) {
+		return $this->isSecuritySwitchOn ( 'public_viewer_anonymous' ) && in_array ( $event, self::$anonymous_events, true );
+	}
 
 	/**
 	 * @name VerifyLogout
@@ -69,6 +102,15 @@ class Application {
 		}
 
 		$row = $rows [0];
+
+		// Legacy MD5 rows log in only during a controlled recovery
+		// (legacy_md5_login = true in bin/security.conf). Otherwise the
+		// account needs a password reset (bin/setpassword.php).
+		if (PasswordUtil::isLegacyMd5 ( $row->contrasena ) && ! $this->isSecuritySwitchOn ( 'legacy_md5_login' )) {
+			PasswordUtil::dummyVerify ( $password );
+			return false;
+		}
+
 		$result = PasswordUtil::verify ( $password, $row->contrasena );
 
 		if ($result == PasswordUtil::RESULT_FAIL)
@@ -161,9 +203,9 @@ class Application {
 	 * @desc event => list of required permissions, from bin/security.conf
 	 */
 	public function getEventPermissions() {
-		$conf = new PropertiesFile ( $this->security_conf );
-		if (isset ( $conf->properties ['event_permissions'] ) && is_array ( $conf->properties ['event_permissions'] ))
-			return $conf->properties ['event_permissions'];
+		$p = $this->getSecurityProperties ();
+		if (isset ( $p ['event_permissions'] ) && is_array ( $p ['event_permissions'] ))
+			return $p ['event_permissions'];
 		return array ();
 	}
 
@@ -192,7 +234,7 @@ class Application {
 		if (! is_string ( $event ) || ! preg_match ( '/^[A-Za-z0-9_]+$/', $event ))
 			return false;
 
-		if (in_array ( $event, self::$anonymous_events, true ))
+		if ($this->isAnonymousEvent ( $event ))
 			return true;
 
 		if (! $authenticated)
@@ -219,7 +261,7 @@ class Application {
 		if (count ( $events ) == 0)
 			return false;
 		foreach ( $events as $event )
-			if (! in_array ( $event, self::$anonymous_events, true ))
+			if (! $this->isAnonymousEvent ( $event ))
 				return false;
 		return true;
 	}

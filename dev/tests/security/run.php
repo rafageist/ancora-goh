@@ -91,6 +91,11 @@ function new_app($conf = null) {
 	return $app;
 }
 
+function recovery_conf() {
+	global $ROOT;
+	return $ROOT . '/dev/tests/security/fixtures/security-recovery.conf';
+}
+
 function add_user($id, $nick, $stored, $roles = array ()) {
 	global $dbconnection;
 	$dbconnection->usuarios [$id] = ( object ) array ('id' => $id, 'nick' => $nick, 'contrasena' => $stored );
@@ -141,7 +146,7 @@ test ( 'anonymous: access=public no longer bypasses authentication', function ()
 } );
 
 test ( 'anonymous: mixing an allowlisted and a protected event runs nothing', function () {
-	$app = new_app ();
+	$app = new_app ( recovery_conf () );
 	$_POST = array ('app_event_get_browser_publico' => 'yes', 'app_event_del_Usuario' => 'yes', 'access' => 'public' );
 	run_app ( $app );
 	conf_warnings_only ();
@@ -159,10 +164,45 @@ test ( 'anonymous: executeEvents() itself denies protected events', function () 
 	check ( strpos ( $out, 'access_denied' ) !== false, 'access denied page shown' );
 } );
 
-test ( 'anonymous: each allowlisted public viewer event is dispatched', function () {
+test ( 'public viewer off (default): no viewer event runs without a session', function () {
+	global $ROOT;
+	foreach ( array (null, $ROOT . '/bin/security.conf', $ROOT . '/dev/tests/security/fixtures/security-switch-strings.conf' ) as $conf )
+		foreach ( Application::$anonymous_events as $ev ) {
+			reset_request ();
+			$app = new_app ( $conf );
+			$_POST = array ('app_event_' . $ev => 'yes', 'access' => 'public' );
+			$out = run_app ( $app );
+			check ( $app->dispatched === array (), "$ev not dispatched (" . ($conf === null ? 'fixture' : basename ( $conf )) . ')' );
+			check ( strpos ( $out, 'message-session-expired' ) !== false, "$ev: session-expired message" );
+		}
+	conf_warnings_only ();
+} );
+
+test ( 'public viewer off (default): viewer events are not open to every logged-in user', function () {
+	add_user ( 'id-V', 'viewer', PasswordUtil::hash ( 'pw' ), array ('rol-V' ) );
+	grant ( 'rol-V', 'planificar' );
+	$_SESSION ['user'] = 'id-V';
+	$app = new_app ();
+	$_POST = array ('app_event_get_browser_publico' => 'yes' );
+	run_app ( $app );
+	conf_warnings_only ();
+	check ( $app->dispatched === array (), 'denied without a mapping (deny by default)' );
+} );
+
+test ( 'public viewer off (default): login page hides the viewer icon', function () {
+	foreach ( array (false, true ) as $on ) {
+		reset_request ();
+		$app = new_app ( $on ? recovery_conf () : null );
+		$out = run_app ( $app, false );
+		conf_warnings_only ();
+		check ( (strpos ( $out, 'browsers.publico.show' ) !== false) === $on, 'viewer icon ' . ($on ? 'shown when on' : 'hidden when off') );
+	}
+} );
+
+test ( 'public viewer on: each allowlisted public viewer event is dispatched', function () {
 	foreach ( Application::$anonymous_events as $ev ) {
 		reset_request ();
-		$app = new_app ();
+		$app = new_app ( recovery_conf () );
 		$_POST = array ('app_event_' . $ev => 'yes', 'access' => 'public' );
 		run_app ( $app );
 		check ( $app->dispatched === array ($ev ), "$ev dispatched" );
@@ -314,6 +354,9 @@ test ( 'security.conf: shipped file parses and names real handlers', function ()
 	$app = new_app ( $ROOT . '/bin/security.conf' );
 	$ep = $app->getEventPermissions ();
 	check ( count ( $ep ) == 2, 'two entries' );
+	$p = $app->getSecurityProperties ();
+	check ( array_key_exists ( 'public_viewer_anonymous', $p ) && $p ['public_viewer_anonymous'] === false, 'public_viewer_anonymous = false shipped' );
+	check ( array_key_exists ( 'legacy_md5_login', $p ) && $p ['legacy_md5_login'] === false, 'legacy_md5_login = false shipped' );
 	foreach ( $ep as $ev => $perms ) {
 		check ( file_exists ( "$ROOT/control/custom/$ev.php" ), "$ev has a handler" );
 		check ( is_array ( $perms ) && count ( $perms ) == 3, "$ev lists 3 permissions" );
@@ -321,9 +364,9 @@ test ( 'security.conf: shipped file parses and names real handlers', function ()
 } );
 
 // ========================================================= 3. login / SQLi
-function login($user, $pass) {
+function login($user, $pass, $conf = null) {
 	$_POST = array ('btnLogin' => 'Entrar', 'edtUser' => $user, 'edtPass' => $pass );
-	$app = new_app ();
+	$app = new_app ( $conf );
 	return $app->VerifyLogin ();
 }
 
@@ -390,11 +433,44 @@ test ( 'login: duplicate rows for one nick are rejected', function () {
 } );
 
 // ===================================================== 4. MD5 migration
+test ( 'migration off (default): a legacy MD5 account cannot log in and is not touched', function () {
+	global $dbconnection, $ROOT;
+	$legacy = md5 ( 'legacy-fixture-pw' ); // computed, not a historical hash
+	foreach ( array (null, $ROOT . '/bin/security.conf', $ROOT . '/dev/tests/security/fixtures/security-switch-strings.conf' ) as $conf ) {
+		reset_request ();
+		add_user ( 'id-L', 'legacy', $legacy );
+		check ( login ( 'legacy', 'legacy-fixture-pw', $conf ) === 'access_denied', 'correct password still denied' );
+		check ( ! isset ( $_SESSION ['user'] ), 'no session' );
+		check ( count ( $dbconnection->callsOf ( 'queryParams' ) ) == 0, 'no UPDATE' );
+		check ( $dbconnection->usuarios ['id-L']->contrasena === $legacy, 'hash untouched' );
+	}
+	conf_warnings_only ();
+	reset_request ();
+	add_user ( 'id-M', 'modern', PasswordUtil::hash ( 'pw-modern' ) );
+	check ( login ( 'modern', 'pw-modern' ) === 'allow', 'modern accounts unaffected' );
+	conf_warnings_only ();
+} );
+
+test ( 'setpassword: resets with password_hash() and bound parameters', function () {
+	global $ROOT, $dbconnection;
+	include_once $ROOT . '/bin/setpassword.php';
+	$legacy = md5 ( 'legacy-fixture-pw' );
+	add_user ( 'id-L', "leg'acy", $legacy );
+	check ( ancora_setpassword_update ( $dbconnection, "leg'acy", 'nueva-pw' ) === true, 'updated' );
+	$c = $dbconnection->callsOf ( 'getAsObjectsParams' );
+	check ( count ( $c ) == 1 && $c [0] ['sql'] === 'UPDATE seguridad.usuario SET contrasena = $1 WHERE nick = $2 RETURNING id' && $c [0] ['params'] [1] === "leg'acy", 'parameterized UPDATE, nick bound verbatim' );
+	$new = $dbconnection->usuarios ['id-L']->contrasena;
+	check ( ! PasswordUtil::isLegacyMd5 ( $new ) && password_verify ( 'nueva-pw', $new ), 'password_hash stored' );
+	check ( login ( "leg'acy", 'nueva-pw' ) === 'allow', 'logs in with migration off' );
+	check ( ancora_setpassword_update ( $dbconnection, 'nadie', 'x' ) === false, 'unknown user reported' );
+	check ( ancora_setpassword_update ( $dbconnection, "leg'acy", '' ) === false && ancora_setpassword_update ( $dbconnection, ' ', 'x' ) === false, 'empty password / nick refused' );
+} );
+
 test ( 'migration: legacy MD5 account logs in once and is rehashed', function () {
 	global $dbconnection;
 	$legacy = md5 ( 'legacy-fixture-pw' ); // computed, not a historical hash
 	add_user ( 'id-L', 'legacy', $legacy );
-	check ( login ( 'legacy', 'legacy-fixture-pw' ) === 'allow', 'legacy login allowed' );
+	check ( login ( 'legacy', 'legacy-fixture-pw', recovery_conf () ) === 'allow', 'legacy login allowed' );
 	$u = $dbconnection->callsOf ( 'queryParams' );
 	check ( count ( $u ) == 1 && $u [0] ['sql'] === 'UPDATE seguridad.usuario SET contrasena = $1 WHERE id = $2 AND contrasena = $3', 'one parameterized UPDATE' );
 	check ( $u [0] ['params'] [1] === 'id-L' && $u [0] ['params'] [2] === $legacy, 'UPDATE targets this row and old value' );
@@ -406,7 +482,7 @@ test ( 'migration: legacy MD5 account logs in once and is rehashed', function ()
 	// second login uses the modern path only
 	$_SESSION = array ();
 	$dbconnection->calls = array ();
-	check ( login ( 'legacy', 'legacy-fixture-pw' ) === 'allow', 'second login allowed' );
+	check ( login ( 'legacy', 'legacy-fixture-pw', recovery_conf () ) === 'allow', 'second login allowed' );
 	check ( count ( $dbconnection->callsOf ( 'queryParams' ) ) == 0, 'no second rehash' );
 	check ( $dbconnection->usuarios ['id-L']->contrasena === $new, 'hash unchanged' );
 } );
@@ -417,7 +493,7 @@ test ( 'migration: wrong password on a legacy account fails and keeps the hash',
 	add_user ( 'id-L', 'legacy', $legacy );
 	foreach ( array ('wrong', 'LEGACY-FIXTURE-PW', 'legacy-fixture-pw ', $legacy, strtoupper ( $legacy ) ) as $bad ) {
 		$_SESSION = array ();
-		check ( login ( 'legacy', $bad ) === 'access_denied', 'denied: ' . ($bad === $legacy ? '<the stored md5 itself>' : $bad) );
+		check ( login ( 'legacy', $bad, recovery_conf () ) === 'access_denied', 'denied: ' . ($bad === $legacy ? '<the stored md5 itself>' : $bad) );
 		check ( ! isset ( $_SESSION ['user'] ), 'no session' );
 	}
 	check ( count ( $dbconnection->callsOf ( 'queryParams' ) ) == 0, 'no UPDATE' );
@@ -428,20 +504,20 @@ test ( 'migration: upper-case legacy hex is accepted; failed rehash still logs i
 	global $dbconnection;
 	add_user ( 'id-U', 'upper', strtoupper ( md5 ( 'pw-upper' ) ) );
 	$dbconnection->fail_updates = true;
-	check ( login ( 'upper', 'pw-upper' ) === 'allow', 'allowed' );
+	check ( login ( 'upper', 'pw-upper', recovery_conf () ) === 'allow', 'allowed' );
 	check ( PasswordUtil::isLegacyMd5 ( $dbconnection->usuarios ['id-U']->contrasena ), 'still legacy after failed UPDATE' );
 	$dbconnection->fail_updates = false;
 	$_SESSION = array ();
-	check ( login ( 'upper', 'pw-upper' ) === 'allow', 'allowed again' );
+	check ( login ( 'upper', 'pw-upper', recovery_conf () ) === 'allow', 'allowed again' );
 	check ( ! PasswordUtil::isLegacyMd5 ( $dbconnection->usuarios ['id-U']->contrasena ), 'migrated on retry' );
 } );
 
 test ( 'migration: plain-text or unknown stored values are never accepted', function () {
 	add_user ( 'id-P', 'plain', 'plain-fixture' );
-	check ( login ( 'plain', 'plain-fixture' ) === 'access_denied', 'plain text stored value rejected' );
+	check ( login ( 'plain', 'plain-fixture', recovery_conf () ) === 'access_denied', 'plain text stored value rejected' );
 	reset_request ();
 	add_user ( 'id-S', 'short', substr ( md5 ( 'x' ), 0, 31 ) );
-	check ( login ( 'short', 'x' ) === 'access_denied', '31-hex value rejected' );
+	check ( login ( 'short', 'x', recovery_conf () ) === 'access_denied', '31-hex value rejected' );
 } );
 
 test ( 'PasswordUtil: verify results', function () {
