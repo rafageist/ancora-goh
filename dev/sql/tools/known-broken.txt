@@ -1,5 +1,7 @@
 # Sources kept byte-identical to the 2010 database although their bodies do not
-# compile, pending a maintainer decision (docs/modernization/sql-reconciliation.md).
+# compile. Each is an approved, documented known defect of the current baseline
+# (docs/modernization/sql-reconciliation.md); a repair needs its own approved
+# behavioral-fix issue with regression tests.
 # check-sources.sh loads them with check_function_bodies = off, exactly as the
 # 2010 pg_dump did, and reports them as KNOWN instead of failing.
 # path	decision	reason
