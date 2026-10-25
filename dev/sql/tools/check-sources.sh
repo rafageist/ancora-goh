@@ -47,9 +47,9 @@ createdb "$db" || exit 2
 #   trash/, generador/trash.sql  superseded objects and an ad-hoc scratch script
 #   result.sql, tabla.sql        generated bundles (stale; see docs/modernization/sql-reconciliation.md)
 #   datos/                       data seed, not object definitions (installer concern, #9)
-#   tools/                       this tooling
+#   tools/, tests/               tooling and the characterization suite
 ( cd "$sqldir" && find . -name '*.sql' \
-    -not -path './trash/*' -not -path './tools/*' -not -path './datos/*' \
+    -not -path './trash/*' -not -path './tools/*' -not -path './tests/*' -not -path './datos/*' \
     -not -name result.sql -not -name tabla.sql -not -path './generador/trash.sql' \
   | sed 's|^\./||' | LC_ALL=C sort ) > "$work/pending"
 
