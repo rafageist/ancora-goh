@@ -28,6 +28,7 @@
 const SOURCE_EXCLUDES = [
     '#^trash/#',                 // superseded objects
     '#^tools/#',                 // build and check tooling
+    '#^tests/#',                 // characterization suite (fixtures and cases)
     '#^generador/trash\.sql$#',  // ad-hoc scratch script, not an object
     '#^result\.sql$#',           // former committed bundle output (now a build artifact)
     '#^tabla\.sql$#',            // former tables-only bundle output
