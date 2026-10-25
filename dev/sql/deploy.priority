@@ -53,7 +53,7 @@ function: tiempo.hour_to_number @ Convierte una hora en numero @
 function: tiempo.is_leap_year @ Saber si un a&ntilde;o es bisiesto @
 function: tiempo.moment_number @ Saber el numero de un momento @
 function: tiempo.moment_now @ Devuelve el numero de ahora @ tiempo.today_number, tiempo.current_hour_number, tiempo.moment_number
-function: tiempo.month_from_day_number @ Obtener el mes a partir del numero de un dia @ miscelanea.bool_to_int, @tiempo.is_leap_year
+function: tiempo.month_from_day_number @ Obtener el mes a partir del numero de un dia @ miscelanea.bool_to_int, tiempo.is_leap_year
 function: tiempo.number_to_date @ Obtener la fecha de un numero @ tiempo.ancora_date, tiempo.date_to_number, tiempo.month_from_day_number, tiempo.day_number, tiempo.date_to_number, tiempo.countdays_of_month
 function: tiempo.number_to_hour @ Obtener la hora de un numero @ tiempo.ancora_hour
 function: tiempo.today_number @ Obtener el numero de hoy @ tiempo.date_to_number
@@ -67,7 +67,7 @@ table: seguridad.permiso @ Permisos de los roles de usuario @ seguridad.rol
 function: seguridad.tiene_permiso @ Conocer si un usuario tiene permisos @ seguridad.permiso, seguridad.usuario, seguridad.rol_de_usuario
 table: seguridad.traza @ Trazas del sistema @ seguridad.usuario
 table: seguridad.host @ Seguridad por host @ seguridad.usuario
-function: seguridad.check_host @ Saber si un usuario puede autenticarse desde un host determinado @ seguridad.usurio, seguridad.host
+function: seguridad.check_host @ Saber si un usuario puede autenticarse desde un host determinado @ seguridad.usuario, seguridad.host
 
 # Configuracion de tiempo
 table: tiempo.configuracion.planificacion @ Planificaciones @ miscelanea.crear_id_de_replica, seguridad.usuario
@@ -79,7 +79,7 @@ table: tiempo.configuracion.periodicidad @ Periodicidades @ miscelanea.crear_id_
 # Actividades
 table: actividad.clasificacion_de_actividad @ Clasificaciones de actividades @ miscelanea.crear_id_de_replica, seguridad.usuario
 function: actividad.dame_creador_de_clasifact @ Obtener el creador de una clasificacion de actividad @ actividad.clasificacion_de_actividad
-table: organizacion.grupo @ Grupos por clasificacion de actividades @ actividad.clasificacion_de_actividad, miscelanea.crear_id_de_replica
+table: organizacion.grupo @ Grupos por clasificacion de actividades @ actividad.clasificacion_de_actividad, miscelanea.crear_id_de_replica, organizacion.especialidad, organizacion.nivel, tiempo.configuracion.planificacion
 table: organizacion.especialidad @ Especialidades @ seguridad.usuario, miscelanea.crear_id_de_replica
 table: organizacion.nivel @ Niveles @ seguridad.usuario,miscelanea.crear_id_de_replica
 table: organizacion.brigada @ Brigadas de estudiantes @ organizacion.especialidad, organizacion.nivel, seguridad.usuario, miscelanea.crear_id_de_replica
@@ -129,7 +129,7 @@ function: tiempo.restriccion.herencia.dame_tipo_padre_hrt @ Obtener tipo de padr
 table: tiempo.restriccion.herencia.excepcion_de_hrt @ Excepciones de herencia de restricciones @  tiempo.restriccion.herencia.herencia_de_restricciones, tiempo.configuracion.periodo
 
 # Restricciones condicionales
-table: tiempo.restriccion.condicional.restriccion_condicional @ Restricciones condicionales @ miscelanea.crear_id_de_replica, tiempo.configuracion.planificacion, actividad.clasificacion_de_actividad, activida.asignatura, organizacion.brigada, recurso.profesor, recurso.lugar, recurso.otro_recurso, organizacion.especialidad, organizacion.nivel, tiempo.configuracion.periodo
+table: tiempo.restriccion.condicional.restriccion_condicional @ Restricciones condicionales @ miscelanea.crear_id_de_replica, tiempo.configuracion.planificacion, actividad.clasificacion_de_actividad, actividad.asignatura, organizacion.brigada, recurso.profesor, recurso.lugar, recurso.otro_recurso, organizacion.especialidad, organizacion.nivel, tiempo.configuracion.periodo
 function: tiempo.restriccion.condicional.dame_tipo_consec_rest_cond @ Conocer tipo de consecuencia de restriccion condicional @ tiempo.restriccion.condicional.restriccion_condicional
 
 function: tiempo.configuracion.esta_dia_en_rango_planificacion @ Saber si un dia esta en el rango de una planificacion
@@ -162,8 +162,8 @@ table: tiempo.restriccion.nominal.restriccion_por_actividad @ Restriccion por ac
 table: tiempo.restriccion.nominal.restriccion_por_actividad_de_profesor @ Restriccion por actividad de profesor @ tiempo.restriccion.nominal.restriccion_de_profesor, actividad.actividad
 table: tiempo.restriccion.nominal.restriccion_por_actividad_de_lugar @ Restriccion por actividad de lugar @  tiempo.restriccion.nominal.restriccion_de_lugar, actividad.actividad
 table: tiempo.restriccion.nominal.restriccion_por_actividad_de_otro_recurso @ Restriccion por actividad de otro recurso @ tiempo.restriccion.nominal.restriccion_de_otro_recurso, actividad.actividad
-table: tiempo.restriccion.nominal.restriccion_por_actividad_de_brigada @ Restriccion por actividad de otro recurso @ tiempo.restriccion.nominal.restriccion_de_obrigada, actividad.actividad
-function: organizacion.dame_lista_id_brigadas_de_grupo @ Obtener la lista de id de las brigadas de un grupo @ organizacion.brigada_de_grupo, matrix.get_length_of, miscelanea.crea_id_de_replica, tiempo.restriccion.nominal.restriccion_de_brigada, tiempo.restriccion.nominal.restriccion_por_actividad_de_brigada, tiempo.restriccion.nominal.restriccion_de_profesor, tiempo.restriccion.nominal.restriccion_por_actividad_de_profesor, tiempo.restriccion.nominal.restriccion_de_lugar, tiempo.restriccion.nominal.restriccion_por_actividad_de_lugar 
+table: tiempo.restriccion.nominal.restriccion_por_actividad_de_brigada @ Restriccion por actividad de otro recurso @ tiempo.restriccion.nominal.restriccion_de_brigada, actividad.actividad
+function: organizacion.dame_lista_id_brigadas_de_grupo @ Obtener la lista de id de las brigadas de un grupo @ organizacion.brigada_de_grupo, matrix.get_length_of, miscelanea.crear_id_de_replica, tiempo.restriccion.nominal.restriccion_de_brigada, tiempo.restriccion.nominal.restriccion_por_actividad_de_brigada, tiempo.restriccion.nominal.restriccion_de_profesor, tiempo.restriccion.nominal.restriccion_por_actividad_de_profesor, tiempo.restriccion.nominal.restriccion_de_lugar, tiempo.restriccion.nominal.restriccion_por_actividad_de_lugar 
 function: tiempo.restriccion.nominal.restringe_segun_actividad @ Restringir segun una actividad @ actividad.plantilla_de_actividad, organizacion.dame_lista_id_brigadas_de_grupo 
 function: tiempo.restriccion.nominal.restringe_por_uso_de_otro_recurso @ Restringir por uso de otros recursos @ actividad.actividad, actividad.plantilla_de_actividad, tiempo.restriccion.nominal.restriccion_de_otro_recurso, tiempo.restriccion.nominal.restriccion_por_actividad_de_otro_recurso
 function: tiempo.configuracion.dame_duracion_turno_periodo @ Obtener la duracion de los turnos de un periodo @ tiempo.configuracion.periodo
@@ -173,7 +173,7 @@ function: actividad.dame_asignatura_desglose @ Conocer la asignatura de un desgl
 function: actividad.dame_asignatura_plantilla_de_actividad @ Conocer la asignatura de la plantilla de actividad @ actividad.dame_asignatura_desglose 
 function: actividad.dame_especialidad_de_asignatura @ Conocer la especialidad de una asignatura @ actividad.asignatura
 function: actividad.dame_nivel_de_asignatura @ Conocer el nivel de una asignatura @ actividad.asignatura
-function: tiempo.restriccion.condicional.ocurre_causa_rest_cond @ Saber si ocurre la causa de una restriccion condicional a partir de la consecuencia @ tiempo.configuracion.dame_periodo_plantilla_de_actividad, actividad.dame_clasif_plantilla_de_actividad, actividad.dame_asignatura_plantilla_de_actividad, matrix.get_pos_of, organizacion.dame_lista_id_brigadas_de_grupo, actividad.dame_especialidad_de_asignatura, actividad.dame_nivel_de_asignatura, actividad.otros_recursos_usados, tiempo.configuracion.dame_hora_inicial_turno, tiempo.configuracion.dame_duracion_turno_periodo, tiempo.configuracion.periodicidad, tiempo.configuracion.dame_dia_real_planificacion, tiempo.restriccion.real.restriccion_real, tiempo.restriccion.condicional.restriccion_condicional, tiempo.moment_number
+function: tiempo.restriccion.condicional.ocurre_causa_rest_cond @ Saber si ocurre la causa de una restriccion condicional a partir de la consecuencia @ actividad.dame_periodo_plantilla_de_actividad, actividad.dame_clasif_plantilla_de_actividad, actividad.dame_asignatura_plantilla_de_actividad, matrix.get_pos_of, organizacion.dame_lista_id_brigadas_de_grupo, actividad.dame_especialidad_de_asignatura, actividad.dame_nivel_de_asignatura, actividad.otros_recursos_usados, tiempo.configuracion.dame_hora_inicial_turno, tiempo.configuracion.dame_duracion_turno_periodo, tiempo.configuracion.periodicidad, tiempo.configuracion.dame_dia_real_planificacion, tiempo.restriccion.real.restriccion_real, tiempo.restriccion.condicional.restriccion_condicional, tiempo.moment_number
 
 function: tiempo.restriccion.nominal.dame_idobjeto_de_restriccion_de_periodo @ Conocer el periodo de una restriccion de periodo @ tiempo.restriccion.nominal.restriccion_de_periodo
 function: tiempo.restriccion.nominal.dame_idobjeto_de_restriccion_de_especialidad @ Conocer la especialidad de una restriccion de especialidad @ tiempo.restriccion.nominal.restriccion_de_especialidad
@@ -281,3 +281,43 @@ function: organizacion.dame_brigadas_de_grupo
 function: organizacion.mueve_o_crea_brigada_de_grupo
 
 data: datos.datos_por_defecto @ Datos por defecto @ seguridad.rol, seguridad.usuario, seguridad.rol_de_usuario, seguridad.permiso
+
+# ---------------------------------------------------------------------------
+# Objects that the 2010 manifest omitted (issue #9; see
+# docs/modernization/sql-installer.md). Dependencies are those needed at
+# CREATE time: tables for SQL-language functions, row types used in
+# signatures, trigger tables, and rule targets and functions.
+# PL/pgSQL bodies are resolved at run time and need no entry here.
+schema: generador.esquema_generador @ Esquema generador: cancelacion de la generacion (cancelar, fue_cancelado) @
+schema: portal.portal @ Esquema portal (vacio) @
+function: actividad.arregla_prioridades_clasif @ Rehace las prioridades de las clasificaciones de actividad @
+function: actividad.sube_prioridad_clasif @ Sube la prioridad de una clasificacion de actividad @
+function: actividad.baja_prioridad_clasif @ Baja la prioridad de una clasificacion de actividad @
+function: actividad.dame_creador_de_asignatura @ Obtener el creador de una asignatura @ asignatura
+function: actividad.dame_creador_de_plantilla @ Obtener el creador de una plantilla de actividad @ dame_creador_de_asignatura, dame_asignatura_desglose, dame_desglose_de_plantilla
+function: actividad.dame_lista_id_otros_recursos_usados @ Lista de id de otros recursos usados por una actividad @
+function: actividad.dame_max_prioridad_lxact @ Maxima prioridad de lugar para una plantilla @ lugar_para_actividad
+function: organizacion.dame_creador_de_especialidad @ Obtener el creador de una especialidad @ especialidad
+function: organizacion.dame_especialidad_de_grupo @ Obtener la especialidad de un grupo @ grupo
+function: organizacion.dame_planificacion_de_grupo @ Obtener la planificacion de un grupo @ grupo
+function: organizacion.dame_grupos_de_plantilla @ Grupos de una plantilla de actividad @ grupo
+function: recurso.asignacion.dame_cant_profes_asignados_a_plantilla @ Cantidad de profesores asignados a una plantilla @ profesor_para_actividad
+function: recurso.asignacion.dame_max_priori_otro_recurso @ Maxima prioridad de otro recurso para una actividad @ otro_recurso_para_actividad
+function: recurso.asignacion.dame_max_prioridad_de_pxact @ Maxima prioridad de profesor para una actividad @ profesor_para_actividad
+function: recurso.asignacion.dame_max_prioridad_rxact @ Maxima prioridad de grupo de recursos para una actividad @ otro_grupo_de_recursos_para_actividad
+function: recurso.asignacion.dame_plantilla_de_grupo_de_recursos @ Plantilla de un grupo de recursos @ otro_grupo_de_recursos_para_actividad
+function: recurso.asignacion.dame_otros_recursos_sin_asignar @ Otros recursos sin asignar @
+function: recurso.asignacion.esta_otro_recurso_asignado @ Saber si otro recurso esta asignado @
+function: recurso.dame_lugares_no_asignados_a @ Lugares no asignados a una plantilla @
+function: recurso.dame_profesores_no_asignados_a @ Profesores no asignados a una plantilla @
+function: tiempo.configuracion.dame_hora_inicial_periodo @ Hora inicial de un periodo @ periodo
+function: tiempo.configuracion.esta_turno_en_rango @ Saber si un turno esta en un rango @
+function: tiempo.restriccion.dame_cant_rest_lugar @ Cantidad de restricciones de un lugar @
+function: tiempo.restriccion.herencia.valor_restriccion_heredada @ Valor de restriccion heredada (HRT) @
+function: tiempo.restriccion.valor_restriccion_otro_recurso @ Valor de restriccion de otro recurso @
+trigger: disparadores.actualiza_profesor_para_grupo @ Disparador: actualiza profesor para grupo @ profesor_para_grupo
+trigger: disparadores.arregla_prioridades_clasif_after_delete @ Disparador: prioridades de clasificaciones al eliminar @ clasificacion_de_actividad, arregla_prioridades_clasif
+trigger: disparadores.nivela_prioridad_lxact @ Disparador: nivela prioridad de lugares al eliminar @ lugar_para_actividad
+trigger: disparadores.nivela_prioridad_lxact_after_update @ Disparador: nivela prioridad de lugares al actualizar @ lugar_para_actividad
+trigger: disparadores.nivela_prioridad_rxact_after_delete @ Disparador: nivela prioridad de grupos de recursos al eliminar @ otro_grupo_de_recursos_para_actividad
+rule: ancoragoh @ Reglas: restricciones reales y ocupacion por actividad @ tiempo.restriccion.nominal.restriccion_de_*, tiempo.restriccion.nominal.restriccion_por_actividad_de_*, actividad.actividad, actividad.otros_recursos_usados, actualiza_restriccion_real, restringe_segun_actividad, restringe_por_uso_de_otro_recurso

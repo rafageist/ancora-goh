@@ -1,0 +1,3 @@
+# Build output of compilasql.php (generated; CI publishes it as an artifact). See docs/modernization/sql-installer.md.
+/result.sql
+/tabla.sql

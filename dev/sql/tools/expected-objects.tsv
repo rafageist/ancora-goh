@@ -1,0 +1,918 @@
+# Expected object inventory of a fresh schema-only install (dev/sql/install.sh).
+# kind<TAB>identity, from tools/catalog-inventory.sql. Regenerate deliberately:
+#   tools/smoke-check.sh --update <db>   and review the diff.
+column	generador.cancelar.especialidad
+column	generador.cancelar.nivel
+column	generador.cancelar.periodo
+column	public.acceso_prohibido.grupo
+column	public.acceso_prohibido.lugar
+column	public.actividad.creador
+column	public.actividad.dia
+column	public.actividad.grupo
+column	public.actividad.id
+column	public.actividad.lugar
+column	public.actividad.momento_de_colocacion
+column	public.actividad.plantilla
+column	public.actividad.profesor
+column	public.actividad.turno
+column	public.asignatura.creador
+column	public.asignatura.descripcion
+column	public.asignatura.especialidad
+column	public.asignatura.id
+column	public.asignatura.nivel
+column	public.brigada.creador
+column	public.brigada.descripcion
+column	public.brigada.especialidad
+column	public.brigada.id
+column	public.brigada.matricula
+column	public.brigada.nivel
+column	public.brigada_de_grupo.brigada
+column	public.brigada_de_grupo.grupo
+column	public.clasificacion_de_actividad.creador
+column	public.clasificacion_de_actividad.descripcion
+column	public.clasificacion_de_actividad.duracion
+column	public.clasificacion_de_actividad.gasto
+column	public.clasificacion_de_actividad.id
+column	public.clasificacion_de_actividad.prioridad
+column	public.costo_de_traslado.costo
+column	public.costo_de_traslado.destino
+column	public.costo_de_traslado.origen
+column	public.desglose.asignatura
+column	public.desglose.id
+column	public.desglose.max_dias
+column	public.desglose.min_dias
+column	public.desglose.mismo_dia
+column	public.desglose.periodo
+column	public.desglose.respetar_orden
+column	public.especialidad.creador
+column	public.especialidad.descripcion
+column	public.especialidad.id
+column	public.excepcion_de_hrt.dia
+column	public.excepcion_de_hrt.herencia
+column	public.excepcion_de_hrt.periodo
+column	public.excepcion_de_hrt.turno
+column	public.grupo.clasificacion
+column	public.grupo.descripcion
+column	public.grupo.especialidad
+column	public.grupo.id
+column	public.grupo.nivel
+column	public.grupo.planificacion
+column	public.herencia_de_restricciones.activa
+column	public.herencia_de_restricciones.hijo_brigada
+column	public.herencia_de_restricciones.hijo_lugar
+column	public.herencia_de_restricciones.hijo_otro_recurso
+column	public.herencia_de_restricciones.hijo_profesor
+column	public.herencia_de_restricciones.id
+column	public.herencia_de_restricciones.padre_brigada
+column	public.herencia_de_restricciones.padre_lugar
+column	public.herencia_de_restricciones.padre_otro_recurso
+column	public.herencia_de_restricciones.padre_profesor
+column	public.herencia_de_restricciones.planificacion
+column	public.higiene_para_brigada.brigada
+column	public.higiene_para_brigada.gasto_maximo_diario
+column	public.higiene_para_brigada.periodo
+column	public.higiene_para_profesor.gasto_maximo_diario
+column	public.higiene_para_profesor.periodo
+column	public.higiene_para_profesor.profesor
+column	public.lugar.capacidad
+column	public.lugar.creador
+column	public.lugar.id
+column	public.lugar.nombre
+column	public.lugar_fijo.grupo
+column	public.lugar_fijo.lugar
+column	public.lugar_para_actividad.actualizacion_interna
+column	public.lugar_para_actividad.lugar
+column	public.lugar_para_actividad.plantilla
+column	public.lugar_para_actividad.prioridad
+column	public.nivel.creador
+column	public.nivel.descripcion
+column	public.nivel.id
+column	public.otro_grupo_de_recursos_para_actividad.creador
+column	public.otro_grupo_de_recursos_para_actividad.id
+column	public.otro_grupo_de_recursos_para_actividad.imprescindibles
+column	public.otro_grupo_de_recursos_para_actividad.necesarios
+column	public.otro_grupo_de_recursos_para_actividad.plantilla
+column	public.otro_grupo_de_recursos_para_actividad.prioridad
+column	public.otro_recurso.creador
+column	public.otro_recurso.id
+column	public.otro_recurso.nombre
+column	public.otro_recurso_para_actividad.grupo_de_recursos
+column	public.otro_recurso_para_actividad.otro_recurso
+column	public.otro_recurso_para_actividad.prioridad
+column	public.otros_recursos_usados.actividad
+column	public.otros_recursos_usados.creador
+column	public.otros_recursos_usados.otro_recurso
+column	public.periodicidad.dia
+column	public.periodicidad.id
+column	public.periodicidad.periodo
+column	public.periodo.cant_dias
+column	public.periodo.cant_turnos
+column	public.periodo.descripcion
+column	public.periodo.duracion_del_turno
+column	public.periodo.hora_inicial
+column	public.periodo.id
+column	public.periodo.planificacion
+column	public.planificacion.activa
+column	public.planificacion.cant_dias
+column	public.planificacion.creador
+column	public.planificacion.descripcion
+column	public.planificacion.fecha_inicial
+column	public.planificacion.id
+column	public.plantilla_de_actividad.actualizacion_interna
+column	public.plantilla_de_actividad.clasificacion
+column	public.plantilla_de_actividad.desglose
+column	public.plantilla_de_actividad.exige_lugar
+column	public.plantilla_de_actividad.exige_profesor
+column	public.plantilla_de_actividad.id
+column	public.plantilla_de_actividad.orden
+column	public.profesor.creador
+column	public.profesor.id
+column	public.profesor.nombre
+column	public.profesor_para_actividad.id
+column	public.profesor_para_actividad.plantilla
+column	public.profesor_para_actividad.prioridad
+column	public.profesor_para_actividad.profesor
+column	public.profesor_para_grupo.grupo
+column	public.profesor_para_grupo.profesor_para_actividad
+column	public.receso.despues_del_turno
+column	public.receso.duracion
+column	public.receso.periodo
+column	public.restriccion_condicional.activa
+column	public.restriccion_condicional.ahora
+column	public.restriccion_condicional.asig
+column	public.restriccion_condicional.brigada
+column	public.restriccion_condicional.cant_dias_relativo_anterior
+column	public.restriccion_condicional.cant_dias_relativo_posterior
+column	public.restriccion_condicional.cant_exa
+column	public.restriccion_condicional.cant_max
+column	public.restriccion_condicional.cant_min
+column	public.restriccion_condicional.cant_turnos_relativo_anterior
+column	public.restriccion_condicional.cant_turnos_relativo_posterior
+column	public.restriccion_condicional.clasif_act
+column	public.restriccion_condicional.consec_brigada
+column	public.restriccion_condicional.consec_dia_fin
+column	public.restriccion_condicional.consec_dia_ini
+column	public.restriccion_condicional.consec_discreto
+column	public.restriccion_condicional.consec_lugar
+column	public.restriccion_condicional.consec_otro_recurso
+column	public.restriccion_condicional.consec_periodo
+column	public.restriccion_condicional.consec_profesor
+column	public.restriccion_condicional.consec_turno_fin
+column	public.restriccion_condicional.consec_turno_ini
+column	public.restriccion_condicional.dia_fin
+column	public.restriccion_condicional.dia_fin_planif
+column	public.restriccion_condicional.dia_ini
+column	public.restriccion_condicional.dia_ini_planif
+column	public.restriccion_condicional.dia_relativo_anterior
+column	public.restriccion_condicional.dia_relativo_posterior
+column	public.restriccion_condicional.discreto
+column	public.restriccion_condicional.discreto_exacto
+column	public.restriccion_condicional.discreto_exacto_planif
+column	public.restriccion_condicional.entre_dias_antes
+column	public.restriccion_condicional.entre_dias_despues
+column	public.restriccion_condicional.entre_tiempo_antes
+column	public.restriccion_condicional.entre_tiempo_despues
+column	public.restriccion_condicional.entre_turnos_antes
+column	public.restriccion_condicional.entre_turnos_despues
+column	public.restriccion_condicional.especialidad
+column	public.restriccion_condicional.fecha_fin
+column	public.restriccion_condicional.fecha_ini
+column	public.restriccion_condicional.hora_fin
+column	public.restriccion_condicional.hora_fin_planif
+column	public.restriccion_condicional.hora_ini
+column	public.restriccion_condicional.hora_ini_planif
+column	public.restriccion_condicional.hoy
+column	public.restriccion_condicional.id
+column	public.restriccion_condicional.lugar
+column	public.restriccion_condicional.nivel
+column	public.restriccion_condicional.otro_recurso
+column	public.restriccion_condicional.periodo
+column	public.restriccion_condicional.planificacion
+column	public.restriccion_condicional.profesor
+column	public.restriccion_condicional.rango_tiempo_relativo_anterior_ini
+column	public.restriccion_condicional.rango_tiempo_relativo_anterior_tamano
+column	public.restriccion_condicional.rango_tiempo_relativo_posterior_ini
+column	public.restriccion_condicional.rango_tiempo_relativo_posterior_tamano
+column	public.restriccion_condicional.siempre
+column	public.restriccion_condicional.turno_fin
+column	public.restriccion_condicional.turno_ini
+column	public.restriccion_condicional.turno_relativo_anterior
+column	public.restriccion_condicional.turno_relativo_posterior
+column	public.restriccion_condicional.valor
+column	public.restriccion_de_asignatura.asignatura
+column	public.restriccion_de_asignatura.dia
+column	public.restriccion_de_asignatura.id
+column	public.restriccion_de_asignatura.periodo
+column	public.restriccion_de_asignatura.turno
+column	public.restriccion_de_asignatura.valor
+column	public.restriccion_de_brigada.actividad
+column	public.restriccion_de_brigada.brigada
+column	public.restriccion_de_brigada.dia
+column	public.restriccion_de_brigada.id
+column	public.restriccion_de_brigada.periodo
+column	public.restriccion_de_brigada.por_actividad
+column	public.restriccion_de_brigada.turno
+column	public.restriccion_de_brigada.valor
+column	public.restriccion_de_clasif_act.clasificacion
+column	public.restriccion_de_clasif_act.dia
+column	public.restriccion_de_clasif_act.id
+column	public.restriccion_de_clasif_act.periodo
+column	public.restriccion_de_clasif_act.turno
+column	public.restriccion_de_clasif_act.valor
+column	public.restriccion_de_especialidad.dia
+column	public.restriccion_de_especialidad.especialidad
+column	public.restriccion_de_especialidad.id
+column	public.restriccion_de_especialidad.periodo
+column	public.restriccion_de_especialidad.turno
+column	public.restriccion_de_especialidad.valor
+column	public.restriccion_de_lugar.actividad
+column	public.restriccion_de_lugar.dia
+column	public.restriccion_de_lugar.id
+column	public.restriccion_de_lugar.lugar
+column	public.restriccion_de_lugar.periodo
+column	public.restriccion_de_lugar.por_actividad
+column	public.restriccion_de_lugar.turno
+column	public.restriccion_de_lugar.valor
+column	public.restriccion_de_otro_recurso.actividad
+column	public.restriccion_de_otro_recurso.dia
+column	public.restriccion_de_otro_recurso.id
+column	public.restriccion_de_otro_recurso.otro_recurso
+column	public.restriccion_de_otro_recurso.periodo
+column	public.restriccion_de_otro_recurso.por_actividad
+column	public.restriccion_de_otro_recurso.turno
+column	public.restriccion_de_otro_recurso.valor
+column	public.restriccion_de_periodo.dia
+column	public.restriccion_de_periodo.id
+column	public.restriccion_de_periodo.periodo
+column	public.restriccion_de_periodo.turno
+column	public.restriccion_de_periodo.valor
+column	public.restriccion_de_profesor.actividad
+column	public.restriccion_de_profesor.dia
+column	public.restriccion_de_profesor.id
+column	public.restriccion_de_profesor.periodo
+column	public.restriccion_de_profesor.por_actividad
+column	public.restriccion_de_profesor.profesor
+column	public.restriccion_de_profesor.turno
+column	public.restriccion_de_profesor.valor
+column	public.restriccion_por_actividad.actividad
+column	public.restriccion_por_actividad.restriccion_nominal
+column	public.restriccion_por_actividad_de_brigada.actividad
+column	public.restriccion_por_actividad_de_brigada.restriccion_nominal
+column	public.restriccion_por_actividad_de_lugar.actividad
+column	public.restriccion_por_actividad_de_lugar.restriccion_nominal
+column	public.restriccion_por_actividad_de_otro_recurso.actividad
+column	public.restriccion_por_actividad_de_otro_recurso.restriccion_nominal
+column	public.restriccion_por_actividad_de_profesor.actividad
+column	public.restriccion_por_actividad_de_profesor.restriccion_nominal
+column	public.restriccion_real.actividad
+column	public.restriccion_real.fecha
+column	public.restriccion_real.hora_final
+column	public.restriccion_real.hora_inicial
+column	public.restriccion_real.objeto
+column	public.restriccion_real.periodicidad
+column	public.restriccion_real.por_actividad
+column	public.restriccion_real.restriccion_nominal
+column	public.restriccion_real_de_asignatura.actividad
+column	public.restriccion_real_de_asignatura.fecha
+column	public.restriccion_real_de_asignatura.hora_final
+column	public.restriccion_real_de_asignatura.hora_inicial
+column	public.restriccion_real_de_asignatura.objeto
+column	public.restriccion_real_de_asignatura.periodicidad
+column	public.restriccion_real_de_asignatura.por_actividad
+column	public.restriccion_real_de_asignatura.restriccion_nominal
+column	public.restriccion_real_de_brigada.actividad
+column	public.restriccion_real_de_brigada.fecha
+column	public.restriccion_real_de_brigada.hora_final
+column	public.restriccion_real_de_brigada.hora_inicial
+column	public.restriccion_real_de_brigada.objeto
+column	public.restriccion_real_de_brigada.periodicidad
+column	public.restriccion_real_de_brigada.por_actividad
+column	public.restriccion_real_de_brigada.restriccion_nominal
+column	public.restriccion_real_de_clasif_act.actividad
+column	public.restriccion_real_de_clasif_act.fecha
+column	public.restriccion_real_de_clasif_act.hora_final
+column	public.restriccion_real_de_clasif_act.hora_inicial
+column	public.restriccion_real_de_clasif_act.objeto
+column	public.restriccion_real_de_clasif_act.periodicidad
+column	public.restriccion_real_de_clasif_act.por_actividad
+column	public.restriccion_real_de_clasif_act.restriccion_nominal
+column	public.restriccion_real_de_especialidad.actividad
+column	public.restriccion_real_de_especialidad.fecha
+column	public.restriccion_real_de_especialidad.hora_final
+column	public.restriccion_real_de_especialidad.hora_inicial
+column	public.restriccion_real_de_especialidad.objeto
+column	public.restriccion_real_de_especialidad.periodicidad
+column	public.restriccion_real_de_especialidad.por_actividad
+column	public.restriccion_real_de_especialidad.restriccion_nominal
+column	public.restriccion_real_de_lugar.actividad
+column	public.restriccion_real_de_lugar.fecha
+column	public.restriccion_real_de_lugar.hora_final
+column	public.restriccion_real_de_lugar.hora_inicial
+column	public.restriccion_real_de_lugar.objeto
+column	public.restriccion_real_de_lugar.periodicidad
+column	public.restriccion_real_de_lugar.por_actividad
+column	public.restriccion_real_de_lugar.restriccion_nominal
+column	public.restriccion_real_de_otro_recurso.actividad
+column	public.restriccion_real_de_otro_recurso.fecha
+column	public.restriccion_real_de_otro_recurso.hora_final
+column	public.restriccion_real_de_otro_recurso.hora_inicial
+column	public.restriccion_real_de_otro_recurso.objeto
+column	public.restriccion_real_de_otro_recurso.periodicidad
+column	public.restriccion_real_de_otro_recurso.por_actividad
+column	public.restriccion_real_de_otro_recurso.restriccion_nominal
+column	public.restriccion_real_de_periodo.actividad
+column	public.restriccion_real_de_periodo.fecha
+column	public.restriccion_real_de_periodo.hora_final
+column	public.restriccion_real_de_periodo.hora_inicial
+column	public.restriccion_real_de_periodo.objeto
+column	public.restriccion_real_de_periodo.periodicidad
+column	public.restriccion_real_de_periodo.por_actividad
+column	public.restriccion_real_de_periodo.restriccion_nominal
+column	public.restriccion_real_de_profesor.actividad
+column	public.restriccion_real_de_profesor.fecha
+column	public.restriccion_real_de_profesor.hora_final
+column	public.restriccion_real_de_profesor.hora_inicial
+column	public.restriccion_real_de_profesor.objeto
+column	public.restriccion_real_de_profesor.periodicidad
+column	public.restriccion_real_de_profesor.por_actividad
+column	public.restriccion_real_de_profesor.restriccion_nominal
+column	public.zpriori.clasificacion
+column	public.zpriori.dia
+column	public.zpriori.periodo
+column	public.zpriori.turno
+column	public.zpriori.valor
+column	seguridad.host.ip
+column	seguridad.host.usuario
+column	seguridad.permiso.permiso
+column	seguridad.permiso.rol
+column	seguridad.rol.descripcion
+column	seguridad.rol.nombre
+column	seguridad.rol_de_usuario.rol
+column	seguridad.rol_de_usuario.usuario
+column	seguridad.traza.accion
+column	seguridad.traza.fecha
+column	seguridad.traza.ip
+column	seguridad.traza.usuario
+column	seguridad.usuario.contrasena
+column	seguridad.usuario.correo
+column	seguridad.usuario.id
+column	seguridad.usuario.info
+column	seguridad.usuario.momento_ingreso
+column	seguridad.usuario.nick
+column	seguridad.usuario.nombre
+constraint:c	public.actividad:CHECK ((((plantilla_exige_lugar(plantilla) = true) AND (lugar IS NOT NULL)) OR (plantilla_exige_lugar(plantilla) = false)))
+constraint:c	public.actividad:CHECK ((((plantilla_exige_profesor(plantilla) = true) AND (profesor IS NOT NULL)) OR (plantilla_exige_profesor(plantilla) = false)))
+constraint:c	public.excepcion_de_hrt:CHECK ((dia > 0))
+constraint:c	public.excepcion_de_hrt:CHECK ((turno > 0))
+constraint:c	public.herencia_de_restricciones:CHECK ((check_hrt(hijo_brigada, hijo_profesor, hijo_lugar, hijo_otro_recurso, padre_brigada, padre_profesor, padre_lugar, padre_otro_recurso) = true))
+constraint:c	public.periodicidad:CHECK ((dia > 0))
+constraint:c	public.periodo:CHECK ((cant_dias > 0))
+constraint:c	public.periodo:CHECK ((cant_turnos > 0))
+constraint:c	public.restriccion_condicional:CHECK ((cant_dias_relativo_anterior > '-1'::integer))
+constraint:c	public.restriccion_condicional:CHECK ((cant_dias_relativo_posterior > '-1'::integer))
+constraint:c	public.restriccion_condicional:CHECK ((cant_turnos_relativo_anterior > '-1'::integer))
+constraint:c	public.restriccion_condicional:CHECK ((cant_turnos_relativo_posterior > '-1'::integer))
+constraint:c	public.restriccion_condicional:CHECK ((dia_relativo_anterior > '-1'::integer))
+constraint:c	public.restriccion_condicional:CHECK ((dia_relativo_posterior > '-1'::integer))
+constraint:c	public.restriccion_condicional:CHECK ((turno_relativo_anterior > '-1'::integer))
+constraint:c	public.restriccion_condicional:CHECK ((turno_relativo_posterior > '-1'::integer))
+constraint:c	public.restriccion_condicional:CHECK ((valor > 0))
+constraint:c	public.restriccion_de_asignatura:CHECK ((valor > 0))
+constraint:c	public.restriccion_de_brigada:CHECK ((valor > 0))
+constraint:c	public.restriccion_de_clasif_act:CHECK ((valor > 0))
+constraint:c	public.restriccion_de_especialidad:CHECK ((valor > 0))
+constraint:c	public.restriccion_de_lugar:CHECK ((valor > 0))
+constraint:c	public.restriccion_de_otro_recurso:CHECK ((valor > 0))
+constraint:c	public.restriccion_de_periodo:CHECK ((valor > 0))
+constraint:c	public.restriccion_de_profesor:CHECK ((valor > 0))
+constraint:c	public.restriccion_real:CHECK ((hora_final > hora_inicial))
+constraint:c	public.restriccion_real_de_asignatura:CHECK ((hora_final > hora_inicial))
+constraint:c	public.restriccion_real_de_brigada:CHECK ((hora_final > hora_inicial))
+constraint:c	public.restriccion_real_de_clasif_act:CHECK ((hora_final > hora_inicial))
+constraint:c	public.restriccion_real_de_especialidad:CHECK ((hora_final > hora_inicial))
+constraint:c	public.restriccion_real_de_lugar:CHECK ((hora_final > hora_inicial))
+constraint:c	public.restriccion_real_de_otro_recurso:CHECK ((hora_final > hora_inicial))
+constraint:c	public.restriccion_real_de_periodo:CHECK ((hora_final > hora_inicial))
+constraint:c	public.restriccion_real_de_profesor:CHECK ((hora_final > hora_inicial))
+constraint:c	public.zpriori:CHECK ((valor > 0))
+constraint:f	public.acceso_prohibido:FOREIGN KEY (grupo) REFERENCES grupo(id) ON UPDATE CASCADE ON DELETE CASCADE
+constraint:f	public.acceso_prohibido:FOREIGN KEY (lugar) REFERENCES lugar(id) ON UPDATE CASCADE ON DELETE CASCADE
+constraint:f	public.actividad:FOREIGN KEY (creador) REFERENCES seguridad.usuario(id) ON UPDATE CASCADE ON DELETE CASCADE
+constraint:f	public.actividad:FOREIGN KEY (grupo) REFERENCES grupo(id) ON UPDATE CASCADE ON DELETE CASCADE
+constraint:f	public.actividad:FOREIGN KEY (lugar) REFERENCES lugar(id) ON UPDATE CASCADE ON DELETE CASCADE
+constraint:f	public.actividad:FOREIGN KEY (plantilla) REFERENCES plantilla_de_actividad(id) ON UPDATE CASCADE ON DELETE CASCADE
+constraint:f	public.actividad:FOREIGN KEY (profesor) REFERENCES profesor(id) ON UPDATE CASCADE ON DELETE CASCADE
+constraint:f	public.asignatura:FOREIGN KEY (creador) REFERENCES seguridad.usuario(id) ON UPDATE CASCADE ON DELETE CASCADE
+constraint:f	public.asignatura:FOREIGN KEY (especialidad) REFERENCES especialidad(id) ON UPDATE CASCADE ON DELETE CASCADE
+constraint:f	public.asignatura:FOREIGN KEY (nivel) REFERENCES nivel(id) ON UPDATE CASCADE ON DELETE CASCADE
+constraint:f	public.brigada:FOREIGN KEY (creador) REFERENCES seguridad.usuario(id) ON UPDATE CASCADE ON DELETE CASCADE
+constraint:f	public.brigada:FOREIGN KEY (especialidad) REFERENCES especialidad(id) ON UPDATE CASCADE ON DELETE CASCADE
+constraint:f	public.brigada:FOREIGN KEY (nivel) REFERENCES nivel(id) ON UPDATE CASCADE ON DELETE CASCADE
+constraint:f	public.brigada_de_grupo:FOREIGN KEY (brigada) REFERENCES brigada(id) ON UPDATE CASCADE ON DELETE CASCADE
+constraint:f	public.brigada_de_grupo:FOREIGN KEY (grupo) REFERENCES grupo(id) ON UPDATE CASCADE ON DELETE CASCADE
+constraint:f	public.clasificacion_de_actividad:FOREIGN KEY (creador) REFERENCES seguridad.usuario(id) ON UPDATE CASCADE ON DELETE CASCADE
+constraint:f	public.costo_de_traslado:FOREIGN KEY (destino) REFERENCES lugar(id) ON UPDATE CASCADE ON DELETE CASCADE
+constraint:f	public.costo_de_traslado:FOREIGN KEY (origen) REFERENCES lugar(id) ON UPDATE CASCADE ON DELETE CASCADE
+constraint:f	public.desglose:FOREIGN KEY (asignatura) REFERENCES asignatura(id) ON UPDATE CASCADE ON DELETE CASCADE
+constraint:f	public.desglose:FOREIGN KEY (periodo) REFERENCES periodo(id) ON UPDATE CASCADE ON DELETE CASCADE
+constraint:f	public.especialidad:FOREIGN KEY (creador) REFERENCES seguridad.usuario(id) ON UPDATE CASCADE ON DELETE CASCADE
+constraint:f	public.excepcion_de_hrt:FOREIGN KEY (herencia) REFERENCES herencia_de_restricciones(id) ON UPDATE CASCADE ON DELETE CASCADE
+constraint:f	public.excepcion_de_hrt:FOREIGN KEY (periodo) REFERENCES periodo(id) ON UPDATE CASCADE ON DELETE CASCADE
+constraint:f	public.grupo:FOREIGN KEY (clasificacion) REFERENCES clasificacion_de_actividad(id) ON UPDATE CASCADE ON DELETE CASCADE
+constraint:f	public.grupo:FOREIGN KEY (especialidad) REFERENCES especialidad(id) ON UPDATE CASCADE ON DELETE CASCADE
+constraint:f	public.grupo:FOREIGN KEY (nivel) REFERENCES nivel(id) ON UPDATE CASCADE ON DELETE CASCADE
+constraint:f	public.grupo:FOREIGN KEY (planificacion) REFERENCES planificacion(id) ON UPDATE CASCADE ON DELETE CASCADE
+constraint:f	public.herencia_de_restricciones:FOREIGN KEY (hijo_brigada) REFERENCES brigada(id) ON UPDATE CASCADE ON DELETE CASCADE
+constraint:f	public.herencia_de_restricciones:FOREIGN KEY (hijo_lugar) REFERENCES lugar(id) ON UPDATE CASCADE ON DELETE CASCADE
+constraint:f	public.herencia_de_restricciones:FOREIGN KEY (hijo_otro_recurso) REFERENCES otro_recurso(id) ON UPDATE CASCADE ON DELETE CASCADE
+constraint:f	public.herencia_de_restricciones:FOREIGN KEY (hijo_profesor) REFERENCES profesor(id) ON UPDATE CASCADE ON DELETE CASCADE
+constraint:f	public.herencia_de_restricciones:FOREIGN KEY (padre_brigada) REFERENCES brigada(id) ON UPDATE CASCADE ON DELETE CASCADE
+constraint:f	public.herencia_de_restricciones:FOREIGN KEY (padre_lugar) REFERENCES lugar(id) ON UPDATE CASCADE ON DELETE CASCADE
+constraint:f	public.herencia_de_restricciones:FOREIGN KEY (padre_otro_recurso) REFERENCES otro_recurso(id) ON UPDATE CASCADE ON DELETE CASCADE
+constraint:f	public.herencia_de_restricciones:FOREIGN KEY (padre_profesor) REFERENCES profesor(id) ON UPDATE CASCADE ON DELETE CASCADE
+constraint:f	public.herencia_de_restricciones:FOREIGN KEY (planificacion) REFERENCES planificacion(id) ON UPDATE CASCADE ON DELETE CASCADE
+constraint:f	public.higiene_para_brigada:FOREIGN KEY (brigada) REFERENCES brigada(id) ON UPDATE CASCADE ON DELETE CASCADE
+constraint:f	public.higiene_para_brigada:FOREIGN KEY (periodo) REFERENCES periodo(id) ON UPDATE CASCADE ON DELETE CASCADE
+constraint:f	public.higiene_para_profesor:FOREIGN KEY (periodo) REFERENCES periodo(id) ON UPDATE CASCADE ON DELETE CASCADE
+constraint:f	public.higiene_para_profesor:FOREIGN KEY (profesor) REFERENCES profesor(id) ON UPDATE CASCADE ON DELETE CASCADE
+constraint:f	public.lugar:FOREIGN KEY (creador) REFERENCES seguridad.usuario(id) ON UPDATE CASCADE ON DELETE CASCADE
+constraint:f	public.lugar_fijo:FOREIGN KEY (grupo) REFERENCES grupo(id) ON UPDATE CASCADE ON DELETE CASCADE
+constraint:f	public.lugar_fijo:FOREIGN KEY (lugar) REFERENCES lugar(id) ON UPDATE CASCADE ON DELETE CASCADE
+constraint:f	public.lugar_para_actividad:FOREIGN KEY (lugar) REFERENCES lugar(id) ON UPDATE CASCADE ON DELETE CASCADE
+constraint:f	public.lugar_para_actividad:FOREIGN KEY (plantilla) REFERENCES plantilla_de_actividad(id) ON UPDATE CASCADE ON DELETE CASCADE
+constraint:f	public.nivel:FOREIGN KEY (creador) REFERENCES seguridad.usuario(id) ON UPDATE CASCADE ON DELETE CASCADE
+constraint:f	public.otro_grupo_de_recursos_para_actividad:FOREIGN KEY (creador) REFERENCES seguridad.usuario(id) ON UPDATE CASCADE ON DELETE CASCADE
+constraint:f	public.otro_grupo_de_recursos_para_actividad:FOREIGN KEY (plantilla) REFERENCES plantilla_de_actividad(id) ON UPDATE CASCADE ON DELETE CASCADE
+constraint:f	public.otro_recurso:FOREIGN KEY (creador) REFERENCES seguridad.usuario(id) ON UPDATE CASCADE ON DELETE CASCADE
+constraint:f	public.otro_recurso_para_actividad:FOREIGN KEY (grupo_de_recursos) REFERENCES otro_grupo_de_recursos_para_actividad(id) ON UPDATE CASCADE ON DELETE CASCADE
+constraint:f	public.otro_recurso_para_actividad:FOREIGN KEY (otro_recurso) REFERENCES otro_recurso(id) ON UPDATE CASCADE ON DELETE CASCADE
+constraint:f	public.otros_recursos_usados:FOREIGN KEY (actividad) REFERENCES actividad(id) ON UPDATE CASCADE ON DELETE CASCADE
+constraint:f	public.otros_recursos_usados:FOREIGN KEY (creador) REFERENCES seguridad.usuario(id) ON UPDATE CASCADE ON DELETE CASCADE
+constraint:f	public.otros_recursos_usados:FOREIGN KEY (otro_recurso) REFERENCES otro_recurso(id) ON UPDATE CASCADE ON DELETE CASCADE
+constraint:f	public.periodicidad:FOREIGN KEY (periodo) REFERENCES periodo(id) ON UPDATE CASCADE ON DELETE CASCADE
+constraint:f	public.periodo:FOREIGN KEY (planificacion) REFERENCES planificacion(id) ON UPDATE CASCADE ON DELETE CASCADE
+constraint:f	public.planificacion:FOREIGN KEY (creador) REFERENCES seguridad.usuario(id) ON UPDATE CASCADE ON DELETE CASCADE
+constraint:f	public.plantilla_de_actividad:FOREIGN KEY (clasificacion) REFERENCES clasificacion_de_actividad(id) ON UPDATE CASCADE ON DELETE CASCADE
+constraint:f	public.plantilla_de_actividad:FOREIGN KEY (desglose) REFERENCES desglose(id) ON UPDATE CASCADE ON DELETE CASCADE
+constraint:f	public.profesor:FOREIGN KEY (creador) REFERENCES seguridad.usuario(id) ON UPDATE CASCADE ON DELETE CASCADE
+constraint:f	public.profesor_para_actividad:FOREIGN KEY (plantilla) REFERENCES plantilla_de_actividad(id) ON UPDATE CASCADE ON DELETE CASCADE
+constraint:f	public.profesor_para_actividad:FOREIGN KEY (profesor) REFERENCES profesor(id) ON UPDATE CASCADE ON DELETE CASCADE
+constraint:f	public.profesor_para_grupo:FOREIGN KEY (grupo) REFERENCES grupo(id) ON UPDATE CASCADE ON DELETE CASCADE
+constraint:f	public.profesor_para_grupo:FOREIGN KEY (profesor_para_actividad) REFERENCES profesor_para_actividad(id) ON UPDATE CASCADE ON DELETE CASCADE
+constraint:f	public.receso:FOREIGN KEY (periodo) REFERENCES periodo(id) ON UPDATE CASCADE ON DELETE CASCADE
+constraint:f	public.restriccion_condicional:FOREIGN KEY (asig) REFERENCES asignatura(id) ON UPDATE CASCADE ON DELETE CASCADE
+constraint:f	public.restriccion_condicional:FOREIGN KEY (brigada) REFERENCES brigada(id) ON UPDATE CASCADE ON DELETE CASCADE
+constraint:f	public.restriccion_condicional:FOREIGN KEY (clasif_act) REFERENCES clasificacion_de_actividad(id) ON UPDATE CASCADE ON DELETE CASCADE
+constraint:f	public.restriccion_condicional:FOREIGN KEY (consec_brigada) REFERENCES brigada(id) ON UPDATE CASCADE ON DELETE CASCADE
+constraint:f	public.restriccion_condicional:FOREIGN KEY (consec_lugar) REFERENCES lugar(id) ON UPDATE CASCADE ON DELETE CASCADE
+constraint:f	public.restriccion_condicional:FOREIGN KEY (consec_otro_recurso) REFERENCES otro_recurso(id) ON UPDATE CASCADE ON DELETE CASCADE
+constraint:f	public.restriccion_condicional:FOREIGN KEY (consec_periodo) REFERENCES periodo(id) ON UPDATE CASCADE ON DELETE CASCADE
+constraint:f	public.restriccion_condicional:FOREIGN KEY (consec_profesor) REFERENCES profesor(id) ON UPDATE CASCADE ON DELETE CASCADE
+constraint:f	public.restriccion_condicional:FOREIGN KEY (especialidad) REFERENCES especialidad(id) ON UPDATE CASCADE ON DELETE CASCADE
+constraint:f	public.restriccion_condicional:FOREIGN KEY (lugar) REFERENCES lugar(id) ON UPDATE CASCADE ON DELETE CASCADE
+constraint:f	public.restriccion_condicional:FOREIGN KEY (nivel) REFERENCES nivel(id) ON UPDATE CASCADE ON DELETE CASCADE
+constraint:f	public.restriccion_condicional:FOREIGN KEY (otro_recurso) REFERENCES otro_recurso(id) ON UPDATE CASCADE ON DELETE CASCADE
+constraint:f	public.restriccion_condicional:FOREIGN KEY (periodo) REFERENCES periodo(id) ON UPDATE CASCADE ON DELETE CASCADE
+constraint:f	public.restriccion_condicional:FOREIGN KEY (planificacion) REFERENCES planificacion(id) ON UPDATE CASCADE ON DELETE CASCADE
+constraint:f	public.restriccion_condicional:FOREIGN KEY (profesor) REFERENCES profesor(id) ON UPDATE CASCADE ON DELETE CASCADE
+constraint:f	public.restriccion_de_asignatura:FOREIGN KEY (asignatura) REFERENCES asignatura(id) ON UPDATE CASCADE ON DELETE CASCADE
+constraint:f	public.restriccion_de_asignatura:FOREIGN KEY (periodo) REFERENCES periodo(id) ON UPDATE CASCADE ON DELETE CASCADE
+constraint:f	public.restriccion_de_brigada:FOREIGN KEY (actividad) REFERENCES actividad(id) ON UPDATE CASCADE ON DELETE CASCADE
+constraint:f	public.restriccion_de_brigada:FOREIGN KEY (brigada) REFERENCES brigada(id) ON UPDATE CASCADE ON DELETE CASCADE
+constraint:f	public.restriccion_de_brigada:FOREIGN KEY (periodo) REFERENCES periodo(id) ON UPDATE CASCADE ON DELETE CASCADE
+constraint:f	public.restriccion_de_clasif_act:FOREIGN KEY (clasificacion) REFERENCES clasificacion_de_actividad(id) ON UPDATE CASCADE ON DELETE CASCADE
+constraint:f	public.restriccion_de_clasif_act:FOREIGN KEY (periodo) REFERENCES periodo(id) ON UPDATE CASCADE ON DELETE CASCADE
+constraint:f	public.restriccion_de_especialidad:FOREIGN KEY (especialidad) REFERENCES especialidad(id) ON UPDATE CASCADE ON DELETE CASCADE
+constraint:f	public.restriccion_de_especialidad:FOREIGN KEY (periodo) REFERENCES periodo(id) ON UPDATE CASCADE ON DELETE CASCADE
+constraint:f	public.restriccion_de_lugar:FOREIGN KEY (actividad) REFERENCES actividad(id) ON UPDATE CASCADE ON DELETE CASCADE
+constraint:f	public.restriccion_de_lugar:FOREIGN KEY (lugar) REFERENCES lugar(id) ON UPDATE CASCADE ON DELETE CASCADE
+constraint:f	public.restriccion_de_lugar:FOREIGN KEY (periodo) REFERENCES periodo(id) ON UPDATE CASCADE ON DELETE CASCADE
+constraint:f	public.restriccion_de_otro_recurso:FOREIGN KEY (actividad) REFERENCES actividad(id) ON UPDATE CASCADE ON DELETE CASCADE
+constraint:f	public.restriccion_de_otro_recurso:FOREIGN KEY (otro_recurso) REFERENCES otro_recurso(id) ON UPDATE CASCADE ON DELETE CASCADE
+constraint:f	public.restriccion_de_otro_recurso:FOREIGN KEY (periodo) REFERENCES periodo(id) ON UPDATE CASCADE ON DELETE CASCADE
+constraint:f	public.restriccion_de_periodo:FOREIGN KEY (periodo) REFERENCES periodo(id) ON UPDATE CASCADE ON DELETE CASCADE
+constraint:f	public.restriccion_de_profesor:FOREIGN KEY (actividad) REFERENCES actividad(id) ON UPDATE CASCADE ON DELETE CASCADE
+constraint:f	public.restriccion_de_profesor:FOREIGN KEY (periodo) REFERENCES periodo(id) ON UPDATE CASCADE ON DELETE CASCADE
+constraint:f	public.restriccion_de_profesor:FOREIGN KEY (profesor) REFERENCES profesor(id) ON UPDATE CASCADE ON DELETE CASCADE
+constraint:f	public.restriccion_por_actividad_de_brigada:FOREIGN KEY (actividad) REFERENCES actividad(id) ON UPDATE CASCADE ON DELETE CASCADE
+constraint:f	public.restriccion_por_actividad_de_brigada:FOREIGN KEY (restriccion_nominal) REFERENCES restriccion_de_brigada(id) ON UPDATE CASCADE ON DELETE CASCADE
+constraint:f	public.restriccion_por_actividad_de_lugar:FOREIGN KEY (actividad) REFERENCES actividad(id) ON UPDATE CASCADE ON DELETE CASCADE
+constraint:f	public.restriccion_por_actividad_de_lugar:FOREIGN KEY (restriccion_nominal) REFERENCES restriccion_de_lugar(id) ON UPDATE CASCADE ON DELETE CASCADE
+constraint:f	public.restriccion_por_actividad_de_otro_recurso:FOREIGN KEY (actividad) REFERENCES actividad(id) ON UPDATE CASCADE ON DELETE CASCADE
+constraint:f	public.restriccion_por_actividad_de_otro_recurso:FOREIGN KEY (restriccion_nominal) REFERENCES restriccion_de_otro_recurso(id) ON UPDATE CASCADE ON DELETE CASCADE
+constraint:f	public.restriccion_por_actividad_de_profesor:FOREIGN KEY (actividad) REFERENCES actividad(id) ON UPDATE CASCADE ON DELETE CASCADE
+constraint:f	public.restriccion_por_actividad_de_profesor:FOREIGN KEY (restriccion_nominal) REFERENCES restriccion_de_profesor(id) ON UPDATE CASCADE ON DELETE CASCADE
+constraint:f	public.restriccion_real_de_asignatura:FOREIGN KEY (objeto) REFERENCES asignatura(id) ON UPDATE CASCADE ON DELETE CASCADE
+constraint:f	public.restriccion_real_de_asignatura:FOREIGN KEY (periodicidad) REFERENCES periodicidad(id) ON UPDATE CASCADE ON DELETE CASCADE
+constraint:f	public.restriccion_real_de_asignatura:FOREIGN KEY (restriccion_nominal) REFERENCES restriccion_de_asignatura(id) ON UPDATE CASCADE ON DELETE CASCADE
+constraint:f	public.restriccion_real_de_brigada:FOREIGN KEY (actividad) REFERENCES actividad(id) ON UPDATE CASCADE ON DELETE CASCADE
+constraint:f	public.restriccion_real_de_brigada:FOREIGN KEY (objeto) REFERENCES brigada(id) ON UPDATE CASCADE ON DELETE CASCADE
+constraint:f	public.restriccion_real_de_brigada:FOREIGN KEY (periodicidad) REFERENCES periodicidad(id) ON UPDATE CASCADE ON DELETE CASCADE
+constraint:f	public.restriccion_real_de_brigada:FOREIGN KEY (restriccion_nominal) REFERENCES restriccion_de_brigada(id) ON UPDATE CASCADE ON DELETE CASCADE
+constraint:f	public.restriccion_real_de_clasif_act:FOREIGN KEY (objeto) REFERENCES clasificacion_de_actividad(id) ON UPDATE CASCADE ON DELETE CASCADE
+constraint:f	public.restriccion_real_de_clasif_act:FOREIGN KEY (periodicidad) REFERENCES periodicidad(id) ON UPDATE CASCADE ON DELETE CASCADE
+constraint:f	public.restriccion_real_de_clasif_act:FOREIGN KEY (restriccion_nominal) REFERENCES restriccion_de_clasif_act(id) ON UPDATE CASCADE ON DELETE CASCADE
+constraint:f	public.restriccion_real_de_especialidad:FOREIGN KEY (objeto) REFERENCES especialidad(id) ON UPDATE CASCADE ON DELETE CASCADE
+constraint:f	public.restriccion_real_de_especialidad:FOREIGN KEY (periodicidad) REFERENCES periodicidad(id) ON UPDATE CASCADE ON DELETE CASCADE
+constraint:f	public.restriccion_real_de_especialidad:FOREIGN KEY (restriccion_nominal) REFERENCES restriccion_de_especialidad(id) ON UPDATE CASCADE ON DELETE CASCADE
+constraint:f	public.restriccion_real_de_lugar:FOREIGN KEY (objeto) REFERENCES lugar(id) ON UPDATE CASCADE ON DELETE CASCADE
+constraint:f	public.restriccion_real_de_lugar:FOREIGN KEY (periodicidad) REFERENCES periodicidad(id) ON UPDATE CASCADE ON DELETE CASCADE
+constraint:f	public.restriccion_real_de_lugar:FOREIGN KEY (restriccion_nominal) REFERENCES restriccion_de_lugar(id) ON UPDATE CASCADE ON DELETE CASCADE
+constraint:f	public.restriccion_real_de_otro_recurso:FOREIGN KEY (objeto) REFERENCES otro_recurso(id) ON UPDATE CASCADE ON DELETE CASCADE
+constraint:f	public.restriccion_real_de_otro_recurso:FOREIGN KEY (periodicidad) REFERENCES periodicidad(id) ON UPDATE CASCADE ON DELETE CASCADE
+constraint:f	public.restriccion_real_de_otro_recurso:FOREIGN KEY (restriccion_nominal) REFERENCES restriccion_de_otro_recurso(id) ON UPDATE CASCADE ON DELETE CASCADE
+constraint:f	public.restriccion_real_de_periodo:FOREIGN KEY (objeto) REFERENCES periodo(id) ON UPDATE CASCADE ON DELETE CASCADE
+constraint:f	public.restriccion_real_de_periodo:FOREIGN KEY (periodicidad) REFERENCES periodicidad(id) ON UPDATE CASCADE ON DELETE CASCADE
+constraint:f	public.restriccion_real_de_periodo:FOREIGN KEY (restriccion_nominal) REFERENCES restriccion_de_periodo(id) ON UPDATE CASCADE ON DELETE CASCADE
+constraint:f	public.restriccion_real_de_profesor:FOREIGN KEY (objeto) REFERENCES profesor(id) ON UPDATE CASCADE ON DELETE CASCADE
+constraint:f	public.restriccion_real_de_profesor:FOREIGN KEY (periodicidad) REFERENCES periodicidad(id) ON UPDATE CASCADE ON DELETE CASCADE
+constraint:f	public.restriccion_real_de_profesor:FOREIGN KEY (restriccion_nominal) REFERENCES restriccion_de_profesor(id) ON UPDATE CASCADE ON DELETE CASCADE
+constraint:f	public.zpriori:FOREIGN KEY (clasificacion) REFERENCES clasificacion_de_actividad(id) ON UPDATE CASCADE ON DELETE CASCADE
+constraint:f	public.zpriori:FOREIGN KEY (periodo) REFERENCES periodo(id) ON UPDATE CASCADE ON DELETE CASCADE
+constraint:f	seguridad.host:FOREIGN KEY (usuario) REFERENCES seguridad.usuario(id) ON UPDATE CASCADE ON DELETE CASCADE
+constraint:f	seguridad.permiso:FOREIGN KEY (rol) REFERENCES seguridad.rol(nombre) ON UPDATE CASCADE ON DELETE CASCADE
+constraint:f	seguridad.rol_de_usuario:FOREIGN KEY (rol) REFERENCES seguridad.rol(nombre) ON UPDATE CASCADE ON DELETE CASCADE
+constraint:f	seguridad.rol_de_usuario:FOREIGN KEY (usuario) REFERENCES seguridad.usuario(id) ON UPDATE CASCADE ON DELETE CASCADE
+constraint:f	seguridad.traza:FOREIGN KEY (usuario) REFERENCES seguridad.usuario(id) ON UPDATE CASCADE ON DELETE CASCADE
+constraint:p	generador.cancelar:PRIMARY KEY (especialidad, nivel, periodo)
+constraint:p	public.acceso_prohibido:PRIMARY KEY (grupo, lugar)
+constraint:p	public.actividad:PRIMARY KEY (id)
+constraint:p	public.asignatura:PRIMARY KEY (id)
+constraint:p	public.brigada:PRIMARY KEY (id)
+constraint:p	public.brigada_de_grupo:PRIMARY KEY (brigada, grupo)
+constraint:p	public.clasificacion_de_actividad:PRIMARY KEY (id)
+constraint:p	public.costo_de_traslado:PRIMARY KEY (origen, destino)
+constraint:p	public.desglose:PRIMARY KEY (id)
+constraint:p	public.especialidad:PRIMARY KEY (id)
+constraint:p	public.excepcion_de_hrt:PRIMARY KEY (herencia, periodo, dia, turno)
+constraint:p	public.grupo:PRIMARY KEY (id)
+constraint:p	public.herencia_de_restricciones:PRIMARY KEY (id)
+constraint:p	public.higiene_para_brigada:PRIMARY KEY (periodo, brigada, gasto_maximo_diario)
+constraint:p	public.higiene_para_profesor:PRIMARY KEY (periodo, profesor, gasto_maximo_diario)
+constraint:p	public.lugar:PRIMARY KEY (id)
+constraint:p	public.lugar_fijo:PRIMARY KEY (grupo, lugar)
+constraint:p	public.lugar_para_actividad:PRIMARY KEY (plantilla, lugar)
+constraint:p	public.nivel:PRIMARY KEY (id)
+constraint:p	public.otro_grupo_de_recursos_para_actividad:PRIMARY KEY (id)
+constraint:p	public.otro_recurso:PRIMARY KEY (id)
+constraint:p	public.otro_recurso_para_actividad:PRIMARY KEY (grupo_de_recursos, otro_recurso)
+constraint:p	public.otros_recursos_usados:PRIMARY KEY (otro_recurso, actividad)
+constraint:p	public.periodicidad:PRIMARY KEY (id)
+constraint:p	public.periodo:PRIMARY KEY (id)
+constraint:p	public.planificacion:PRIMARY KEY (id)
+constraint:p	public.plantilla_de_actividad:PRIMARY KEY (id)
+constraint:p	public.profesor:PRIMARY KEY (id)
+constraint:p	public.profesor_para_actividad:PRIMARY KEY (id)
+constraint:p	public.profesor_para_grupo:PRIMARY KEY (profesor_para_actividad, grupo)
+constraint:p	public.receso:PRIMARY KEY (periodo, despues_del_turno)
+constraint:p	public.restriccion_condicional:PRIMARY KEY (id)
+constraint:p	public.restriccion_de_asignatura:PRIMARY KEY (id)
+constraint:p	public.restriccion_de_brigada:PRIMARY KEY (id)
+constraint:p	public.restriccion_de_clasif_act:PRIMARY KEY (id)
+constraint:p	public.restriccion_de_especialidad:PRIMARY KEY (id)
+constraint:p	public.restriccion_de_lugar:PRIMARY KEY (id)
+constraint:p	public.restriccion_de_otro_recurso:PRIMARY KEY (id)
+constraint:p	public.restriccion_de_periodo:PRIMARY KEY (id)
+constraint:p	public.restriccion_de_profesor:PRIMARY KEY (id)
+constraint:p	public.restriccion_por_actividad:PRIMARY KEY (restriccion_nominal, actividad)
+constraint:p	public.restriccion_por_actividad_de_brigada:PRIMARY KEY (restriccion_nominal)
+constraint:p	public.restriccion_por_actividad_de_lugar:PRIMARY KEY (restriccion_nominal)
+constraint:p	public.restriccion_por_actividad_de_otro_recurso:PRIMARY KEY (restriccion_nominal)
+constraint:p	public.restriccion_por_actividad_de_profesor:PRIMARY KEY (restriccion_nominal)
+constraint:p	public.restriccion_real:PRIMARY KEY (restriccion_nominal, periodicidad)
+constraint:p	public.restriccion_real_de_asignatura:PRIMARY KEY (restriccion_nominal, periodicidad)
+constraint:p	public.restriccion_real_de_brigada:PRIMARY KEY (restriccion_nominal, periodicidad)
+constraint:p	public.restriccion_real_de_clasif_act:PRIMARY KEY (restriccion_nominal, periodicidad)
+constraint:p	public.restriccion_real_de_especialidad:PRIMARY KEY (restriccion_nominal, periodicidad)
+constraint:p	public.restriccion_real_de_lugar:PRIMARY KEY (restriccion_nominal, periodicidad)
+constraint:p	public.restriccion_real_de_otro_recurso:PRIMARY KEY (restriccion_nominal, periodicidad)
+constraint:p	public.restriccion_real_de_periodo:PRIMARY KEY (restriccion_nominal, periodicidad)
+constraint:p	public.restriccion_real_de_profesor:PRIMARY KEY (restriccion_nominal, periodicidad)
+constraint:p	public.zpriori:PRIMARY KEY (clasificacion, periodo, dia, turno)
+constraint:p	seguridad.host:PRIMARY KEY (ip, usuario)
+constraint:p	seguridad.permiso:PRIMARY KEY (permiso, rol)
+constraint:p	seguridad.rol:PRIMARY KEY (nombre)
+constraint:p	seguridad.rol_de_usuario:PRIMARY KEY (usuario, rol)
+constraint:p	seguridad.usuario:PRIMARY KEY (id)
+constraint:u	public.actividad:UNIQUE (plantilla, grupo)
+constraint:u	public.desglose:UNIQUE (asignatura, periodo)
+constraint:u	public.herencia_de_restricciones:UNIQUE (hijo_brigada, hijo_profesor, hijo_lugar, hijo_otro_recurso, padre_brigada, padre_profesor, padre_lugar, padre_otro_recurso)
+constraint:u	public.periodicidad:UNIQUE (periodo, dia)
+constraint:u	public.plantilla_de_actividad:UNIQUE (desglose, orden)
+constraint:u	public.profesor_para_actividad:UNIQUE (plantilla, profesor)
+constraint:u	public.restriccion_de_asignatura:UNIQUE (asignatura, periodo, dia, turno)
+constraint:u	public.restriccion_de_brigada:UNIQUE (brigada, periodo, dia, turno)
+constraint:u	public.restriccion_de_clasif_act:UNIQUE (clasificacion, periodo, dia, turno)
+constraint:u	public.restriccion_de_especialidad:UNIQUE (especialidad, periodo, dia, turno)
+constraint:u	public.restriccion_de_lugar:UNIQUE (lugar, periodo, dia, turno)
+constraint:u	public.restriccion_de_otro_recurso:UNIQUE (otro_recurso, periodo, dia, turno)
+constraint:u	public.restriccion_de_periodo:UNIQUE (periodo, dia, turno)
+constraint:u	public.restriccion_de_profesor:UNIQUE (profesor, periodo, dia, turno)
+constraint:u	seguridad.usuario:UNIQUE (nick)
+function	generador.fue_cancelado(idesp character varying, idnivel character varying, idperiodo character varying)
+function	matrix.create_boolean_cube(x bigint, y bigint, z bigint)
+function	matrix.create_boolean_list(filas bigint)
+function	matrix.create_boolean_matrix(filas bigint, columnas bigint)
+function	matrix.create_numeric_list(filas bigint)
+function	matrix.create_numeric_matrix(filas bigint, columnas bigint)
+function	matrix.create_string_list(filas bigint)
+function	matrix.create_string_matrix(filas bigint, columnas bigint)
+function	matrix.echo(arr anyarray)
+function	matrix.extract_boolean_column(arr anyelement, c bigint)
+function	matrix.extract_numeric_column(arr anyelement, c bigint)
+function	matrix.extract_string_column(arr anyelement, c bigint)
+function	matrix.get_count_of_dims(arr anyelement)
+function	matrix.get_count_of_value_in(arr anyarray, valor anyelement)
+function	matrix.get_length_of(arr anyelement, dimension integer)
+function	matrix.get_max(arr anyarray)
+function	matrix.get_max_pos(arr anyarray)
+function	matrix.get_min(arr anyarray)
+function	matrix.get_min_pos(arr anyarray)
+function	matrix.get_pos_of(arr anyarray, v anyelement)
+function	matrix.set_matrix_in_cube(OUT pcube anyarray, pmatrix anyarray, pos bigint)
+function	prioriza.nivelar(arr numeric[], criterio boolean)
+function	prioriza.nivelar_matrix(tabla numeric[], criterios boolean[])
+function	public.actualiza_orden_act_after_delete()
+function	public.actualiza_orden_act_after_insert()
+function	public.actualiza_orden_act_after_update()
+function	public.actualiza_orden_act_before_insert()
+function	public.actualiza_orden_act_before_update()
+function	public.actualiza_orden_plantillas(iddesglose character varying)
+function	public.actualiza_profesor_para_grupo()
+function	public.actualiza_restriccion_real(idobjeto character varying, idactividad character varying, idnominal character varying, idperiodo character varying, pdia integer, pturno integer, por_actividad boolean, tabla_real character varying)
+function	public.agrega_actividad(idplantilla character varying, idprofesor character varying, idlugar character varying, pdia integer, pturno integer, idgrupo character varying, idrecursos character varying[], momento double precision, pcreador character varying)
+function	public.and_mpi(listaidbrg character varying[], cd integer, ct integer, idplantilla character varying, zona bigint, excepto boolean)
+function	public.arregla_prioridades_clasif(pcreador character varying)
+function	public.arregla_prioridades_clasif_after_delete()
+function	public.baja_orden_de_plantilla(idplantilla character varying)
+function	public.baja_prioridad_clasif(idclasif character varying)
+function	public.bool_to_int(valor boolean)
+function	public.bool_to_str(valor boolean)
+function	public.busca_lugar_mas_utilizado_por(lugares character varying[], idgrupo character varying, los_demas boolean)
+function	public.busca_lugar_menos_costoso(origenes character varying[], destinos character varying[])
+function	public.busca_lugar_menos_utilizado_por(lugares character varying[], idgrupo character varying, los_demas boolean)
+function	public.check_hrt(hijo_brigada character varying, hijo_profesor character varying, hijo_lugar character varying, hijo_otro_recurso character varying, padre_brigada character varying, padre_profesor character varying, padre_lugar character varying, padre_otro_recurso character varying)
+function	public.crear_cadena_aleatoria(caracteres character varying, longitud integer)
+function	public.crear_id_de_replica(prefijo character varying, tabla character varying, campoid character varying, sufijo character varying)
+function	public.dame_asig_segun_esp_anno(idesp character varying, idnivel character varying)
+function	public.dame_asig_segun_esp_anno_per(idesp character varying, idnivel character varying, idperiodo character varying)
+function	public.dame_asignatura_desglose(character varying)
+function	public.dame_asignatura_plantilla_de_actividad(id character varying)
+function	public.dame_brigadas_de_grupo(idgrupo character varying)
+function	public.dame_brigadas_sin_grupo(idesp character varying, idnivel character varying, idclasif character varying, idplanificacion character varying)
+function	public.dame_cant_accesos_prohibidos_al_grupo(character varying)
+function	public.dame_cant_act(asig character varying, periodo character varying)
+function	public.dame_cant_act_desglose(desglose character varying)
+function	public.dame_cant_asig_de_esp_anno(idesp character varying, idnivel character varying)
+function	public.dame_cant_clasif()
+function	public.dame_cant_dias(idperiodo character varying)
+function	public.dame_cant_grupos_de_recursos_asignados(idplantilla character varying)
+function	public.dame_cant_lugares_asignados(idplantilla character varying)
+function	public.dame_cant_otros_recursos_asignados(idgrupo character varying)
+function	public.dame_cant_otros_recursos_imprescindibles(idplantilla character varying)
+function	public.dame_cant_profes_asignados(idplantilla character varying)
+function	public.dame_cant_profes_asignados_a_plantilla(idplantilla character varying)
+function	public.dame_cant_rest_asignatura(idasig character varying, idperiodo character varying)
+function	public.dame_cant_rest_lugar(idlugar character varying, idperiodo character varying)
+function	public.dame_cant_rest_profe(idprofe character varying, idperiodo character varying)
+function	public.dame_cant_turnos(idperiodo character varying)
+function	public.dame_capacidad(lug character varying)
+function	public.dame_clasif_de_asignaturas(asignatura character varying, periodo character varying)
+function	public.dame_clasif_plantilla_de_actividad(character varying)
+function	public.dame_clasificacion_de_grupo(idgrupo character varying)
+function	public.dame_costo_trasladar_recurso(idrecurso character varying, idlugar character varying, idperiodo character varying, pdia integer, pturno integer)
+function	public.dame_creador_de_asignatura(idasig character varying)
+function	public.dame_creador_de_clasifact(idclasif character varying)
+function	public.dame_creador_de_especialidad(esp character varying)
+function	public.dame_creador_de_planificacion(id character varying)
+function	public.dame_creador_de_plantilla(idplantilla character varying)
+function	public.dame_desglose_de_plantilla(idplantilla character varying)
+function	public.dame_dia_real_planificacion(pid character varying, dia integer)
+function	public.dame_duracion_actividad(id character varying)
+function	public.dame_duracion_clasif_de_actividad(character varying)
+function	public.dame_duracion_plantilla_de_actividad(character varying)
+function	public.dame_duracion_turno_periodo(pid character varying)
+function	public.dame_especialidad_de_asignatura(idasig character varying)
+function	public.dame_especialidad_de_brigada(idbrigada character varying)
+function	public.dame_especialidad_de_grupo(idgrupo character varying)
+function	public.dame_gasto_de_plantilla(idplantilla character varying)
+function	public.dame_gasto_lugares_en_el_dia(lugares character varying[], periodo character varying, pdia integer)
+function	public.dame_grupo(brg character varying, clasif character varying)
+function	public.dame_grupos(idesp character varying, idnivel character varying, idclasif character varying)
+function	public.dame_grupos_de_brigadas(brigadas character varying[], idplantilla character varying)
+function	public.dame_grupos_de_plantilla(idplantilla character varying)
+function	public.dame_hora_inicial_periodo(pid character varying)
+function	public.dame_hora_inicial_turno(idperiodo character varying, pturno integer)
+function	public.dame_id_plantilla(idasig character varying, idperiodo character varying, orden bigint)
+function	public.dame_idobjeto_de_restriccion_de_brigada(pid character varying)
+function	public.dame_idobjeto_de_restriccion_de_especialidad(pid character varying)
+function	public.dame_idobjeto_de_restriccion_de_periodo(pid character varying)
+function	public.dame_lista_id_brigadas_de_esp(esp character varying, niv character varying)
+function	public.dame_lista_id_brigadas_de_grupo(pgrupo character varying)
+function	public.dame_lista_id_clasif()
+function	public.dame_lista_id_grupos_de_recursos_asignados(idplantilla character varying)
+function	public.dame_lista_id_lugares_asignados(idplantilla character varying)
+function	public.dame_lista_id_otros_recursos_asignados(idgrupo character varying)
+function	public.dame_lista_id_otros_recursos_usados(idactividad character varying)
+function	public.dame_lista_id_profes_asignados(idplantilla character varying)
+function	public.dame_lista_id_profes_asignados_al_grupo(idplantilla character varying, idgrupo character varying)
+function	public.dame_lugares_no_asignados_a(idplantilla character varying)
+function	public.dame_lugares_usados_alrededor_de(brigadas character varying[], idperiodo character varying, pdia integer, pturno integer)
+function	public.dame_lugares_utilizados_en_el_dia(pgrupo character varying, periodo character varying, pdia integer)
+function	public.dame_matricula(brg character varying)
+function	public.dame_matricula_total(brigadas character varying[])
+function	public.dame_max_orden_act(iddesglose character varying)
+function	public.dame_max_priori_clasif_act(pcreador character varying)
+function	public.dame_max_priori_otro_recurso(idgr character varying)
+function	public.dame_max_prioridad_de_pxact(idplantilla character varying)
+function	public.dame_max_prioridad_lxact(idplantilla character varying)
+function	public.dame_max_prioridad_rxact(idplantilla character varying)
+function	public.dame_nivel_de_asignatura(idasig character varying)
+function	public.dame_nivel_de_brigada(idbrigada character varying)
+function	public.dame_nivel_de_grupo(idgrupo character varying)
+function	public.dame_otros_recursos_sin_asignar(idplantilla character varying)
+function	public.dame_periodo_desglose(character varying)
+function	public.dame_periodo_plantilla_de_actividad(character varying)
+function	public.dame_planificacion_de_grupo(idgrupo character varying)
+function	public.dame_planificacion_de_periodo(pid character varying)
+function	public.dame_plantilla_de_grupo_de_recursos(idgrupo character varying)
+function	public.dame_profesores_no_asignados_a(idplantilla character varying)
+function	public.dame_tipo_consec_rest_cond(pid character varying)
+function	public.dame_tipo_hijo_hrt(pid character varying)
+function	public.dame_tipo_padre_hrt(pid character varying)
+function	public.dame_total_otros_recursos_asignados(idplantilla character varying)
+function	public.dame_uso_de_otro_recurso(id character varying)
+function	public.dame_zpriori(clasif character varying, idperiodo character varying)
+function	public.dia_minimo_impacto(idclasif character varying, idesp character varying, idnivel character varying, idperiodo character varying, dia_ini integer, dia_fin integer)
+function	public.dias_se_solapan(idperiodo1 character varying, dia1 integer, idperiodo2 character varying, dia2 integer)
+function	public.es_higienico_brigada(idbrigada character varying, idplantilla character varying, pdia integer)
+function	public.es_higienico_profesor(idprofesor character varying, idplantilla character varying, pdia integer)
+function	public.es_lugar_prohibido(pgrupo character varying, plugar character varying)
+function	public.esta_dia_en_rango_planificacion(pdia integer, idperiodo character varying, dia_ini integer, dia_fin integer)
+function	public.esta_otro_recurso_asignado(idrecurso character varying, idplantilla character varying)
+function	public.esta_turno_en_rango(dia integer, turno integer, duracion integer, dia_ini integer, dia_fin integer, turno_ini integer, turno_fin integer, discreto boolean)
+function	public.existe_grupo_de_profesor(profe_para_act character varying, pgrupo character varying)
+function	public.extraer_lugares_que_no_permanecen(lugares character varying[], periodo character varying, dia integer, turno integer, duracion integer)
+function	public.generar(idesp character varying, idnivel character varying, idperiodo character varying, forma bigint, parche boolean, compactar bigint, parche1 boolean, buscalugar boolean)
+function	public.get_max_colocation(arr boolean[], duracion integer)
+function	public.iif(expresion boolean, dato1 anyelement, dato2 anyelement)
+function	public.lugar_permanece_en(plugar character varying, pperiodo character varying, pdia integer, pturno integer, duracion integer)
+function	public.max_cant_act(especialidad character varying, nivel character varying, periodo character varying)
+function	public.mueve_o_crea_brigada_de_grupo(idbrg character varying, idgrupo character varying)
+function	public.nivela_prioridad_lxact_after_delete()
+function	public.nivela_prioridad_lxact_after_update()
+function	public.nivela_prioridad_rxact_after_delete()
+function	public.nuevo_desglose_cuando_nueva_asignatura()
+function	public.nuevo_desglose_cuando_nuevo_periodo()
+function	public.ocurre_causa_rest_cond(rc restriccion_condicional, act actividad, idperiodo character varying, pdia integer, pturno integer, analiza_completo boolean)
+function	public.plantilla_exige_lugar(id character varying)
+function	public.plantilla_exige_profesor(id character varying)
+function	public.posible_inicio(idplantilla character varying, dia integer, turno integer, idbrigada character varying, plugares character varying[], pprofesores character varying[])
+function	public.quita_segun_capacidad(brigadas character varying[], lugares character varying[])
+function	public.quita_segun_prohibidos(grupos character varying[], lugares character varying[])
+function	public.rango(idplantilla character varying, idgrupo character varying, minimo integer, maximo integer)
+function	public.restringe_por_uso_de_otro_recurso(idactividad character varying, idrecurso character varying)
+function	public.restringe_segun_actividad(idactividad character varying, idplantilla character varying, idprofesor character varying, idlugar character varying, pdia integer, pturno integer, idgrupo character varying)
+function	public.sube_orden_de_plantilla(idplantilla character varying)
+function	public.sube_prioridad_clasif(idclasif character varying)
+function	public.turnos_se_solapan(idperiodo1 character varying, dia1 integer, turno1 integer, duracion1 integer, idperiodo2 character varying, dia2 integer, turno2 integer, duracion2 integer)
+function	public.valor_rest_entre_config_distintas(rests integer[], per1 periodo, per2 periodo, dia integer, turno integer)
+function	public.valor_restriccion_asignatura(id character varying, idperiodo character varying, pdia integer, pturno integer)
+function	public.valor_restriccion_brigada(id character varying, idperiodo character varying, pdia integer, pturno integer)
+function	public.valor_restriccion_clasif_act(id character varying, idperiodo character varying, pdia integer, pturno integer)
+function	public.valor_restriccion_condicional(tipo_consec character varying, id_consec character varying, idperiodo character varying, pdia integer, pturno integer)
+function	public.valor_restriccion_especialidad(id character varying, idperiodo character varying, pdia integer, pturno integer)
+function	public.valor_restriccion_generica(ptipo character varying, id character varying, idperiodo character varying, pdia integer, pturno integer, tipo_restricc character varying)
+function	public.valor_restriccion_heredada(tipo_hijo character varying, id_hijo character varying, idperiodo character varying, pdia integer, pturno integer)
+function	public.valor_restriccion_lugar(id character varying, idperiodo character varying, pdia integer, pturno integer)
+function	public.valor_restriccion_otro_recurso(id character varying, idperiodo character varying, pdia integer, pturno integer)
+function	public.valor_restriccion_periodo(idperiodo character varying, pdia integer, pturno integer)
+function	public.valor_restriccion_profesor(id character varying, idperiodo character varying, pdia integer, pturno integer)
+function	public.valor_zpriori(clasif character varying, periodo character varying, dia integer, turno integer)
+function	seguridad.check_host(pusuario character varying, pip character varying)
+function	seguridad.tiene_permiso(pusuario character varying, ppermiso character varying)
+function	tiempo.countdays_of_month(m integer)
+function	tiempo.current_hour_number()
+function	tiempo.date_number_from_moment_number(m double precision)
+function	tiempo.date_to_number(d integer, m integer, a integer)
+function	tiempo.day_number(d integer, m integer, a integer)
+function	tiempo.hour_number_from_date_number(m double precision)
+function	tiempo.hour_to_number(h integer, m integer, s integer)
+function	tiempo.is_leap_year(pyear integer)
+function	tiempo.moment_now()
+function	tiempo.moment_number(fecha bigint, hora double precision)
+function	tiempo.month_from_day_number(n integer, a integer)
+function	tiempo.number_to_date(n bigint)
+function	tiempo.number_to_hour(n double precision)
+function	tiempo.today_number()
+rule	public.actividad:actualiza_restricciones_por_actividad
+rule	public.otros_recursos_usados:actualiza_restricciones_por_uso_de_otro_recurso
+rule	public.restriccion_de_asignatura:actualiza_restriccion_real_de_asignatura
+rule	public.restriccion_de_asignatura:crea_restriccion_real_de_asignatura
+rule	public.restriccion_de_brigada:actualiza_restriccion_real_de_brigada
+rule	public.restriccion_de_brigada:crea_restriccion_real_de_brigada
+rule	public.restriccion_de_clasif_act:actualiza_restriccion_real_de_clasif_act
+rule	public.restriccion_de_clasif_act:crea_restriccion_real_de_clasif_act
+rule	public.restriccion_de_especialidad:actualiza_restriccion_real_de_especialidad
+rule	public.restriccion_de_especialidad:crea_restriccion_real_de_especialidad
+rule	public.restriccion_de_lugar:actualiza_restriccion_real_de_lugar
+rule	public.restriccion_de_lugar:crea_restriccion_real_de_lugar
+rule	public.restriccion_de_otro_recurso:actualiza_restriccion_real_de_otro_recurso
+rule	public.restriccion_de_otro_recurso:crea_restriccion_real_de_otro_recurso
+rule	public.restriccion_de_periodo:actualiza_restriccion_real_de_periodo
+rule	public.restriccion_de_periodo:crea_restriccion_real_de_periodo
+rule	public.restriccion_de_profesor:actualiza_restriccion_real_de_profesor
+rule	public.restriccion_de_profesor:crea_restriccion_real_de_profesor
+rule	public.restriccion_por_actividad_de_brigada:actualiza_por_actividad_en_nueva_restriccion_de_brigada
+rule	public.restriccion_por_actividad_de_brigada:actualiza_por_actividad_en_restriccion_de_brigada
+rule	public.restriccion_por_actividad_de_lugar:actualiza_por_actividad_en_nueva_restriccion_de_lugar
+rule	public.restriccion_por_actividad_de_lugar:actualiza_por_actividad_en_restriccion_de_lugar
+rule	public.restriccion_por_actividad_de_otro_recurso:actualiza_por_actividad_en_nueva_restriccion_de_otro_recurso
+rule	public.restriccion_por_actividad_de_otro_recurso:actualiza_por_actividad_en_restriccion_de_otro_recurso
+rule	public.restriccion_por_actividad_de_profesor:actualiza_por_actividad_en_nueva_restriccion_de_profesor
+rule	public.restriccion_por_actividad_de_profesor:actualiza_por_actividad_en_restriccion_de_profesor
+schema	generador
+schema	matrix
+schema	portal
+schema	prioriza
+schema	public
+schema	seguridad
+schema	tiempo
+table	generador.cancelar
+table	public.acceso_prohibido
+table	public.actividad
+table	public.asignatura
+table	public.brigada
+table	public.brigada_de_grupo
+table	public.clasificacion_de_actividad
+table	public.costo_de_traslado
+table	public.desglose
+table	public.especialidad
+table	public.excepcion_de_hrt
+table	public.grupo
+table	public.herencia_de_restricciones
+table	public.higiene_para_brigada
+table	public.higiene_para_profesor
+table	public.lugar
+table	public.lugar_fijo
+table	public.lugar_para_actividad
+table	public.nivel
+table	public.otro_grupo_de_recursos_para_actividad
+table	public.otro_recurso
+table	public.otro_recurso_para_actividad
+table	public.otros_recursos_usados
+table	public.periodicidad
+table	public.periodo
+table	public.planificacion
+table	public.plantilla_de_actividad
+table	public.profesor
+table	public.profesor_para_actividad
+table	public.profesor_para_grupo
+table	public.receso
+table	public.restriccion_condicional
+table	public.restriccion_de_asignatura
+table	public.restriccion_de_brigada
+table	public.restriccion_de_clasif_act
+table	public.restriccion_de_especialidad
+table	public.restriccion_de_lugar
+table	public.restriccion_de_otro_recurso
+table	public.restriccion_de_periodo
+table	public.restriccion_de_profesor
+table	public.restriccion_por_actividad
+table	public.restriccion_por_actividad_de_brigada
+table	public.restriccion_por_actividad_de_lugar
+table	public.restriccion_por_actividad_de_otro_recurso
+table	public.restriccion_por_actividad_de_profesor
+table	public.restriccion_real
+table	public.restriccion_real_de_asignatura
+table	public.restriccion_real_de_brigada
+table	public.restriccion_real_de_clasif_act
+table	public.restriccion_real_de_especialidad
+table	public.restriccion_real_de_lugar
+table	public.restriccion_real_de_otro_recurso
+table	public.restriccion_real_de_periodo
+table	public.restriccion_real_de_profesor
+table	public.zpriori
+table	seguridad.host
+table	seguridad.permiso
+table	seguridad.rol
+table	seguridad.rol_de_usuario
+table	seguridad.traza
+table	seguridad.usuario
+trigger	public.asignatura:nuevo_desglose_si_nueva_asignatura
+trigger	public.clasificacion_de_actividad:trigger_arregla_prioridades_clasif_after_delete
+trigger	public.lugar_para_actividad:trigger_nivela_prioridad_lxact_after_delete
+trigger	public.lugar_para_actividad:trigger_nivela_prioridad_lxact_after_update
+trigger	public.otro_grupo_de_recursos_para_actividad:trigger_nivela_prioridad_rxact_after_delete
+trigger	public.periodo:nuevo_desglose_si_nuevo_periodo
+trigger	public.plantilla_de_actividad:trigger_actualiza_orden_act_after_delete
+trigger	public.plantilla_de_actividad:trigger_actualiza_orden_act_after_insert
+trigger	public.plantilla_de_actividad:trigger_actualiza_orden_act_after_update
+trigger	public.plantilla_de_actividad:trigger_actualiza_orden_act_before_insert
+trigger	public.plantilla_de_actividad:trigger_actualiza_orden_act_before_update
+trigger	public.profesor_para_grupo:trigger_actualiza_profesor_para_grupo
+type	public.trango
+type	tiempo.ancora_date
+type	tiempo.ancora_hour
+view	public.asignaturas_cant_act
+view	public.uso_de_otros_recursos
