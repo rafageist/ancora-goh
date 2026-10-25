@@ -1,0 +1,924 @@
+kind	identity	status
+column	generador.cancelar.especialidad	identical
+column	generador.cancelar.nivel	identical
+column	generador.cancelar.periodo	identical
+column	public.acceso_prohibido.grupo	identical
+column	public.acceso_prohibido.lugar	identical
+column	public.actividad.creador	identical
+column	public.actividad.dia	identical
+column	public.actividad.grupo	identical
+column	public.actividad.id	identical
+column	public.actividad.lugar	identical
+column	public.actividad.momento_de_colocacion	identical
+column	public.actividad.plantilla	identical
+column	public.actividad.profesor	identical
+column	public.actividad.turno	identical
+column	public.asignatura.creador	identical
+column	public.asignatura.descripcion	identical
+column	public.asignatura.especialidad	identical
+column	public.asignatura.id	identical
+column	public.asignatura.nivel	identical
+column	public.brigada.creador	identical
+column	public.brigada.descripcion	identical
+column	public.brigada.especialidad	identical
+column	public.brigada.id	identical
+column	public.brigada.matricula	identical
+column	public.brigada.nivel	identical
+column	public.brigada_de_grupo.brigada	identical
+column	public.brigada_de_grupo.grupo	identical
+column	public.clasificacion_de_actividad.creador	identical
+column	public.clasificacion_de_actividad.descripcion	identical
+column	public.clasificacion_de_actividad.duracion	identical
+column	public.clasificacion_de_actividad.gasto	identical
+column	public.clasificacion_de_actividad.id	identical
+column	public.clasificacion_de_actividad.prioridad	identical
+column	public.costo_de_traslado.costo	identical
+column	public.costo_de_traslado.destino	identical
+column	public.costo_de_traslado.origen	identical
+column	public.desglose.asignatura	identical
+column	public.desglose.id	identical
+column	public.desglose.max_dias	identical
+column	public.desglose.min_dias	identical
+column	public.desglose.mismo_dia	identical
+column	public.desglose.periodo	identical
+column	public.desglose.respetar_orden	identical
+column	public.especialidad.creador	identical
+column	public.especialidad.descripcion	identical
+column	public.especialidad.id	identical
+column	public.excepcion_de_hrt.dia	identical
+column	public.excepcion_de_hrt.herencia	identical
+column	public.excepcion_de_hrt.periodo	identical
+column	public.excepcion_de_hrt.turno	identical
+column	public.grupo.clasificacion	identical
+column	public.grupo.descripcion	identical
+column	public.grupo.especialidad	identical
+column	public.grupo.id	identical
+column	public.grupo.nivel	identical
+column	public.grupo.planificacion	identical
+column	public.herencia_de_restricciones.activa	identical
+column	public.herencia_de_restricciones.hijo_brigada	identical
+column	public.herencia_de_restricciones.hijo_lugar	identical
+column	public.herencia_de_restricciones.hijo_otro_recurso	identical
+column	public.herencia_de_restricciones.hijo_profesor	identical
+column	public.herencia_de_restricciones.id	identical
+column	public.herencia_de_restricciones.padre_brigada	identical
+column	public.herencia_de_restricciones.padre_lugar	identical
+column	public.herencia_de_restricciones.padre_otro_recurso	identical
+column	public.herencia_de_restricciones.padre_profesor	identical
+column	public.herencia_de_restricciones.planificacion	identical
+column	public.higiene_para_brigada.brigada	identical
+column	public.higiene_para_brigada.gasto_maximo_diario	identical
+column	public.higiene_para_brigada.periodo	identical
+column	public.higiene_para_profesor.gasto_maximo_diario	identical
+column	public.higiene_para_profesor.periodo	identical
+column	public.higiene_para_profesor.profesor	identical
+column	public.lugar.capacidad	identical
+column	public.lugar.creador	identical
+column	public.lugar.id	identical
+column	public.lugar.nombre	identical
+column	public.lugar_fijo.grupo	identical
+column	public.lugar_fijo.lugar	identical
+column	public.lugar_para_actividad.actualizacion_interna	identical
+column	public.lugar_para_actividad.lugar	identical
+column	public.lugar_para_actividad.plantilla	identical
+column	public.lugar_para_actividad.prioridad	identical
+column	public.nivel.creador	identical
+column	public.nivel.descripcion	identical
+column	public.nivel.id	identical
+column	public.otro_grupo_de_recursos_para_actividad.creador	identical
+column	public.otro_grupo_de_recursos_para_actividad.id	identical
+column	public.otro_grupo_de_recursos_para_actividad.imprescindibles	identical
+column	public.otro_grupo_de_recursos_para_actividad.necesarios	identical
+column	public.otro_grupo_de_recursos_para_actividad.plantilla	identical
+column	public.otro_grupo_de_recursos_para_actividad.prioridad	identical
+column	public.otro_recurso.creador	identical
+column	public.otro_recurso.id	identical
+column	public.otro_recurso.nombre	identical
+column	public.otro_recurso_para_actividad.grupo_de_recursos	identical
+column	public.otro_recurso_para_actividad.otro_recurso	identical
+column	public.otro_recurso_para_actividad.prioridad	identical
+column	public.otros_recursos_usados.actividad	identical
+column	public.otros_recursos_usados.creador	identical
+column	public.otros_recursos_usados.otro_recurso	identical
+column	public.periodicidad.dia	identical
+column	public.periodicidad.id	identical
+column	public.periodicidad.periodo	identical
+column	public.periodo.cant_dias	identical
+column	public.periodo.cant_turnos	identical
+column	public.periodo.descripcion	identical
+column	public.periodo.duracion_del_turno	identical
+column	public.periodo.hora_inicial	identical
+column	public.periodo.id	identical
+column	public.periodo.planificacion	identical
+column	public.planificacion.activa	identical
+column	public.planificacion.cant_dias	identical
+column	public.planificacion.creador	identical
+column	public.planificacion.descripcion	identical
+column	public.planificacion.fecha_inicial	identical
+column	public.planificacion.id	identical
+column	public.plantilla_de_actividad.actualizacion_interna	different
+column	public.plantilla_de_actividad.clasificacion	identical
+column	public.plantilla_de_actividad.desglose	identical
+column	public.plantilla_de_actividad.exige_lugar	identical
+column	public.plantilla_de_actividad.exige_profesor	identical
+column	public.plantilla_de_actividad.id	identical
+column	public.plantilla_de_actividad.orden	identical
+column	public.profesor.creador	identical
+column	public.profesor.id	identical
+column	public.profesor.nombre	identical
+column	public.profesor_para_actividad.id	identical
+column	public.profesor_para_actividad.plantilla	identical
+column	public.profesor_para_actividad.prioridad	identical
+column	public.profesor_para_actividad.profesor	identical
+column	public.profesor_para_grupo.grupo	identical
+column	public.profesor_para_grupo.profesor_para_actividad	identical
+column	public.receso.despues_del_turno	identical
+column	public.receso.duracion	identical
+column	public.receso.periodo	identical
+column	public.restriccion_condicional.activa	identical
+column	public.restriccion_condicional.ahora	identical
+column	public.restriccion_condicional.asig	identical
+column	public.restriccion_condicional.brigada	identical
+column	public.restriccion_condicional.cant_dias_relativo_anterior	identical
+column	public.restriccion_condicional.cant_dias_relativo_posterior	identical
+column	public.restriccion_condicional.cant_exa	identical
+column	public.restriccion_condicional.cant_max	identical
+column	public.restriccion_condicional.cant_min	identical
+column	public.restriccion_condicional.cant_turnos_relativo_anterior	identical
+column	public.restriccion_condicional.cant_turnos_relativo_posterior	identical
+column	public.restriccion_condicional.clasif_act	identical
+column	public.restriccion_condicional.consec_brigada	identical
+column	public.restriccion_condicional.consec_dia_fin	identical
+column	public.restriccion_condicional.consec_dia_ini	identical
+column	public.restriccion_condicional.consec_discreto	identical
+column	public.restriccion_condicional.consec_lugar	identical
+column	public.restriccion_condicional.consec_otro_recurso	identical
+column	public.restriccion_condicional.consec_periodo	identical
+column	public.restriccion_condicional.consec_profesor	identical
+column	public.restriccion_condicional.consec_turno_fin	identical
+column	public.restriccion_condicional.consec_turno_ini	identical
+column	public.restriccion_condicional.dia_fin	identical
+column	public.restriccion_condicional.dia_fin_planif	identical
+column	public.restriccion_condicional.dia_ini	identical
+column	public.restriccion_condicional.dia_ini_planif	identical
+column	public.restriccion_condicional.dia_relativo_anterior	identical
+column	public.restriccion_condicional.dia_relativo_posterior	identical
+column	public.restriccion_condicional.discreto	identical
+column	public.restriccion_condicional.discreto_exacto	identical
+column	public.restriccion_condicional.discreto_exacto_planif	identical
+column	public.restriccion_condicional.entre_dias_antes	identical
+column	public.restriccion_condicional.entre_dias_despues	identical
+column	public.restriccion_condicional.entre_tiempo_antes	identical
+column	public.restriccion_condicional.entre_tiempo_despues	identical
+column	public.restriccion_condicional.entre_turnos_antes	identical
+column	public.restriccion_condicional.entre_turnos_despues	identical
+column	public.restriccion_condicional.especialidad	identical
+column	public.restriccion_condicional.fecha_fin	identical
+column	public.restriccion_condicional.fecha_ini	identical
+column	public.restriccion_condicional.hora_fin	identical
+column	public.restriccion_condicional.hora_fin_planif	identical
+column	public.restriccion_condicional.hora_ini	identical
+column	public.restriccion_condicional.hora_ini_planif	identical
+column	public.restriccion_condicional.hoy	identical
+column	public.restriccion_condicional.id	identical
+column	public.restriccion_condicional.lugar	identical
+column	public.restriccion_condicional.nivel	identical
+column	public.restriccion_condicional.otro_recurso	identical
+column	public.restriccion_condicional.periodo	identical
+column	public.restriccion_condicional.planificacion	identical
+column	public.restriccion_condicional.profesor	identical
+column	public.restriccion_condicional.rango_tiempo_relativo_anterior_ini	identical
+column	public.restriccion_condicional.rango_tiempo_relativo_anterior_tamano	identical
+column	public.restriccion_condicional.rango_tiempo_relativo_posterior_ini	identical
+column	public.restriccion_condicional.rango_tiempo_relativo_posterior_tamano	identical
+column	public.restriccion_condicional.siempre	identical
+column	public.restriccion_condicional.turno_fin	identical
+column	public.restriccion_condicional.turno_ini	identical
+column	public.restriccion_condicional.turno_relativo_anterior	identical
+column	public.restriccion_condicional.turno_relativo_posterior	identical
+column	public.restriccion_condicional.valor	identical
+column	public.restriccion_de_asignatura.asignatura	identical
+column	public.restriccion_de_asignatura.dia	identical
+column	public.restriccion_de_asignatura.id	identical
+column	public.restriccion_de_asignatura.periodo	identical
+column	public.restriccion_de_asignatura.turno	identical
+column	public.restriccion_de_asignatura.valor	identical
+column	public.restriccion_de_brigada.actividad	identical
+column	public.restriccion_de_brigada.brigada	identical
+column	public.restriccion_de_brigada.dia	identical
+column	public.restriccion_de_brigada.id	identical
+column	public.restriccion_de_brigada.periodo	identical
+column	public.restriccion_de_brigada.por_actividad	identical
+column	public.restriccion_de_brigada.turno	identical
+column	public.restriccion_de_brigada.valor	identical
+column	public.restriccion_de_clasif_act.clasificacion	identical
+column	public.restriccion_de_clasif_act.dia	identical
+column	public.restriccion_de_clasif_act.id	identical
+column	public.restriccion_de_clasif_act.periodo	identical
+column	public.restriccion_de_clasif_act.turno	identical
+column	public.restriccion_de_clasif_act.valor	identical
+column	public.restriccion_de_especialidad.dia	identical
+column	public.restriccion_de_especialidad.especialidad	identical
+column	public.restriccion_de_especialidad.id	identical
+column	public.restriccion_de_especialidad.periodo	identical
+column	public.restriccion_de_especialidad.turno	identical
+column	public.restriccion_de_especialidad.valor	identical
+column	public.restriccion_de_lugar.actividad	identical
+column	public.restriccion_de_lugar.dia	identical
+column	public.restriccion_de_lugar.id	identical
+column	public.restriccion_de_lugar.lugar	identical
+column	public.restriccion_de_lugar.periodo	identical
+column	public.restriccion_de_lugar.por_actividad	identical
+column	public.restriccion_de_lugar.turno	identical
+column	public.restriccion_de_lugar.valor	identical
+column	public.restriccion_de_otro_recurso.actividad	identical
+column	public.restriccion_de_otro_recurso.dia	identical
+column	public.restriccion_de_otro_recurso.id	identical
+column	public.restriccion_de_otro_recurso.otro_recurso	identical
+column	public.restriccion_de_otro_recurso.periodo	identical
+column	public.restriccion_de_otro_recurso.por_actividad	identical
+column	public.restriccion_de_otro_recurso.turno	identical
+column	public.restriccion_de_otro_recurso.valor	identical
+column	public.restriccion_de_periodo.dia	identical
+column	public.restriccion_de_periodo.id	identical
+column	public.restriccion_de_periodo.periodo	identical
+column	public.restriccion_de_periodo.turno	identical
+column	public.restriccion_de_periodo.valor	identical
+column	public.restriccion_de_profesor.actividad	identical
+column	public.restriccion_de_profesor.dia	identical
+column	public.restriccion_de_profesor.id	identical
+column	public.restriccion_de_profesor.periodo	identical
+column	public.restriccion_de_profesor.por_actividad	identical
+column	public.restriccion_de_profesor.profesor	identical
+column	public.restriccion_de_profesor.turno	identical
+column	public.restriccion_de_profesor.valor	identical
+column	public.restriccion_por_actividad.actividad	identical
+column	public.restriccion_por_actividad.restriccion_nominal	identical
+column	public.restriccion_por_actividad_de_brigada.actividad	identical
+column	public.restriccion_por_actividad_de_brigada.restriccion_nominal	identical
+column	public.restriccion_por_actividad_de_lugar.actividad	identical
+column	public.restriccion_por_actividad_de_lugar.restriccion_nominal	identical
+column	public.restriccion_por_actividad_de_otro_recurso.actividad	identical
+column	public.restriccion_por_actividad_de_otro_recurso.restriccion_nominal	identical
+column	public.restriccion_por_actividad_de_profesor.actividad	identical
+column	public.restriccion_por_actividad_de_profesor.restriccion_nominal	identical
+column	public.restriccion_real.actividad	identical
+column	public.restriccion_real.fecha	identical
+column	public.restriccion_real.hora_final	identical
+column	public.restriccion_real.hora_inicial	identical
+column	public.restriccion_real.objeto	identical
+column	public.restriccion_real.periodicidad	identical
+column	public.restriccion_real.por_actividad	identical
+column	public.restriccion_real.restriccion_nominal	identical
+column	public.restriccion_real_de_asignatura.actividad	identical
+column	public.restriccion_real_de_asignatura.fecha	identical
+column	public.restriccion_real_de_asignatura.hora_final	identical
+column	public.restriccion_real_de_asignatura.hora_inicial	identical
+column	public.restriccion_real_de_asignatura.objeto	identical
+column	public.restriccion_real_de_asignatura.periodicidad	identical
+column	public.restriccion_real_de_asignatura.por_actividad	identical
+column	public.restriccion_real_de_asignatura.restriccion_nominal	identical
+column	public.restriccion_real_de_brigada.actividad	identical
+column	public.restriccion_real_de_brigada.fecha	identical
+column	public.restriccion_real_de_brigada.hora_final	identical
+column	public.restriccion_real_de_brigada.hora_inicial	identical
+column	public.restriccion_real_de_brigada.objeto	identical
+column	public.restriccion_real_de_brigada.periodicidad	identical
+column	public.restriccion_real_de_brigada.por_actividad	identical
+column	public.restriccion_real_de_brigada.restriccion_nominal	identical
+column	public.restriccion_real_de_clasif_act.actividad	identical
+column	public.restriccion_real_de_clasif_act.fecha	identical
+column	public.restriccion_real_de_clasif_act.hora_final	identical
+column	public.restriccion_real_de_clasif_act.hora_inicial	identical
+column	public.restriccion_real_de_clasif_act.objeto	identical
+column	public.restriccion_real_de_clasif_act.periodicidad	identical
+column	public.restriccion_real_de_clasif_act.por_actividad	identical
+column	public.restriccion_real_de_clasif_act.restriccion_nominal	identical
+column	public.restriccion_real_de_especialidad.actividad	identical
+column	public.restriccion_real_de_especialidad.fecha	identical
+column	public.restriccion_real_de_especialidad.hora_final	identical
+column	public.restriccion_real_de_especialidad.hora_inicial	identical
+column	public.restriccion_real_de_especialidad.objeto	identical
+column	public.restriccion_real_de_especialidad.periodicidad	identical
+column	public.restriccion_real_de_especialidad.por_actividad	identical
+column	public.restriccion_real_de_especialidad.restriccion_nominal	identical
+column	public.restriccion_real_de_lugar.actividad	identical
+column	public.restriccion_real_de_lugar.fecha	identical
+column	public.restriccion_real_de_lugar.hora_final	identical
+column	public.restriccion_real_de_lugar.hora_inicial	identical
+column	public.restriccion_real_de_lugar.objeto	identical
+column	public.restriccion_real_de_lugar.periodicidad	identical
+column	public.restriccion_real_de_lugar.por_actividad	identical
+column	public.restriccion_real_de_lugar.restriccion_nominal	identical
+column	public.restriccion_real_de_otro_recurso.actividad	identical
+column	public.restriccion_real_de_otro_recurso.fecha	identical
+column	public.restriccion_real_de_otro_recurso.hora_final	identical
+column	public.restriccion_real_de_otro_recurso.hora_inicial	identical
+column	public.restriccion_real_de_otro_recurso.objeto	identical
+column	public.restriccion_real_de_otro_recurso.periodicidad	identical
+column	public.restriccion_real_de_otro_recurso.por_actividad	identical
+column	public.restriccion_real_de_otro_recurso.restriccion_nominal	identical
+column	public.restriccion_real_de_periodo.actividad	identical
+column	public.restriccion_real_de_periodo.fecha	identical
+column	public.restriccion_real_de_periodo.hora_final	identical
+column	public.restriccion_real_de_periodo.hora_inicial	identical
+column	public.restriccion_real_de_periodo.objeto	identical
+column	public.restriccion_real_de_periodo.periodicidad	identical
+column	public.restriccion_real_de_periodo.por_actividad	identical
+column	public.restriccion_real_de_periodo.restriccion_nominal	identical
+column	public.restriccion_real_de_profesor.actividad	identical
+column	public.restriccion_real_de_profesor.fecha	identical
+column	public.restriccion_real_de_profesor.hora_final	identical
+column	public.restriccion_real_de_profesor.hora_inicial	identical
+column	public.restriccion_real_de_profesor.objeto	identical
+column	public.restriccion_real_de_profesor.periodicidad	identical
+column	public.restriccion_real_de_profesor.por_actividad	identical
+column	public.restriccion_real_de_profesor.restriccion_nominal	identical
+column	public.zpriori.clasificacion	identical
+column	public.zpriori.dia	identical
+column	public.zpriori.periodo	identical
+column	public.zpriori.turno	identical
+column	public.zpriori.valor	identical
+column	seguridad.host.ip	identical
+column	seguridad.host.usuario	identical
+column	seguridad.permiso.permiso	identical
+column	seguridad.permiso.rol	identical
+column	seguridad.rol.descripcion	identical
+column	seguridad.rol.nombre	identical
+column	seguridad.rol_de_usuario.rol	identical
+column	seguridad.rol_de_usuario.usuario	identical
+column	seguridad.traza.accion	identical
+column	seguridad.traza.fecha	identical
+column	seguridad.traza.ip	identical
+column	seguridad.traza.usuario	identical
+column	seguridad.usuario.contrasena	identical
+column	seguridad.usuario.correo	identical
+column	seguridad.usuario.id	identical
+column	seguridad.usuario.info	identical
+column	seguridad.usuario.momento_ingreso	identical
+column	seguridad.usuario.nick	identical
+column	seguridad.usuario.nombre	identical
+constraint:c	public.actividad:CHECK ((((plantilla_exige_lugar(plantilla) = true) AND (lugar IS NOT NULL)) OR (plantilla_exige_lugar(plantilla) = false)))	identical
+constraint:c	public.actividad:CHECK ((((plantilla_exige_profesor(plantilla) = true) AND (profesor IS NOT NULL)) OR (plantilla_exige_profesor(plantilla) = false)))	identical
+constraint:c	public.excepcion_de_hrt:CHECK ((dia > 0))	identical
+constraint:c	public.excepcion_de_hrt:CHECK ((turno > 0))	identical
+constraint:c	public.herencia_de_restricciones:CHECK ((check_hrt(hijo_brigada, hijo_profesor, hijo_lugar, hijo_otro_recurso, padre_brigada, padre_profesor, padre_lugar, padre_otro_recurso) = true))	identical
+constraint:c	public.periodicidad:CHECK ((dia > 0))	identical
+constraint:c	public.periodo:CHECK ((cant_dias > 0))	identical
+constraint:c	public.periodo:CHECK ((cant_turnos > 0))	identical
+constraint:c	public.restriccion_condicional:CHECK ((cant_dias_relativo_anterior > '-1'::integer))	identical
+constraint:c	public.restriccion_condicional:CHECK ((cant_dias_relativo_posterior > '-1'::integer))	identical
+constraint:c	public.restriccion_condicional:CHECK ((cant_turnos_relativo_anterior > '-1'::integer))	identical
+constraint:c	public.restriccion_condicional:CHECK ((cant_turnos_relativo_posterior > '-1'::integer))	identical
+constraint:c	public.restriccion_condicional:CHECK ((dia_relativo_anterior > '-1'::integer))	identical
+constraint:c	public.restriccion_condicional:CHECK ((dia_relativo_posterior > '-1'::integer))	identical
+constraint:c	public.restriccion_condicional:CHECK ((turno_relativo_anterior > '-1'::integer))	identical
+constraint:c	public.restriccion_condicional:CHECK ((turno_relativo_posterior > '-1'::integer))	identical
+constraint:c	public.restriccion_condicional:CHECK ((valor > 0))	identical
+constraint:c	public.restriccion_de_asignatura:CHECK ((valor > 0))	identical
+constraint:c	public.restriccion_de_brigada:CHECK ((valor > 0))	identical
+constraint:c	public.restriccion_de_clasif_act:CHECK ((valor > 0))	identical
+constraint:c	public.restriccion_de_especialidad:CHECK ((valor > 0))	identical
+constraint:c	public.restriccion_de_lugar:CHECK ((valor > 0))	identical
+constraint:c	public.restriccion_de_otro_recurso:CHECK ((valor > 0))	identical
+constraint:c	public.restriccion_de_periodo:CHECK ((valor > 0))	identical
+constraint:c	public.restriccion_de_profesor:CHECK ((valor > 0))	identical
+constraint:c	public.restriccion_real:CHECK ((hora_final > hora_inicial))	identical
+constraint:c	public.restriccion_real_de_asignatura:CHECK ((hora_final > hora_inicial))	identical
+constraint:c	public.restriccion_real_de_brigada:CHECK ((hora_final > hora_inicial))	identical
+constraint:c	public.restriccion_real_de_clasif_act:CHECK ((hora_final > hora_inicial))	identical
+constraint:c	public.restriccion_real_de_especialidad:CHECK ((hora_final > hora_inicial))	identical
+constraint:c	public.restriccion_real_de_lugar:CHECK ((hora_final > hora_inicial))	identical
+constraint:c	public.restriccion_real_de_otro_recurso:CHECK ((hora_final > hora_inicial))	identical
+constraint:c	public.restriccion_real_de_periodo:CHECK ((hora_final > hora_inicial))	identical
+constraint:c	public.restriccion_real_de_profesor:CHECK ((hora_final > hora_inicial))	identical
+constraint:c	public.zpriori:CHECK ((valor > 0))	identical
+constraint:f	public.acceso_prohibido:FOREIGN KEY (grupo) REFERENCES grupo(id) ON UPDATE CASCADE ON DELETE CASCADE	identical
+constraint:f	public.acceso_prohibido:FOREIGN KEY (lugar) REFERENCES lugar(id) ON UPDATE CASCADE ON DELETE CASCADE	identical
+constraint:f	public.actividad:FOREIGN KEY (creador) REFERENCES seguridad.usuario(id) ON UPDATE CASCADE ON DELETE CASCADE	identical
+constraint:f	public.actividad:FOREIGN KEY (grupo) REFERENCES grupo(id) ON UPDATE CASCADE ON DELETE CASCADE	identical
+constraint:f	public.actividad:FOREIGN KEY (lugar) REFERENCES lugar(id) ON UPDATE CASCADE ON DELETE CASCADE	identical
+constraint:f	public.actividad:FOREIGN KEY (plantilla) REFERENCES plantilla_de_actividad(id) ON UPDATE CASCADE ON DELETE CASCADE	identical
+constraint:f	public.actividad:FOREIGN KEY (profesor) REFERENCES profesor(id) ON UPDATE CASCADE ON DELETE CASCADE	identical
+constraint:f	public.asignatura:FOREIGN KEY (creador) REFERENCES seguridad.usuario(id) ON UPDATE CASCADE ON DELETE CASCADE	identical
+constraint:f	public.asignatura:FOREIGN KEY (especialidad) REFERENCES especialidad(id) ON UPDATE CASCADE ON DELETE CASCADE	identical
+constraint:f	public.asignatura:FOREIGN KEY (nivel) REFERENCES nivel(id) ON UPDATE CASCADE ON DELETE CASCADE	identical
+constraint:f	public.brigada:FOREIGN KEY (creador) REFERENCES seguridad.usuario(id) ON UPDATE CASCADE ON DELETE CASCADE	identical
+constraint:f	public.brigada:FOREIGN KEY (especialidad) REFERENCES especialidad(id) ON UPDATE CASCADE ON DELETE CASCADE	identical
+constraint:f	public.brigada:FOREIGN KEY (nivel) REFERENCES nivel(id) ON UPDATE CASCADE ON DELETE CASCADE	identical
+constraint:f	public.brigada_de_grupo:FOREIGN KEY (brigada) REFERENCES brigada(id) ON UPDATE CASCADE ON DELETE CASCADE	identical
+constraint:f	public.brigada_de_grupo:FOREIGN KEY (grupo) REFERENCES grupo(id) ON UPDATE CASCADE ON DELETE CASCADE	identical
+constraint:f	public.clasificacion_de_actividad:FOREIGN KEY (creador) REFERENCES seguridad.usuario(id) ON UPDATE CASCADE ON DELETE CASCADE	identical
+constraint:f	public.costo_de_traslado:FOREIGN KEY (destino) REFERENCES lugar(id) ON UPDATE CASCADE ON DELETE CASCADE	identical
+constraint:f	public.costo_de_traslado:FOREIGN KEY (origen) REFERENCES lugar(id) ON UPDATE CASCADE ON DELETE CASCADE	identical
+constraint:f	public.desglose:FOREIGN KEY (asignatura) REFERENCES asignatura(id) ON UPDATE CASCADE ON DELETE CASCADE	identical
+constraint:f	public.desglose:FOREIGN KEY (periodo) REFERENCES periodo(id) ON UPDATE CASCADE ON DELETE CASCADE	identical
+constraint:f	public.especialidad:FOREIGN KEY (creador) REFERENCES seguridad.usuario(id) ON UPDATE CASCADE ON DELETE CASCADE	identical
+constraint:f	public.excepcion_de_hrt:FOREIGN KEY (herencia) REFERENCES herencia_de_restricciones(id) ON UPDATE CASCADE ON DELETE CASCADE	identical
+constraint:f	public.excepcion_de_hrt:FOREIGN KEY (periodo) REFERENCES periodo(id) ON UPDATE CASCADE ON DELETE CASCADE	identical
+constraint:f	public.grupo:FOREIGN KEY (clasificacion) REFERENCES clasificacion_de_actividad(id) ON UPDATE CASCADE ON DELETE CASCADE	identical
+constraint:f	public.grupo:FOREIGN KEY (especialidad) REFERENCES especialidad(id) ON UPDATE CASCADE ON DELETE CASCADE	identical
+constraint:f	public.grupo:FOREIGN KEY (nivel) REFERENCES nivel(id) ON UPDATE CASCADE ON DELETE CASCADE	identical
+constraint:f	public.grupo:FOREIGN KEY (planificacion) REFERENCES planificacion(id) ON UPDATE CASCADE ON DELETE CASCADE	identical
+constraint:f	public.herencia_de_restricciones:FOREIGN KEY (hijo_brigada) REFERENCES brigada(id) ON UPDATE CASCADE ON DELETE CASCADE	identical
+constraint:f	public.herencia_de_restricciones:FOREIGN KEY (hijo_lugar) REFERENCES lugar(id) ON UPDATE CASCADE ON DELETE CASCADE	identical
+constraint:f	public.herencia_de_restricciones:FOREIGN KEY (hijo_otro_recurso) REFERENCES otro_recurso(id) ON UPDATE CASCADE ON DELETE CASCADE	identical
+constraint:f	public.herencia_de_restricciones:FOREIGN KEY (hijo_profesor) REFERENCES profesor(id) ON UPDATE CASCADE ON DELETE CASCADE	identical
+constraint:f	public.herencia_de_restricciones:FOREIGN KEY (padre_brigada) REFERENCES brigada(id) ON UPDATE CASCADE ON DELETE CASCADE	identical
+constraint:f	public.herencia_de_restricciones:FOREIGN KEY (padre_lugar) REFERENCES lugar(id) ON UPDATE CASCADE ON DELETE CASCADE	identical
+constraint:f	public.herencia_de_restricciones:FOREIGN KEY (padre_otro_recurso) REFERENCES otro_recurso(id) ON UPDATE CASCADE ON DELETE CASCADE	identical
+constraint:f	public.herencia_de_restricciones:FOREIGN KEY (padre_profesor) REFERENCES profesor(id) ON UPDATE CASCADE ON DELETE CASCADE	identical
+constraint:f	public.herencia_de_restricciones:FOREIGN KEY (planificacion) REFERENCES planificacion(id) ON UPDATE CASCADE ON DELETE CASCADE	identical
+constraint:f	public.higiene_para_brigada:FOREIGN KEY (brigada) REFERENCES brigada(id) ON UPDATE CASCADE ON DELETE CASCADE	identical
+constraint:f	public.higiene_para_brigada:FOREIGN KEY (periodo) REFERENCES periodo(id) ON UPDATE CASCADE ON DELETE CASCADE	identical
+constraint:f	public.higiene_para_profesor:FOREIGN KEY (periodo) REFERENCES periodo(id) ON UPDATE CASCADE ON DELETE CASCADE	identical
+constraint:f	public.higiene_para_profesor:FOREIGN KEY (profesor) REFERENCES profesor(id) ON UPDATE CASCADE ON DELETE CASCADE	identical
+constraint:f	public.lugar:FOREIGN KEY (creador) REFERENCES seguridad.usuario(id) ON UPDATE CASCADE ON DELETE CASCADE	identical
+constraint:f	public.lugar_fijo:FOREIGN KEY (grupo) REFERENCES grupo(id) ON UPDATE CASCADE ON DELETE CASCADE	identical
+constraint:f	public.lugar_fijo:FOREIGN KEY (lugar) REFERENCES lugar(id) ON UPDATE CASCADE ON DELETE CASCADE	identical
+constraint:f	public.lugar_para_actividad:FOREIGN KEY (lugar) REFERENCES lugar(id) ON UPDATE CASCADE ON DELETE CASCADE	identical
+constraint:f	public.lugar_para_actividad:FOREIGN KEY (plantilla) REFERENCES plantilla_de_actividad(id) ON UPDATE CASCADE ON DELETE CASCADE	identical
+constraint:f	public.nivel:FOREIGN KEY (creador) REFERENCES seguridad.usuario(id) ON UPDATE CASCADE ON DELETE CASCADE	identical
+constraint:f	public.otro_grupo_de_recursos_para_actividad:FOREIGN KEY (creador) REFERENCES seguridad.usuario(id) ON UPDATE CASCADE ON DELETE CASCADE	identical
+constraint:f	public.otro_grupo_de_recursos_para_actividad:FOREIGN KEY (plantilla) REFERENCES plantilla_de_actividad(id) ON UPDATE CASCADE ON DELETE CASCADE	identical
+constraint:f	public.otro_recurso:FOREIGN KEY (creador) REFERENCES seguridad.usuario(id) ON UPDATE CASCADE ON DELETE CASCADE	identical
+constraint:f	public.otro_recurso_para_actividad:FOREIGN KEY (grupo_de_recursos) REFERENCES otro_grupo_de_recursos_para_actividad(id) ON UPDATE CASCADE ON DELETE CASCADE	identical
+constraint:f	public.otro_recurso_para_actividad:FOREIGN KEY (otro_recurso) REFERENCES otro_recurso(id) ON UPDATE CASCADE ON DELETE CASCADE	identical
+constraint:f	public.otros_recursos_usados:FOREIGN KEY (actividad) REFERENCES actividad(id) ON UPDATE CASCADE ON DELETE CASCADE	identical
+constraint:f	public.otros_recursos_usados:FOREIGN KEY (creador) REFERENCES seguridad.usuario(id) ON UPDATE CASCADE ON DELETE CASCADE	identical
+constraint:f	public.otros_recursos_usados:FOREIGN KEY (otro_recurso) REFERENCES otro_recurso(id) ON UPDATE CASCADE ON DELETE CASCADE	identical
+constraint:f	public.periodicidad:FOREIGN KEY (periodo) REFERENCES periodo(id) ON UPDATE CASCADE ON DELETE CASCADE	identical
+constraint:f	public.periodo:FOREIGN KEY (planificacion) REFERENCES planificacion(id) ON UPDATE CASCADE ON DELETE CASCADE	identical
+constraint:f	public.planificacion:FOREIGN KEY (creador) REFERENCES seguridad.usuario(id) ON UPDATE CASCADE ON DELETE CASCADE	identical
+constraint:f	public.plantilla_de_actividad:FOREIGN KEY (clasificacion) REFERENCES clasificacion_de_actividad(id) ON UPDATE CASCADE ON DELETE CASCADE	identical
+constraint:f	public.plantilla_de_actividad:FOREIGN KEY (desglose) REFERENCES desglose(id) ON UPDATE CASCADE ON DELETE CASCADE	identical
+constraint:f	public.profesor:FOREIGN KEY (creador) REFERENCES seguridad.usuario(id) ON UPDATE CASCADE ON DELETE CASCADE	identical
+constraint:f	public.profesor_para_actividad:FOREIGN KEY (plantilla) REFERENCES plantilla_de_actividad(id) ON UPDATE CASCADE ON DELETE CASCADE	identical
+constraint:f	public.profesor_para_actividad:FOREIGN KEY (profesor) REFERENCES profesor(id) ON UPDATE CASCADE ON DELETE CASCADE	identical
+constraint:f	public.profesor_para_grupo:FOREIGN KEY (grupo) REFERENCES grupo(id) ON UPDATE CASCADE ON DELETE CASCADE	identical
+constraint:f	public.profesor_para_grupo:FOREIGN KEY (profesor_para_actividad) REFERENCES profesor_para_actividad(id) ON UPDATE CASCADE ON DELETE CASCADE	identical
+constraint:f	public.receso:FOREIGN KEY (periodo) REFERENCES periodo(id) ON UPDATE CASCADE ON DELETE CASCADE	identical
+constraint:f	public.restriccion_condicional:FOREIGN KEY (asig) REFERENCES asignatura(id) ON UPDATE CASCADE ON DELETE CASCADE	identical
+constraint:f	public.restriccion_condicional:FOREIGN KEY (brigada) REFERENCES brigada(id) ON UPDATE CASCADE ON DELETE CASCADE	identical
+constraint:f	public.restriccion_condicional:FOREIGN KEY (clasif_act) REFERENCES clasificacion_de_actividad(id) ON UPDATE CASCADE ON DELETE CASCADE	identical
+constraint:f	public.restriccion_condicional:FOREIGN KEY (consec_brigada) REFERENCES brigada(id) ON UPDATE CASCADE ON DELETE CASCADE	identical
+constraint:f	public.restriccion_condicional:FOREIGN KEY (consec_lugar) REFERENCES lugar(id) ON UPDATE CASCADE ON DELETE CASCADE	identical
+constraint:f	public.restriccion_condicional:FOREIGN KEY (consec_otro_recurso) REFERENCES otro_recurso(id) ON UPDATE CASCADE ON DELETE CASCADE	identical
+constraint:f	public.restriccion_condicional:FOREIGN KEY (consec_periodo) REFERENCES periodo(id) ON UPDATE CASCADE ON DELETE CASCADE	identical
+constraint:f	public.restriccion_condicional:FOREIGN KEY (consec_profesor) REFERENCES profesor(id) ON UPDATE CASCADE ON DELETE CASCADE	identical
+constraint:f	public.restriccion_condicional:FOREIGN KEY (especialidad) REFERENCES especialidad(id) ON UPDATE CASCADE ON DELETE CASCADE	identical
+constraint:f	public.restriccion_condicional:FOREIGN KEY (lugar) REFERENCES lugar(id) ON UPDATE CASCADE ON DELETE CASCADE	identical
+constraint:f	public.restriccion_condicional:FOREIGN KEY (nivel) REFERENCES nivel(id) ON UPDATE CASCADE ON DELETE CASCADE	identical
+constraint:f	public.restriccion_condicional:FOREIGN KEY (otro_recurso) REFERENCES otro_recurso(id) ON UPDATE CASCADE ON DELETE CASCADE	identical
+constraint:f	public.restriccion_condicional:FOREIGN KEY (periodo) REFERENCES periodo(id) ON UPDATE CASCADE ON DELETE CASCADE	identical
+constraint:f	public.restriccion_condicional:FOREIGN KEY (planificacion) REFERENCES planificacion(id) ON UPDATE CASCADE ON DELETE CASCADE	identical
+constraint:f	public.restriccion_condicional:FOREIGN KEY (profesor) REFERENCES profesor(id) ON UPDATE CASCADE ON DELETE CASCADE	identical
+constraint:f	public.restriccion_de_asignatura:FOREIGN KEY (asignatura) REFERENCES asignatura(id) ON UPDATE CASCADE ON DELETE CASCADE	identical
+constraint:f	public.restriccion_de_asignatura:FOREIGN KEY (periodo) REFERENCES periodo(id) ON UPDATE CASCADE ON DELETE CASCADE	identical
+constraint:f	public.restriccion_de_brigada:FOREIGN KEY (actividad) REFERENCES actividad(id) ON UPDATE CASCADE ON DELETE CASCADE	identical
+constraint:f	public.restriccion_de_brigada:FOREIGN KEY (brigada) REFERENCES brigada(id) ON UPDATE CASCADE ON DELETE CASCADE	identical
+constraint:f	public.restriccion_de_brigada:FOREIGN KEY (periodo) REFERENCES periodo(id) ON UPDATE CASCADE ON DELETE CASCADE	identical
+constraint:f	public.restriccion_de_clasif_act:FOREIGN KEY (clasificacion) REFERENCES clasificacion_de_actividad(id) ON UPDATE CASCADE ON DELETE CASCADE	identical
+constraint:f	public.restriccion_de_clasif_act:FOREIGN KEY (periodo) REFERENCES periodo(id) ON UPDATE CASCADE ON DELETE CASCADE	identical
+constraint:f	public.restriccion_de_especialidad:FOREIGN KEY (especialidad) REFERENCES especialidad(id) ON UPDATE CASCADE ON DELETE CASCADE	identical
+constraint:f	public.restriccion_de_especialidad:FOREIGN KEY (periodo) REFERENCES periodo(id) ON UPDATE CASCADE ON DELETE CASCADE	identical
+constraint:f	public.restriccion_de_lugar:FOREIGN KEY (actividad) REFERENCES actividad(id) ON UPDATE CASCADE ON DELETE CASCADE	identical
+constraint:f	public.restriccion_de_lugar:FOREIGN KEY (lugar) REFERENCES lugar(id) ON UPDATE CASCADE ON DELETE CASCADE	identical
+constraint:f	public.restriccion_de_lugar:FOREIGN KEY (periodo) REFERENCES periodo(id) ON UPDATE CASCADE ON DELETE CASCADE	identical
+constraint:f	public.restriccion_de_otro_recurso:FOREIGN KEY (actividad) REFERENCES actividad(id) ON UPDATE CASCADE ON DELETE CASCADE	identical
+constraint:f	public.restriccion_de_otro_recurso:FOREIGN KEY (otro_recurso) REFERENCES otro_recurso(id) ON UPDATE CASCADE ON DELETE CASCADE	identical
+constraint:f	public.restriccion_de_otro_recurso:FOREIGN KEY (periodo) REFERENCES periodo(id) ON UPDATE CASCADE ON DELETE CASCADE	identical
+constraint:f	public.restriccion_de_periodo:FOREIGN KEY (periodo) REFERENCES periodo(id) ON UPDATE CASCADE ON DELETE CASCADE	identical
+constraint:f	public.restriccion_de_profesor:FOREIGN KEY (actividad) REFERENCES actividad(id) ON UPDATE CASCADE ON DELETE CASCADE	identical
+constraint:f	public.restriccion_de_profesor:FOREIGN KEY (periodo) REFERENCES periodo(id) ON UPDATE CASCADE ON DELETE CASCADE	identical
+constraint:f	public.restriccion_de_profesor:FOREIGN KEY (profesor) REFERENCES profesor(id) ON UPDATE CASCADE ON DELETE CASCADE	identical
+constraint:f	public.restriccion_por_actividad_de_brigada:FOREIGN KEY (actividad) REFERENCES actividad(id) ON UPDATE CASCADE ON DELETE CASCADE	identical
+constraint:f	public.restriccion_por_actividad_de_brigada:FOREIGN KEY (restriccion_nominal) REFERENCES restriccion_de_brigada(id) ON UPDATE CASCADE ON DELETE CASCADE	identical
+constraint:f	public.restriccion_por_actividad_de_lugar:FOREIGN KEY (actividad) REFERENCES actividad(id) ON UPDATE CASCADE ON DELETE CASCADE	identical
+constraint:f	public.restriccion_por_actividad_de_lugar:FOREIGN KEY (restriccion_nominal) REFERENCES restriccion_de_lugar(id) ON UPDATE CASCADE ON DELETE CASCADE	identical
+constraint:f	public.restriccion_por_actividad_de_otro_recurso:FOREIGN KEY (actividad) REFERENCES actividad(id) ON UPDATE CASCADE ON DELETE CASCADE	identical
+constraint:f	public.restriccion_por_actividad_de_otro_recurso:FOREIGN KEY (restriccion_nominal) REFERENCES restriccion_de_otro_recurso(id) ON UPDATE CASCADE ON DELETE CASCADE	identical
+constraint:f	public.restriccion_por_actividad_de_profesor:FOREIGN KEY (actividad) REFERENCES actividad(id) ON UPDATE CASCADE ON DELETE CASCADE	identical
+constraint:f	public.restriccion_por_actividad_de_profesor:FOREIGN KEY (restriccion_nominal) REFERENCES restriccion_de_profesor(id) ON UPDATE CASCADE ON DELETE CASCADE	identical
+constraint:f	public.restriccion_real_de_asignatura:FOREIGN KEY (objeto) REFERENCES asignatura(id) ON UPDATE CASCADE ON DELETE CASCADE	identical
+constraint:f	public.restriccion_real_de_asignatura:FOREIGN KEY (periodicidad) REFERENCES periodicidad(id) ON UPDATE CASCADE ON DELETE CASCADE	identical
+constraint:f	public.restriccion_real_de_asignatura:FOREIGN KEY (restriccion_nominal) REFERENCES restriccion_de_asignatura(id) ON UPDATE CASCADE ON DELETE CASCADE	identical
+constraint:f	public.restriccion_real_de_brigada:FOREIGN KEY (actividad) REFERENCES actividad(id) ON UPDATE CASCADE ON DELETE CASCADE	identical
+constraint:f	public.restriccion_real_de_brigada:FOREIGN KEY (objeto) REFERENCES brigada(id) ON UPDATE CASCADE ON DELETE CASCADE	identical
+constraint:f	public.restriccion_real_de_brigada:FOREIGN KEY (periodicidad) REFERENCES periodicidad(id) ON UPDATE CASCADE ON DELETE CASCADE	identical
+constraint:f	public.restriccion_real_de_brigada:FOREIGN KEY (restriccion_nominal) REFERENCES restriccion_de_brigada(id) ON UPDATE CASCADE ON DELETE CASCADE	identical
+constraint:f	public.restriccion_real_de_clasif_act:FOREIGN KEY (objeto) REFERENCES clasificacion_de_actividad(id) ON UPDATE CASCADE ON DELETE CASCADE	identical
+constraint:f	public.restriccion_real_de_clasif_act:FOREIGN KEY (periodicidad) REFERENCES periodicidad(id) ON UPDATE CASCADE ON DELETE CASCADE	identical
+constraint:f	public.restriccion_real_de_clasif_act:FOREIGN KEY (restriccion_nominal) REFERENCES restriccion_de_clasif_act(id) ON UPDATE CASCADE ON DELETE CASCADE	identical
+constraint:f	public.restriccion_real_de_especialidad:FOREIGN KEY (objeto) REFERENCES especialidad(id) ON UPDATE CASCADE ON DELETE CASCADE	identical
+constraint:f	public.restriccion_real_de_especialidad:FOREIGN KEY (periodicidad) REFERENCES periodicidad(id) ON UPDATE CASCADE ON DELETE CASCADE	identical
+constraint:f	public.restriccion_real_de_especialidad:FOREIGN KEY (restriccion_nominal) REFERENCES restriccion_de_especialidad(id) ON UPDATE CASCADE ON DELETE CASCADE	identical
+constraint:f	public.restriccion_real_de_lugar:FOREIGN KEY (objeto) REFERENCES lugar(id) ON UPDATE CASCADE ON DELETE CASCADE	identical
+constraint:f	public.restriccion_real_de_lugar:FOREIGN KEY (periodicidad) REFERENCES periodicidad(id) ON UPDATE CASCADE ON DELETE CASCADE	identical
+constraint:f	public.restriccion_real_de_lugar:FOREIGN KEY (restriccion_nominal) REFERENCES restriccion_de_lugar(id) ON UPDATE CASCADE ON DELETE CASCADE	identical
+constraint:f	public.restriccion_real_de_otro_recurso:FOREIGN KEY (objeto) REFERENCES otro_recurso(id) ON UPDATE CASCADE ON DELETE CASCADE	identical
+constraint:f	public.restriccion_real_de_otro_recurso:FOREIGN KEY (periodicidad) REFERENCES periodicidad(id) ON UPDATE CASCADE ON DELETE CASCADE	identical
+constraint:f	public.restriccion_real_de_otro_recurso:FOREIGN KEY (restriccion_nominal) REFERENCES restriccion_de_otro_recurso(id) ON UPDATE CASCADE ON DELETE CASCADE	identical
+constraint:f	public.restriccion_real_de_periodo:FOREIGN KEY (objeto) REFERENCES periodo(id) ON UPDATE CASCADE ON DELETE CASCADE	identical
+constraint:f	public.restriccion_real_de_periodo:FOREIGN KEY (periodicidad) REFERENCES periodicidad(id) ON UPDATE CASCADE ON DELETE CASCADE	identical
+constraint:f	public.restriccion_real_de_periodo:FOREIGN KEY (restriccion_nominal) REFERENCES restriccion_de_periodo(id) ON UPDATE CASCADE ON DELETE CASCADE	identical
+constraint:f	public.restriccion_real_de_profesor:FOREIGN KEY (objeto) REFERENCES profesor(id) ON UPDATE CASCADE ON DELETE CASCADE	identical
+constraint:f	public.restriccion_real_de_profesor:FOREIGN KEY (periodicidad) REFERENCES periodicidad(id) ON UPDATE CASCADE ON DELETE CASCADE	identical
+constraint:f	public.restriccion_real_de_profesor:FOREIGN KEY (restriccion_nominal) REFERENCES restriccion_de_profesor(id) ON UPDATE CASCADE ON DELETE CASCADE	identical
+constraint:f	public.zpriori:FOREIGN KEY (clasificacion) REFERENCES clasificacion_de_actividad(id) ON UPDATE CASCADE ON DELETE CASCADE	identical
+constraint:f	public.zpriori:FOREIGN KEY (periodo) REFERENCES periodo(id) ON UPDATE CASCADE ON DELETE CASCADE	identical
+constraint:f	seguridad.host:FOREIGN KEY (usuario) REFERENCES seguridad.usuario(id) ON UPDATE CASCADE ON DELETE CASCADE	identical
+constraint:f	seguridad.permiso:FOREIGN KEY (rol) REFERENCES seguridad.rol(nombre) ON UPDATE CASCADE ON DELETE CASCADE	identical
+constraint:f	seguridad.rol_de_usuario:FOREIGN KEY (rol) REFERENCES seguridad.rol(nombre) ON UPDATE CASCADE ON DELETE CASCADE	identical
+constraint:f	seguridad.rol_de_usuario:FOREIGN KEY (usuario) REFERENCES seguridad.usuario(id) ON UPDATE CASCADE ON DELETE CASCADE	identical
+constraint:f	seguridad.traza:FOREIGN KEY (usuario) REFERENCES seguridad.usuario(id) ON UPDATE CASCADE ON DELETE CASCADE	identical
+constraint:p	generador.cancelar:PRIMARY KEY (especialidad, nivel, periodo)	identical
+constraint:p	public.acceso_prohibido:PRIMARY KEY (grupo, lugar)	identical
+constraint:p	public.actividad:PRIMARY KEY (id)	identical
+constraint:p	public.asignatura:PRIMARY KEY (id)	identical
+constraint:p	public.brigada:PRIMARY KEY (id)	identical
+constraint:p	public.brigada_de_grupo:PRIMARY KEY (brigada, grupo)	identical
+constraint:p	public.clasificacion_de_actividad:PRIMARY KEY (id)	identical
+constraint:p	public.costo_de_traslado:PRIMARY KEY (origen, destino)	identical
+constraint:p	public.desglose:PRIMARY KEY (id)	identical
+constraint:p	public.especialidad:PRIMARY KEY (id)	identical
+constraint:p	public.excepcion_de_hrt:PRIMARY KEY (herencia, periodo, dia, turno)	identical
+constraint:p	public.grupo:PRIMARY KEY (id)	identical
+constraint:p	public.herencia_de_restricciones:PRIMARY KEY (id)	identical
+constraint:p	public.higiene_para_brigada:PRIMARY KEY (periodo, brigada, gasto_maximo_diario)	identical
+constraint:p	public.higiene_para_profesor:PRIMARY KEY (periodo, profesor, gasto_maximo_diario)	identical
+constraint:p	public.lugar:PRIMARY KEY (id)	identical
+constraint:p	public.lugar_fijo:PRIMARY KEY (grupo, lugar)	identical
+constraint:p	public.lugar_para_actividad:PRIMARY KEY (plantilla, lugar)	identical
+constraint:p	public.nivel:PRIMARY KEY (id)	identical
+constraint:p	public.otro_grupo_de_recursos_para_actividad:PRIMARY KEY (id)	identical
+constraint:p	public.otro_recurso:PRIMARY KEY (id)	identical
+constraint:p	public.otro_recurso_para_actividad:PRIMARY KEY (grupo_de_recursos, otro_recurso)	identical
+constraint:p	public.otros_recursos_usados:PRIMARY KEY (otro_recurso, actividad)	identical
+constraint:p	public.periodicidad:PRIMARY KEY (id)	identical
+constraint:p	public.periodo:PRIMARY KEY (id)	identical
+constraint:p	public.planificacion:PRIMARY KEY (id)	identical
+constraint:p	public.plantilla_de_actividad:PRIMARY KEY (id)	identical
+constraint:p	public.profesor:PRIMARY KEY (id)	identical
+constraint:p	public.profesor_para_actividad:PRIMARY KEY (id)	identical
+constraint:p	public.profesor_para_grupo:PRIMARY KEY (profesor_para_actividad, grupo)	identical
+constraint:p	public.receso:PRIMARY KEY (periodo, despues_del_turno)	identical
+constraint:p	public.restriccion_condicional:PRIMARY KEY (id)	identical
+constraint:p	public.restriccion_de_asignatura:PRIMARY KEY (id)	identical
+constraint:p	public.restriccion_de_brigada:PRIMARY KEY (id)	identical
+constraint:p	public.restriccion_de_clasif_act:PRIMARY KEY (id)	identical
+constraint:p	public.restriccion_de_especialidad:PRIMARY KEY (id)	identical
+constraint:p	public.restriccion_de_lugar:PRIMARY KEY (id)	identical
+constraint:p	public.restriccion_de_otro_recurso:PRIMARY KEY (id)	identical
+constraint:p	public.restriccion_de_periodo:PRIMARY KEY (id)	identical
+constraint:p	public.restriccion_de_profesor:PRIMARY KEY (id)	identical
+constraint:p	public.restriccion_por_actividad:PRIMARY KEY (restriccion_nominal, actividad)	identical
+constraint:p	public.restriccion_por_actividad_de_brigada:PRIMARY KEY (restriccion_nominal)	identical
+constraint:p	public.restriccion_por_actividad_de_lugar:PRIMARY KEY (restriccion_nominal)	identical
+constraint:p	public.restriccion_por_actividad_de_otro_recurso:PRIMARY KEY (restriccion_nominal)	identical
+constraint:p	public.restriccion_por_actividad_de_profesor:PRIMARY KEY (restriccion_nominal)	identical
+constraint:p	public.restriccion_real:PRIMARY KEY (restriccion_nominal, periodicidad)	identical
+constraint:p	public.restriccion_real_de_asignatura:PRIMARY KEY (restriccion_nominal, periodicidad)	identical
+constraint:p	public.restriccion_real_de_brigada:PRIMARY KEY (restriccion_nominal, periodicidad)	identical
+constraint:p	public.restriccion_real_de_clasif_act:PRIMARY KEY (restriccion_nominal, periodicidad)	identical
+constraint:p	public.restriccion_real_de_especialidad:PRIMARY KEY (restriccion_nominal, periodicidad)	identical
+constraint:p	public.restriccion_real_de_lugar:PRIMARY KEY (restriccion_nominal, periodicidad)	identical
+constraint:p	public.restriccion_real_de_otro_recurso:PRIMARY KEY (restriccion_nominal, periodicidad)	identical
+constraint:p	public.restriccion_real_de_periodo:PRIMARY KEY (restriccion_nominal, periodicidad)	identical
+constraint:p	public.restriccion_real_de_profesor:PRIMARY KEY (restriccion_nominal, periodicidad)	identical
+constraint:p	public.zpriori:PRIMARY KEY (clasificacion, periodo, dia, turno)	identical
+constraint:p	seguridad.host:PRIMARY KEY (ip, usuario)	identical
+constraint:p	seguridad.permiso:PRIMARY KEY (permiso, rol)	identical
+constraint:p	seguridad.rol:PRIMARY KEY (nombre)	identical
+constraint:p	seguridad.rol_de_usuario:PRIMARY KEY (usuario, rol)	identical
+constraint:p	seguridad.usuario:PRIMARY KEY (id)	identical
+constraint:u	public.actividad:UNIQUE (plantilla, grupo)	identical
+constraint:u	public.desglose:UNIQUE (asignatura, periodo)	identical
+constraint:u	public.herencia_de_restricciones:UNIQUE (hijo_brigada, hijo_profesor, hijo_lugar, hijo_otro_recurso, padre_brigada, padre_profesor, padre_lugar, padre_otro_recurso)	identical
+constraint:u	public.periodicidad:UNIQUE (periodo, dia)	identical
+constraint:u	public.plantilla_de_actividad:UNIQUE (desglose, orden)	identical
+constraint:u	public.profesor_para_actividad:UNIQUE (plantilla, profesor)	identical
+constraint:u	public.restriccion_de_asignatura:UNIQUE (asignatura, periodo, dia, turno)	identical
+constraint:u	public.restriccion_de_brigada:UNIQUE (brigada, periodo, dia, turno)	identical
+constraint:u	public.restriccion_de_clasif_act:UNIQUE (clasificacion, periodo, dia, turno)	identical
+constraint:u	public.restriccion_de_especialidad:UNIQUE (especialidad, periodo, dia, turno)	identical
+constraint:u	public.restriccion_de_lugar:UNIQUE (lugar, periodo, dia, turno)	identical
+constraint:u	public.restriccion_de_otro_recurso:UNIQUE (otro_recurso, periodo, dia, turno)	identical
+constraint:u	public.restriccion_de_periodo:UNIQUE (periodo, dia, turno)	identical
+constraint:u	public.restriccion_de_profesor:UNIQUE (profesor, periodo, dia, turno)	identical
+constraint:u	seguridad.usuario:UNIQUE (nick)	identical
+function	generador.fue_cancelado(idesp character varying, idnivel character varying, idperiodo character varying)	identical
+function	matrix.create_boolean_cube(x bigint, y bigint, z bigint)	identical
+function	matrix.create_boolean_list(filas bigint)	identical
+function	matrix.create_boolean_matrix(filas bigint, columnas bigint)	identical
+function	matrix.create_numeric_list(filas bigint)	identical
+function	matrix.create_numeric_matrix(filas bigint, columnas bigint)	identical
+function	matrix.create_string_list(filas bigint)	different
+function	matrix.create_string_matrix(filas bigint, columnas bigint)	identical
+function	matrix.echo(arr anyarray)	identical
+function	matrix.extract_boolean_column(arr anyelement, c bigint)	identical
+function	matrix.extract_numeric_column(arr anyelement, c bigint)	identical
+function	matrix.extract_string_column(arr anyelement, c bigint)	identical
+function	matrix.get_count_of_dims(arr anyelement)	identical
+function	matrix.get_count_of_value_in(arr anyarray, valor anyelement)	identical
+function	matrix.get_length_of(arr anyelement, dimension integer)	identical
+function	matrix.get_max(arr anyarray)	identical
+function	matrix.get_max_pos(arr anyarray)	identical
+function	matrix.get_min(arr anyarray)	identical
+function	matrix.get_min_pos(arr anyarray)	identical
+function	matrix.get_pos_of(arr anyarray, v anyelement)	identical
+function	matrix.set_matrix_in_cube(OUT pcube anyarray, pmatrix anyarray, pos bigint)	identical
+function	prioriza.nivelar(arr numeric[], criterio boolean)	identical
+function	prioriza.nivelar_matrix(tabla numeric[], criterios boolean[])	identical
+function	public.actualiza_orden_act_after_delete()	identical
+function	public.actualiza_orden_act_after_insert()	identical
+function	public.actualiza_orden_act_after_update()	identical
+function	public.actualiza_orden_act_before_insert()	identical
+function	public.actualiza_orden_act_before_update()	identical
+function	public.actualiza_orden_actividades()	only-in-dump
+function	public.actualiza_orden_plantillas(iddesglose character varying)	identical
+function	public.actualiza_profesor_para_grupo()	identical
+function	public.actualiza_restriccion_real(idobjeto character varying, idactividad character varying, idnominal character varying, idperiodo character varying, pdia integer, pturno integer, por_actividad boolean, tabla_real character varying)	identical
+function	public.agrega_actividad(idplantilla character varying, idprofesor character varying, idlugar character varying, pdia integer, pturno integer, idgrupo character varying, idrecursos character varying[], momento double precision, pcreador character varying)	identical
+function	public.and_mpi(listaidbrg character varying[], cd integer, ct integer, idplantilla character varying, zona bigint, excepto boolean)	identical
+function	public.arregla_prioridades_clasif(pcreador character varying)	identical
+function	public.arregla_prioridades_clasif_after_delete()	identical
+function	public.baja_orden_de_plantilla(idplantilla character varying)	identical
+function	public.baja_prioridad_clasif(idclasif character varying)	identical
+function	public.bool_to_int(valor boolean)	identical
+function	public.bool_to_str(valor boolean)	identical
+function	public.busca_lugar_mas_utilizado_por(lugares character varying[], idgrupo character varying, los_demas boolean)	identical
+function	public.busca_lugar_menos_costoso(origenes character varying[], destinos character varying[])	identical
+function	public.busca_lugar_menos_utilizado_por(lugares character varying[], idgrupo character varying, los_demas boolean)	identical
+function	public.check_hrt(hijo_brigada character varying, hijo_profesor character varying, hijo_lugar character varying, hijo_otro_recurso character varying, padre_brigada character varying, padre_profesor character varying, padre_lugar character varying, padre_otro_recurso character varying)	identical
+function	public.concat(text, text)	only-in-dump
+function	public.crear_cadena_aleatoria(caracteres character varying, longitud integer)	identical
+function	public.crear_id_de_replica(prefijo character varying, tabla character varying, campoid character varying, sufijo character varying)	identical
+function	public.dame_asig_segun_esp_anno(idesp character varying, idnivel character varying)	identical
+function	public.dame_asig_segun_esp_anno_per(idesp character varying, idnivel character varying, idperiodo character varying)	identical
+function	public.dame_asignatura_desglose(character varying)	identical
+function	public.dame_asignatura_plantilla_de_actividad(id character varying)	identical
+function	public.dame_brigadas_de_grupo(idgrupo character varying)	identical
+function	public.dame_brigadas_sin_grupo(idesp character varying, idnivel character varying, idclasif character varying, idplanificacion character varying)	identical
+function	public.dame_cant_accesos_prohibidos_al_grupo(character varying)	identical
+function	public.dame_cant_act(asig character varying, periodo character varying)	identical
+function	public.dame_cant_act_desglose(desglose character varying)	identical
+function	public.dame_cant_asig_de_esp_anno(idesp character varying, idnivel character varying)	identical
+function	public.dame_cant_clasif()	identical
+function	public.dame_cant_dias(idperiodo character varying)	identical
+function	public.dame_cant_grupos_de_recursos_asignados(idplantilla character varying)	identical
+function	public.dame_cant_lugares_asignados(idplantilla character varying)	identical
+function	public.dame_cant_otros_recursos_asignados(idgrupo character varying)	identical
+function	public.dame_cant_otros_recursos_imprescindibles(idplantilla character varying)	identical
+function	public.dame_cant_profes_asignados(idplantilla character varying)	identical
+function	public.dame_cant_profes_asignados_a_plantilla(idplantilla character varying)	only-in-sources
+function	public.dame_cant_rest_asignatura(idasig character varying, idperiodo character varying)	identical
+function	public.dame_cant_rest_lugar(idlugar character varying, idperiodo character varying)	only-in-sources
+function	public.dame_cant_rest_profe(idprofe character varying, idperiodo character varying)	identical
+function	public.dame_cant_turnos(idperiodo character varying)	identical
+function	public.dame_capacidad(lug character varying)	identical
+function	public.dame_clasif_de_asignaturas(asignatura character varying, periodo character varying)	identical
+function	public.dame_clasif_plantilla_de_actividad(character varying)	identical
+function	public.dame_clasificacion_de_grupo(idgrupo character varying)	identical
+function	public.dame_costo_trasladar_recurso(idrecurso character varying, idlugar character varying, idperiodo character varying, pdia integer, pturno integer)	identical
+function	public.dame_creador_de_asignatura(idasig character varying)	identical
+function	public.dame_creador_de_clasifact(idclasif character varying)	identical
+function	public.dame_creador_de_especialidad(esp character varying)	identical
+function	public.dame_creador_de_planificacion(id character varying)	identical
+function	public.dame_creador_de_plantilla(idplantilla character varying)	identical
+function	public.dame_desglose_de_plantilla(idplantilla character varying)	identical
+function	public.dame_dia_real_planificacion(pid character varying, dia integer)	identical
+function	public.dame_duracion_actividad(id character varying)	identical
+function	public.dame_duracion_clasif_de_actividad(character varying)	identical
+function	public.dame_duracion_plantilla_de_actividad(character varying)	identical
+function	public.dame_duracion_turno_periodo(pid character varying)	identical
+function	public.dame_especialidad_de_asignatura(idasig character varying)	identical
+function	public.dame_especialidad_de_brigada(idbrigada character varying)	identical
+function	public.dame_especialidad_de_grupo(idgrupo character varying)	identical
+function	public.dame_gasto_de_plantilla(idplantilla character varying)	identical
+function	public.dame_gasto_lugares_en_el_dia(lugares character varying[], periodo character varying, pdia integer)	identical
+function	public.dame_grupo(brg character varying, clasif character varying)	identical
+function	public.dame_grupos(idesp character varying, idnivel character varying, idclasif character varying)	identical
+function	public.dame_grupos_de_brigadas(brigadas character varying[], idplantilla character varying)	identical
+function	public.dame_grupos_de_plantilla(idplantilla character varying)	identical
+function	public.dame_hora_inicial_periodo(pid character varying)	only-in-sources
+function	public.dame_hora_inicial_turno(idperiodo character varying, pturno integer)	identical
+function	public.dame_id_plantilla(idasig character varying, idperiodo character varying, orden bigint)	identical
+function	public.dame_idobjeto_de_restriccion_de_brigada(pid character varying)	identical
+function	public.dame_idobjeto_de_restriccion_de_especialidad(pid character varying)	identical
+function	public.dame_idobjeto_de_restriccion_de_periodo(pid character varying)	identical
+function	public.dame_lista_id_brigadas_de_esp(esp character varying, niv character varying)	identical
+function	public.dame_lista_id_brigadas_de_grupo(pgrupo character varying)	identical
+function	public.dame_lista_id_clasif()	identical
+function	public.dame_lista_id_grupos_de_recursos_asignados(idplantilla character varying)	identical
+function	public.dame_lista_id_lugares_asignados(idplantilla character varying)	identical
+function	public.dame_lista_id_otros_recursos_asignados(idgrupo character varying)	identical
+function	public.dame_lista_id_otros_recursos_usados(idactividad character varying)	different
+function	public.dame_lista_id_profes_asignados(idplantilla character varying)	identical
+function	public.dame_lista_id_profes_asignados_al_grupo(idplantilla character varying, idgrupo character varying)	identical
+function	public.dame_lugares_no_asignados_a(idplantilla character varying)	identical
+function	public.dame_lugares_usados_alrededor_de(brigadas character varying[], idperiodo character varying, pdia integer, pturno integer)	identical
+function	public.dame_lugares_utilizados_en_el_dia(pgrupo character varying, periodo character varying, pdia integer)	identical
+function	public.dame_matricula(brg character varying)	identical
+function	public.dame_matricula_total(brigadas character varying[])	identical
+function	public.dame_max_orden_act(iddesglose character varying)	identical
+function	public.dame_max_priori_clasif_act(pcreador character varying)	identical
+function	public.dame_max_priori_otro_recurso(idgr character varying)	identical
+function	public.dame_max_prioridad_de_pxact(idplantilla character varying)	identical
+function	public.dame_max_prioridad_lxact(idplantilla character varying)	identical
+function	public.dame_max_prioridad_rxact(idplantilla character varying)	identical
+function	public.dame_nivel_de_asignatura(idasig character varying)	identical
+function	public.dame_nivel_de_brigada(idbrigada character varying)	identical
+function	public.dame_nivel_de_grupo(idgrupo character varying)	identical
+function	public.dame_otros_recursos_sin_asignar(idplantilla character varying)	identical
+function	public.dame_periodo_desglose(character varying)	identical
+function	public.dame_periodo_plantilla_de_actividad(character varying)	identical
+function	public.dame_planificacion_de_grupo(idgrupo character varying)	identical
+function	public.dame_planificacion_de_periodo(pid character varying)	identical
+function	public.dame_plantilla_de_grupo_de_recursos(idgrupo character varying)	identical
+function	public.dame_profesores_no_asignados_a(idplantilla character varying)	identical
+function	public.dame_tipo_consec_rest_cond(pid character varying)	identical
+function	public.dame_tipo_hijo_hrt(pid character varying)	identical
+function	public.dame_tipo_padre_hrt(pid character varying)	identical
+function	public.dame_total_otros_recursos_asignados(idplantilla character varying)	identical
+function	public.dame_uso_de_otro_recurso(id character varying)	identical
+function	public.dame_zpriori(clasif character varying, idperiodo character varying)	identical
+function	public.dia_minimo_impacto(idclasif character varying, idesp character varying, idnivel character varying, idperiodo character varying, dia_ini integer, dia_fin integer)	identical
+function	public.dias_se_solapan(idperiodo1 character varying, dia1 integer, idperiodo2 character varying, dia2 integer)	identical
+function	public.es_higienico_brigada(idbrigada character varying, idplantilla character varying, pdia integer)	identical
+function	public.es_higienico_profesor(idprofesor character varying, idplantilla character varying, pdia integer)	identical
+function	public.es_lugar_prohibido(pgrupo character varying, plugar character varying)	identical
+function	public.esta_dia_en_rango_planificacion(pdia integer, idperiodo character varying, dia_ini integer, dia_fin integer)	identical
+function	public.esta_otro_recurso_asignado(idrecurso character varying, idplantilla character varying)	identical
+function	public.esta_turno_en_rango(dia integer, turno integer, duracion integer, dia_ini integer, dia_fin integer, turno_ini integer, turno_fin integer, discreto boolean)	only-in-sources
+function	public.existe_grupo_de_profesor(profe_para_act character varying, pgrupo character varying)	identical
+function	public.extraer_lugares_que_no_permanecen(lugares character varying[], periodo character varying, dia integer, turno integer, duracion integer)	identical
+function	public.first(anyelement, anyelement)	only-in-dump
+function	public.generar(idesp character varying, idnivel character varying, idperiodo character varying, forma bigint, parche boolean, compactar bigint, parche1 boolean, buscalugar boolean)	identical
+function	public.get_max_colocation(arr boolean[], duracion integer)	identical
+function	public.greatest(numeric, numeric)	only-in-dump
+function	public.greatest(numeric, numeric, numeric)	only-in-dump
+function	public.if(boolean, integer, integer)	only-in-dump
+function	public.if(boolean, text, text)	only-in-dump
+function	public.iif(expresion boolean, dato1 anyelement, dato2 anyelement)	identical
+function	public.lugar_permanece_en(plugar character varying, pperiodo character varying, pdia integer, pturno integer, duracion integer)	identical
+function	public.max_cant_act(especialidad character varying, nivel character varying, periodo character varying)	identical
+function	public.mueve_o_crea_brigada_de_grupo(idbrg character varying, idgrupo character varying)	identical
+function	public.nivela_prioridad_lxact_after_delete()	identical
+function	public.nivela_prioridad_lxact_after_update()	identical
+function	public.nivela_prioridad_rxact_after_delete()	identical
+function	public.nuevo_desglose_cuando_nueva_asignatura()	identical
+function	public.nuevo_desglose_cuando_nuevo_periodo()	identical
+function	public.ocurre_causa_rest_cond(rc restriccion_condicional, act actividad, idperiodo character varying, pdia integer, pturno integer, analiza_completo boolean)	identical
+function	public.plantilla_exige_lugar(id character varying)	identical
+function	public.plantilla_exige_profesor(id character varying)	identical
+function	public.posible_inicio(idplantilla character varying, dia integer, turno integer, idbrigada character varying, plugares character varying[], pprofesores character varying[])	identical
+function	public.quita_segun_capacidad(brigadas character varying[], lugares character varying[])	identical
+function	public.quita_segun_prohibidos(grupos character varying[], lugares character varying[])	identical
+function	public.rand()	only-in-dump
+function	public.rango(idplantilla character varying, idgrupo character varying, minimo integer, maximo integer)	identical
+function	public.restringe_por_uso_de_otro_recurso(idactividad character varying, idrecurso character varying)	identical
+function	public.restringe_segun_actividad(idactividad character varying, idplantilla character varying, idprofesor character varying, idlugar character varying, pdia integer, pturno integer, idgrupo character varying)	identical
+function	public.sube_orden_de_plantilla(idplantilla character varying)	identical
+function	public.sube_prioridad_clasif(idclasif character varying)	identical
+function	public.turnos_se_solapan(idperiodo1 character varying, dia1 integer, turno1 integer, duracion1 integer, idperiodo2 character varying, dia2 integer, turno2 integer, duracion2 integer)	identical
+function	public.valor_rest_entre_config_distintas(rests integer[], per1 periodo, per2 periodo, dia integer, turno integer)	identical
+function	public.valor_restriccion_asignatura(id character varying, idperiodo character varying, pdia integer, pturno integer)	identical
+function	public.valor_restriccion_brigada(id character varying, idperiodo character varying, pdia integer, pturno integer)	identical
+function	public.valor_restriccion_clasif_act(id character varying, idperiodo character varying, pdia integer, pturno integer)	identical
+function	public.valor_restriccion_condicional(tipo_consec character varying, id_consec character varying, idperiodo character varying, pdia integer, pturno integer)	identical
+function	public.valor_restriccion_especialidad(id character varying, idperiodo character varying, pdia integer, pturno integer)	identical
+function	public.valor_restriccion_generica(ptipo character varying, id character varying, idperiodo character varying, pdia integer, pturno integer, tipo_restricc character varying)	identical
+function	public.valor_restriccion_heredada(tipo_hijo character varying, id_hijo character varying, idperiodo character varying, pdia integer, pturno integer)	identical
+function	public.valor_restriccion_lugar(id character varying, idperiodo character varying, pdia integer, pturno integer)	identical
+function	public.valor_restriccion_otro_recurso(id character varying, idperiodo character varying, pdia integer, pturno integer)	only-in-sources
+function	public.valor_restriccion_periodo(idperiodo character varying, pdia integer, pturno integer)	identical
+function	public.valor_restriccion_profesor(id character varying, idperiodo character varying, pdia integer, pturno integer)	identical
+function	public.valor_zpriori(clasif character varying, periodo character varying, dia integer, turno integer)	identical
+function	seguridad.check_host(pusuario character varying, pip character varying)	identical
+function	seguridad.tiene_permiso(pusuario character varying, ppermiso character varying)	identical
+function	tiempo.countdays_of_month(m integer)	identical
+function	tiempo.current_hour_number()	identical
+function	tiempo.date_number_from_moment_number(m double precision)	identical
+function	tiempo.date_to_number(d integer, m integer, a integer)	identical
+function	tiempo.day_number(d integer, m integer, a integer)	identical
+function	tiempo.hour_number_from_date_number(m double precision)	identical
+function	tiempo.hour_to_number(h integer, m integer, s integer)	identical
+function	tiempo.is_leap_year(pyear integer)	identical
+function	tiempo.moment_now()	identical
+function	tiempo.moment_number(fecha bigint, hora double precision)	identical
+function	tiempo.month_from_day_number(n integer, a integer)	identical
+function	tiempo.number_to_date(n bigint)	identical
+function	tiempo.number_to_hour(n double precision)	identical
+function	tiempo.today_number()	identical
+rule	public.actividad:actualiza_restricciones_por_actividad	identical
+rule	public.otros_recursos_usados:actualiza_restricciones_por_uso_de_otro_recurso	identical
+rule	public.restriccion_de_asignatura:actualiza_restriccion_real_de_asignatura	identical
+rule	public.restriccion_de_asignatura:crea_restriccion_real_de_asignatura	identical
+rule	public.restriccion_de_brigada:actualiza_restriccion_real_de_brigada	identical
+rule	public.restriccion_de_brigada:crea_restriccion_real_de_brigada	identical
+rule	public.restriccion_de_clasif_act:actualiza_restriccion_real_de_clasif_act	identical
+rule	public.restriccion_de_clasif_act:crea_restriccion_real_de_clasif_act	identical
+rule	public.restriccion_de_especialidad:actualiza_restriccion_real_de_especialidad	identical
+rule	public.restriccion_de_especialidad:crea_restriccion_real_de_especialidad	identical
+rule	public.restriccion_de_lugar:actualiza_restriccion_real_de_lugar	identical
+rule	public.restriccion_de_lugar:crea_restriccion_real_de_lugar	identical
+rule	public.restriccion_de_otro_recurso:actualiza_restriccion_real_de_otro_recurso	identical
+rule	public.restriccion_de_otro_recurso:crea_restriccion_real_de_otro_recurso	identical
+rule	public.restriccion_de_periodo:actualiza_restriccion_real_de_periodo	identical
+rule	public.restriccion_de_periodo:crea_restriccion_real_de_periodo	identical
+rule	public.restriccion_de_profesor:actualiza_restriccion_real_de_profesor	identical
+rule	public.restriccion_de_profesor:crea_restriccion_real_de_profesor	identical
+rule	public.restriccion_por_actividad_de_brigada:actualiza_por_actividad_en_nueva_restriccion_de_brigada	identical
+rule	public.restriccion_por_actividad_de_brigada:actualiza_por_actividad_en_restriccion_de_brigada	identical
+rule	public.restriccion_por_actividad_de_lugar:actualiza_por_actividad_en_nueva_restriccion_de_lugar	identical
+rule	public.restriccion_por_actividad_de_lugar:actualiza_por_actividad_en_restriccion_de_lugar	identical
+rule	public.restriccion_por_actividad_de_otro_recurso:actualiza_por_actividad_en_nueva_restriccion_de_otro_recurso	identical
+rule	public.restriccion_por_actividad_de_otro_recurso:actualiza_por_actividad_en_restriccion_de_otro_recurso	identical
+rule	public.restriccion_por_actividad_de_profesor:actualiza_por_actividad_en_nueva_restriccion_de_profesor	identical
+rule	public.restriccion_por_actividad_de_profesor:actualiza_por_actividad_en_restriccion_de_profesor	identical
+schema	generador	identical
+schema	matrix	identical
+schema	portal	only-in-sources
+schema	prioriza	identical
+schema	public	identical
+schema	seguridad	identical
+schema	tiempo	identical
+table	generador.cancelar	identical
+table	public.acceso_prohibido	identical
+table	public.actividad	identical
+table	public.asignatura	identical
+table	public.brigada	identical
+table	public.brigada_de_grupo	identical
+table	public.clasificacion_de_actividad	identical
+table	public.costo_de_traslado	identical
+table	public.desglose	identical
+table	public.especialidad	identical
+table	public.excepcion_de_hrt	identical
+table	public.grupo	identical
+table	public.herencia_de_restricciones	identical
+table	public.higiene_para_brigada	identical
+table	public.higiene_para_profesor	identical
+table	public.lugar	identical
+table	public.lugar_fijo	identical
+table	public.lugar_para_actividad	identical
+table	public.nivel	identical
+table	public.otro_grupo_de_recursos_para_actividad	identical
+table	public.otro_recurso	identical
+table	public.otro_recurso_para_actividad	identical
+table	public.otros_recursos_usados	identical
+table	public.periodicidad	identical
+table	public.periodo	identical
+table	public.planificacion	identical
+table	public.plantilla_de_actividad	different
+table	public.profesor	identical
+table	public.profesor_para_actividad	identical
+table	public.profesor_para_grupo	identical
+table	public.receso	identical
+table	public.restriccion_condicional	identical
+table	public.restriccion_de_asignatura	identical
+table	public.restriccion_de_brigada	identical
+table	public.restriccion_de_clasif_act	identical
+table	public.restriccion_de_especialidad	identical
+table	public.restriccion_de_lugar	identical
+table	public.restriccion_de_otro_recurso	identical
+table	public.restriccion_de_periodo	identical
+table	public.restriccion_de_profesor	identical
+table	public.restriccion_por_actividad	identical
+table	public.restriccion_por_actividad_de_brigada	identical
+table	public.restriccion_por_actividad_de_lugar	identical
+table	public.restriccion_por_actividad_de_otro_recurso	identical
+table	public.restriccion_por_actividad_de_profesor	identical
+table	public.restriccion_real	identical
+table	public.restriccion_real_de_asignatura	identical
+table	public.restriccion_real_de_brigada	identical
+table	public.restriccion_real_de_clasif_act	identical
+table	public.restriccion_real_de_especialidad	identical
+table	public.restriccion_real_de_lugar	identical
+table	public.restriccion_real_de_otro_recurso	identical
+table	public.restriccion_real_de_periodo	identical
+table	public.restriccion_real_de_profesor	identical
+table	public.zpriori	identical
+table	seguridad.host	identical
+table	seguridad.permiso	identical
+table	seguridad.rol	identical
+table	seguridad.rol_de_usuario	identical
+table	seguridad.traza	identical
+table	seguridad.usuario	identical
+trigger	public.asignatura:nuevo_desglose_si_nueva_asignatura	identical
+trigger	public.clasificacion_de_actividad:trigger_arregla_prioridades_clasif_after_delete	identical
+trigger	public.lugar_para_actividad:trigger_nivela_prioridad_lxact_after_delete	identical
+trigger	public.lugar_para_actividad:trigger_nivela_prioridad_lxact_after_update	identical
+trigger	public.otro_grupo_de_recursos_para_actividad:trigger_nivela_prioridad_rxact_after_delete	identical
+trigger	public.periodo:nuevo_desglose_si_nuevo_periodo	identical
+trigger	public.plantilla_de_actividad:trigger_actualiza_orden_act_after_delete	identical
+trigger	public.plantilla_de_actividad:trigger_actualiza_orden_act_after_insert	identical
+trigger	public.plantilla_de_actividad:trigger_actualiza_orden_act_after_update	identical
+trigger	public.plantilla_de_actividad:trigger_actualiza_orden_act_before_insert	identical
+trigger	public.plantilla_de_actividad:trigger_actualiza_orden_act_before_update	identical
+trigger	public.profesor_para_grupo:trigger_actualiza_profesor_para_grupo	identical
+type	public.trango	identical
+type	tiempo.ancora_date	identical
+type	tiempo.ancora_hour	identical
+view	public.asignaturas_cant_act	identical
+view	public.uso_de_otros_recursos	identical

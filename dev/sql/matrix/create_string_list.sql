@@ -22,7 +22,7 @@ BEGIN
     s := '{';
     i := 1;
 
-    IF filas IS NULL or filas = 0THEN
+    IF filas IS NULL or filas = 0 THEN
         RETURN '{}'::VARCHAR[];
     END IF;
     

@@ -1,7 +1,7 @@
 DROP table IF EXISTS grupo CASCADE;
 CREATE TABLE grupo(
     id VARCHAR NOT NULL PRIMARY KEY,
-    descripcion VARCHAR NOT NULL
+    descripcion VARCHAR NOT NULL,
     clasificacion VARCHAR NOT NULL REFERENCES clasificacion_de_actividad(id) ON DELETE CASCADE ON UPDATE CASCADE,
     especialidad VARCHAR NOT NULL REFERENCES especialidad(id) ON DELETE CASCADE ON UPDATE CASCADE,
     planificacion VARCHAR NOT NULL REFERENCES planificacion(id) ON DELETE CASCADE ON UPDATE CASCADE,

@@ -5,7 +5,7 @@ $BODY$
     DECLARE arr VARCHAR[];
         r record;
     BEGIN
-        FOR r IN SELECT * FROM otros_recursos_usados WHERE actividad = idactividad = idgrupo LOOP
+        FOR r IN SELECT * FROM otros_recursos_usados WHERE actividad = idactividad LOOP
             arr := array_append(arr,r.otro_recurso);
         END LOOP;
 
