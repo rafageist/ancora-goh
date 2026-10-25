@@ -1,0 +1,8 @@
+ancora_academic.planning:
+  title: 'Planning'
+  description: 'Enter the plans, periods, groups, subjects, rooms, teachers and assignments that the scheduling engine needs.'
+  route_name: ancora_academic.planning
+  parent: system.admin
+  weight: -8
+ancora_academic.collection:
+  deriver: '\Drupal\ancora_academic\Plugin\Derivative\AcademicMenuLinks'

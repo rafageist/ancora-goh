@@ -20,7 +20,8 @@
 # write random secrets (database password, hash salt, admin password) to
 # 0600 files in a temporary directory; composer install; site install;
 # prove the configuration is deterministic (the export equals config/sync);
-# phpcs; PHPUnit Kernel and Functional tests; HTTP smoke test on 127.0.0.1.
+# the academic fixture and its export (#70); phpcs; PHPUnit Kernel and
+# Functional tests; HTTP smoke test on 127.0.0.1.
 # Everything temporary is deleted on exit, and the cluster is deleted by
 # with-ephemeral-pg.sh.
 set -euo pipefail
@@ -101,7 +102,7 @@ common=(--site-name=Áncora --site-mail=noreply@example.invalid
 if [ "$bootstrap" -eq 1 ] || [ ! -f config/sync/core.extension.yml ]; then
   step "drush site:install minimal (bootstrap: configuration is rebuilt and exported)"
   "${drush[@]}" site:install minimal "${common[@]}" install_configure_form.date_default_timezone=UTC
-  "${drush[@]}" pm:install ancora
+  "${drush[@]}" pm:install ancora ancora_academic
   "${drush[@]}" theme:install ancora_theme claro
   "${drush[@]}" config:set system.theme default ancora_theme
   "${drush[@]}" config:set system.theme admin claro
@@ -128,6 +129,14 @@ if [ "$skip_tests" -eq 1 ]; then
   step "done (tests skipped) in $((SECONDS - started)) s"
   exit 0
 fi
+
+step "Academic data (#70): synthetic fixture through the Entity API, export for the engine"
+"${drush[@]}" ancora-academic:load-fixture
+"${drush[@]}" ancora-academic:export P --period=PER --legacy >"$work/legacy-rows.json"
+php -r '$r = json_decode(file_get_contents($argv[1]), TRUE, 512, JSON_THROW_ON_ERROR);
+  $demands = count($r["plantilla_de_actividad"]) * count($r["grupo"]);
+  echo "legacy rows: ", json_encode(array_map("count", $r)), "\ndemands: $demands (expected 8)\n";
+  exit($demands === 8 && count($r["profesor_para_grupo"]) === 8 ? 0 : 1);' "$work/legacy-rows.json"
 
 step "phpcs (Drupal, DrupalPractice) on custom code"
 vendor/bin/phpcs

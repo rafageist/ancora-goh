@@ -1,0 +1,7 @@
+ancora_academic.planning:
+  path: '/ancora/planning'
+  defaults:
+    _controller: '\Drupal\ancora_academic\Controller\PlanningController::overview'
+    _title: 'Planning'
+  requirements:
+    _permission: 'view academic data+administer academic data'
