@@ -55,6 +55,8 @@ The suite was run twice in a fresh throwaway cluster. Both runs produced identic
 
 After #22 (default settings, 34 cases): **18 PASS, 16 XFAIL, 0 FAIL / XPASS / XWRONG**. Case 010 now passes and case 013 was added. Every other case has the same result and the same METRIC lines as before.
 
+After #23 (35 cases): **23 PASS, 12 XFAIL, 0 FAIL / XPASS / XWRONG**. Cases 023, 041, 064 and 065 now pass, case 044 was added and case 066 was reworked (`sql-mpi-termination.md`). Every other case is unchanged.
+
 A negative run confirmed that the runner exits non-zero. It used a temporary copy of the suite with three cases modified to give one FAIL, one XPASS and one XWRONG.
 
 ### Coverage against the issue
@@ -78,11 +80,11 @@ Each xfail case asserts the **intended** behavior. Where it matters, a PASS base
 | --- | --- | --- | --- |
 | 6.1 `id` ambiguity without the compatibility setting | `valor_restriccion_generica.sql:26` | 011 | 010: **fixed by #22**, now PASS; see also 013 |
 | 6.2 0-based loops over 1-based arrays (only teacher, only place, both teachers) | `posible_inicio.sql:117-183` | 020, 030 | 021, 022 (P0001) |
-| 6.3 `k` not initialized: non-termination | `posible_inicio.sql:200-254` | — | 023 (57014, 3 s timeout) |
+| 6.3 `k` not initialized: non-termination | `posible_inicio.sql:200-254` | — | 023: **fixed by #23**, now PASS |
 | 6.3 / 6.13 `k` carried over: essential resources ignored | same | 020 | 024 (P0001) |
 | 6.4 Prioriza ordering detaches totals (VB6 sorts correctly) | `generar.sql:467-494` | 042 | 043 (P0001) |
-| 6.5 empty day range: day loop never ends | `generar.sql:1041-1047, 1439` | — | 064 (57014, 8 s) |
-| 6.6 template with `orden IS NULL` hangs | `dame_id_plantilla.sql:11`, `and_mpi` | — | 065 (57014, 8 s) |
+| 6.5 empty day range: day loop never ends | `generar.sql:1041-1047, 1439` | — | 064: **fixed by #23**, now PASS |
+| 6.6 template with `orden IS NULL` hangs | `dame_id_plantilla.sql:11`, `and_mpi` | — | 065: **fixed by #23** (rejected with 23502), now PASS |
 | 6.7 / D-01 random ids shorter than requested (historical quirk kept) | `crear_cadena_aleatoria.sql` | 090 | 091 (P0001) |
 | 6.8 HRT `iif` overwrite: only other-resource rows accepted | `check_hrt.sql:29-43` | 070 | 071 (23514) |
 | 6.9 HRT evaluation: polymorphic `iif` | `dame_tipo_hijo_hrt.sql:8` | — | 072 (42804) |
@@ -95,7 +97,7 @@ Each xfail case asserts the **intended** behavior. Where it matters, a PASS base
 
 ### New findings while writing the suite (verified)
 
-- **Prioriza levelling never terminates on non-integer values (case 041).** In `prioriza/nivelar.sql`, `optimo` is an `INTEGER`, so a value like `1.5` never equals the stored optimum. `generar()` passes integer counts today, so this is latent. It matters if Prioriza criteria ever become fractional, which is relevant to the independent Prioriza research line.
+- **Prioriza levelling never terminated on non-integer values (case 041; fixed by #23).** In `prioriza/nivelar.sql`, `optimo` is an `INTEGER`, so a value like `1.5` never equals the stored optimum. `generar()` passes integer counts today, so this is latent. It matters if Prioriza criteria ever become fractional, which is relevant to the independent Prioriza research line.
 - **Other resources cannot be booked by the generator.** `agrega_actividad()` inserts into `otros_recursos_usados` without the `NOT NULL` `creador` column (case 082), so this fails before the D-05 rule function is even reached. Generation with other resources therefore fails in two independent places.
 - **The fixture needs `profesor_para_grupo` rows.** Without them `generar()` places nothing (`cantActualProfe = 0`). This is an input requirement, not a defect, but the PHP UI and any future importer must create these rows.
 

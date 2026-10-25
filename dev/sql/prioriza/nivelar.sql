@@ -10,10 +10,21 @@ $BODY$
         ya BOOLEAN[];
         i INTEGER;
         countya INTEGER;
-        optimo INTEGER;
+        optimo NUMERIC; -- #23: was INTEGER, so a non-integer value never equalled
+                        -- it and the levelling loop never ended (integer input: unchanged)
         primero BOOLEAN;
         cant bigint;
     BEGIN
+        -- #23: inputs that used to loop forever. Nothing to level: no levels.
+        -- A missing value cannot be ordered: rejected.
+        IF arr IS NULL OR cardinality(arr) = 0 THEN
+            RETURN '{}'::int[];
+        END IF;
+        IF array_position(arr, NULL) IS NOT NULL THEN
+            RAISE EXCEPTION 'prioriza.nivelar: NULL value at position %', array_position(arr, NULL)
+                USING ERRCODE = 'null_value_not_allowed';
+        END IF;
+
         nivel := 1;
         cant := matrix.get_length_of(arr,1);
         niveles := matrix.create_numeric_list(cant);

@@ -1,8 +1,7 @@
--- expect: xfail
--- sqlstate: 57014
+-- expect: pass
 -- timeout: 3s
--- refs: prioriza/nivelar.sql (optimo is INTEGER); found while writing this suite
--- Diagnostic: the running optimum is stored in an INTEGER, so a non-integer
--- value never equals it and the levelling loop never ends. generar() feeds
--- integer counts today, so this is latent. Intended: terminates with {1,2}.
+-- refs: prioriza/nivelar.sql (optimo); #23
+-- The running optimum used to be an INTEGER, so a non-integer value never
+-- equalled it and the levelling loop never ended. It is now NUMERIC, and
+-- integer input levels exactly as before (case 040).
 SELECT tst.check(prioriza.nivelar('{1.5,2}', true) = '{1,2}', 'fractional values levelled');

@@ -11,7 +11,8 @@ $$
     DECLARE c BIGINT;
         i INTEGER;
         j INTEGER;
-        k INTEGER;
+        k INTEGER := 0; -- #23: was left NULL when neither teacher nor place is
+                        -- required; the essential-resource loop then never ended
         t BIGINT;
         v INTEGER;
         duracion INTEGER;
