@@ -49,6 +49,8 @@ Other places checked:
 | Demo scenarios | `demo/AncoraDemo_Autom1 *.anc` (7 files), `demo/d2.anc`–`d4.anc`, `demo/AncoraDemo_Primaria.anc` | 3–10 each | Probably demo data, but **not verified**. Review before reuse. |
 | Empty or minimal | `informatica/infos2.anc`, `informatica/new.anc`, `informatica/test.anc`, `prueba.anc`, `test.anc` | 0 | Low risk. |
 
+**Maintainer decision (2026-10-25):** historical dumps and faculty datasets must not be used as public fixtures. The historical originals are preserved unchanged, and CI uses synthetic data only (§3).
+
 ## 3. Synthetic fixture strategy
 
 - Database tests (#9, #10) use **only hand-written or generated synthetic fixtures** committed as SQL. Examples: teachers named `Profesor 01`…, rooms `Aula A1`…, groups `Grupo 1A`. Ids are deterministic. Addresses use `example.com` or `example.org` only.
@@ -61,7 +63,9 @@ Other places checked:
   5. Have the maintainer review it before publishing.
 - Use test accounts with throwaway passwords created by the test itself. Never use historical accounts.
 
-## 4. Maintainer decisions (not executed)
+## 4. Maintainer decisions
+
+**Decided (2026-10-25): option A.** Rotate the affected credentials and preserve Git history. Rotating external credentials is a **maintainer action**: the agent is not authorized to do it, and did not. No history rewrite is planned (options B and C below are not chosen). Until the maintainer completes the checklist, treat every value listed in §1 as compromised.
 
 ### Credential rotation checklist
 
@@ -75,7 +79,7 @@ Other places checked:
 
 | Option | What it does | Pros | Cons |
 |---|---|---|---|
-| A. Accept and rotate (recommended minimum) | Leave history as is. Rotate per the checklist. | No disruption, history is preserved, PR #5 and branch references stay valid | Old values remain publicly readable. Only safe once rotation is complete. |
+| **A. Accept and rotate (chosen)** | Leave history as is. Rotate per the checklist. | No disruption, history is preserved, PR #5 and branch references stay valid | Old values remain publicly readable. Only safe once rotation is complete. |
 | B. Targeted rewrite | `git filter-repo --replace-text` on C1–C4, plus optionally removing `dev/backup/ancoragoh.{sql,custom,tar}` from all commits; then force-push all refs and ask GitHub Support to purge cached views and PR refs | Removes the values from the canonical repository | Changes every SHA (breaks PR #5 links, existing clones and forks). Forks and third-party caches keep copies. Requires coordinating every open branch. |
 | C. Archive and re-publish | Make the current repository private or archived, and publish a sanitized new repository with a provenance note | Clean public history | Loses issue and PR history continuity in the same repository, and is the most disruptive option. |
 
