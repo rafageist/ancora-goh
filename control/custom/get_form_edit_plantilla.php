@@ -10,7 +10,7 @@
 		$id = $_POST['id'];
 		
 		$clasifs = new ClasificacionDeActividadCollection($dbconnection);
-		$clasifs->Load(null,null,"*","creador ='{$_SESSION['user']}'");
+		$clasifs->Load(null, null, "*", 'creador = $1', array($_SESSION['user']));
 		 
 	    $title = "Editando plantilla de actividad";
 		

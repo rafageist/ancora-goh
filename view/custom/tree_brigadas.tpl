@@ -15,8 +15,8 @@
     </style>
 <?php
 
-    $es = $especs->getAllBy("creador ='{$_SESSION['user']}'");
-    $ns = $niveles->getAllBy("creador ='{$_SESSION['user']}'");
+    $es = $especs->getAllBy('creador = $1', "*", false, array($_SESSION['user']));
+    $ns = $niveles->getAllBy('creador = $1', "*", false, array($_SESSION['user']));
     
     $i = 0;
     echo '<ul>';
@@ -31,7 +31,7 @@
         	$id .= "_".$j;
         	echo "<li><label style = 'cursor: pointer;' onclick = \"showhide('$id');\"><img src='images/nivel_lite.png'>".$nivel['descripcion']."</label>";
             
-            $bs = $brgs->getAllBy("especialidad ='{$esp['id']}' AND nivel = '{$nivel['id']}'");
+            $bs = $brgs->getAllBy('especialidad = $1 AND nivel = $2', "*", false, array($esp['id'], $nivel['id']));
             
             if (is_array($bs)){
             	echo "<ul id='$id'>";

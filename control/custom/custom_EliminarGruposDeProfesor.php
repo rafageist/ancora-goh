@@ -5,6 +5,6 @@
 	
 	$idpxact = $_POST['pxact'];
 	
-	$m->removeBy("profesor_para_actividad = '$idpxact'");
+	$m->removeBy('profesor_para_actividad = $1', false, array($idpxact));
 	
 ?>

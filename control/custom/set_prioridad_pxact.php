@@ -8,6 +8,6 @@
 	
 	$prioridad = $_POST['prioridad'];
 
-	$m->setBy("id = '$idpxact'","prioridad = $prioridad");
+	$m->setBy('id = $1', 'prioridad = $2', false, array($idpxact, $prioridad));
 
 ?>

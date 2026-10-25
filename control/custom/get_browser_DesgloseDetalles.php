@@ -10,7 +10,7 @@
 	
 	$m = new DesgloseModel($dbconnection);
 	
-	$desgs = $m->getAllBy("asignatura = '{$idasig}' AND dame_planificacion_de_periodo(periodo) = '{$idplanif}';");
+	$desgs = $m->getAllBy('asignatura = $1 AND dame_planificacion_de_periodo(periodo) = $2', "*", false, array($idasig, $idplanif));
 	
 	$plantillasModel = new PlantillaDeActividadModel($dbconnection);
 	$periodosModel = new PeriodoModel($dbconnection);

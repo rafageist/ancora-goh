@@ -21,7 +21,7 @@
         
     $u = new UsuarioModel($dbconnection);
     
-    $u->removeBy("nick = '$usuario'");
+    $u->removeBy('nick = $1', false, array($usuario));
     
     $console->showMessage("Usuario eliminado satisfactoriamente.\n");
 

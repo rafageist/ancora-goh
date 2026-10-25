@@ -20,14 +20,14 @@
        foreach ($fila as $cas){
             $turno++;
             if ($cas == 1 || $cas == '1'){
-                $r = $m->getAllBy("periodo = '$id' AND dia = $dia AND turno = $turno");
+                $r = $m->getAllBy('periodo = $1 AND dia = $2 AND turno = $3', "*", false, array($id, $dia, $turno));
                 if (isset($r[0])) 
                 	if (isset($r[0]['periodo'])) 
                 		if ($r[0]['periodo']==$id) continue;
                 $m->add($id, $dia, $turno,1);
             }
             else
-                $m->removeBy("periodo = '$id' AND dia = $dia AND turno = $turno");
+                $m->removeBy('periodo = $1 AND dia = $2 AND turno = $3', false, array($id, $dia, $turno));
         }
     } 
  

@@ -12,7 +12,7 @@ $zp = $_POST ['zpriori'];
 
 $periodo = $_POST ['periodo'];
 
-$m->removeBy ( "periodo = '$periodo' AND clasificacion = '$idclasif'" );
+$m->removeBy ( 'periodo = $1 AND clasificacion = $2', false, array ($periodo, $idclasif ) );
 
 $arr = explode ( ";", $zp );
 

@@ -5,7 +5,7 @@ import("model.data.Nivel");
 import("model.data.NivelCollection");
 
 $coll = new NivelCollection($dbconnection);
-$coll->Load(null, null, "creador ='{$_SESSION['user']}'");
+$coll->Load(null, null, "*", 'creador = $1', array($_SESSION['user']));
 $niveles = $coll->collection;
 
 include "../view/custom/browser_organizacion_left.tpl";

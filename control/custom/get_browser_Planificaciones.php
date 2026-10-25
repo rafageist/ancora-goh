@@ -4,7 +4,7 @@
     import("lib.ancora.timeutils.TimeUtils");
 
     $planifs = new PlanificacionCollection($dbconnection);
-    $planifs->Load(null,null,"*","creador ='{$_SESSION['user']}'");
+    $planifs->Load(null, null, "*", 'creador = $1', array($_SESSION['user']));
 
     include "../view/custom/browser_planificaciones.tpl";
    

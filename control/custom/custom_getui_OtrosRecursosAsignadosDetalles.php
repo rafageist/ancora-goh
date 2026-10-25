@@ -12,7 +12,7 @@
     
 	$m = new OtroRecursoParaActividadModel($dbconnection);
 	
-	$recs = $m->getAllBy("grupo_de_recursos = '$idrxact' ORDER BY prioridad");
+	$recs = $m->getAllBy('grupo_de_recursos = $1 ORDER BY prioridad', "*", false, array($idrxact));
 	
     $m = new OtroRecursoModel($dbconnection);
     

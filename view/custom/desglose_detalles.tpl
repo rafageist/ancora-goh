@@ -14,7 +14,7 @@
 			
 			// Plantillas
 			
-			$plans = $plantillasModel->getAllBy("desglose = '{$dsg['id']}' ORDER BY orden");
+			$plans = $plantillasModel->getAllBy('desglose = $1 ORDER BY orden', "*", false, array($dsg['id']));
 			
 			if (is_array($plans)){
 				$i=1;

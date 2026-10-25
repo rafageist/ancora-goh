@@ -14,7 +14,7 @@ $costos = array ();
 
 $col = new LugarCollection ( $dbconnection );
 
-$col->Load ( null, null, "*", "creador = '{$_SESSION['user']}' AND id <> '$idlugar'" );
+$col->Load ( null, null, "*", 'creador = $1 AND id <> $2', array ($_SESSION ['user'], $idlugar ) );
 
 $lugares = array ();
 
@@ -27,7 +27,7 @@ if (is_array ( $col->collection ))
 
 $col = new CostoDeTrasladoCollection ( $dbconnection );
 
-$col->Load ( null, null, "*", "origen='$idlugar'" );
+$col->Load ( null, null, "*", 'origen = $1', array ($idlugar ) );
 
 if (is_array ( $col->collection )) {
 	foreach ( $col->collection as $item ) {

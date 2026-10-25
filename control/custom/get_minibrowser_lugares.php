@@ -4,7 +4,7 @@
 	import("model.data.LugarCollection");
 	
 	$col = new LugarCollection($dbconnection);
-	$col->Load(null, null,"*","creador = '{$_SESSION['user']}' ORDER BY nombre");
+	$col->Load(null, null, "*", 'creador = $1 ORDER BY nombre', array($_SESSION['user']));
 	
 	$lugares = $col->collection;
 
