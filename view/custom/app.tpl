@@ -108,8 +108,10 @@ $windows [] = array ("t" => "Nueva platilla de actividad", "id" => "new_plantill
 		$i = 0;
 		foreach ( $windows as $win ) {
 			$id = $win ['id'];
-			$h = $win ['height'];
-			$w = $win ['width'];
+			// #13: some windows define no size; PHP 8 warns on the missing key
+			// (output unchanged: a missing value always printed as "")
+			$h = isset ( $win ['height'] ) ? $win ['height'] : '';
+			$w = isset ( $win ['width'] ) ? $win ['width'] : '';
 			
 			if (! isset ( $win ['modal'] ))
 				$modal = false;
