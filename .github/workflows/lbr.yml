@@ -1,0 +1,41 @@
+# Legacy Bytes Remanufacturing (issue #38): the frozen baseline must
+# reproduce from eca8aa7, the retirement records must be valid, and the
+# report (B, C, retired, % by stream/component) goes to the job summary.
+name: Legacy Bytes Remanufacturing
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  lbr:
+    name: frozen baseline, retirement records, report
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # the baseline (eca8aa7) and origin (b42aa03) commits are needed
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          coverage: none
+          tools: none
+
+      - name: Baseline reproduces from eca8aa7
+        run: php dev/lbr/lbr.php verify
+
+      - name: Retirement records are valid
+        run: php dev/lbr/lbr.php check
+
+      - name: LBR tool tests
+        run: |
+          git config --global user.email ci@example.org
+          git config --global user.name ci
+          dev/tests/lbr/run.sh
+
+      - name: Report
+        run: php dev/lbr/lbr.php report | tee -a "$GITHUB_STEP_SUMMARY"
