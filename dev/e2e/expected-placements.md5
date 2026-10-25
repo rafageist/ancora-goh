@@ -1,0 +1,12 @@
+# Reviewed placement baseline of dev/e2e/run.sh (template/group/teacher/room/day/slot).
+# The digest is md5 of the comma-joined list below. A change in MPI, Prioriza or
+# the fixture moves it: review the new list and update both together.
+#   A1/G1/Teacher Alpha/L1/1/1
+#   A1/G2/Teacher Alpha/L1/1/4
+#   A2/G1/Teacher Alpha/L1/2/1
+#   A2/G2/Teacher Alpha/L1/2/4
+#   B1/G1/Teacher Beta/L1/1/2
+#   B1/G2/Teacher Beta/L1/1/3
+#   B2/G1/Teacher Beta/L1/2/2
+#   B2/G2/Teacher Beta/L1/2/3
+4199818b55d4f1c44f2cba24f0367e29
