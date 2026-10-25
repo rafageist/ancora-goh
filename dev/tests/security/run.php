@@ -451,6 +451,16 @@ test ( 'migration off (default): a legacy MD5 account cannot log in and is not t
 	conf_warnings_only ();
 } );
 
+test ( 'session: www/index.php buffers output before anything is printed', function () {
+	global $ROOT;
+	$src = file_get_contents ( $ROOT . '/www/index.php' );
+	$ob = strpos ( $src, 'ob_start' );
+	$start = strpos ( $src, 'SessionUtil::start' );
+	$header = strpos ( $src, 'import("view.custom.header")' );
+	check ( $ob !== false && $start !== false && $header !== false && $start < $ob && $ob < $header,
+		'ob_start() runs after SessionUtil::start() and before the header template' );
+} );
+
 test ( 'setpassword: resets with password_hash() and bound parameters', function () {
 	global $ROOT, $dbconnection;
 	include_once $ROOT . '/bin/setpassword.php';
