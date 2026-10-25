@@ -93,13 +93,34 @@ class StubDatabase {
 					$out [] = $row;
 			return $out;
 		}
+		$owned = $this->ownedRows ( $sql, $params );
+		if ($owned !== null)
+			return $owned;
 		return $out;
 	}
 
 	// #35: generated models run their queries with bound parameters
 	public function getAsArrayParams($sql, array $params) {
 		$this->calls [] = array ('method' => 'getAsArrayParams', 'sql' => $sql, 'params' => array_values ( $params ) );
-		return array ();
+		$owned = $this->ownedRows ( $sql, array_values ( $params ) );
+		return $owned === null ? array () : array_map ( function ($r) { return ( array ) $r; }, $owned );
+	}
+
+	/**
+	 * #44: the ownership filter of the hand-written handlers,
+	 * "SELECT * FROM t WHERE creador = $1 [ORDER BY c];", against
+	 * $tables[t]; null when the statement has another shape.
+	 */
+	private function ownedRows($sql, array $params) {
+		if (! preg_match ( '/^SELECT \* FROM ([a-z_]+) WHERE creador = \$1(?: ORDER BY ([a-z_]+))?;$/', $sql, $m ) || ! isset ( $this->tables [$m [1]] ))
+			return null;
+		$out = array ();
+		foreach ( $this->tables [$m [1]] as $row )
+			if (isset ( $row->creador ) && $row->creador === $params [0])
+				$out [] = clone $row;
+		if (isset ( $m [2] ))
+			usort ( $out, function ($a, $b) use ($m) { return strcmp ( ( string ) $a->{$m [2]}, ( string ) $b->{$m [2]} ); } );
+		return $out;
 	}
 
 	public function callsOf($method) {
