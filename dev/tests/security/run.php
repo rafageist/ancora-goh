@@ -17,6 +17,11 @@ ob_start (); // keep output buffered so session_start() works in the CLI
 $ROOT = realpath ( dirname ( __FILE__ ) . '/../../..' );
 $TMP = sys_get_temp_dir () . '/ancora-security-tests-' . getmypid ();
 @mkdir ( $TMP, 0700 );
+register_shutdown_function ( function () use ($TMP) { // also after a fatal error
+	foreach ( ( array ) glob ( $TMP . '/*' ) as $f )
+		@unlink ( $f );
+	@rmdir ( $TMP );
+} );
 ini_set ( 'session.save_path', $TMP );
 
 chdir ( $ROOT . '/www' ); // the application resolves "../..." paths from www/
@@ -613,9 +618,6 @@ test ( 'public viewer: get_minibrowser_publico binds request values', function (
 restore_error_handler ();
 if (session_status () === PHP_SESSION_ACTIVE)
 	session_destroy ();
-foreach ( glob ( $TMP . '/*' ) as $f )
-	@unlink ( $f );
-@rmdir ( $TMP );
 ob_end_flush ();
 
 foreach ( $FAIL as $f )
