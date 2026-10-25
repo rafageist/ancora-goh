@@ -1,6 +1,6 @@
 <?php
     echo "conecntando...\n";    
-    $db = pg_connect("host=localhost port=5432 dbname=postgres user=postgres password=postgres");
+    $db = pg_connect("dbname=postgres"); // host/port/user/password from PGHOST, PGPORT, PGUSER, PGPASSWORD or ~/.pgpass
     echo "eliminando...\n";
     pg_query($db, "DROP DATABASE ancoragoh;");
     echo "creando...\n";

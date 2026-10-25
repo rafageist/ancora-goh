@@ -1,0 +1,11 @@
+# Local runtime configuration (copy from bin/ancoragoh.conf.example). Never commit credentials.
+/bin/ancoragoh.conf
+.env
+.env.*
+*.local.conf
+
+# Debug query log written by lib/enterprise/gendb/PostgresDatabaseImpl.php into the web root
+/www/query.log
+
+# Local database dumps/backups produced by dev/backup scripts (historical copies are tracked on purpose)
+/dev/backup/ancoragoh.backup

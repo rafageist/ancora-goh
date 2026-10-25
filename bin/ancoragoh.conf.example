@@ -1,0 +1,11 @@
+#Ancora GOH configuration file (EXAMPLE)
+#Copy to bin/ancoragoh.conf (git-ignored) and set real local values.
+#Values are PHP expressions read by lib/basic/file/PropertiesFile.php: keep them quoted.
+#Database Configuration
+#Note: Only PostgreSQL Databas 8.x or later
+ 
+host = "localhost"
+port = 5432
+dbname = "ancoragoh"
+user = "ancoragoh"
+password = "CHANGE_ME"
