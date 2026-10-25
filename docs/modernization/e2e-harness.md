@@ -15,6 +15,13 @@ dev/sql/tools/with-ephemeral-pg.sh dev/e2e/run.sh
 
 The same command runs in CI (`.github/workflows/e2e.yml`) on Ubuntu 24.04 with PHP 8.4 (`pgsql` extension) and PostgreSQL 16 server binaries. It takes about 10 s locally.
 
+Since #32 the HTTP steps and checks are in `dev/e2e/lib.sh`, shared by two drivers:
+
+- `dev/e2e/run.sh`: the PHP built-in server with a disposable cluster, as described here.
+- `docker/e2e.sh`: the Docker Compose deployment. It runs the same checks plus image, exposure and restart-persistence checks; see `docs/deployment/docker.md`.
+
+`run.sh` runs the same 28 checks as before.
+
 ## Safety model
 
 - **Database.** The harness refuses to run unless the target is a verified disposable cluster (`sql-test-safety.md`, #26). The cluster is socket-only and is deleted by the launcher. The schema is installed from the tracked sources with the data seed. The organization comes from the synthetic `dev/e2e/fixture.sql`: invented names, `example.org` addresses, no historical dump and no `.anc` file.
