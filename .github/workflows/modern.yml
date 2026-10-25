@@ -1,0 +1,129 @@
+# Drupal 11 foundation (issue #69): Composer validation and audit, coding
+# standards, install from scratch from config/sync into a disposable
+# socket-only PostgreSQL cluster, PHPUnit Kernel and Functional tests and an
+# HTTP smoke test on 127.0.0.1. PHP 8.4 (local development) and 8.5 (the target
+# host) against PostgreSQL 16 (local development) and 18 (the target host).
+name: Drupal foundation (modern/)
+
+on:
+  push:
+    paths:
+      - 'modern/**'
+      - '.github/workflows/modern.yml'
+      - 'dev/sql/tools/with-ephemeral-pg.sh'
+      - 'dev/sql/tools/disposable-guard.sh'
+  pull_request:
+    paths:
+      - 'modern/**'
+      - '.github/workflows/modern.yml'
+      - 'dev/sql/tools/with-ephemeral-pg.sh'
+      - 'dev/sql/tools/disposable-guard.sh'
+
+permissions:
+  contents: read
+
+jobs:
+  drupal:
+    name: PHP ${{ matrix.php }} + PostgreSQL ${{ matrix.postgres }}
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        php: ['8.4', '8.5']
+        postgres: ['16', '18']
+    env:
+      PG_BINDIR: /usr/lib/postgresql/${{ matrix.postgres }}/bin
+    defaults:
+      run:
+        working-directory: modern
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          extensions: pdo_pgsql, pgsql, gd, mbstring, xml, curl, zip, opcache
+          coverage: none
+          tools: composer:v2
+
+      - name: PostgreSQL ${{ matrix.postgres }} server binaries (PGDG when missing)
+        working-directory: .
+        run: |
+          if [ ! -x "$PG_BINDIR/initdb" ]; then
+            sudo install -d /usr/share/postgresql-common/pgdg
+            sudo curl -fsSL -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc \
+              https://www.postgresql.org/media/keys/ACCC4CF8.asc
+            . /etc/os-release
+            echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] https://apt.postgresql.org/pub/repos/apt ${VERSION_CODENAME}-pgdg main" \
+              | sudo tee /etc/apt/sources.list.d/pgdg.list >/dev/null
+            sudo apt-get update -q
+            sudo apt-get install -y -q "postgresql-${{ matrix.postgres }}"
+          fi
+          # Only disposable clusters are used; stop any packaged server.
+          sudo systemctl stop postgresql || true
+          "$PG_BINDIR/postgres" --version
+
+      - name: Composer cache directory
+        id: composer-cache
+        run: echo "dir=$(composer config cache-files-dir)" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/cache@v4
+        with:
+          path: ${{ steps.composer-cache.outputs.dir }}
+          key: composer-${{ runner.os }}-php${{ matrix.php }}-${{ hashFiles('modern/composer.lock') }}
+          restore-keys: composer-${{ runner.os }}-php${{ matrix.php }}-
+
+      - name: composer validate --strict
+        run: composer validate --strict
+
+      - name: composer install (locked)
+        run: composer install --no-interaction --no-progress
+
+      - name: composer audit
+        run: composer audit --locked
+
+      - name: Install from config/sync, phpcs, PHPUnit and HTTP smoke test
+        working-directory: .
+        timeout-minutes: 20
+        run: dev/sql/tools/with-ephemeral-pg.sh modern/scripts/install-disposable.sh --skip-composer
+
+      - name: Browser output of failed Functional tests
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: browser-output-php${{ matrix.php }}-pg${{ matrix.postgres }}
+          path: modern/web/sites/simpletest/browser_output
+          if-no-files-found: ignore
+          retention-days: 7
+
+  artifact:
+    name: Production build contents (no dev dependencies, no secrets)
+    runs-on: ubuntu-24.04
+    defaults:
+      run:
+        working-directory: modern
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.5'
+          extensions: pdo_pgsql, pgsql, gd, mbstring, xml, curl, zip, opcache
+          coverage: none
+          tools: composer:v2
+
+      - name: The repository tracks no generated, vendor or secret files
+        run: |
+          bad=$(git ls-files . | grep -E '^(vendor/|web/core/|web/modules/contrib/|web/themes/contrib/|web/libraries/|web/sites/[^/]+/files/|private/)|settings\.local\.php$|\.(sql|dump)(\.gz)?$' || true)
+          if [ -n "$bad" ]; then echo "tracked files that must not be committed:"; echo "$bad"; exit 1; fi
+
+      - name: composer install --no-dev
+        run: composer install --no-dev --no-interaction --no-progress --optimize-autoloader
+
+      - name: No dev dependency in the build; audit of runtime packages
+        run: |
+          for p in phpunit/phpunit drupal/coder behat/mink; do
+            if [ -e "vendor/$p" ]; then echo "dev dependency in the production build: $p"; exit 1; fi
+          done
+          composer audit --locked --no-dev
+          php vendor/bin/drush --version

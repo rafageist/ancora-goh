@@ -1,0 +1,24 @@
+{#
+/**
+ * @file
+ * Default markup of the platform status page.
+ *
+ * Available variables:
+ * - heading: The heading of the status summary.
+ * - items: A list of items, each with a label and a value.
+ *
+ * Themes override this template; the Áncora theme renders it with its
+ * status-card component.
+ */
+#}
+<section class="ancora-status">
+  {% if heading %}
+    <h2>{{ heading }}</h2>
+  {% endif %}
+  <dl>
+    {% for item in items %}
+      <dt>{{ item.label }}</dt>
+      <dd>{{ item.value }}</dd>
+    {% endfor %}
+  </dl>
+</section>

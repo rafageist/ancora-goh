@@ -1,0 +1,53 @@
+# Áncora GOH Drupal project (issue #69).
+#
+# Only first-party code and configuration are tracked: composer.json and
+# composer.lock, the custom module and theme, the shared settings, the
+# configuration sync directory, scripts and tests. Everything Composer or the
+# Drupal scaffold produces is rebuilt by `composer install` and never
+# committed.
+
+# Composer dependencies (core, contrib, libraries, Drush).
+/vendor/
+
+# The web root is whitelisted: only custom code and the default site's
+# settings.php are tracked. Core, contrib, scaffold files (index.php,
+# .htaccess, robots.txt, ...) and user files are generated or runtime data.
+/web/*
+!/web/modules/
+/web/modules/*
+!/web/modules/custom/
+!/web/themes/
+/web/themes/*
+!/web/themes/custom/
+!/web/sites/
+/web/sites/*
+!/web/sites/default/
+/web/sites/default/*
+!/web/sites/default/settings.php
+
+# Local overrides and secrets, wherever they are.
+settings.local.php
+services.local.yml
+*.secret
+/secrets/
+
+# Runtime data: private files, temporary files, PHPUnit output.
+/private/
+/tmp/
+/files/
+/web/sites/simpletest/
+/.phpunit.cache/
+/.phpcs-cache
+
+# Scaffold files written into the project root by drupal/core-composer-scaffold.
+/.editorconfig
+/.gitattributes
+/recipes/README.txt
+
+# Database dumps never belong in the repository.
+*.sql
+*.sql.gz
+*.dump
+
+# Written by Drupal into the sync directory; it is outside the web root.
+/config/sync/.htaccess

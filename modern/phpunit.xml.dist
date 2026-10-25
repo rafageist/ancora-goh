@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  PHPUnit configuration for the Áncora custom code (issue #69).
+
+  Run from modern/ with the database and base URL in the environment:
+    SIMPLETEST_DB=pgsql://user@localhost:port/database
+    ANCORA_TEST_DB_SOCKET_DIR=<Unix socket directory>   (optional)
+    SIMPLETEST_BASE_URL=http://127.0.0.1:<port>         (Functional tests)
+  scripts/install-disposable.sh sets all of them against a disposable
+  PostgreSQL cluster. See docs/modernization/drupal-foundation.md.
+-->
+<phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:noNamespaceSchemaLocation="vendor/phpunit/phpunit/phpunit.xsd"
+         bootstrap="web/core/tests/bootstrap.php"
+         colors="true"
+         beStrictAboutTestsThatDoNotTestAnything="true"
+         beStrictAboutOutputDuringTests="true"
+         beStrictAboutChangesToGlobalState="true"
+         failOnRisky="true"
+         failOnWarning="true"
+         failOnPhpunitWarning="true"
+         displayDetailsOnTestsThatTriggerErrors="true"
+         displayDetailsOnTestsThatTriggerWarnings="true"
+         displayDetailsOnTestsThatTriggerDeprecations="true"
+         cacheResult="false"
+         cacheDirectory=".phpunit.cache">
+  <php>
+    <ini name="error_reporting" value="32767"/>
+    <ini name="memory_limit" value="-1"/>
+    <env name="BROWSERTEST_OUTPUT_VERBOSE" value="false" force="false"/>
+    <env name="MINK_DRIVER_CLASS" value=""/>
+    <env name="MINK_DRIVER_ARGS" value=""/>
+    <env name="MINK_DRIVER_ARGS_WEBDRIVER" value=""/>
+  </php>
+  <extensions>
+    <bootstrap class="Drupal\TestTools\Extension\HtmlLogging\HtmlOutputLogger">
+      <parameter name="outputDirectory" value="web/sites/simpletest/browser_output"/>
+      <parameter name="verbose" value="false"/>
+    </bootstrap>
+  </extensions>
+  <testsuites>
+    <testsuite name="unit">
+      <directory>web/modules/custom/*/tests/src/Unit</directory>
+      <directory>web/themes/custom/*/tests/src/Unit</directory>
+    </testsuite>
+    <testsuite name="kernel">
+      <directory>web/modules/custom/*/tests/src/Kernel</directory>
+      <directory>web/themes/custom/*/tests/src/Kernel</directory>
+    </testsuite>
+    <testsuite name="functional">
+      <directory>web/modules/custom/*/tests/src/Functional</directory>
+      <directory>web/themes/custom/*/tests/src/Functional</directory>
+    </testsuite>
+  </testsuites>
+  <source>
+    <include>
+      <directory>web/modules/custom</directory>
+      <directory>web/themes/custom</directory>
+    </include>
+    <exclude>
+      <directory>web/modules/custom/*/tests</directory>
+      <directory>web/themes/custom/*/tests</directory>
+    </exclude>
+  </source>
+</phpunit>

@@ -1,0 +1,7 @@
+ancora.status:
+  path: '/ancora/status'
+  defaults:
+    _controller: '\Drupal\ancora\Controller\StatusController::status'
+    _title: 'Platform status'
+  requirements:
+    _permission: 'view ancora status'

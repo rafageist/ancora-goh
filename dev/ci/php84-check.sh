@@ -24,8 +24,10 @@ ALLOW=(
 # The checker targets the legacy PHP 4/5 code. The modern Composer projects
 # (portal/, dev/codegen/) are PHP 8.4+ by design and have their own php -l,
 # PSR-12 and PHPUnit jobs; their syntax (union types, enums, ...) is out of
-# this checker's scope.
-mapfile -d '' FILES < <(git ls-files -z -- '*.php' '*.tpl' ':!portal/' ':!dev/codegen/')
+# this checker's scope. The Drupal 11 project (modern/, #69) is PHP 8.4+ as
+# well and is checked by .github/workflows/modern.yml (phpcs with the Drupal
+# and DrupalPractice standards, PHPUnit Kernel/Functional tests).
+mapfile -d '' FILES < <(git ls-files -z -- '*.php' '*.tpl' ':!portal/' ':!dev/codegen/' ':!modern/')
 "$PHP" dev/ci/php84-static-check.php "${ALLOW[@]}" "${FILES[@]}"
 
 # Constructors of the generated data layer really run (no database needed).

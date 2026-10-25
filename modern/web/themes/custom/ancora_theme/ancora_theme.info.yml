@@ -1,0 +1,14 @@
+name: Áncora
+type: theme
+description: 'Minimal front-end theme of the Áncora GOH platform: Twig templates and Single Directory Components, no JavaScript framework.'
+package: Áncora
+core_version_requirement: ^11.4
+base theme: false
+enforce_prop_schemas: true
+libraries:
+  - ancora_theme/global
+regions:
+  header: Header
+  highlighted: Highlighted
+  content: Content
+  footer: Footer

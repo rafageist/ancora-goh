@@ -1,0 +1,26 @@
+{#
+/**
+ * @file
+ * Page layout of the Áncora theme.
+ *
+ * Available variables: see core/modules/system/templates/page.html.twig.
+ * - page.header, page.highlighted, page.content, page.footer: Regions.
+ */
+#}
+<div class="layout-container">
+  <header class="site-header" role="banner">
+    {{ page.header }}
+  </header>
+
+  <main class="site-main" role="main">
+    <a id="main-content" tabindex="-1"></a>
+    {{ page.highlighted }}
+    {{ page.content }}
+  </main>
+
+  {% if page.footer %}
+    <footer class="site-footer" role="contentinfo">
+      {{ page.footer }}
+    </footer>
+  {% endif %}
+</div>

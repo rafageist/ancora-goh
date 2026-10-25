@@ -1,0 +1,20 @@
+uuid: 354bc62e-9560-4aa8-aa3f-4f5593289079
+langcode: en
+status: true
+dependencies:
+  theme:
+    - ancora_theme
+_core:
+  default_config_hash: ABoKnlk20KHqZRw_2Qr4EvaFvH4lnQ2nuhunHeE1JIU
+id: ancora_theme_local_actions
+theme: ancora_theme
+region: content
+weight: -10
+provider: null
+plugin: local_actions_block
+settings:
+  id: local_actions_block
+  label: 'Primary admin actions'
+  label_display: '0'
+  provider: core
+visibility: {  }
