@@ -85,9 +85,21 @@ $modelo = cargaModelo($modelfilename);
         fputs($file_tpl,'   if ($c>$columns) {echo "</tr><tr>"; $c = 1;}'."\n");
         fputs($file_tpl,'   $link_ini =""; $link_fin = ""; '."\n");
         fputs($file_tpl,'   if ($link!="")'."\n");
-        fputs($file_tpl,'      eval(\'$link_ini = "<a href = \\\'$link&$fieldlink=".$item->\'.$fieldlink.\'."\\\'>";\'); '."\n");
+        // #14: emit property access instead of eval() of request text
+        fputs($file_tpl, <<<'TPL'
+      // #14: no eval of request text; $fieldlink must name a property of $item
+      if (is_string($fieldlink) && preg_match('/^[A-Za-z_][A-Za-z0-9_]*$/', $fieldlink) && is_object($item) && property_exists($item, $fieldlink))
+         $link_ini = "<a href = '".htmlspecialchars($link."&".$fieldlink."=".$item->$fieldlink, ENT_QUOTES)."'>";
+
+TPL
+        );
         fputs($file_tpl,'   echo "<td align=\'center\'><div class=\"gallery\">$link_ini<img src=\'$icon\'><br>";'."\n");
-        fputs($file_tpl,'   eval(\'echo $item->\'.$fielddescrip.";");'."\n");
+        fputs($file_tpl, <<<'TPL'
+   if (isset($fielddescrip) && is_string($fielddescrip) && preg_match('/^[A-Za-z_][A-Za-z0-9_]*$/', $fielddescrip) && is_object($item) && property_exists($item, $fielddescrip))
+      echo $item->$fielddescrip;
+
+TPL
+        );
         fputs($file_tpl,'   echo "$link_fin</div></td>";'."\n");     
         fputs($file_tpl,'}'."\n");
         fputs($file_tpl,'echo "</table>";'."\n\n");
