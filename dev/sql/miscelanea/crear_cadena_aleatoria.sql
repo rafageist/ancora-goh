@@ -30,7 +30,7 @@ BEGIN
         EXIT WHEN i = longitud;
         i := i + 1;
     END LOOP;
-    RETURN r;
+    RETURN cadena;
 END;
 $$
 LANGUAGE 'plpgsql';

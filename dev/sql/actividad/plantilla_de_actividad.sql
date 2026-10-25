@@ -7,5 +7,5 @@ CREATE TABLE plantilla_de_actividad(
     unique (desglose,orden),
     exige_profesor BOOLEAN default TRUE,
     exige_lugar BOOLEAN default TRUE,
-    actualizacion_interna NOT NULL BOOLEAN default FALSE
+    actualizacion_interna BOOLEAN NOT NULL default FALSE
 );
