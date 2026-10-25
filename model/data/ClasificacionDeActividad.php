@@ -13,7 +13,7 @@
             * @updated: 20/06/10 10:40:54 
             * @version: 1.0 
             */ 
-       public function ClasificacionDeActividad($descripcion,$duracion,$creador,$prioridad,$gasto,$id = '',$construct = true, $data = false, $load = true){ 
+       public function __construct($descripcion,$duracion,$creador,$prioridad,$gasto,$id = '',$construct = true, $data = false, $load = true){ 
               global $dbconnection;
               if ($data == false) $this->data = new ClasificacionDeActividadModel($dbconnection); else $this->data = $data;
 

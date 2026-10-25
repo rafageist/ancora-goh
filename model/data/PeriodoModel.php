@@ -1,7 +1,7 @@
 <?php 
    class PeriodoModel extends PartModel { 
  
-          public function PeriodoModel($db){ 
+          public function __construct($db){ 
                 $this->db = $db; 
           } 
          /** 
@@ -31,7 +31,7 @@
              $replicas = array();
              $id = getReplica("periodo");
              $replicas["id"] = $id;
-             $r = $this->getAnything("INSERT INTO periodo (id,descripcion,cant_dias,cant_turnos,hora_inicial,duracion_del_turno,planificacion) VALUES ('$id',".(descripcion==null?'null':"'".$descripcion."'").",".(cant_dias==null?'null':$cant_dias).",".(cant_turnos==null?'null':$cant_turnos).",".(hora_inicial==null?'null':$hora_inicial).",".(duracion_del_turno==null?'null':$duracion_del_turno).",".(planificacion==null?'null':"'".$planificacion."'").");"); 
+             $r = $this->getAnything("INSERT INTO periodo (id,descripcion,cant_dias,cant_turnos,hora_inicial,duracion_del_turno,planificacion) VALUES ('$id',".("'".$descripcion."'").",".($cant_dias).",".($cant_turnos).",".($hora_inicial).",".($duracion_del_turno).",".("'".$planificacion."'").");"); 
              return $replicas; 
             }
           /** 

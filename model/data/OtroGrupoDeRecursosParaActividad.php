@@ -13,7 +13,7 @@
             * @updated: 20/06/10 10:40:56 
             * @version: 1.0 
             */ 
-       public function OtroGrupoDeRecursosParaActividad($plantilla,$prioridad,$necesarios,$imprescindibles,$creador,$id = '',$construct = true, $data = false, $load = true){ 
+       public function __construct($plantilla,$prioridad,$necesarios,$imprescindibles,$creador,$id = '',$construct = true, $data = false, $load = true){ 
               global $dbconnection;
               if ($data == false) $this->data = new OtroGrupoDeRecursosParaActividadModel($dbconnection); else $this->data = $data;
 

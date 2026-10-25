@@ -1,7 +1,7 @@
 <?php 
    class RestriccionDeOtroRecursoModel extends PartModel { 
  
-          public function RestriccionDeOtroRecursoModel($db){ 
+          public function __construct($db){ 
                 $this->db = $db; 
           } 
          /** 
@@ -41,7 +41,7 @@
              $replicas["id"] = $id;
                if ($por_actividad == true || $por_actividad == 1 || $por_actividad == "t") $por_actividad = "true"; 
                else if ($por_actividad== true || $por_actividad == 0 || $por_actividad == "f") $por_actividad = "false"; 
-             $r = $this->getAnything("INSERT INTO restriccion_de_otro_recurso (id,otro_recurso,periodo,dia,turno,valor,por_actividad,actividad) VALUES ('$id',".(otro_recurso==null?'null':"'".$otro_recurso."'").",".(periodo==null?'null':"'".$periodo."'").",".(dia==null?'null':$dia).",".(turno==null?'null':$turno).",".(valor==null?'null':$valor).",".(por_actividad==null?'null':$por_actividad).",".(actividad==null?'null':"'".$actividad."'").");"); 
+             $r = $this->getAnything("INSERT INTO restriccion_de_otro_recurso (id,otro_recurso,periodo,dia,turno,valor,por_actividad,actividad) VALUES ('$id',".("'".$otro_recurso."'").",".("'".$periodo."'").",".($dia).",".($turno).",".($valor).",".($por_actividad).",".("'".$actividad."'").");"); 
              return $replicas; 
             }
           /** 

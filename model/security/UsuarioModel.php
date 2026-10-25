@@ -1,7 +1,7 @@
 <?php 
    class UsuarioModel extends PartModel { 
  
-          public function UsuarioModel($db){ 
+          public function __construct($db){ 
                 $this->db = $db; 
           } 
          /** 
@@ -31,7 +31,7 @@
              $replicas = array();
              $id = getReplica("seguridad.usuario");
              $replicas["id"] = $id;
-             $r = $this->getAnything("INSERT INTO seguridad.usuario (id,nombre,info,correo,momento_ingreso,nick,contrasena) VALUES ('$id',".(nombre==null?'null':"'".$nombre."'").",".(info==null?'null':"'".$info."'").",".(correo==null?'null':"'".$correo."'").",".(momento_ingreso==null?'null':$momento_ingreso).",".(nick==null?'null':"'".$nick."'").",'".md5($contrasena)."');"); 
+             $r = $this->getAnything("INSERT INTO seguridad.usuario (id,nombre,info,correo,momento_ingreso,nick,contrasena) VALUES ('$id',".("'".$nombre."'").",".("'".$info."'").",".("'".$correo."'").",".($momento_ingreso).",".("'".$nick."'").",'".PasswordUtil::hash($contrasena)."');"); 
              return $replicas; 
             }
           /** 

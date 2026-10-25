@@ -9,7 +9,7 @@
             * @updated: 20/06/10 10:40:55 
             * @version: 1.0 
             */ 
-       public function RestriccionPorActividadDeLugar($restriccion_nominal,$actividad,$construct = true, $data = false, $load = true){ 
+       public function __construct($restriccion_nominal,$actividad,$construct = true, $data = false, $load = true){ 
               global $dbconnection;
               if ($data == false) $this->data = new RestriccionPorActividadDeLugarModel($dbconnection); else $this->data = $data;
 

@@ -9,7 +9,7 @@
             * @updated: 20/06/10 10:40:54 
             * @version: 1.0 
             */ 
-       public function BrigadaDeGrupo($brigada,$grupo,$construct = true, $data = false, $load = true){ 
+       public function __construct($brigada,$grupo,$construct = true, $data = false, $load = true){ 
               global $dbconnection;
               if ($data == false) $this->data = new BrigadaDeGrupoModel($dbconnection); else $this->data = $data;
 

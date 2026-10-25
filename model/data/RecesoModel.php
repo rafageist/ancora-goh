@@ -1,7 +1,7 @@
 <?php 
    class RecesoModel extends PartModel { 
  
-          public function RecesoModel($db){ 
+          public function __construct($db){ 
                 $this->db = $db; 
           } 
          /** 
@@ -29,7 +29,7 @@
             */ 
           public function add($periodo,$despues_del_turno,$duracion){ 
              $replicas = array();
-             $r = $this->getAnything("INSERT INTO receso (periodo,despues_del_turno,duracion) VALUES (".(periodo==null?'null':"'".$periodo."'").",".(despues_del_turno==null?'null':$despues_del_turno).",".(duracion==null?'null':$duracion).");"); 
+             $r = $this->getAnything("INSERT INTO receso (periodo,despues_del_turno,duracion) VALUES (".("'".$periodo."'").",".($despues_del_turno).",".($duracion).");"); 
              return $replicas; 
             }
           /** 

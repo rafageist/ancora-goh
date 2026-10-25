@@ -9,7 +9,7 @@
         /**
           * Constructor
           */
-        function HourString($hourstring='00:00:00'){
+        function __construct($hourstring='00:00:00'){
             $this->setFromString($hourstring);
         }
         

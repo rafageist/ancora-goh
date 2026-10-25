@@ -1,7 +1,7 @@
 <?php 
    class ProfesorParaGrupoModel extends PartModel { 
  
-          public function ProfesorParaGrupoModel($db){ 
+          public function __construct($db){ 
                 $this->db = $db; 
           } 
          /** 
@@ -29,7 +29,7 @@
             */ 
           public function add($profesor_para_actividad,$grupo){ 
              $replicas = array();
-             $r = $this->getAnything("INSERT INTO profesor_para_grupo (profesor_para_actividad,grupo) VALUES (".(profesor_para_actividad==null?'null':"'".$profesor_para_actividad."'").",".(grupo==null?'null':"'".$grupo."'").");"); 
+             $r = $this->getAnything("INSERT INTO profesor_para_grupo (profesor_para_actividad,grupo) VALUES (".("'".$profesor_para_actividad."'").",".("'".$grupo."'").");"); 
              return $replicas; 
             }
           /** 

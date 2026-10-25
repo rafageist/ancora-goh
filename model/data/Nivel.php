@@ -10,7 +10,7 @@
             * @updated: 20/06/10 10:40:55 
             * @version: 1.0 
             */ 
-       public function Nivel($descripcion,$creador,$id = '',$construct = true, $data = false, $load = true){ 
+       public function __construct($descripcion,$creador,$id = '',$construct = true, $data = false, $load = true){ 
               global $dbconnection;
               if ($data == false) $this->data = new NivelModel($dbconnection); else $this->data = $data;
 

@@ -1,7 +1,7 @@
 <?php 
    class OtroRecursoModel extends PartModel { 
  
-          public function OtroRecursoModel($db){ 
+          public function __construct($db){ 
                 $this->db = $db; 
           } 
          /** 
@@ -31,7 +31,7 @@
              $replicas = array();
              $id = getReplica("otro_recurso");
              $replicas["id"] = $id;
-             $r = $this->getAnything("INSERT INTO otro_recurso (id,nombre,creador) VALUES ('$id',".(nombre==null?'null':"'".$nombre."'").",".(creador==null?'null':"'".$creador."'").");"); 
+             $r = $this->getAnything("INSERT INTO otro_recurso (id,nombre,creador) VALUES ('$id',".("'".$nombre."'").",".("'".$creador."'").");"); 
              return $replicas; 
             }
           /** 

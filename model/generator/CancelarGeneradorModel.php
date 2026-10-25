@@ -1,7 +1,7 @@
 <?php 
    class CancelarGeneradorModel extends PartModel { 
  
-          public function CancelarGeneradorModel($db){ 
+          public function __construct($db){ 
                 $this->db = $db; 
           } 
          /** 
@@ -29,7 +29,7 @@
             */ 
           public function add($especialidad,$nivel,$periodo){ 
              $replicas = array();
-             $r = $this->getAnything("INSERT INTO generador.cancelar (especialidad,nivel,periodo) VALUES (".(especialidad==null?'null':"'".$especialidad."'").",".(nivel==null?'null':"'".$nivel."'").",".(periodo==null?'null':"'".$periodo."'").");"); 
+             $r = $this->getAnything("INSERT INTO generador.cancelar (especialidad,nivel,periodo) VALUES (".("'".$especialidad."'").",".("'".$nivel."'").",".("'".$periodo."'").");"); 
              return $replicas; 
             }
           /** 

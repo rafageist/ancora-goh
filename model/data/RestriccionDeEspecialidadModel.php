@@ -1,7 +1,7 @@
 <?php 
    class RestriccionDeEspecialidadModel extends PartModel { 
  
-          public function RestriccionDeEspecialidadModel($db){ 
+          public function __construct($db){ 
                 $this->db = $db; 
           } 
          /** 
@@ -31,7 +31,7 @@
              $replicas = array();
              $id = getReplica("restriccion_de_especialidad");
              $replicas["id"] = $id;
-             $r = $this->getAnything("INSERT INTO restriccion_de_especialidad (id,especialidad,periodo,dia,turno,valor) VALUES ('$id',".(especialidad==null?'null':"'".$especialidad."'").",".(periodo==null?'null':"'".$periodo."'").",".(dia==null?'null':$dia).",".(turno==null?'null':$turno).",".(valor==null?'null':$valor).");"); 
+             $r = $this->getAnything("INSERT INTO restriccion_de_especialidad (id,especialidad,periodo,dia,turno,valor) VALUES ('$id',".("'".$especialidad."'").",".("'".$periodo."'").",".($dia).",".($turno).",".($valor).");"); 
              return $replicas; 
             }
           /** 

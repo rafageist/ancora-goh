@@ -1,0 +1,27 @@
+# Authentication/authorization regression tests (issue #14).
+# CLI only: no web server, no database, no secrets (stub DB objects).
+name: PHP security tests
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  php-security-tests:
+    name: auth, event authorization and template tests (PHP 8.4)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          coverage: none
+          tools: none
+          ini-values: short_open_tag=Off
+
+      - name: Security regression tests
+        run: php dev/tests/security/run.php

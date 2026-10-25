@@ -9,7 +9,7 @@ class HourIntervals{
 	var $day;
 	var $intervals;
 
-	public function HourIntervals($intervalstring){
+	public function __construct($intervalstring){
 		$this->setFromString($intervalstring);
 	}
 

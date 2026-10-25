@@ -13,7 +13,7 @@
             * @updated: 20/06/10 10:40:56 
             * @version: 1.0 
             */ 
-          public function SeguridadFunctions($db){ 
+          public function __construct($db){ 
                $this->db = $db;  
           }
           /** 

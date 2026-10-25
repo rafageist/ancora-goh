@@ -15,7 +15,7 @@ class IntervalsByDay{
 	var $stringvalue;
 	var $dayintervals;
 
-	public function IntervalsByDay($intervalstring){
+	public function __construct($intervalstring){
 		$this->setFromString($intervalstring);
 	}
 

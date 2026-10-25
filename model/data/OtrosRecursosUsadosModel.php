@@ -1,7 +1,7 @@
 <?php 
    class OtrosRecursosUsadosModel extends PartModel { 
  
-          public function OtrosRecursosUsadosModel($db){ 
+          public function __construct($db){ 
                 $this->db = $db; 
           } 
          /** 
@@ -29,7 +29,7 @@
             */ 
           public function add($otro_recurso,$actividad,$creador){ 
              $replicas = array();
-             $r = $this->getAnything("INSERT INTO otros_recursos_usados (otro_recurso,actividad,creador) VALUES (".(otro_recurso==null?'null':"'".$otro_recurso."'").",".(actividad==null?'null':"'".$actividad."'").",".(creador==null?'null':"'".$creador."'").");"); 
+             $r = $this->getAnything("INSERT INTO otros_recursos_usados (otro_recurso,actividad,creador) VALUES (".("'".$otro_recurso."'").",".("'".$actividad."'").",".("'".$creador."'").");"); 
              return $replicas; 
             }
           /** 

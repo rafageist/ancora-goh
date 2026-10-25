@@ -6,7 +6,7 @@ class HourInterval{
 	var $stringvalue;
 	var $hours;
 
-	function HourInterval($intervalstring='00:00:00-00:00:00'){
+	function __construct($intervalstring='00:00:00-00:00:00'){
 		$this->setFromString($intervalstring);
 	}
 

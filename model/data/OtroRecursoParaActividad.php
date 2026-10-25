@@ -10,7 +10,7 @@
             * @updated: 20/06/10 10:40:55 
             * @version: 1.0 
             */ 
-       public function OtroRecursoParaActividad($grupo_de_recursos,$prioridad,$otro_recurso,$construct = true, $data = false, $load = true){ 
+       public function __construct($grupo_de_recursos,$prioridad,$otro_recurso,$construct = true, $data = false, $load = true){ 
               global $dbconnection;
               if ($data == false) $this->data = new OtroRecursoParaActividadModel($dbconnection); else $this->data = $data;
 

@@ -9,7 +9,7 @@
  
           var $db; 
  
-          public function PartModel($db){ 
+          public function __construct($db){ 
                 $this->db = $db;  
           } 
           /**

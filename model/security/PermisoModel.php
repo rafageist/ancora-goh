@@ -1,7 +1,7 @@
 <?php 
    class PermisoModel extends PartModel { 
  
-          public function PermisoModel($db){ 
+          public function __construct($db){ 
                 $this->db = $db; 
           } 
          /** 
@@ -29,7 +29,7 @@
             */ 
           public function add($permiso,$rol){ 
              $replicas = array();
-             $r = $this->getAnything("INSERT INTO seguridad.permiso (permiso,rol) VALUES (".(permiso==null?'null':"'".$permiso."'").",".(rol==null?'null':"'".$rol."'").");"); 
+             $r = $this->getAnything("INSERT INTO seguridad.permiso (permiso,rol) VALUES (".("'".$permiso."'").",".("'".$rol."'").");"); 
              return $replicas; 
             }
           /** 

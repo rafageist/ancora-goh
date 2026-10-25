@@ -10,7 +10,7 @@
             * @updated: 20/06/10 10:40:55 
             * @version: 1.0 
             */ 
-       public function OtrosRecursosUsados($otro_recurso,$actividad,$creador,$construct = true, $data = false, $load = true){ 
+       public function __construct($otro_recurso,$actividad,$creador,$construct = true, $data = false, $load = true){ 
               global $dbconnection;
               if ($data == false) $this->data = new OtrosRecursosUsadosModel($dbconnection); else $this->data = $data;
 
