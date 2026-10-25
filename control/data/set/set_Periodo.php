@@ -20,21 +20,21 @@ if (file_exists("../control/data/fdms/fdm_Periodo_duracion_del_turno.php")) incl
 if (file_exists("../control/data/fdms/fdm_Periodo_planificacion.php")) include "../control/data/fdms/fdm_Periodo_planificacion.php"; 
 
 // Getting data from POST 
-   if (isset($_POST["field_Periodo_id"])) $id = $_POST["field_Periodo_id"]; else $id = "null";
-   if (isset($_POST["field_Periodo_descripcion"])) $descripcion = $_POST["field_Periodo_descripcion"]; else $descripcion = "null";
-   if (isset($_POST["field_Periodo_cant_dias"])) $cant_dias = $_POST["field_Periodo_cant_dias"]; else $cant_dias = "null";
-   if (isset($_POST["field_Periodo_cant_turnos"])) $cant_turnos = $_POST["field_Periodo_cant_turnos"]; else $cant_turnos = "null";
-   if (isset($_POST["field_Periodo_hora_inicial"])) $hora_inicial = $_POST["field_Periodo_hora_inicial"]; else $hora_inicial = "null";
-   if (isset($_POST["field_Periodo_duracion_del_turno"])) $duracion_del_turno = $_POST["field_Periodo_duracion_del_turno"]; else $duracion_del_turno = "null";
-   if (isset($_POST["field_Periodo_planificacion"])) $planificacion = $_POST["field_Periodo_planificacion"]; else $planificacion = "null";
+   if (isset($_POST["field_Periodo_id"])) $id = $_POST["field_Periodo_id"]; else $id = null;
+   if (isset($_POST["field_Periodo_descripcion"])) $descripcion = $_POST["field_Periodo_descripcion"]; else $descripcion = null;
+   if (isset($_POST["field_Periodo_cant_dias"])) $cant_dias = $_POST["field_Periodo_cant_dias"]; else $cant_dias = null;
+   if (isset($_POST["field_Periodo_cant_turnos"])) $cant_turnos = $_POST["field_Periodo_cant_turnos"]; else $cant_turnos = null;
+   if (isset($_POST["field_Periodo_hora_inicial"])) $hora_inicial = $_POST["field_Periodo_hora_inicial"]; else $hora_inicial = null;
+   if (isset($_POST["field_Periodo_duracion_del_turno"])) $duracion_del_turno = $_POST["field_Periodo_duracion_del_turno"]; else $duracion_del_turno = null;
+   if (isset($_POST["field_Periodo_planificacion"])) $planificacion = $_POST["field_Periodo_planificacion"]; else $planificacion = null;
 
  // Actualizando el objeto 
    $col = new PeriodoCollection($dbconnection);
    $obj = $col->getItem($id);
-$obj->setDescripcion($descripcion);
-$obj->setCantDias($cant_dias);
-$obj->setCantTurnos($cant_turnos);
-$obj->setHoraInicial($hora_inicial);
-$obj->setDuracionDelTurno($duracion_del_turno);
-$obj->setPlanificacion($planificacion);
+if ($descripcion !== null) $obj->setDescripcion($descripcion);
+if ($cant_dias !== null) $obj->setCantDias($cant_dias);
+if ($cant_turnos !== null) $obj->setCantTurnos($cant_turnos);
+if ($hora_inicial !== null) $obj->setHoraInicial($hora_inicial);
+if ($duracion_del_turno !== null) $obj->setDuracionDelTurno($duracion_del_turno);
+if ($planificacion !== null) $obj->setPlanificacion($planificacion);
 ?>

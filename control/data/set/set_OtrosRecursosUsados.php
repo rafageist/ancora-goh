@@ -17,14 +17,14 @@ if (file_exists("../control/data/fdms/fdm_OtrosRecursosUsados_actividad.php")) i
 if (file_exists("../control/data/fdms/fdm_OtrosRecursosUsados_creador.php")) include "../control/data/fdms/fdm_OtrosRecursosUsados_creador.php"; 
 
 // Getting data from POST 
-   if (isset($_POST["field_OtrosRecursosUsados_otro_recurso"])) $otro_recurso = $_POST["field_OtrosRecursosUsados_otro_recurso"]; else $otro_recurso = "null";
-   if (isset($_POST["field_OtrosRecursosUsados_actividad"])) $actividad = $_POST["field_OtrosRecursosUsados_actividad"]; else $actividad = "null";
-   if (isset($_POST["field_OtrosRecursosUsados_creador"])) $creador = $_POST["field_OtrosRecursosUsados_creador"]; else $creador = "null";
+   if (isset($_POST["field_OtrosRecursosUsados_otro_recurso"])) $otro_recurso = $_POST["field_OtrosRecursosUsados_otro_recurso"]; else $otro_recurso = null;
+   if (isset($_POST["field_OtrosRecursosUsados_actividad"])) $actividad = $_POST["field_OtrosRecursosUsados_actividad"]; else $actividad = null;
+   if (isset($_POST["field_OtrosRecursosUsados_creador"])) $creador = $_POST["field_OtrosRecursosUsados_creador"]; else $creador = null;
 
  // Actualizando el objeto 
    $col = new OtrosRecursosUsadosCollection($dbconnection);
    $obj = $col->getItem($otro_recurso,$actividad);
-$obj->setOtroRecurso($otro_recurso);
-$obj->setActividad($actividad);
-$obj->setCreador($creador);
+if ($otro_recurso !== null) $obj->setOtroRecurso($otro_recurso);
+if ($actividad !== null) $obj->setActividad($actividad);
+if ($creador !== null) $obj->setCreador($creador);
 ?>

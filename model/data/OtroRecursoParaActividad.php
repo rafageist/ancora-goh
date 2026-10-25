@@ -41,7 +41,7 @@
             */ 
        public function setGrupoDeRecursos($value){ 
               $this->grupo_de_recursos = $value; 
-              $this->data->setBy("grupo_de_recursos = '".$this->grupo_de_recursos."' AND otro_recurso = '".$this->otro_recurso."'", "grupo_de_recursos = '$value'"); 
+              $this->data->getAnythingParams("UPDATE otro_recurso_para_actividad SET grupo_de_recursos = $1 WHERE grupo_de_recursos = $2 AND otro_recurso = $3;", array(PartModel::sqlValue($value, "text"), PartModel::sqlValue($this->grupo_de_recursos, "text"), PartModel::sqlValue($this->otro_recurso, "text"))); 
        } 
           /** 
             * @name: getGrupoDeRecursos 
@@ -62,7 +62,7 @@
             */ 
        public function setPrioridad($value){ 
               $this->prioridad = $value; 
-              $this->data->setBy("grupo_de_recursos = '".$this->grupo_de_recursos."' AND otro_recurso = '".$this->otro_recurso."'", "prioridad = $value"); 
+              $this->data->getAnythingParams("UPDATE otro_recurso_para_actividad SET prioridad = $1 WHERE grupo_de_recursos = $2 AND otro_recurso = $3;", array(PartModel::sqlValue($value, "number"), PartModel::sqlValue($this->grupo_de_recursos, "text"), PartModel::sqlValue($this->otro_recurso, "text"))); 
        } 
           /** 
             * @name: getPrioridad 
@@ -83,7 +83,7 @@
             */ 
        public function setOtroRecurso($value){ 
               $this->otro_recurso = $value; 
-              $this->data->setBy("grupo_de_recursos = '".$this->grupo_de_recursos."' AND otro_recurso = '".$this->otro_recurso."'", "otro_recurso = '$value'"); 
+              $this->data->getAnythingParams("UPDATE otro_recurso_para_actividad SET otro_recurso = $1 WHERE grupo_de_recursos = $2 AND otro_recurso = $3;", array(PartModel::sqlValue($value, "text"), PartModel::sqlValue($this->grupo_de_recursos, "text"), PartModel::sqlValue($this->otro_recurso, "text"))); 
        } 
           /** 
             * @name: getOtroRecurso 

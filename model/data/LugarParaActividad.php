@@ -41,7 +41,7 @@
             */ 
        public function setPlantilla($value){ 
               $this->plantilla = $value; 
-              $this->data->setBy("plantilla = '".$this->plantilla."' AND lugar = '".$this->lugar."'", "plantilla = '$value'"); 
+              $this->data->getAnythingParams("UPDATE lugar_para_actividad SET plantilla = $1 WHERE plantilla = $2 AND lugar = $3;", array(PartModel::sqlValue($value, "text"), PartModel::sqlValue($this->plantilla, "text"), PartModel::sqlValue($this->lugar, "text"))); 
        } 
           /** 
             * @name: getPlantilla 
@@ -62,7 +62,7 @@
             */ 
        public function setLugar($value){ 
               $this->lugar = $value; 
-              $this->data->setBy("plantilla = '".$this->plantilla."' AND lugar = '".$this->lugar."'", "lugar = '$value'"); 
+              $this->data->getAnythingParams("UPDATE lugar_para_actividad SET lugar = $1 WHERE plantilla = $2 AND lugar = $3;", array(PartModel::sqlValue($value, "text"), PartModel::sqlValue($this->plantilla, "text"), PartModel::sqlValue($this->lugar, "text"))); 
        } 
           /** 
             * @name: getLugar 
@@ -83,7 +83,7 @@
             */ 
        public function setPrioridad($value){ 
               $this->prioridad = $value; 
-              $this->data->setBy("plantilla = '".$this->plantilla."' AND lugar = '".$this->lugar."'", "prioridad = $value"); 
+              $this->data->getAnythingParams("UPDATE lugar_para_actividad SET prioridad = $1 WHERE plantilla = $2 AND lugar = $3;", array(PartModel::sqlValue($value, "number"), PartModel::sqlValue($this->plantilla, "text"), PartModel::sqlValue($this->lugar, "text"))); 
        } 
           /** 
             * @name: getPrioridad 

@@ -37,7 +37,7 @@
             */ 
        public function setPermiso($value){ 
               $this->permiso = $value; 
-              $this->data->setBy("permiso = '".$this->permiso."' AND rol = '".$this->rol."'", "permiso = '$value'"); 
+              $this->data->getAnythingParams("UPDATE seguridad.permiso SET permiso = $1 WHERE permiso = $2 AND rol = $3;", array(PartModel::sqlValue($value, "text"), PartModel::sqlValue($this->permiso, "text"), PartModel::sqlValue($this->rol, "text"))); 
        } 
           /** 
             * @name: getPermiso 
@@ -58,7 +58,7 @@
             */ 
        public function setRol($value){ 
               $this->rol = $value; 
-              $this->data->setBy("permiso = '".$this->permiso."' AND rol = '".$this->rol."'", "rol = '$value'"); 
+              $this->data->getAnythingParams("UPDATE seguridad.permiso SET rol = $1 WHERE permiso = $2 AND rol = $3;", array(PartModel::sqlValue($value, "text"), PartModel::sqlValue($this->permiso, "text"), PartModel::sqlValue($this->rol, "text"))); 
        } 
           /** 
             * @name: getRol 

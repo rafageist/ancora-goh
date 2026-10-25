@@ -17,14 +17,14 @@ if (file_exists("../control/data/fdms/fdm_Receso_despues_del_turno.php")) includ
 if (file_exists("../control/data/fdms/fdm_Receso_duracion.php")) include "../control/data/fdms/fdm_Receso_duracion.php"; 
 
 // Getting data from POST 
-   if (isset($_POST["field_Receso_periodo"])) $periodo = $_POST["field_Receso_periodo"]; else $periodo = "null";
-   if (isset($_POST["field_Receso_despues_del_turno"])) $despues_del_turno = $_POST["field_Receso_despues_del_turno"]; else $despues_del_turno = "null";
-   if (isset($_POST["field_Receso_duracion"])) $duracion = $_POST["field_Receso_duracion"]; else $duracion = "null";
+   if (isset($_POST["field_Receso_periodo"])) $periodo = $_POST["field_Receso_periodo"]; else $periodo = null;
+   if (isset($_POST["field_Receso_despues_del_turno"])) $despues_del_turno = $_POST["field_Receso_despues_del_turno"]; else $despues_del_turno = null;
+   if (isset($_POST["field_Receso_duracion"])) $duracion = $_POST["field_Receso_duracion"]; else $duracion = null;
 
  // Actualizando el objeto 
    $col = new RecesoCollection($dbconnection);
    $obj = $col->getItem($periodo,$despues_del_turno);
-$obj->setPeriodo($periodo);
-$obj->setDespuesDelTurno($despues_del_turno);
-$obj->setDuracion($duracion);
+if ($periodo !== null) $obj->setPeriodo($periodo);
+if ($despues_del_turno !== null) $obj->setDespuesDelTurno($despues_del_turno);
+if ($duracion !== null) $obj->setDuracion($duracion);
 ?>

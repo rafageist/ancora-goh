@@ -84,7 +84,7 @@
             */ 
        public function setPlanificacion($value){ 
               $this->planificacion = $value; 
-              $this->data->setBy("id = '".$this->id."'", "planificacion = '$value'"); 
+              $this->data->getAnythingParams("UPDATE herencia_de_restricciones SET planificacion = $1 WHERE id = $2;", array(PartModel::sqlValue($value, "text"), PartModel::sqlValue($this->id, "text"))); 
        } 
           /** 
             * @name: getPlanificacion 
@@ -105,9 +105,7 @@
             */ 
        public function setActiva($value){ 
               $this->activa = $value; 
-               if ($value == true || $value == 1 || $value == "t") $value = "true"; 
-               else if ($value == true || $value == 0 || $value == "f") $value = "false"; 
-              $this->data->setBy("id = '".$this->id."'", "activa = $value"); 
+              $this->data->getAnythingParams("UPDATE herencia_de_restricciones SET activa = $1 WHERE id = $2;", array(PartModel::sqlValue($value, "bool"), PartModel::sqlValue($this->id, "text"))); 
        } 
           /** 
             * @name: getActiva 
@@ -128,7 +126,7 @@
             */ 
        public function setHijoBrigada($value){ 
               $this->hijo_brigada = $value; 
-              $this->data->setBy("id = '".$this->id."'", "hijo_brigada = '$value'"); 
+              $this->data->getAnythingParams("UPDATE herencia_de_restricciones SET hijo_brigada = $1 WHERE id = $2;", array(PartModel::sqlValue($value, "text"), PartModel::sqlValue($this->id, "text"))); 
        } 
           /** 
             * @name: getHijoBrigada 
@@ -149,7 +147,7 @@
             */ 
        public function setHijoProfesor($value){ 
               $this->hijo_profesor = $value; 
-              $this->data->setBy("id = '".$this->id."'", "hijo_profesor = '$value'"); 
+              $this->data->getAnythingParams("UPDATE herencia_de_restricciones SET hijo_profesor = $1 WHERE id = $2;", array(PartModel::sqlValue($value, "text"), PartModel::sqlValue($this->id, "text"))); 
        } 
           /** 
             * @name: getHijoProfesor 
@@ -170,7 +168,7 @@
             */ 
        public function setHijoLugar($value){ 
               $this->hijo_lugar = $value; 
-              $this->data->setBy("id = '".$this->id."'", "hijo_lugar = '$value'"); 
+              $this->data->getAnythingParams("UPDATE herencia_de_restricciones SET hijo_lugar = $1 WHERE id = $2;", array(PartModel::sqlValue($value, "text"), PartModel::sqlValue($this->id, "text"))); 
        } 
           /** 
             * @name: getHijoLugar 
@@ -191,7 +189,7 @@
             */ 
        public function setHijoOtroRecurso($value){ 
               $this->hijo_otro_recurso = $value; 
-              $this->data->setBy("id = '".$this->id."'", "hijo_otro_recurso = '$value'"); 
+              $this->data->getAnythingParams("UPDATE herencia_de_restricciones SET hijo_otro_recurso = $1 WHERE id = $2;", array(PartModel::sqlValue($value, "text"), PartModel::sqlValue($this->id, "text"))); 
        } 
           /** 
             * @name: getHijoOtroRecurso 
@@ -212,7 +210,7 @@
             */ 
        public function setPadreBrigada($value){ 
               $this->padre_brigada = $value; 
-              $this->data->setBy("id = '".$this->id."'", "padre_brigada = '$value'"); 
+              $this->data->getAnythingParams("UPDATE herencia_de_restricciones SET padre_brigada = $1 WHERE id = $2;", array(PartModel::sqlValue($value, "text"), PartModel::sqlValue($this->id, "text"))); 
        } 
           /** 
             * @name: getPadreBrigada 
@@ -233,7 +231,7 @@
             */ 
        public function setPadreProfesor($value){ 
               $this->padre_profesor = $value; 
-              $this->data->setBy("id = '".$this->id."'", "padre_profesor = '$value'"); 
+              $this->data->getAnythingParams("UPDATE herencia_de_restricciones SET padre_profesor = $1 WHERE id = $2;", array(PartModel::sqlValue($value, "text"), PartModel::sqlValue($this->id, "text"))); 
        } 
           /** 
             * @name: getPadreProfesor 
@@ -254,7 +252,7 @@
             */ 
        public function setPadreLugar($value){ 
               $this->padre_lugar = $value; 
-              $this->data->setBy("id = '".$this->id."'", "padre_lugar = '$value'"); 
+              $this->data->getAnythingParams("UPDATE herencia_de_restricciones SET padre_lugar = $1 WHERE id = $2;", array(PartModel::sqlValue($value, "text"), PartModel::sqlValue($this->id, "text"))); 
        } 
           /** 
             * @name: getPadreLugar 
@@ -275,7 +273,7 @@
             */ 
        public function setPadreOtroRecurso($value){ 
               $this->padre_otro_recurso = $value; 
-              $this->data->setBy("id = '".$this->id."'", "padre_otro_recurso = '$value'"); 
+              $this->data->getAnythingParams("UPDATE herencia_de_restricciones SET padre_otro_recurso = $1 WHERE id = $2;", array(PartModel::sqlValue($value, "text"), PartModel::sqlValue($this->id, "text"))); 
        } 
           /** 
             * @name: getPadreOtroRecurso 
@@ -295,7 +293,7 @@
        } 
        public function getExcepcionDeHrt(){ 
           $collection = new ExcepcionDeHrtCollection($this->data->db);
-          $collection->Load(null,null,"*","herencia = '".$this->id."'");
+          $collection->Load(null,null,"*","herencia = $1", array(PartModel::sqlValue($this->id, "text")));
            return $collection;
        } 
 } 

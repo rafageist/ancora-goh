@@ -64,7 +64,7 @@
             */ 
        public function setDescripcion($value){ 
               $this->descripcion = $value; 
-              $this->data->setBy("id = '".$this->id."'", "descripcion = '$value'"); 
+              $this->data->getAnythingParams("UPDATE planificacion SET descripcion = $1 WHERE id = $2;", array(PartModel::sqlValue($value, "text"), PartModel::sqlValue($this->id, "text"))); 
        } 
           /** 
             * @name: getDescripcion 
@@ -85,7 +85,7 @@
             */ 
        public function setFechaInicial($value){ 
               $this->fecha_inicial = $value; 
-              $this->data->setBy("id = '".$this->id."'", "fecha_inicial = $value"); 
+              $this->data->getAnythingParams("UPDATE planificacion SET fecha_inicial = $1 WHERE id = $2;", array(PartModel::sqlValue($value, "number"), PartModel::sqlValue($this->id, "text"))); 
        } 
           /** 
             * @name: getFechaInicial 
@@ -106,7 +106,7 @@
             */ 
        public function setCantDias($value){ 
               $this->cant_dias = $value; 
-              $this->data->setBy("id = '".$this->id."'", "cant_dias = $value"); 
+              $this->data->getAnythingParams("UPDATE planificacion SET cant_dias = $1 WHERE id = $2;", array(PartModel::sqlValue($value, "number"), PartModel::sqlValue($this->id, "text"))); 
        } 
           /** 
             * @name: getCantDias 
@@ -127,9 +127,7 @@
             */ 
        public function setActiva($value){ 
               $this->activa = $value; 
-               if ($value == true || $value == 1 || $value == "t") $value = "true"; 
-               else if ($value == true || $value == 0 || $value == "f") $value = "false"; 
-              $this->data->setBy("id = '".$this->id."'", "activa = $value"); 
+              $this->data->getAnythingParams("UPDATE planificacion SET activa = $1 WHERE id = $2;", array(PartModel::sqlValue($value, "bool"), PartModel::sqlValue($this->id, "text"))); 
        } 
           /** 
             * @name: getActiva 
@@ -150,7 +148,7 @@
             */ 
        public function setCreador($value){ 
               $this->creador = $value; 
-              $this->data->setBy("id = '".$this->id."'", "creador = '$value'"); 
+              $this->data->getAnythingParams("UPDATE planificacion SET creador = $1 WHERE id = $2;", array(PartModel::sqlValue($value, "text"), PartModel::sqlValue($this->id, "text"))); 
        } 
           /** 
             * @name: getCreador 
@@ -170,7 +168,7 @@
        } 
        public function getGrupo(){ 
           $collection = new GrupoCollection($this->data->db);
-          $collection->Load(null,null,"*","planificacion = '".$this->id."'");
+          $collection->Load(null,null,"*","planificacion = $1", array(PartModel::sqlValue($this->id, "text")));
            return $collection;
        } 
        public function addRestriccionCondicional($activa,$clasif_act,$asig,$brigada,$profesor,$lugar,$otro_recurso,$especialidad,$nivel,$fecha_ini,$fecha_fin,$hora_ini,$hora_fin,$discreto_exacto,$dia_ini_planif,$dia_fin_planif,$hora_ini_planif,$hora_fin_planif,$discreto_exacto_planif,$periodo,$dia_ini,$dia_fin,$turno_ini,$turno_fin,$discreto,$hoy,$ahora,$dia_relativo_anterior,$cant_dias_relativo_anterior,$dia_relativo_posterior,$cant_dias_relativo_posterior,$rango_tiempo_relativo_anterior_ini,$rango_tiempo_relativo_anterior_tamano,$turno_relativo_anterior,$cant_turnos_relativo_anterior,$turno_relativo_posterior,$cant_turnos_relativo_posterior,$rango_tiempo_relativo_posterior_ini,$rango_tiempo_relativo_posterior_tamano,$entre_dias_antes,$entre_dias_despues,$entre_turnos_antes,$entre_turnos_despues,$entre_tiempo_antes,$entre_tiempo_despues,$cant_exa,$cant_min,$cant_max,$consec_brigada,$consec_profesor,$consec_lugar,$consec_otro_recurso,$consec_periodo,$consec_dia_ini,$consec_dia_fin,$consec_turno_ini,$consec_turno_fin,$consec_discreto,$siempre,$valor){ 
@@ -180,7 +178,7 @@
        } 
        public function getRestriccionCondicional(){ 
           $collection = new RestriccionCondicionalCollection($this->data->db);
-          $collection->Load(null,null,"*","planificacion = '".$this->id."'");
+          $collection->Load(null,null,"*","planificacion = $1", array(PartModel::sqlValue($this->id, "text")));
            return $collection;
        } 
        public function addHerenciaDeRestricciones($activa,$hijo_brigada,$hijo_profesor,$hijo_lugar,$hijo_otro_recurso,$padre_brigada,$padre_profesor,$padre_lugar,$padre_otro_recurso){ 
@@ -190,7 +188,7 @@
        } 
        public function getHerenciaDeRestricciones(){ 
           $collection = new HerenciaDeRestriccionesCollection($this->data->db);
-          $collection->Load(null,null,"*","planificacion = '".$this->id."'");
+          $collection->Load(null,null,"*","planificacion = $1", array(PartModel::sqlValue($this->id, "text")));
            return $collection;
        } 
        public function addPeriodo($descripcion,$cant_dias,$cant_turnos,$hora_inicial,$duracion_del_turno){ 
@@ -200,7 +198,7 @@
        } 
        public function getPeriodo(){ 
           $collection = new PeriodoCollection($this->data->db);
-          $collection->Load(null,null,"*","planificacion = '".$this->id."'");
+          $collection->Load(null,null,"*","planificacion = $1", array(PartModel::sqlValue($this->id, "text")));
            return $collection;
        } 
 } 

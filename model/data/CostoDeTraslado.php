@@ -41,7 +41,7 @@
             */ 
        public function setOrigen($value){ 
               $this->origen = $value; 
-              $this->data->setBy("origen = '".$this->origen."' AND destino = '".$this->destino."'", "origen = '$value'"); 
+              $this->data->getAnythingParams("UPDATE costo_de_traslado SET origen = $1 WHERE origen = $2 AND destino = $3;", array(PartModel::sqlValue($value, "text"), PartModel::sqlValue($this->origen, "text"), PartModel::sqlValue($this->destino, "text"))); 
        } 
           /** 
             * @name: getOrigen 
@@ -62,7 +62,7 @@
             */ 
        public function setDestino($value){ 
               $this->destino = $value; 
-              $this->data->setBy("origen = '".$this->origen."' AND destino = '".$this->destino."'", "destino = '$value'"); 
+              $this->data->getAnythingParams("UPDATE costo_de_traslado SET destino = $1 WHERE origen = $2 AND destino = $3;", array(PartModel::sqlValue($value, "text"), PartModel::sqlValue($this->origen, "text"), PartModel::sqlValue($this->destino, "text"))); 
        } 
           /** 
             * @name: getDestino 
@@ -83,7 +83,7 @@
             */ 
        public function setCosto($value){ 
               $this->costo = $value; 
-              $this->data->setBy("origen = '".$this->origen."' AND destino = '".$this->destino."'", "costo = $value"); 
+              $this->data->getAnythingParams("UPDATE costo_de_traslado SET costo = $1 WHERE origen = $2 AND destino = $3;", array(PartModel::sqlValue($value, "number"), PartModel::sqlValue($this->origen, "text"), PartModel::sqlValue($this->destino, "text"))); 
        } 
           /** 
             * @name: getCosto 

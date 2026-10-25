@@ -357,8 +357,11 @@ TPL
             fputs($file_event, "\n");
             fputs($file_event, "// Getting data from POST \n"); 
             
+            // #35: a field that was not posted is PHP null and is left unchanged.
+            // It used to be the string "null", which was written into text
+            // columns as 'null' (and set booleans to true).
             foreach ($tabla->fields as $campo)
-                    fputs($file_event,'   if (isset($_POST["field_'.$classname."_".$campo->name.'"])) $'.$campo->name.' = $_POST["field_'.$classname."_".$campo->name.'"]; else $'.$campo->name.' = "null";'."\n");
+                    fputs($file_event,'   if (isset($_POST["field_'.$classname."_".$campo->name.'"])) $'.$campo->name.' = $_POST["field_'.$classname."_".$campo->name.'"]; else $'.$campo->name.' = null;'."\n");
 
             fputs($file_event, "\n // Actualizando el objeto \n");
             fputs($file_event, '   $col = new '.$classname.'Collection($dbconnection);'."\n");
@@ -375,7 +378,7 @@ TPL
                     fputs($file_event, 'if (isset('.$post.') && is_string('.$post.') && '.$post.' !== \'\') $obj->set'.capitalLetter($campo->name).'($'.$campo->name.');'."\n");
                 }
                 else if ($campo->type != 'replica'){
-                    fputs($file_event, '$obj->set'.capitalLetter($campo->name).'($'.$campo->name.');'."\n");
+                    fputs($file_event, 'if ($'.$campo->name.' !== null) $obj->set'.capitalLetter($campo->name).'($'.$campo->name.');'."\n");
                 }
             }
           
@@ -406,7 +409,7 @@ TPL
             }
              
             foreach ($tabla->fields as $campo)
-                    fputs($file_event,'   if (isset($_POST["field_'.$classname."_".$campo->name.'"])) $'.$campo->name.' = $_POST["field_'.$classname."_".$campo->name.'"]; else $'.$campo->name.' = "null";'."\n");
+                    fputs($file_event,'   if (isset($_POST["field_'.$classname."_".$campo->name.'"])) $'.$campo->name.' = $_POST["field_'.$classname."_".$campo->name.'"]; else $'.$campo->name.' = null;'."\n");
                 
             
             fputs($file_event, "\n // Eliminando el objeto \n");

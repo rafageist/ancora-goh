@@ -37,7 +37,7 @@
             */ 
        public function setRestriccionNominal($value){ 
               $this->restriccion_nominal = $value; 
-              $this->data->setBy("restriccion_nominal = '".$this->restriccion_nominal."' AND actividad = '".$this->actividad."'", "restriccion_nominal = '$value'"); 
+              $this->data->getAnythingParams("UPDATE restriccion_por_actividad SET restriccion_nominal = $1 WHERE restriccion_nominal = $2 AND actividad = $3;", array(PartModel::sqlValue($value, "text"), PartModel::sqlValue($this->restriccion_nominal, "text"), PartModel::sqlValue($this->actividad, "text"))); 
        } 
           /** 
             * @name: getRestriccionNominal 
@@ -58,7 +58,7 @@
             */ 
        public function setActividad($value){ 
               $this->actividad = $value; 
-              $this->data->setBy("restriccion_nominal = '".$this->restriccion_nominal."' AND actividad = '".$this->actividad."'", "actividad = '$value'"); 
+              $this->data->getAnythingParams("UPDATE restriccion_por_actividad SET actividad = $1 WHERE restriccion_nominal = $2 AND actividad = $3;", array(PartModel::sqlValue($value, "text"), PartModel::sqlValue($this->restriccion_nominal, "text"), PartModel::sqlValue($this->actividad, "text"))); 
        } 
           /** 
             * @name: getActividad 

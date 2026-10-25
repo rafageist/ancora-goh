@@ -64,7 +64,7 @@
             */ 
        public function setPlantilla($value){ 
               $this->plantilla = $value; 
-              $this->data->setBy("id = '".$this->id."'", "plantilla = '$value'"); 
+              $this->data->getAnythingParams("UPDATE otro_grupo_de_recursos_para_actividad SET plantilla = $1 WHERE id = $2;", array(PartModel::sqlValue($value, "text"), PartModel::sqlValue($this->id, "text"))); 
        } 
           /** 
             * @name: getPlantilla 
@@ -85,7 +85,7 @@
             */ 
        public function setPrioridad($value){ 
               $this->prioridad = $value; 
-              $this->data->setBy("id = '".$this->id."'", "prioridad = $value"); 
+              $this->data->getAnythingParams("UPDATE otro_grupo_de_recursos_para_actividad SET prioridad = $1 WHERE id = $2;", array(PartModel::sqlValue($value, "number"), PartModel::sqlValue($this->id, "text"))); 
        } 
           /** 
             * @name: getPrioridad 
@@ -106,7 +106,7 @@
             */ 
        public function setNecesarios($value){ 
               $this->necesarios = $value; 
-              $this->data->setBy("id = '".$this->id."'", "necesarios = $value"); 
+              $this->data->getAnythingParams("UPDATE otro_grupo_de_recursos_para_actividad SET necesarios = $1 WHERE id = $2;", array(PartModel::sqlValue($value, "number"), PartModel::sqlValue($this->id, "text"))); 
        } 
           /** 
             * @name: getNecesarios 
@@ -127,9 +127,7 @@
             */ 
        public function setImprescindibles($value){ 
               $this->imprescindibles = $value; 
-               if ($value == true || $value == 1 || $value == "t") $value = "true"; 
-               else if ($value == true || $value == 0 || $value == "f") $value = "false"; 
-              $this->data->setBy("id = '".$this->id."'", "imprescindibles = $value"); 
+              $this->data->getAnythingParams("UPDATE otro_grupo_de_recursos_para_actividad SET imprescindibles = $1 WHERE id = $2;", array(PartModel::sqlValue($value, "bool"), PartModel::sqlValue($this->id, "text"))); 
        } 
           /** 
             * @name: getImprescindibles 
@@ -150,7 +148,7 @@
             */ 
        public function setCreador($value){ 
               $this->creador = $value; 
-              $this->data->setBy("id = '".$this->id."'", "creador = '$value'"); 
+              $this->data->getAnythingParams("UPDATE otro_grupo_de_recursos_para_actividad SET creador = $1 WHERE id = $2;", array(PartModel::sqlValue($value, "text"), PartModel::sqlValue($this->id, "text"))); 
        } 
           /** 
             * @name: getCreador 
@@ -170,7 +168,7 @@
        } 
        public function getOtroRecursoParaActividad(){ 
           $collection = new OtroRecursoParaActividadCollection($this->data->db);
-          $collection->Load(null,null,"*","grupo_de_recursos = '".$this->id."'");
+          $collection->Load(null,null,"*","grupo_de_recursos = $1", array(PartModel::sqlValue($this->id, "text")));
            return $collection;
        } 
 } 

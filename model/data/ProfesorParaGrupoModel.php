@@ -17,6 +17,7 @@
             * @version: 1.0 
             */ 
           public function length($fieldcount="id"){ 
+              if ($fieldcount !== "*") PartModel::sqlIdentifier($fieldcount);
               $r = $this->getAnything("SELECT count($fieldcount) as c FROM profesor_para_grupo; "); 
               if (isset($r[0])) return $r[0]["c"];
               return 0; 
@@ -29,7 +30,7 @@
             */ 
           public function add($profesor_para_actividad,$grupo){ 
              $replicas = array();
-             $r = $this->getAnything("INSERT INTO profesor_para_grupo (profesor_para_actividad,grupo) VALUES (".("'".$profesor_para_actividad."'").",".("'".$grupo."'").");"); 
+             $r = $this->getAnythingParams("INSERT INTO profesor_para_grupo (profesor_para_actividad,grupo) VALUES ($1,$2);", array(PartModel::sqlValue($profesor_para_actividad, "text"), PartModel::sqlValue($grupo, "text")));
              return $replicas; 
             }
           /** 
@@ -39,7 +40,7 @@
             * @version: 1.0 
             */ 
           public function remove($profesor_para_actividad,$grupo){ 
-                  return $this->getAnything("DELETE FROM profesor_para_grupo WHERE  profesor_para_actividad = '$profesor_para_actividad'  AND  grupo = '$grupo' ;");
+                  return $this->getAnythingParams("DELETE FROM profesor_para_grupo WHERE profesor_para_actividad = $1 AND grupo = $2;", array(PartModel::sqlValue($profesor_para_actividad, "text"), PartModel::sqlValue($grupo, "text")));
             }
           /** 
             * @name: remove 
@@ -47,7 +48,8 @@
             * @updated: 20/06/10 10:40:55 
             * @version: 1.0 
             */ 
-          public function removeBy($where, $asobjects = false){
+          public function removeBy($where, $asobjects = false, $params = null){
+                 if (is_array($params)) return $this->getAnythingParams("DELETE FROM profesor_para_grupo WHERE $where;", $params, $asobjects);
                  return $this->getAnything("DELETE FROM profesor_para_grupo WHERE $where;",$asobjects);
           } 
           /** 
@@ -64,7 +66,8 @@
             * @updated: 20/06/10 10:40:55 
             * @version: 1.0 
             */ 
-          public function set($set, $asobjects = false){
+          public function set($set, $asobjects = false, $params = null){
+               if (is_array($params)) return $this->getAnythingParams("UPDATE profesor_para_grupo SET $set;", $params, $asobjects);
                return $this->getAnything("UPDATE profesor_para_grupo SET $set;",$asobjects);
           } 
           /** 
@@ -73,7 +76,8 @@
             * @updated: 20/06/10 10:40:55 
             * @version: 1.0 
             */ 
-          public function setBy($where, $set, $asobjects = false){
+          public function setBy($where, $set, $asobjects = false, $params = null){
+               if (is_array($params)) return $this->getAnythingParams("UPDATE profesor_para_grupo SET $set WHERE $where;", $params, $asobjects);
                return $this->getAnything("UPDATE profesor_para_grupo SET $set WHERE $where;");
           } 
           /** 
@@ -83,7 +87,7 @@
             * @version: 1.0 
             */ 
           public function get($profesor_para_actividad,$grupo){ 
-                  $r = $this->getAnything("SELECT * FROM profesor_para_grupo WHERE  profesor_para_actividad = '$profesor_para_actividad'  AND  grupo = '$grupo' ;",true);
+                  $r = $this->getAnythingParams("SELECT * FROM profesor_para_grupo WHERE profesor_para_actividad = $1 AND grupo = $2;", array(PartModel::sqlValue($profesor_para_actividad, "text"), PartModel::sqlValue($grupo, "text")), true);
                    if (isset($r[0])) return $r[0]; else return false;
             }
           /** 
@@ -93,7 +97,8 @@
             * @version: 1.0 
             */ 
           public function getAll($fields = "*", $asobjects = false){
-               return $this->getAnything("SELECT $fields FROM profesor_para_grupo;",$asobjects);
+               $r = $this->getAnything("SELECT ".PartModel::sqlSelectList($fields)." FROM profesor_para_grupo;",$asobjects);
+               return $r;
           } 
           /** 
             * @name: getAllBy 
@@ -101,8 +106,11 @@
             * @updated: 20/06/10 10:40:55 
             * @version: 1.0 
             */ 
-          public function getAllBy($where, $fields = "*", $asobjects = false){
-               return $this->getAnything("SELECT $fields FROM profesor_para_grupo WHERE $where;",$asobjects);
+          public function getAllBy($where, $fields = "*", $asobjects = false, $params = null){
+               $sql = "SELECT ".PartModel::sqlSelectList($fields)." FROM profesor_para_grupo WHERE $where;";
+               if (is_array($params)) $r = $this->getAnythingParams($sql, $params, $asobjects);
+               else $r = $this->getAnything($sql, $asobjects);
+               return $r;
           } 
           /** 
             * @name: getLimit 
@@ -111,7 +119,8 @@
             * @version: 1.0 
             */ 
           public function getLimit($limit, $offset, $fields = "*", $asobjects = false){
-               return $this->getAnything("SELECT $fields FROM profesor_para_grupo LIMIT $limit OFFSET $offset;",$asobjects);
+               $r = $this->getAnythingParams("SELECT ".PartModel::sqlSelectList($fields)." FROM profesor_para_grupo LIMIT $1 OFFSET $2;", array(PartModel::sqlValue($limit, "number"), PartModel::sqlValue($offset, "number")), $asobjects);
+               return $r;
           } 
           /** 
             * @name: getLimitBy 
@@ -119,8 +128,13 @@
             * @updated: 20/06/10 10:40:55 
             * @version: 1.0 
             */ 
-          public function getLimitBy($limit, $offset, $where, $fields = "*", $asobjects = false){
-               return $this->getAnything("SELECT $fields FROM profesor_para_grupo WHERE $where LIMIT $limit OFFSET $offset;", $asobjects);
+          public function getLimitBy($limit, $offset, $where, $fields = "*", $asobjects = false, $params = null){
+               $params = is_array($params) ? array_values($params) : array();
+               $n = count($params);
+               $params[] = PartModel::sqlValue($limit, "number");
+               $params[] = PartModel::sqlValue($offset, "number");
+               $r = $this->getAnythingParams("SELECT ".PartModel::sqlSelectList($fields)." FROM profesor_para_grupo WHERE $where LIMIT \$".($n + 1)." OFFSET \$".($n + 2).";", $params, $asobjects);
+               return $r;
           } 
           /** 
             * @name: getJoin 
@@ -129,7 +143,7 @@
             * @version: 1.0 
             */ 
           public function getJoinWithGrupo($fields = "*", $asobjects = false){
-               $r = $this->getAnything("SELECT $fields FROM profesor_para_grupo INNER JOIN public.grupo ON profesor_para_grupo.grupo = public.grupo.id ");
+               $r = $this->getAnything("SELECT ".PartModel::sqlSelectList($fields)." FROM profesor_para_grupo INNER JOIN public.grupo ON profesor_para_grupo.grupo = public.grupo.id;", $asobjects);
              return $r; 
           } 
           /** 
@@ -139,7 +153,7 @@
             * @version: 1.0 
             */ 
           public function getJoinWithProfesorParaActividad($fields = "*", $asobjects = false){
-               $r = $this->getAnything("SELECT $fields FROM profesor_para_grupo INNER JOIN public.profesor_para_actividad ON profesor_para_grupo.profesor_para_actividad = public.profesor_para_actividad.id ");
+               $r = $this->getAnything("SELECT ".PartModel::sqlSelectList($fields)." FROM profesor_para_grupo INNER JOIN public.profesor_para_actividad ON profesor_para_grupo.profesor_para_actividad = public.profesor_para_actividad.id;", $asobjects);
              return $r; 
           } 
           /** 
@@ -148,8 +162,10 @@
             * @updated: 20/06/10 10:40:55 
             * @version: 1.0 
             */ 
-          public function getJoinWithGrupoBy($where, $fields = "*", $asobjects = false){
-               $r = $this->getAnything("SELECT $fields FROM profesor_para_grupo INNER JOIN public.grupo ON profesor_para_grupo.grupo = public.grupo.id  WHERE $where");
+          public function getJoinWithGrupoBy($where, $fields = "*", $asobjects = false, $params = null){
+               $sql = "SELECT ".PartModel::sqlSelectList($fields)." FROM profesor_para_grupo INNER JOIN public.grupo ON profesor_para_grupo.grupo = public.grupo.id WHERE $where;";
+               if (is_array($params)) $r = $this->getAnythingParams($sql, $params, $asobjects);
+               else $r = $this->getAnything($sql, $asobjects);
              return $r; 
           } 
           /** 
@@ -158,8 +174,10 @@
             * @updated: 20/06/10 10:40:55 
             * @version: 1.0 
             */ 
-          public function getJoinWithProfesorParaActividadBy($where, $fields = "*", $asobjects = false){
-               $r = $this->getAnything("SELECT $fields FROM profesor_para_grupo INNER JOIN public.profesor_para_actividad ON profesor_para_grupo.profesor_para_actividad = public.profesor_para_actividad.id  WHERE $where");
+          public function getJoinWithProfesorParaActividadBy($where, $fields = "*", $asobjects = false, $params = null){
+               $sql = "SELECT ".PartModel::sqlSelectList($fields)." FROM profesor_para_grupo INNER JOIN public.profesor_para_actividad ON profesor_para_grupo.profesor_para_actividad = public.profesor_para_actividad.id WHERE $where;";
+               if (is_array($params)) $r = $this->getAnythingParams($sql, $params, $asobjects);
+               else $r = $this->getAnything($sql, $asobjects);
              return $r; 
           } 
           /** 
@@ -168,53 +186,25 @@
             * @updated: 20/06/10 10:40:55 
             * @version: 1.0 
             */ 
-          public function getJoinWithGrupoByPhrase($phrase, $where="true", $fields="*", $asobjects = false){
-               if ($fields == "*") {
-                    $fieldstabla = explode($this->fieldnames["profesor_para_grupo"]); 
-                    $fieldsforaneas = explode($this->fieldnames["grupo"]); 
-                    $ff = "";
-                    $i = 0;
-                    foreach ($fieldstabla as $f) {
-                        $i++; 
-                        if ($i>1) $ff = $ff.",";
-                        $ff = $ff.$f;
-                    }
-                    foreach ($fieldsforaneas as $f) {
-                        $i++; 
-                        if ($i>1) $ff = $ff.",";
-                        $ff = $ff.$f;
-                    }
-                    $fields=$ff;
-               }
-               $r = $this->getAnything("SELECT $fields FROM profesor_para_grupo INNER JOIN public.grupo ON profesor_para_grupo.grupo = grupo.id  WHERE ($where) AND (".$this->getWHEREPartOfSearchFrase($phrase, $fields).")");
+          public function getJoinWithGrupoByPhrase($phrase, $where="true", $fields="*", $asobjects = false, $params = null){
+               if ($fields == "*") $fields = "profesor_para_grupo.profesor_para_actividad,profesor_para_grupo.grupo,public.grupo.id,public.grupo.clasificacion,public.grupo.descripcion,public.grupo.especialidad,public.grupo.nivel,public.grupo.planificacion";
+               $params = is_array($params) ? array_values($params) : array();
+               $phrasepart = $this->getWHEREPartOfSearchFrase($phrase, $fields, $params);
+               $r = $this->getAnythingParams("SELECT ".PartModel::sqlSelectList($fields)." FROM profesor_para_grupo INNER JOIN public.grupo ON profesor_para_grupo.grupo = public.grupo.id WHERE ($where) AND ($phrasepart);", $params, $asobjects);
              return $r; 
-          }
+          } 
           /** 
             * @name: getJoin 
             * @desc: Inner join between "profesor_para_grupo" and "public.profesor_para_actividad, by phrase ..." 
             * @updated: 20/06/10 10:40:55 
             * @version: 1.0 
             */ 
-          public function getJoinWithProfesorParaActividadByPhrase($phrase, $where="true", $fields="*", $asobjects = false){
-               if ($fields == "*") {
-                    $fieldstabla = explode($this->fieldnames["profesor_para_grupo"]); 
-                    $fieldsforaneas = explode($this->fieldnames["profesor_para_actividad"]); 
-                    $ff = "";
-                    $i = 0;
-                    foreach ($fieldstabla as $f) {
-                        $i++; 
-                        if ($i>1) $ff = $ff.",";
-                        $ff = $ff.$f;
-                    }
-                    foreach ($fieldsforaneas as $f) {
-                        $i++; 
-                        if ($i>1) $ff = $ff.",";
-                        $ff = $ff.$f;
-                    }
-                    $fields=$ff;
-               }
-               $r = $this->getAnything("SELECT $fields FROM profesor_para_grupo INNER JOIN public.profesor_para_actividad ON profesor_para_grupo.profesor_para_actividad = profesor_para_actividad.id  WHERE ($where) AND (".$this->getWHEREPartOfSearchFrase($phrase, $fields).")");
+          public function getJoinWithProfesorParaActividadByPhrase($phrase, $where="true", $fields="*", $asobjects = false, $params = null){
+               if ($fields == "*") $fields = "profesor_para_grupo.profesor_para_actividad,profesor_para_grupo.grupo,public.profesor_para_actividad.id,public.profesor_para_actividad.plantilla,public.profesor_para_actividad.profesor,public.profesor_para_actividad.prioridad";
+               $params = is_array($params) ? array_values($params) : array();
+               $phrasepart = $this->getWHEREPartOfSearchFrase($phrase, $fields, $params);
+               $r = $this->getAnythingParams("SELECT ".PartModel::sqlSelectList($fields)." FROM profesor_para_grupo INNER JOIN public.profesor_para_actividad ON profesor_para_grupo.profesor_para_actividad = public.profesor_para_actividad.id WHERE ($where) AND ($phrasepart);", $params, $asobjects);
              return $r; 
-          }
+          } 
     } 
 ?>

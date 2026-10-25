@@ -14,9 +14,9 @@ import("model.data.LugarParaActividadCollection");
    if (file_exists("../control/data/fdms/fdm_LugarParaActividad_plantilla.php")) include "../control/data/fdms/fdm_LugarParaActividad_plantilla.php"; 
    if (file_exists("../control/data/fdms/fdm_LugarParaActividad_lugar.php")) include "../control/data/fdms/fdm_LugarParaActividad_lugar.php"; 
    if (file_exists("../control/data/fdms/fdm_LugarParaActividad_prioridad.php")) include "../control/data/fdms/fdm_LugarParaActividad_prioridad.php"; 
-   if (isset($_POST["field_LugarParaActividad_plantilla"])) $plantilla = $_POST["field_LugarParaActividad_plantilla"]; else $plantilla = "null";
-   if (isset($_POST["field_LugarParaActividad_lugar"])) $lugar = $_POST["field_LugarParaActividad_lugar"]; else $lugar = "null";
-   if (isset($_POST["field_LugarParaActividad_prioridad"])) $prioridad = $_POST["field_LugarParaActividad_prioridad"]; else $prioridad = "null";
+   if (isset($_POST["field_LugarParaActividad_plantilla"])) $plantilla = $_POST["field_LugarParaActividad_plantilla"]; else $plantilla = null;
+   if (isset($_POST["field_LugarParaActividad_lugar"])) $lugar = $_POST["field_LugarParaActividad_lugar"]; else $lugar = null;
+   if (isset($_POST["field_LugarParaActividad_prioridad"])) $prioridad = $_POST["field_LugarParaActividad_prioridad"]; else $prioridad = null;
 
  // Eliminando el objeto 
    $col = new LugarParaActividadCollection($dbconnection);

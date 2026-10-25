@@ -64,7 +64,7 @@
             */ 
        public function setAsignatura($value){ 
               $this->asignatura = $value; 
-              $this->data->setBy("id = '".$this->id."'", "asignatura = '$value'"); 
+              $this->data->getAnythingParams("UPDATE restriccion_de_asignatura SET asignatura = $1 WHERE id = $2;", array(PartModel::sqlValue($value, "text"), PartModel::sqlValue($this->id, "text"))); 
        } 
           /** 
             * @name: getAsignatura 
@@ -85,7 +85,7 @@
             */ 
        public function setPeriodo($value){ 
               $this->periodo = $value; 
-              $this->data->setBy("id = '".$this->id."'", "periodo = '$value'"); 
+              $this->data->getAnythingParams("UPDATE restriccion_de_asignatura SET periodo = $1 WHERE id = $2;", array(PartModel::sqlValue($value, "text"), PartModel::sqlValue($this->id, "text"))); 
        } 
           /** 
             * @name: getPeriodo 
@@ -106,7 +106,7 @@
             */ 
        public function setDia($value){ 
               $this->dia = $value; 
-              $this->data->setBy("id = '".$this->id."'", "dia = $value"); 
+              $this->data->getAnythingParams("UPDATE restriccion_de_asignatura SET dia = $1 WHERE id = $2;", array(PartModel::sqlValue($value, "number"), PartModel::sqlValue($this->id, "text"))); 
        } 
           /** 
             * @name: getDia 
@@ -127,7 +127,7 @@
             */ 
        public function setTurno($value){ 
               $this->turno = $value; 
-              $this->data->setBy("id = '".$this->id."'", "turno = $value"); 
+              $this->data->getAnythingParams("UPDATE restriccion_de_asignatura SET turno = $1 WHERE id = $2;", array(PartModel::sqlValue($value, "number"), PartModel::sqlValue($this->id, "text"))); 
        } 
           /** 
             * @name: getTurno 
@@ -148,7 +148,7 @@
             */ 
        public function setValor($value){ 
               $this->valor = $value; 
-              $this->data->setBy("id = '".$this->id."'", "valor = $value"); 
+              $this->data->getAnythingParams("UPDATE restriccion_de_asignatura SET valor = $1 WHERE id = $2;", array(PartModel::sqlValue($value, "number"), PartModel::sqlValue($this->id, "text"))); 
        } 
           /** 
             * @name: getValor 
@@ -168,7 +168,7 @@
        } 
        public function getRestriccionRealDeAsignatura(){ 
           $collection = new RestriccionRealDeAsignaturaCollection($this->data->db);
-          $collection->Load(null,null,"*","restriccion_nominal = '".$this->id."'");
+          $collection->Load(null,null,"*","restriccion_nominal = $1", array(PartModel::sqlValue($this->id, "text")));
            return $collection;
        } 
 } 

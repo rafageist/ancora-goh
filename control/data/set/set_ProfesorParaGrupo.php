@@ -16,12 +16,12 @@ if (file_exists("../control/data/fdms/fdm_ProfesorParaGrupo_profesor_para_activi
 if (file_exists("../control/data/fdms/fdm_ProfesorParaGrupo_grupo.php")) include "../control/data/fdms/fdm_ProfesorParaGrupo_grupo.php"; 
 
 // Getting data from POST 
-   if (isset($_POST["field_ProfesorParaGrupo_profesor_para_actividad"])) $profesor_para_actividad = $_POST["field_ProfesorParaGrupo_profesor_para_actividad"]; else $profesor_para_actividad = "null";
-   if (isset($_POST["field_ProfesorParaGrupo_grupo"])) $grupo = $_POST["field_ProfesorParaGrupo_grupo"]; else $grupo = "null";
+   if (isset($_POST["field_ProfesorParaGrupo_profesor_para_actividad"])) $profesor_para_actividad = $_POST["field_ProfesorParaGrupo_profesor_para_actividad"]; else $profesor_para_actividad = null;
+   if (isset($_POST["field_ProfesorParaGrupo_grupo"])) $grupo = $_POST["field_ProfesorParaGrupo_grupo"]; else $grupo = null;
 
  // Actualizando el objeto 
    $col = new ProfesorParaGrupoCollection($dbconnection);
    $obj = $col->getItem($profesor_para_actividad,$grupo);
-$obj->setProfesorParaActividad($profesor_para_actividad);
-$obj->setGrupo($grupo);
+if ($profesor_para_actividad !== null) $obj->setProfesorParaActividad($profesor_para_actividad);
+if ($grupo !== null) $obj->setGrupo($grupo);
 ?>

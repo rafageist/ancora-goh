@@ -16,13 +16,13 @@ if (file_exists("../control/data/fdms/fdm_OtroRecurso_nombre.php")) include "../
 if (file_exists("../control/data/fdms/fdm_OtroRecurso_creador.php")) include "../control/data/fdms/fdm_OtroRecurso_creador.php"; 
 
 // Getting data from POST 
-   if (isset($_POST["field_OtroRecurso_id"])) $id = $_POST["field_OtroRecurso_id"]; else $id = "null";
-   if (isset($_POST["field_OtroRecurso_nombre"])) $nombre = $_POST["field_OtroRecurso_nombre"]; else $nombre = "null";
-   if (isset($_POST["field_OtroRecurso_creador"])) $creador = $_POST["field_OtroRecurso_creador"]; else $creador = "null";
+   if (isset($_POST["field_OtroRecurso_id"])) $id = $_POST["field_OtroRecurso_id"]; else $id = null;
+   if (isset($_POST["field_OtroRecurso_nombre"])) $nombre = $_POST["field_OtroRecurso_nombre"]; else $nombre = null;
+   if (isset($_POST["field_OtroRecurso_creador"])) $creador = $_POST["field_OtroRecurso_creador"]; else $creador = null;
 
  // Actualizando el objeto 
    $col = new OtroRecursoCollection($dbconnection);
    $obj = $col->getItem($id);
-$obj->setNombre($nombre);
-$obj->setCreador($creador);
+if ($nombre !== null) $obj->setNombre($nombre);
+if ($creador !== null) $obj->setCreador($creador);
 ?>

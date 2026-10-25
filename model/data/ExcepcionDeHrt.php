@@ -45,7 +45,7 @@
             */ 
        public function setHerencia($value){ 
               $this->herencia = $value; 
-              $this->data->setBy("herencia = '".$this->herencia."' AND periodo = '".$this->periodo."' AND dia = ".$this->dia." AND turno = ".$this->turno."", "herencia = '$value'"); 
+              $this->data->getAnythingParams("UPDATE excepcion_de_hrt SET herencia = $1 WHERE herencia = $2 AND periodo = $3 AND dia = $4 AND turno = $5;", array(PartModel::sqlValue($value, "text"), PartModel::sqlValue($this->herencia, "text"), PartModel::sqlValue($this->periodo, "text"), PartModel::sqlValue($this->dia, "number"), PartModel::sqlValue($this->turno, "number"))); 
        } 
           /** 
             * @name: getHerencia 
@@ -66,7 +66,7 @@
             */ 
        public function setPeriodo($value){ 
               $this->periodo = $value; 
-              $this->data->setBy("herencia = '".$this->herencia."' AND periodo = '".$this->periodo."' AND dia = ".$this->dia." AND turno = ".$this->turno."", "periodo = '$value'"); 
+              $this->data->getAnythingParams("UPDATE excepcion_de_hrt SET periodo = $1 WHERE herencia = $2 AND periodo = $3 AND dia = $4 AND turno = $5;", array(PartModel::sqlValue($value, "text"), PartModel::sqlValue($this->herencia, "text"), PartModel::sqlValue($this->periodo, "text"), PartModel::sqlValue($this->dia, "number"), PartModel::sqlValue($this->turno, "number"))); 
        } 
           /** 
             * @name: getPeriodo 
@@ -87,7 +87,7 @@
             */ 
        public function setDia($value){ 
               $this->dia = $value; 
-              $this->data->setBy("herencia = '".$this->herencia."' AND periodo = '".$this->periodo."' AND dia = ".$this->dia." AND turno = ".$this->turno."", "dia = $value"); 
+              $this->data->getAnythingParams("UPDATE excepcion_de_hrt SET dia = $1 WHERE herencia = $2 AND periodo = $3 AND dia = $4 AND turno = $5;", array(PartModel::sqlValue($value, "number"), PartModel::sqlValue($this->herencia, "text"), PartModel::sqlValue($this->periodo, "text"), PartModel::sqlValue($this->dia, "number"), PartModel::sqlValue($this->turno, "number"))); 
        } 
           /** 
             * @name: getDia 
@@ -108,7 +108,7 @@
             */ 
        public function setTurno($value){ 
               $this->turno = $value; 
-              $this->data->setBy("herencia = '".$this->herencia."' AND periodo = '".$this->periodo."' AND dia = ".$this->dia." AND turno = ".$this->turno."", "turno = $value"); 
+              $this->data->getAnythingParams("UPDATE excepcion_de_hrt SET turno = $1 WHERE herencia = $2 AND periodo = $3 AND dia = $4 AND turno = $5;", array(PartModel::sqlValue($value, "number"), PartModel::sqlValue($this->herencia, "text"), PartModel::sqlValue($this->periodo, "text"), PartModel::sqlValue($this->dia, "number"), PartModel::sqlValue($this->turno, "number"))); 
        } 
           /** 
             * @name: getTurno 

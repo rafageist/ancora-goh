@@ -37,7 +37,7 @@
             */ 
        public function setProfesorParaActividad($value){ 
               $this->profesor_para_actividad = $value; 
-              $this->data->setBy("profesor_para_actividad = '".$this->profesor_para_actividad."' AND grupo = '".$this->grupo."'", "profesor_para_actividad = '$value'"); 
+              $this->data->getAnythingParams("UPDATE profesor_para_grupo SET profesor_para_actividad = $1 WHERE profesor_para_actividad = $2 AND grupo = $3;", array(PartModel::sqlValue($value, "text"), PartModel::sqlValue($this->profesor_para_actividad, "text"), PartModel::sqlValue($this->grupo, "text"))); 
        } 
           /** 
             * @name: getProfesorParaActividad 
@@ -58,7 +58,7 @@
             */ 
        public function setGrupo($value){ 
               $this->grupo = $value; 
-              $this->data->setBy("profesor_para_actividad = '".$this->profesor_para_actividad."' AND grupo = '".$this->grupo."'", "grupo = '$value'"); 
+              $this->data->getAnythingParams("UPDATE profesor_para_grupo SET grupo = $1 WHERE profesor_para_actividad = $2 AND grupo = $3;", array(PartModel::sqlValue($value, "text"), PartModel::sqlValue($this->profesor_para_actividad, "text"), PartModel::sqlValue($this->grupo, "text"))); 
        } 
           /** 
             * @name: getGrupo 

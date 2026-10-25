@@ -288,7 +288,7 @@
             */ 
        public function setPlanificacion($value){ 
               $this->planificacion = $value; 
-              $this->data->setBy("id = '".$this->id."'", "planificacion = '$value'"); 
+              $this->data->getAnythingParams("UPDATE restriccion_condicional SET planificacion = $1 WHERE id = $2;", array(PartModel::sqlValue($value, "text"), PartModel::sqlValue($this->id, "text"))); 
        } 
           /** 
             * @name: getPlanificacion 
@@ -309,9 +309,7 @@
             */ 
        public function setActiva($value){ 
               $this->activa = $value; 
-               if ($value == true || $value == 1 || $value == "t") $value = "true"; 
-               else if ($value == true || $value == 0 || $value == "f") $value = "false"; 
-              $this->data->setBy("id = '".$this->id."'", "activa = $value"); 
+              $this->data->getAnythingParams("UPDATE restriccion_condicional SET activa = $1 WHERE id = $2;", array(PartModel::sqlValue($value, "bool"), PartModel::sqlValue($this->id, "text"))); 
        } 
           /** 
             * @name: getActiva 
@@ -332,7 +330,7 @@
             */ 
        public function setClasifAct($value){ 
               $this->clasif_act = $value; 
-              $this->data->setBy("id = '".$this->id."'", "clasif_act = '$value'"); 
+              $this->data->getAnythingParams("UPDATE restriccion_condicional SET clasif_act = $1 WHERE id = $2;", array(PartModel::sqlValue($value, "text"), PartModel::sqlValue($this->id, "text"))); 
        } 
           /** 
             * @name: getClasifAct 
@@ -353,7 +351,7 @@
             */ 
        public function setAsig($value){ 
               $this->asig = $value; 
-              $this->data->setBy("id = '".$this->id."'", "asig = '$value'"); 
+              $this->data->getAnythingParams("UPDATE restriccion_condicional SET asig = $1 WHERE id = $2;", array(PartModel::sqlValue($value, "text"), PartModel::sqlValue($this->id, "text"))); 
        } 
           /** 
             * @name: getAsig 
@@ -374,7 +372,7 @@
             */ 
        public function setBrigada($value){ 
               $this->brigada = $value; 
-              $this->data->setBy("id = '".$this->id."'", "brigada = '$value'"); 
+              $this->data->getAnythingParams("UPDATE restriccion_condicional SET brigada = $1 WHERE id = $2;", array(PartModel::sqlValue($value, "text"), PartModel::sqlValue($this->id, "text"))); 
        } 
           /** 
             * @name: getBrigada 
@@ -395,7 +393,7 @@
             */ 
        public function setProfesor($value){ 
               $this->profesor = $value; 
-              $this->data->setBy("id = '".$this->id."'", "profesor = '$value'"); 
+              $this->data->getAnythingParams("UPDATE restriccion_condicional SET profesor = $1 WHERE id = $2;", array(PartModel::sqlValue($value, "text"), PartModel::sqlValue($this->id, "text"))); 
        } 
           /** 
             * @name: getProfesor 
@@ -416,7 +414,7 @@
             */ 
        public function setLugar($value){ 
               $this->lugar = $value; 
-              $this->data->setBy("id = '".$this->id."'", "lugar = '$value'"); 
+              $this->data->getAnythingParams("UPDATE restriccion_condicional SET lugar = $1 WHERE id = $2;", array(PartModel::sqlValue($value, "text"), PartModel::sqlValue($this->id, "text"))); 
        } 
           /** 
             * @name: getLugar 
@@ -437,7 +435,7 @@
             */ 
        public function setOtroRecurso($value){ 
               $this->otro_recurso = $value; 
-              $this->data->setBy("id = '".$this->id."'", "otro_recurso = '$value'"); 
+              $this->data->getAnythingParams("UPDATE restriccion_condicional SET otro_recurso = $1 WHERE id = $2;", array(PartModel::sqlValue($value, "text"), PartModel::sqlValue($this->id, "text"))); 
        } 
           /** 
             * @name: getOtroRecurso 
@@ -458,7 +456,7 @@
             */ 
        public function setEspecialidad($value){ 
               $this->especialidad = $value; 
-              $this->data->setBy("id = '".$this->id."'", "especialidad = '$value'"); 
+              $this->data->getAnythingParams("UPDATE restriccion_condicional SET especialidad = $1 WHERE id = $2;", array(PartModel::sqlValue($value, "text"), PartModel::sqlValue($this->id, "text"))); 
        } 
           /** 
             * @name: getEspecialidad 
@@ -479,7 +477,7 @@
             */ 
        public function setNivel($value){ 
               $this->nivel = $value; 
-              $this->data->setBy("id = '".$this->id."'", "nivel = '$value'"); 
+              $this->data->getAnythingParams("UPDATE restriccion_condicional SET nivel = $1 WHERE id = $2;", array(PartModel::sqlValue($value, "text"), PartModel::sqlValue($this->id, "text"))); 
        } 
           /** 
             * @name: getNivel 
@@ -500,7 +498,7 @@
             */ 
        public function setFechaIni($value){ 
               $this->fecha_ini = $value; 
-              $this->data->setBy("id = '".$this->id."'", "fecha_ini = $value"); 
+              $this->data->getAnythingParams("UPDATE restriccion_condicional SET fecha_ini = $1 WHERE id = $2;", array(PartModel::sqlValue($value, "number"), PartModel::sqlValue($this->id, "text"))); 
        } 
           /** 
             * @name: getFechaIni 
@@ -521,7 +519,7 @@
             */ 
        public function setFechaFin($value){ 
               $this->fecha_fin = $value; 
-              $this->data->setBy("id = '".$this->id."'", "fecha_fin = $value"); 
+              $this->data->getAnythingParams("UPDATE restriccion_condicional SET fecha_fin = $1 WHERE id = $2;", array(PartModel::sqlValue($value, "number"), PartModel::sqlValue($this->id, "text"))); 
        } 
           /** 
             * @name: getFechaFin 
@@ -542,7 +540,7 @@
             */ 
        public function setHoraIni($value){ 
               $this->hora_ini = $value; 
-              $this->data->setBy("id = '".$this->id."'", "hora_ini = $value"); 
+              $this->data->getAnythingParams("UPDATE restriccion_condicional SET hora_ini = $1 WHERE id = $2;", array(PartModel::sqlValue($value, "number"), PartModel::sqlValue($this->id, "text"))); 
        } 
           /** 
             * @name: getHoraIni 
@@ -563,7 +561,7 @@
             */ 
        public function setHoraFin($value){ 
               $this->hora_fin = $value; 
-              $this->data->setBy("id = '".$this->id."'", "hora_fin = $value"); 
+              $this->data->getAnythingParams("UPDATE restriccion_condicional SET hora_fin = $1 WHERE id = $2;", array(PartModel::sqlValue($value, "number"), PartModel::sqlValue($this->id, "text"))); 
        } 
           /** 
             * @name: getHoraFin 
@@ -584,9 +582,7 @@
             */ 
        public function setDiscretoExacto($value){ 
               $this->discreto_exacto = $value; 
-               if ($value == true || $value == 1 || $value == "t") $value = "true"; 
-               else if ($value == true || $value == 0 || $value == "f") $value = "false"; 
-              $this->data->setBy("id = '".$this->id."'", "discreto_exacto = $value"); 
+              $this->data->getAnythingParams("UPDATE restriccion_condicional SET discreto_exacto = $1 WHERE id = $2;", array(PartModel::sqlValue($value, "bool"), PartModel::sqlValue($this->id, "text"))); 
        } 
           /** 
             * @name: getDiscretoExacto 
@@ -607,7 +603,7 @@
             */ 
        public function setDiaIniPlanif($value){ 
               $this->dia_ini_planif = $value; 
-              $this->data->setBy("id = '".$this->id."'", "dia_ini_planif = $value"); 
+              $this->data->getAnythingParams("UPDATE restriccion_condicional SET dia_ini_planif = $1 WHERE id = $2;", array(PartModel::sqlValue($value, "number"), PartModel::sqlValue($this->id, "text"))); 
        } 
           /** 
             * @name: getDiaIniPlanif 
@@ -628,7 +624,7 @@
             */ 
        public function setDiaFinPlanif($value){ 
               $this->dia_fin_planif = $value; 
-              $this->data->setBy("id = '".$this->id."'", "dia_fin_planif = $value"); 
+              $this->data->getAnythingParams("UPDATE restriccion_condicional SET dia_fin_planif = $1 WHERE id = $2;", array(PartModel::sqlValue($value, "number"), PartModel::sqlValue($this->id, "text"))); 
        } 
           /** 
             * @name: getDiaFinPlanif 
@@ -649,7 +645,7 @@
             */ 
        public function setHoraIniPlanif($value){ 
               $this->hora_ini_planif = $value; 
-              $this->data->setBy("id = '".$this->id."'", "hora_ini_planif = $value"); 
+              $this->data->getAnythingParams("UPDATE restriccion_condicional SET hora_ini_planif = $1 WHERE id = $2;", array(PartModel::sqlValue($value, "number"), PartModel::sqlValue($this->id, "text"))); 
        } 
           /** 
             * @name: getHoraIniPlanif 
@@ -670,7 +666,7 @@
             */ 
        public function setHoraFinPlanif($value){ 
               $this->hora_fin_planif = $value; 
-              $this->data->setBy("id = '".$this->id."'", "hora_fin_planif = $value"); 
+              $this->data->getAnythingParams("UPDATE restriccion_condicional SET hora_fin_planif = $1 WHERE id = $2;", array(PartModel::sqlValue($value, "number"), PartModel::sqlValue($this->id, "text"))); 
        } 
           /** 
             * @name: getHoraFinPlanif 
@@ -691,9 +687,7 @@
             */ 
        public function setDiscretoExactoPlanif($value){ 
               $this->discreto_exacto_planif = $value; 
-               if ($value == true || $value == 1 || $value == "t") $value = "true"; 
-               else if ($value == true || $value == 0 || $value == "f") $value = "false"; 
-              $this->data->setBy("id = '".$this->id."'", "discreto_exacto_planif = $value"); 
+              $this->data->getAnythingParams("UPDATE restriccion_condicional SET discreto_exacto_planif = $1 WHERE id = $2;", array(PartModel::sqlValue($value, "bool"), PartModel::sqlValue($this->id, "text"))); 
        } 
           /** 
             * @name: getDiscretoExactoPlanif 
@@ -714,7 +708,7 @@
             */ 
        public function setPeriodo($value){ 
               $this->periodo = $value; 
-              $this->data->setBy("id = '".$this->id."'", "periodo = '$value'"); 
+              $this->data->getAnythingParams("UPDATE restriccion_condicional SET periodo = $1 WHERE id = $2;", array(PartModel::sqlValue($value, "text"), PartModel::sqlValue($this->id, "text"))); 
        } 
           /** 
             * @name: getPeriodo 
@@ -735,7 +729,7 @@
             */ 
        public function setDiaIni($value){ 
               $this->dia_ini = $value; 
-              $this->data->setBy("id = '".$this->id."'", "dia_ini = $value"); 
+              $this->data->getAnythingParams("UPDATE restriccion_condicional SET dia_ini = $1 WHERE id = $2;", array(PartModel::sqlValue($value, "number"), PartModel::sqlValue($this->id, "text"))); 
        } 
           /** 
             * @name: getDiaIni 
@@ -756,7 +750,7 @@
             */ 
        public function setDiaFin($value){ 
               $this->dia_fin = $value; 
-              $this->data->setBy("id = '".$this->id."'", "dia_fin = $value"); 
+              $this->data->getAnythingParams("UPDATE restriccion_condicional SET dia_fin = $1 WHERE id = $2;", array(PartModel::sqlValue($value, "number"), PartModel::sqlValue($this->id, "text"))); 
        } 
           /** 
             * @name: getDiaFin 
@@ -777,7 +771,7 @@
             */ 
        public function setTurnoIni($value){ 
               $this->turno_ini = $value; 
-              $this->data->setBy("id = '".$this->id."'", "turno_ini = $value"); 
+              $this->data->getAnythingParams("UPDATE restriccion_condicional SET turno_ini = $1 WHERE id = $2;", array(PartModel::sqlValue($value, "number"), PartModel::sqlValue($this->id, "text"))); 
        } 
           /** 
             * @name: getTurnoIni 
@@ -798,7 +792,7 @@
             */ 
        public function setTurnoFin($value){ 
               $this->turno_fin = $value; 
-              $this->data->setBy("id = '".$this->id."'", "turno_fin = $value"); 
+              $this->data->getAnythingParams("UPDATE restriccion_condicional SET turno_fin = $1 WHERE id = $2;", array(PartModel::sqlValue($value, "number"), PartModel::sqlValue($this->id, "text"))); 
        } 
           /** 
             * @name: getTurnoFin 
@@ -819,9 +813,7 @@
             */ 
        public function setDiscreto($value){ 
               $this->discreto = $value; 
-               if ($value == true || $value == 1 || $value == "t") $value = "true"; 
-               else if ($value == true || $value == 0 || $value == "f") $value = "false"; 
-              $this->data->setBy("id = '".$this->id."'", "discreto = $value"); 
+              $this->data->getAnythingParams("UPDATE restriccion_condicional SET discreto = $1 WHERE id = $2;", array(PartModel::sqlValue($value, "bool"), PartModel::sqlValue($this->id, "text"))); 
        } 
           /** 
             * @name: getDiscreto 
@@ -842,9 +834,7 @@
             */ 
        public function setHoy($value){ 
               $this->hoy = $value; 
-               if ($value == true || $value == 1 || $value == "t") $value = "true"; 
-               else if ($value == true || $value == 0 || $value == "f") $value = "false"; 
-              $this->data->setBy("id = '".$this->id."'", "hoy = $value"); 
+              $this->data->getAnythingParams("UPDATE restriccion_condicional SET hoy = $1 WHERE id = $2;", array(PartModel::sqlValue($value, "bool"), PartModel::sqlValue($this->id, "text"))); 
        } 
           /** 
             * @name: getHoy 
@@ -865,9 +855,7 @@
             */ 
        public function setAhora($value){ 
               $this->ahora = $value; 
-               if ($value == true || $value == 1 || $value == "t") $value = "true"; 
-               else if ($value == true || $value == 0 || $value == "f") $value = "false"; 
-              $this->data->setBy("id = '".$this->id."'", "ahora = $value"); 
+              $this->data->getAnythingParams("UPDATE restriccion_condicional SET ahora = $1 WHERE id = $2;", array(PartModel::sqlValue($value, "bool"), PartModel::sqlValue($this->id, "text"))); 
        } 
           /** 
             * @name: getAhora 
@@ -888,7 +876,7 @@
             */ 
        public function setDiaRelativoAnterior($value){ 
               $this->dia_relativo_anterior = $value; 
-              $this->data->setBy("id = '".$this->id."'", "dia_relativo_anterior = $value"); 
+              $this->data->getAnythingParams("UPDATE restriccion_condicional SET dia_relativo_anterior = $1 WHERE id = $2;", array(PartModel::sqlValue($value, "number"), PartModel::sqlValue($this->id, "text"))); 
        } 
           /** 
             * @name: getDiaRelativoAnterior 
@@ -909,7 +897,7 @@
             */ 
        public function setCantDiasRelativoAnterior($value){ 
               $this->cant_dias_relativo_anterior = $value; 
-              $this->data->setBy("id = '".$this->id."'", "cant_dias_relativo_anterior = $value"); 
+              $this->data->getAnythingParams("UPDATE restriccion_condicional SET cant_dias_relativo_anterior = $1 WHERE id = $2;", array(PartModel::sqlValue($value, "number"), PartModel::sqlValue($this->id, "text"))); 
        } 
           /** 
             * @name: getCantDiasRelativoAnterior 
@@ -930,7 +918,7 @@
             */ 
        public function setDiaRelativoPosterior($value){ 
               $this->dia_relativo_posterior = $value; 
-              $this->data->setBy("id = '".$this->id."'", "dia_relativo_posterior = $value"); 
+              $this->data->getAnythingParams("UPDATE restriccion_condicional SET dia_relativo_posterior = $1 WHERE id = $2;", array(PartModel::sqlValue($value, "number"), PartModel::sqlValue($this->id, "text"))); 
        } 
           /** 
             * @name: getDiaRelativoPosterior 
@@ -951,7 +939,7 @@
             */ 
        public function setCantDiasRelativoPosterior($value){ 
               $this->cant_dias_relativo_posterior = $value; 
-              $this->data->setBy("id = '".$this->id."'", "cant_dias_relativo_posterior = $value"); 
+              $this->data->getAnythingParams("UPDATE restriccion_condicional SET cant_dias_relativo_posterior = $1 WHERE id = $2;", array(PartModel::sqlValue($value, "number"), PartModel::sqlValue($this->id, "text"))); 
        } 
           /** 
             * @name: getCantDiasRelativoPosterior 
@@ -972,7 +960,7 @@
             */ 
        public function setRangoTiempoRelativoAnteriorIni($value){ 
               $this->rango_tiempo_relativo_anterior_ini = $value; 
-              $this->data->setBy("id = '".$this->id."'", "rango_tiempo_relativo_anterior_ini = $value"); 
+              $this->data->getAnythingParams("UPDATE restriccion_condicional SET rango_tiempo_relativo_anterior_ini = $1 WHERE id = $2;", array(PartModel::sqlValue($value, "number"), PartModel::sqlValue($this->id, "text"))); 
        } 
           /** 
             * @name: getRangoTiempoRelativoAnteriorIni 
@@ -993,7 +981,7 @@
             */ 
        public function setRangoTiempoRelativoAnteriorTamano($value){ 
               $this->rango_tiempo_relativo_anterior_tamano = $value; 
-              $this->data->setBy("id = '".$this->id."'", "rango_tiempo_relativo_anterior_tamano = $value"); 
+              $this->data->getAnythingParams("UPDATE restriccion_condicional SET rango_tiempo_relativo_anterior_tamano = $1 WHERE id = $2;", array(PartModel::sqlValue($value, "number"), PartModel::sqlValue($this->id, "text"))); 
        } 
           /** 
             * @name: getRangoTiempoRelativoAnteriorTamano 
@@ -1014,7 +1002,7 @@
             */ 
        public function setTurnoRelativoAnterior($value){ 
               $this->turno_relativo_anterior = $value; 
-              $this->data->setBy("id = '".$this->id."'", "turno_relativo_anterior = $value"); 
+              $this->data->getAnythingParams("UPDATE restriccion_condicional SET turno_relativo_anterior = $1 WHERE id = $2;", array(PartModel::sqlValue($value, "number"), PartModel::sqlValue($this->id, "text"))); 
        } 
           /** 
             * @name: getTurnoRelativoAnterior 
@@ -1035,7 +1023,7 @@
             */ 
        public function setCantTurnosRelativoAnterior($value){ 
               $this->cant_turnos_relativo_anterior = $value; 
-              $this->data->setBy("id = '".$this->id."'", "cant_turnos_relativo_anterior = $value"); 
+              $this->data->getAnythingParams("UPDATE restriccion_condicional SET cant_turnos_relativo_anterior = $1 WHERE id = $2;", array(PartModel::sqlValue($value, "number"), PartModel::sqlValue($this->id, "text"))); 
        } 
           /** 
             * @name: getCantTurnosRelativoAnterior 
@@ -1056,7 +1044,7 @@
             */ 
        public function setTurnoRelativoPosterior($value){ 
               $this->turno_relativo_posterior = $value; 
-              $this->data->setBy("id = '".$this->id."'", "turno_relativo_posterior = $value"); 
+              $this->data->getAnythingParams("UPDATE restriccion_condicional SET turno_relativo_posterior = $1 WHERE id = $2;", array(PartModel::sqlValue($value, "number"), PartModel::sqlValue($this->id, "text"))); 
        } 
           /** 
             * @name: getTurnoRelativoPosterior 
@@ -1077,7 +1065,7 @@
             */ 
        public function setCantTurnosRelativoPosterior($value){ 
               $this->cant_turnos_relativo_posterior = $value; 
-              $this->data->setBy("id = '".$this->id."'", "cant_turnos_relativo_posterior = $value"); 
+              $this->data->getAnythingParams("UPDATE restriccion_condicional SET cant_turnos_relativo_posterior = $1 WHERE id = $2;", array(PartModel::sqlValue($value, "number"), PartModel::sqlValue($this->id, "text"))); 
        } 
           /** 
             * @name: getCantTurnosRelativoPosterior 
@@ -1098,7 +1086,7 @@
             */ 
        public function setRangoTiempoRelativoPosteriorIni($value){ 
               $this->rango_tiempo_relativo_posterior_ini = $value; 
-              $this->data->setBy("id = '".$this->id."'", "rango_tiempo_relativo_posterior_ini = $value"); 
+              $this->data->getAnythingParams("UPDATE restriccion_condicional SET rango_tiempo_relativo_posterior_ini = $1 WHERE id = $2;", array(PartModel::sqlValue($value, "number"), PartModel::sqlValue($this->id, "text"))); 
        } 
           /** 
             * @name: getRangoTiempoRelativoPosteriorIni 
@@ -1119,7 +1107,7 @@
             */ 
        public function setRangoTiempoRelativoPosteriorTamano($value){ 
               $this->rango_tiempo_relativo_posterior_tamano = $value; 
-              $this->data->setBy("id = '".$this->id."'", "rango_tiempo_relativo_posterior_tamano = $value"); 
+              $this->data->getAnythingParams("UPDATE restriccion_condicional SET rango_tiempo_relativo_posterior_tamano = $1 WHERE id = $2;", array(PartModel::sqlValue($value, "number"), PartModel::sqlValue($this->id, "text"))); 
        } 
           /** 
             * @name: getRangoTiempoRelativoPosteriorTamano 
@@ -1140,7 +1128,7 @@
             */ 
        public function setEntreDiasAntes($value){ 
               $this->entre_dias_antes = $value; 
-              $this->data->setBy("id = '".$this->id."'", "entre_dias_antes = $value"); 
+              $this->data->getAnythingParams("UPDATE restriccion_condicional SET entre_dias_antes = $1 WHERE id = $2;", array(PartModel::sqlValue($value, "number"), PartModel::sqlValue($this->id, "text"))); 
        } 
           /** 
             * @name: getEntreDiasAntes 
@@ -1161,7 +1149,7 @@
             */ 
        public function setEntreDiasDespues($value){ 
               $this->entre_dias_despues = $value; 
-              $this->data->setBy("id = '".$this->id."'", "entre_dias_despues = $value"); 
+              $this->data->getAnythingParams("UPDATE restriccion_condicional SET entre_dias_despues = $1 WHERE id = $2;", array(PartModel::sqlValue($value, "number"), PartModel::sqlValue($this->id, "text"))); 
        } 
           /** 
             * @name: getEntreDiasDespues 
@@ -1182,7 +1170,7 @@
             */ 
        public function setEntreTurnosAntes($value){ 
               $this->entre_turnos_antes = $value; 
-              $this->data->setBy("id = '".$this->id."'", "entre_turnos_antes = $value"); 
+              $this->data->getAnythingParams("UPDATE restriccion_condicional SET entre_turnos_antes = $1 WHERE id = $2;", array(PartModel::sqlValue($value, "number"), PartModel::sqlValue($this->id, "text"))); 
        } 
           /** 
             * @name: getEntreTurnosAntes 
@@ -1203,7 +1191,7 @@
             */ 
        public function setEntreTurnosDespues($value){ 
               $this->entre_turnos_despues = $value; 
-              $this->data->setBy("id = '".$this->id."'", "entre_turnos_despues = $value"); 
+              $this->data->getAnythingParams("UPDATE restriccion_condicional SET entre_turnos_despues = $1 WHERE id = $2;", array(PartModel::sqlValue($value, "number"), PartModel::sqlValue($this->id, "text"))); 
        } 
           /** 
             * @name: getEntreTurnosDespues 
@@ -1224,7 +1212,7 @@
             */ 
        public function setEntreTiempoAntes($value){ 
               $this->entre_tiempo_antes = $value; 
-              $this->data->setBy("id = '".$this->id."'", "entre_tiempo_antes = $value"); 
+              $this->data->getAnythingParams("UPDATE restriccion_condicional SET entre_tiempo_antes = $1 WHERE id = $2;", array(PartModel::sqlValue($value, "number"), PartModel::sqlValue($this->id, "text"))); 
        } 
           /** 
             * @name: getEntreTiempoAntes 
@@ -1245,7 +1233,7 @@
             */ 
        public function setEntreTiempoDespues($value){ 
               $this->entre_tiempo_despues = $value; 
-              $this->data->setBy("id = '".$this->id."'", "entre_tiempo_despues = $value"); 
+              $this->data->getAnythingParams("UPDATE restriccion_condicional SET entre_tiempo_despues = $1 WHERE id = $2;", array(PartModel::sqlValue($value, "number"), PartModel::sqlValue($this->id, "text"))); 
        } 
           /** 
             * @name: getEntreTiempoDespues 
@@ -1266,7 +1254,7 @@
             */ 
        public function setCantExa($value){ 
               $this->cant_exa = $value; 
-              $this->data->setBy("id = '".$this->id."'", "cant_exa = $value"); 
+              $this->data->getAnythingParams("UPDATE restriccion_condicional SET cant_exa = $1 WHERE id = $2;", array(PartModel::sqlValue($value, "number"), PartModel::sqlValue($this->id, "text"))); 
        } 
           /** 
             * @name: getCantExa 
@@ -1287,7 +1275,7 @@
             */ 
        public function setCantMin($value){ 
               $this->cant_min = $value; 
-              $this->data->setBy("id = '".$this->id."'", "cant_min = $value"); 
+              $this->data->getAnythingParams("UPDATE restriccion_condicional SET cant_min = $1 WHERE id = $2;", array(PartModel::sqlValue($value, "number"), PartModel::sqlValue($this->id, "text"))); 
        } 
           /** 
             * @name: getCantMin 
@@ -1308,7 +1296,7 @@
             */ 
        public function setCantMax($value){ 
               $this->cant_max = $value; 
-              $this->data->setBy("id = '".$this->id."'", "cant_max = $value"); 
+              $this->data->getAnythingParams("UPDATE restriccion_condicional SET cant_max = $1 WHERE id = $2;", array(PartModel::sqlValue($value, "number"), PartModel::sqlValue($this->id, "text"))); 
        } 
           /** 
             * @name: getCantMax 
@@ -1329,7 +1317,7 @@
             */ 
        public function setConsecBrigada($value){ 
               $this->consec_brigada = $value; 
-              $this->data->setBy("id = '".$this->id."'", "consec_brigada = '$value'"); 
+              $this->data->getAnythingParams("UPDATE restriccion_condicional SET consec_brigada = $1 WHERE id = $2;", array(PartModel::sqlValue($value, "text"), PartModel::sqlValue($this->id, "text"))); 
        } 
           /** 
             * @name: getConsecBrigada 
@@ -1350,7 +1338,7 @@
             */ 
        public function setConsecProfesor($value){ 
               $this->consec_profesor = $value; 
-              $this->data->setBy("id = '".$this->id."'", "consec_profesor = '$value'"); 
+              $this->data->getAnythingParams("UPDATE restriccion_condicional SET consec_profesor = $1 WHERE id = $2;", array(PartModel::sqlValue($value, "text"), PartModel::sqlValue($this->id, "text"))); 
        } 
           /** 
             * @name: getConsecProfesor 
@@ -1371,7 +1359,7 @@
             */ 
        public function setConsecLugar($value){ 
               $this->consec_lugar = $value; 
-              $this->data->setBy("id = '".$this->id."'", "consec_lugar = '$value'"); 
+              $this->data->getAnythingParams("UPDATE restriccion_condicional SET consec_lugar = $1 WHERE id = $2;", array(PartModel::sqlValue($value, "text"), PartModel::sqlValue($this->id, "text"))); 
        } 
           /** 
             * @name: getConsecLugar 
@@ -1392,7 +1380,7 @@
             */ 
        public function setConsecOtroRecurso($value){ 
               $this->consec_otro_recurso = $value; 
-              $this->data->setBy("id = '".$this->id."'", "consec_otro_recurso = '$value'"); 
+              $this->data->getAnythingParams("UPDATE restriccion_condicional SET consec_otro_recurso = $1 WHERE id = $2;", array(PartModel::sqlValue($value, "text"), PartModel::sqlValue($this->id, "text"))); 
        } 
           /** 
             * @name: getConsecOtroRecurso 
@@ -1413,7 +1401,7 @@
             */ 
        public function setConsecPeriodo($value){ 
               $this->consec_periodo = $value; 
-              $this->data->setBy("id = '".$this->id."'", "consec_periodo = '$value'"); 
+              $this->data->getAnythingParams("UPDATE restriccion_condicional SET consec_periodo = $1 WHERE id = $2;", array(PartModel::sqlValue($value, "text"), PartModel::sqlValue($this->id, "text"))); 
        } 
           /** 
             * @name: getConsecPeriodo 
@@ -1434,7 +1422,7 @@
             */ 
        public function setConsecDiaIni($value){ 
               $this->consec_dia_ini = $value; 
-              $this->data->setBy("id = '".$this->id."'", "consec_dia_ini = $value"); 
+              $this->data->getAnythingParams("UPDATE restriccion_condicional SET consec_dia_ini = $1 WHERE id = $2;", array(PartModel::sqlValue($value, "number"), PartModel::sqlValue($this->id, "text"))); 
        } 
           /** 
             * @name: getConsecDiaIni 
@@ -1455,7 +1443,7 @@
             */ 
        public function setConsecDiaFin($value){ 
               $this->consec_dia_fin = $value; 
-              $this->data->setBy("id = '".$this->id."'", "consec_dia_fin = $value"); 
+              $this->data->getAnythingParams("UPDATE restriccion_condicional SET consec_dia_fin = $1 WHERE id = $2;", array(PartModel::sqlValue($value, "number"), PartModel::sqlValue($this->id, "text"))); 
        } 
           /** 
             * @name: getConsecDiaFin 
@@ -1476,7 +1464,7 @@
             */ 
        public function setConsecTurnoIni($value){ 
               $this->consec_turno_ini = $value; 
-              $this->data->setBy("id = '".$this->id."'", "consec_turno_ini = $value"); 
+              $this->data->getAnythingParams("UPDATE restriccion_condicional SET consec_turno_ini = $1 WHERE id = $2;", array(PartModel::sqlValue($value, "number"), PartModel::sqlValue($this->id, "text"))); 
        } 
           /** 
             * @name: getConsecTurnoIni 
@@ -1497,7 +1485,7 @@
             */ 
        public function setConsecTurnoFin($value){ 
               $this->consec_turno_fin = $value; 
-              $this->data->setBy("id = '".$this->id."'", "consec_turno_fin = $value"); 
+              $this->data->getAnythingParams("UPDATE restriccion_condicional SET consec_turno_fin = $1 WHERE id = $2;", array(PartModel::sqlValue($value, "number"), PartModel::sqlValue($this->id, "text"))); 
        } 
           /** 
             * @name: getConsecTurnoFin 
@@ -1518,9 +1506,7 @@
             */ 
        public function setConsecDiscreto($value){ 
               $this->consec_discreto = $value; 
-               if ($value == true || $value == 1 || $value == "t") $value = "true"; 
-               else if ($value == true || $value == 0 || $value == "f") $value = "false"; 
-              $this->data->setBy("id = '".$this->id."'", "consec_discreto = $value"); 
+              $this->data->getAnythingParams("UPDATE restriccion_condicional SET consec_discreto = $1 WHERE id = $2;", array(PartModel::sqlValue($value, "bool"), PartModel::sqlValue($this->id, "text"))); 
        } 
           /** 
             * @name: getConsecDiscreto 
@@ -1541,9 +1527,7 @@
             */ 
        public function setSiempre($value){ 
               $this->siempre = $value; 
-               if ($value == true || $value == 1 || $value == "t") $value = "true"; 
-               else if ($value == true || $value == 0 || $value == "f") $value = "false"; 
-              $this->data->setBy("id = '".$this->id."'", "siempre = $value"); 
+              $this->data->getAnythingParams("UPDATE restriccion_condicional SET siempre = $1 WHERE id = $2;", array(PartModel::sqlValue($value, "bool"), PartModel::sqlValue($this->id, "text"))); 
        } 
           /** 
             * @name: getSiempre 
@@ -1564,7 +1548,7 @@
             */ 
        public function setValor($value){ 
               $this->valor = $value; 
-              $this->data->setBy("id = '".$this->id."'", "valor = $value"); 
+              $this->data->getAnythingParams("UPDATE restriccion_condicional SET valor = $1 WHERE id = $2;", array(PartModel::sqlValue($value, "number"), PartModel::sqlValue($this->id, "text"))); 
        } 
           /** 
             * @name: getValor 

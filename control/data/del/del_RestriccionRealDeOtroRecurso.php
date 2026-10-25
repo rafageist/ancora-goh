@@ -19,14 +19,14 @@ import("model.data.RestriccionRealDeOtroRecursoCollection");
    if (file_exists("../control/data/fdms/fdm_RestriccionRealDeOtroRecurso_por_actividad.php")) include "../control/data/fdms/fdm_RestriccionRealDeOtroRecurso_por_actividad.php"; 
    if (file_exists("../control/data/fdms/fdm_RestriccionRealDeOtroRecurso_actividad.php")) include "../control/data/fdms/fdm_RestriccionRealDeOtroRecurso_actividad.php"; 
    if (file_exists("../control/data/fdms/fdm_RestriccionRealDeOtroRecurso_objeto.php")) include "../control/data/fdms/fdm_RestriccionRealDeOtroRecurso_objeto.php"; 
-   if (isset($_POST["field_RestriccionRealDeOtroRecurso_restriccion_nominal"])) $restriccion_nominal = $_POST["field_RestriccionRealDeOtroRecurso_restriccion_nominal"]; else $restriccion_nominal = "null";
-   if (isset($_POST["field_RestriccionRealDeOtroRecurso_periodicidad"])) $periodicidad = $_POST["field_RestriccionRealDeOtroRecurso_periodicidad"]; else $periodicidad = "null";
-   if (isset($_POST["field_RestriccionRealDeOtroRecurso_fecha"])) $fecha = $_POST["field_RestriccionRealDeOtroRecurso_fecha"]; else $fecha = "null";
-   if (isset($_POST["field_RestriccionRealDeOtroRecurso_hora_inicial"])) $hora_inicial = $_POST["field_RestriccionRealDeOtroRecurso_hora_inicial"]; else $hora_inicial = "null";
-   if (isset($_POST["field_RestriccionRealDeOtroRecurso_hora_final"])) $hora_final = $_POST["field_RestriccionRealDeOtroRecurso_hora_final"]; else $hora_final = "null";
-   if (isset($_POST["field_RestriccionRealDeOtroRecurso_por_actividad"])) $por_actividad = $_POST["field_RestriccionRealDeOtroRecurso_por_actividad"]; else $por_actividad = "null";
-   if (isset($_POST["field_RestriccionRealDeOtroRecurso_actividad"])) $actividad = $_POST["field_RestriccionRealDeOtroRecurso_actividad"]; else $actividad = "null";
-   if (isset($_POST["field_RestriccionRealDeOtroRecurso_objeto"])) $objeto = $_POST["field_RestriccionRealDeOtroRecurso_objeto"]; else $objeto = "null";
+   if (isset($_POST["field_RestriccionRealDeOtroRecurso_restriccion_nominal"])) $restriccion_nominal = $_POST["field_RestriccionRealDeOtroRecurso_restriccion_nominal"]; else $restriccion_nominal = null;
+   if (isset($_POST["field_RestriccionRealDeOtroRecurso_periodicidad"])) $periodicidad = $_POST["field_RestriccionRealDeOtroRecurso_periodicidad"]; else $periodicidad = null;
+   if (isset($_POST["field_RestriccionRealDeOtroRecurso_fecha"])) $fecha = $_POST["field_RestriccionRealDeOtroRecurso_fecha"]; else $fecha = null;
+   if (isset($_POST["field_RestriccionRealDeOtroRecurso_hora_inicial"])) $hora_inicial = $_POST["field_RestriccionRealDeOtroRecurso_hora_inicial"]; else $hora_inicial = null;
+   if (isset($_POST["field_RestriccionRealDeOtroRecurso_hora_final"])) $hora_final = $_POST["field_RestriccionRealDeOtroRecurso_hora_final"]; else $hora_final = null;
+   if (isset($_POST["field_RestriccionRealDeOtroRecurso_por_actividad"])) $por_actividad = $_POST["field_RestriccionRealDeOtroRecurso_por_actividad"]; else $por_actividad = null;
+   if (isset($_POST["field_RestriccionRealDeOtroRecurso_actividad"])) $actividad = $_POST["field_RestriccionRealDeOtroRecurso_actividad"]; else $actividad = null;
+   if (isset($_POST["field_RestriccionRealDeOtroRecurso_objeto"])) $objeto = $_POST["field_RestriccionRealDeOtroRecurso_objeto"]; else $objeto = null;
 
  // Eliminando el objeto 
    $col = new RestriccionRealDeOtroRecursoCollection($dbconnection);

@@ -37,7 +37,7 @@
             */ 
        public function setBrigada($value){ 
               $this->brigada = $value; 
-              $this->data->setBy("brigada = '".$this->brigada."' AND grupo = '".$this->grupo."'", "brigada = '$value'"); 
+              $this->data->getAnythingParams("UPDATE brigada_de_grupo SET brigada = $1 WHERE brigada = $2 AND grupo = $3;", array(PartModel::sqlValue($value, "text"), PartModel::sqlValue($this->brigada, "text"), PartModel::sqlValue($this->grupo, "text"))); 
        } 
           /** 
             * @name: getBrigada 
@@ -58,7 +58,7 @@
             */ 
        public function setGrupo($value){ 
               $this->grupo = $value; 
-              $this->data->setBy("brigada = '".$this->brigada."' AND grupo = '".$this->grupo."'", "grupo = '$value'"); 
+              $this->data->getAnythingParams("UPDATE brigada_de_grupo SET grupo = $1 WHERE brigada = $2 AND grupo = $3;", array(PartModel::sqlValue($value, "text"), PartModel::sqlValue($this->brigada, "text"), PartModel::sqlValue($this->grupo, "text"))); 
        } 
           /** 
             * @name: getGrupo 

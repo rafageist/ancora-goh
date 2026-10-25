@@ -41,7 +41,7 @@
             */ 
        public function setOtroRecurso($value){ 
               $this->otro_recurso = $value; 
-              $this->data->setBy("otro_recurso = '".$this->otro_recurso."' AND actividad = '".$this->actividad."'", "otro_recurso = '$value'"); 
+              $this->data->getAnythingParams("UPDATE otros_recursos_usados SET otro_recurso = $1 WHERE otro_recurso = $2 AND actividad = $3;", array(PartModel::sqlValue($value, "text"), PartModel::sqlValue($this->otro_recurso, "text"), PartModel::sqlValue($this->actividad, "text"))); 
        } 
           /** 
             * @name: getOtroRecurso 
@@ -62,7 +62,7 @@
             */ 
        public function setActividad($value){ 
               $this->actividad = $value; 
-              $this->data->setBy("otro_recurso = '".$this->otro_recurso."' AND actividad = '".$this->actividad."'", "actividad = '$value'"); 
+              $this->data->getAnythingParams("UPDATE otros_recursos_usados SET actividad = $1 WHERE otro_recurso = $2 AND actividad = $3;", array(PartModel::sqlValue($value, "text"), PartModel::sqlValue($this->otro_recurso, "text"), PartModel::sqlValue($this->actividad, "text"))); 
        } 
           /** 
             * @name: getActividad 
@@ -83,7 +83,7 @@
             */ 
        public function setCreador($value){ 
               $this->creador = $value; 
-              $this->data->setBy("otro_recurso = '".$this->otro_recurso."' AND actividad = '".$this->actividad."'", "creador = '$value'"); 
+              $this->data->getAnythingParams("UPDATE otros_recursos_usados SET creador = $1 WHERE otro_recurso = $2 AND actividad = $3;", array(PartModel::sqlValue($value, "text"), PartModel::sqlValue($this->otro_recurso, "text"), PartModel::sqlValue($this->actividad, "text"))); 
        } 
           /** 
             * @name: getCreador 

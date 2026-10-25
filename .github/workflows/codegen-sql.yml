@@ -1,0 +1,43 @@
+# Generated SQL (issue #35): the cogePHP generator emits parameterized
+# queries. Unit tests on a recording database, then injection probes through
+# the generated model against a socket-only PostgreSQL 16 cluster created by
+# the job. Synthetic data only; no services, no secrets, no listener.
+name: Generated SQL (PHP 8.4 + PostgreSQL 16)
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  codegen-sql:
+    name: parameterized generated queries, injection probes
+    runs-on: ubuntu-24.04
+    env:
+      PG_BINDIR: /usr/lib/postgresql/16/bin
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: pgsql
+          coverage: none
+          tools: none
+
+      - name: Generated SQL unit tests (no database)
+        run: php dev/tests/codegen/run.php
+
+      - name: PostgreSQL 16 server binaries
+        run: |
+          if [ ! -x "$PG_BINDIR/initdb" ]; then
+            sudo apt-get update -q
+            sudo apt-get install -y -q postgresql-16
+          fi
+          sudo systemctl stop postgresql || true
+
+      - name: Injection probes against PostgreSQL
+        timeout-minutes: 10
+        run: dev/sql/tools/with-ephemeral-pg.sh dev/tests/codegen/pg-probes.sh

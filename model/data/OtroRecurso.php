@@ -52,7 +52,7 @@
             */ 
        public function setNombre($value){ 
               $this->nombre = $value; 
-              $this->data->setBy("id = '".$this->id."'", "nombre = '$value'"); 
+              $this->data->getAnythingParams("UPDATE otro_recurso SET nombre = $1 WHERE id = $2;", array(PartModel::sqlValue($value, "text"), PartModel::sqlValue($this->id, "text"))); 
        } 
           /** 
             * @name: getNombre 
@@ -73,7 +73,7 @@
             */ 
        public function setCreador($value){ 
               $this->creador = $value; 
-              $this->data->setBy("id = '".$this->id."'", "creador = '$value'"); 
+              $this->data->getAnythingParams("UPDATE otro_recurso SET creador = $1 WHERE id = $2;", array(PartModel::sqlValue($value, "text"), PartModel::sqlValue($this->id, "text"))); 
        } 
           /** 
             * @name: getCreador 
@@ -94,7 +94,7 @@
        } 
        public function getRestriccionCondicional(){ 
           $collection = new RestriccionCondicionalCollection($this->data->db);
-          $collection->Load(null,null,"*","consec_otro_recurso = '".$this->id."' AND otro_recurso = '".$this->id."'");
+          $collection->Load(null,null,"*","consec_otro_recurso = $1 AND otro_recurso = $2", array(PartModel::sqlValue($this->id, "text"), PartModel::sqlValue($this->id, "text")));
            return $collection;
        } 
        public function addHerenciaDeRestricciones($planificacion,$activa,$hijo_brigada,$hijo_profesor,$hijo_lugar,$padre_brigada,$padre_profesor,$padre_lugar){ 
@@ -105,7 +105,7 @@
        } 
        public function getHerenciaDeRestricciones(){ 
           $collection = new HerenciaDeRestriccionesCollection($this->data->db);
-          $collection->Load(null,null,"*","hijo_otro_recurso = '".$this->id."' AND padre_otro_recurso = '".$this->id."'");
+          $collection->Load(null,null,"*","hijo_otro_recurso = $1 AND padre_otro_recurso = $2", array(PartModel::sqlValue($this->id, "text"), PartModel::sqlValue($this->id, "text")));
            return $collection;
        } 
        public function addOtroRecursoParaActividad($grupo_de_recursos,$prioridad){ 
@@ -115,7 +115,7 @@
        } 
        public function getOtroRecursoParaActividad(){ 
           $collection = new OtroRecursoParaActividadCollection($this->data->db);
-          $collection->Load(null,null,"*","otro_recurso = '".$this->id."'");
+          $collection->Load(null,null,"*","otro_recurso = $1", array(PartModel::sqlValue($this->id, "text")));
            return $collection;
        } 
        public function addOtrosRecursosUsados($actividad,$creador){ 
@@ -125,7 +125,7 @@
        } 
        public function getOtrosRecursosUsados(){ 
           $collection = new OtrosRecursosUsadosCollection($this->data->db);
-          $collection->Load(null,null,"*","otro_recurso = '".$this->id."'");
+          $collection->Load(null,null,"*","otro_recurso = $1", array(PartModel::sqlValue($this->id, "text")));
            return $collection;
        } 
        public function addRestriccionRealDeOtroRecurso($restriccion_nominal,$periodicidad,$fecha,$hora_inicial,$hora_final,$por_actividad,$actividad){ 
@@ -135,7 +135,7 @@
        } 
        public function getRestriccionRealDeOtroRecurso(){ 
           $collection = new RestriccionRealDeOtroRecursoCollection($this->data->db);
-          $collection->Load(null,null,"*","objeto = '".$this->id."'");
+          $collection->Load(null,null,"*","objeto = $1", array(PartModel::sqlValue($this->id, "text")));
            return $collection;
        } 
        public function addRestriccionDeOtroRecurso($periodo,$dia,$turno,$valor,$por_actividad,$actividad){ 
@@ -145,7 +145,7 @@
        } 
        public function getRestriccionDeOtroRecurso(){ 
           $collection = new RestriccionDeOtroRecursoCollection($this->data->db);
-          $collection->Load(null,null,"*","otro_recurso = '".$this->id."'");
+          $collection->Load(null,null,"*","otro_recurso = $1", array(PartModel::sqlValue($this->id, "text")));
            return $collection;
        } 
 } 

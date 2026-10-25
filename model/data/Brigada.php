@@ -64,7 +64,7 @@
             */ 
        public function setDescripcion($value){ 
               $this->descripcion = $value; 
-              $this->data->setBy("id = '".$this->id."'", "descripcion = '$value'"); 
+              $this->data->getAnythingParams("UPDATE brigada SET descripcion = $1 WHERE id = $2;", array(PartModel::sqlValue($value, "text"), PartModel::sqlValue($this->id, "text"))); 
        } 
           /** 
             * @name: getDescripcion 
@@ -85,7 +85,7 @@
             */ 
        public function setEspecialidad($value){ 
               $this->especialidad = $value; 
-              $this->data->setBy("id = '".$this->id."'", "especialidad = '$value'"); 
+              $this->data->getAnythingParams("UPDATE brigada SET especialidad = $1 WHERE id = $2;", array(PartModel::sqlValue($value, "text"), PartModel::sqlValue($this->id, "text"))); 
        } 
           /** 
             * @name: getEspecialidad 
@@ -106,7 +106,7 @@
             */ 
        public function setNivel($value){ 
               $this->nivel = $value; 
-              $this->data->setBy("id = '".$this->id."'", "nivel = '$value'"); 
+              $this->data->getAnythingParams("UPDATE brigada SET nivel = $1 WHERE id = $2;", array(PartModel::sqlValue($value, "text"), PartModel::sqlValue($this->id, "text"))); 
        } 
           /** 
             * @name: getNivel 
@@ -127,7 +127,7 @@
             */ 
        public function setMatricula($value){ 
               $this->matricula = $value; 
-              $this->data->setBy("id = '".$this->id."'", "matricula = $value"); 
+              $this->data->getAnythingParams("UPDATE brigada SET matricula = $1 WHERE id = $2;", array(PartModel::sqlValue($value, "number"), PartModel::sqlValue($this->id, "text"))); 
        } 
           /** 
             * @name: getMatricula 
@@ -148,7 +148,7 @@
             */ 
        public function setCreador($value){ 
               $this->creador = $value; 
-              $this->data->setBy("id = '".$this->id."'", "creador = '$value'"); 
+              $this->data->getAnythingParams("UPDATE brigada SET creador = $1 WHERE id = $2;", array(PartModel::sqlValue($value, "text"), PartModel::sqlValue($this->id, "text"))); 
        } 
           /** 
             * @name: getCreador 
@@ -169,7 +169,7 @@
        } 
        public function getRestriccionCondicional(){ 
           $collection = new RestriccionCondicionalCollection($this->data->db);
-          $collection->Load(null,null,"*","brigada = '".$this->id."' AND consec_brigada = '".$this->id."'");
+          $collection->Load(null,null,"*","brigada = $1 AND consec_brigada = $2", array(PartModel::sqlValue($this->id, "text"), PartModel::sqlValue($this->id, "text")));
            return $collection;
        } 
        public function addBrigadaDeGrupo($grupo){ 
@@ -179,7 +179,7 @@
        } 
        public function getBrigadaDeGrupo(){ 
           $collection = new BrigadaDeGrupoCollection($this->data->db);
-          $collection->Load(null,null,"*","brigada = '".$this->id."'");
+          $collection->Load(null,null,"*","brigada = $1", array(PartModel::sqlValue($this->id, "text")));
            return $collection;
        } 
        public function addHerenciaDeRestricciones($planificacion,$activa,$hijo_profesor,$hijo_lugar,$hijo_otro_recurso,$padre_profesor,$padre_lugar,$padre_otro_recurso){ 
@@ -190,7 +190,7 @@
        } 
        public function getHerenciaDeRestricciones(){ 
           $collection = new HerenciaDeRestriccionesCollection($this->data->db);
-          $collection->Load(null,null,"*","hijo_brigada = '".$this->id."' AND padre_brigada = '".$this->id."'");
+          $collection->Load(null,null,"*","hijo_brigada = $1 AND padre_brigada = $2", array(PartModel::sqlValue($this->id, "text"), PartModel::sqlValue($this->id, "text")));
            return $collection;
        } 
        public function addHigieneParaBrigada($periodo,$gasto_maximo_diario){ 
@@ -200,7 +200,7 @@
        } 
        public function getHigieneParaBrigada(){ 
           $collection = new HigieneParaBrigadaCollection($this->data->db);
-          $collection->Load(null,null,"*","brigada = '".$this->id."'");
+          $collection->Load(null,null,"*","brigada = $1", array(PartModel::sqlValue($this->id, "text")));
            return $collection;
        } 
        public function addRestriccionDeBrigada($periodo,$dia,$turno,$valor,$por_actividad,$actividad){ 
@@ -210,7 +210,7 @@
        } 
        public function getRestriccionDeBrigada(){ 
           $collection = new RestriccionDeBrigadaCollection($this->data->db);
-          $collection->Load(null,null,"*","brigada = '".$this->id."'");
+          $collection->Load(null,null,"*","brigada = $1", array(PartModel::sqlValue($this->id, "text")));
            return $collection;
        } 
        public function addRestriccionRealDeBrigada($restriccion_nominal,$periodicidad,$fecha,$hora_inicial,$hora_final,$por_actividad,$actividad){ 
@@ -220,7 +220,7 @@
        } 
        public function getRestriccionRealDeBrigada(){ 
           $collection = new RestriccionRealDeBrigadaCollection($this->data->db);
-          $collection->Load(null,null,"*","objeto = '".$this->id."'");
+          $collection->Load(null,null,"*","objeto = $1", array(PartModel::sqlValue($this->id, "text")));
            return $collection;
        } 
 } 

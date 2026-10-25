@@ -16,12 +16,12 @@ import("model.data.RestriccionDeEspecialidadCollection");
    if (file_exists("../control/data/fdms/fdm_RestriccionDeEspecialidad_dia.php")) include "../control/data/fdms/fdm_RestriccionDeEspecialidad_dia.php"; 
    if (file_exists("../control/data/fdms/fdm_RestriccionDeEspecialidad_turno.php")) include "../control/data/fdms/fdm_RestriccionDeEspecialidad_turno.php"; 
    if (file_exists("../control/data/fdms/fdm_RestriccionDeEspecialidad_valor.php")) include "../control/data/fdms/fdm_RestriccionDeEspecialidad_valor.php"; 
-   if (isset($_POST["field_RestriccionDeEspecialidad_id"])) $id = $_POST["field_RestriccionDeEspecialidad_id"]; else $id = "null";
-   if (isset($_POST["field_RestriccionDeEspecialidad_especialidad"])) $especialidad = $_POST["field_RestriccionDeEspecialidad_especialidad"]; else $especialidad = "null";
-   if (isset($_POST["field_RestriccionDeEspecialidad_periodo"])) $periodo = $_POST["field_RestriccionDeEspecialidad_periodo"]; else $periodo = "null";
-   if (isset($_POST["field_RestriccionDeEspecialidad_dia"])) $dia = $_POST["field_RestriccionDeEspecialidad_dia"]; else $dia = "null";
-   if (isset($_POST["field_RestriccionDeEspecialidad_turno"])) $turno = $_POST["field_RestriccionDeEspecialidad_turno"]; else $turno = "null";
-   if (isset($_POST["field_RestriccionDeEspecialidad_valor"])) $valor = $_POST["field_RestriccionDeEspecialidad_valor"]; else $valor = "null";
+   if (isset($_POST["field_RestriccionDeEspecialidad_id"])) $id = $_POST["field_RestriccionDeEspecialidad_id"]; else $id = null;
+   if (isset($_POST["field_RestriccionDeEspecialidad_especialidad"])) $especialidad = $_POST["field_RestriccionDeEspecialidad_especialidad"]; else $especialidad = null;
+   if (isset($_POST["field_RestriccionDeEspecialidad_periodo"])) $periodo = $_POST["field_RestriccionDeEspecialidad_periodo"]; else $periodo = null;
+   if (isset($_POST["field_RestriccionDeEspecialidad_dia"])) $dia = $_POST["field_RestriccionDeEspecialidad_dia"]; else $dia = null;
+   if (isset($_POST["field_RestriccionDeEspecialidad_turno"])) $turno = $_POST["field_RestriccionDeEspecialidad_turno"]; else $turno = null;
+   if (isset($_POST["field_RestriccionDeEspecialidad_valor"])) $valor = $_POST["field_RestriccionDeEspecialidad_valor"]; else $valor = null;
 
  // Eliminando el objeto 
    $col = new RestriccionDeEspecialidadCollection($dbconnection);

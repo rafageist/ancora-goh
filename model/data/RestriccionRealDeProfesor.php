@@ -61,7 +61,7 @@
             */ 
        public function setRestriccionNominal($value){ 
               $this->restriccion_nominal = $value; 
-              $this->data->setBy("restriccion_nominal = '".$this->restriccion_nominal."' AND periodicidad = '".$this->periodicidad."'", "restriccion_nominal = '$value'"); 
+              $this->data->getAnythingParams("UPDATE restriccion_real_de_profesor SET restriccion_nominal = $1 WHERE restriccion_nominal = $2 AND periodicidad = $3;", array(PartModel::sqlValue($value, "text"), PartModel::sqlValue($this->restriccion_nominal, "text"), PartModel::sqlValue($this->periodicidad, "text"))); 
        } 
           /** 
             * @name: getRestriccionNominal 
@@ -82,7 +82,7 @@
             */ 
        public function setPeriodicidad($value){ 
               $this->periodicidad = $value; 
-              $this->data->setBy("restriccion_nominal = '".$this->restriccion_nominal."' AND periodicidad = '".$this->periodicidad."'", "periodicidad = '$value'"); 
+              $this->data->getAnythingParams("UPDATE restriccion_real_de_profesor SET periodicidad = $1 WHERE restriccion_nominal = $2 AND periodicidad = $3;", array(PartModel::sqlValue($value, "text"), PartModel::sqlValue($this->restriccion_nominal, "text"), PartModel::sqlValue($this->periodicidad, "text"))); 
        } 
           /** 
             * @name: getPeriodicidad 
@@ -103,7 +103,7 @@
             */ 
        public function setFecha($value){ 
               $this->fecha = $value; 
-              $this->data->setBy("restriccion_nominal = '".$this->restriccion_nominal."' AND periodicidad = '".$this->periodicidad."'", "fecha = $value"); 
+              $this->data->getAnythingParams("UPDATE restriccion_real_de_profesor SET fecha = $1 WHERE restriccion_nominal = $2 AND periodicidad = $3;", array(PartModel::sqlValue($value, "number"), PartModel::sqlValue($this->restriccion_nominal, "text"), PartModel::sqlValue($this->periodicidad, "text"))); 
        } 
           /** 
             * @name: getFecha 
@@ -124,7 +124,7 @@
             */ 
        public function setHoraInicial($value){ 
               $this->hora_inicial = $value; 
-              $this->data->setBy("restriccion_nominal = '".$this->restriccion_nominal."' AND periodicidad = '".$this->periodicidad."'", "hora_inicial = $value"); 
+              $this->data->getAnythingParams("UPDATE restriccion_real_de_profesor SET hora_inicial = $1 WHERE restriccion_nominal = $2 AND periodicidad = $3;", array(PartModel::sqlValue($value, "number"), PartModel::sqlValue($this->restriccion_nominal, "text"), PartModel::sqlValue($this->periodicidad, "text"))); 
        } 
           /** 
             * @name: getHoraInicial 
@@ -145,7 +145,7 @@
             */ 
        public function setHoraFinal($value){ 
               $this->hora_final = $value; 
-              $this->data->setBy("restriccion_nominal = '".$this->restriccion_nominal."' AND periodicidad = '".$this->periodicidad."'", "hora_final = $value"); 
+              $this->data->getAnythingParams("UPDATE restriccion_real_de_profesor SET hora_final = $1 WHERE restriccion_nominal = $2 AND periodicidad = $3;", array(PartModel::sqlValue($value, "number"), PartModel::sqlValue($this->restriccion_nominal, "text"), PartModel::sqlValue($this->periodicidad, "text"))); 
        } 
           /** 
             * @name: getHoraFinal 
@@ -166,9 +166,7 @@
             */ 
        public function setPorActividad($value){ 
               $this->por_actividad = $value; 
-               if ($value == true || $value == 1 || $value == "t") $value = "true"; 
-               else if ($value == true || $value == 0 || $value == "f") $value = "false"; 
-              $this->data->setBy("restriccion_nominal = '".$this->restriccion_nominal."' AND periodicidad = '".$this->periodicidad."'", "por_actividad = $value"); 
+              $this->data->getAnythingParams("UPDATE restriccion_real_de_profesor SET por_actividad = $1 WHERE restriccion_nominal = $2 AND periodicidad = $3;", array(PartModel::sqlValue($value, "bool"), PartModel::sqlValue($this->restriccion_nominal, "text"), PartModel::sqlValue($this->periodicidad, "text"))); 
        } 
           /** 
             * @name: getPorActividad 
@@ -189,7 +187,7 @@
             */ 
        public function setActividad($value){ 
               $this->actividad = $value; 
-              $this->data->setBy("restriccion_nominal = '".$this->restriccion_nominal."' AND periodicidad = '".$this->periodicidad."'", "actividad = '$value'"); 
+              $this->data->getAnythingParams("UPDATE restriccion_real_de_profesor SET actividad = $1 WHERE restriccion_nominal = $2 AND periodicidad = $3;", array(PartModel::sqlValue($value, "text"), PartModel::sqlValue($this->restriccion_nominal, "text"), PartModel::sqlValue($this->periodicidad, "text"))); 
        } 
           /** 
             * @name: getActividad 
@@ -210,7 +208,7 @@
             */ 
        public function setObjeto($value){ 
               $this->objeto = $value; 
-              $this->data->setBy("restriccion_nominal = '".$this->restriccion_nominal."' AND periodicidad = '".$this->periodicidad."'", "objeto = '$value'"); 
+              $this->data->getAnythingParams("UPDATE restriccion_real_de_profesor SET objeto = $1 WHERE restriccion_nominal = $2 AND periodicidad = $3;", array(PartModel::sqlValue($value, "text"), PartModel::sqlValue($this->restriccion_nominal, "text"), PartModel::sqlValue($this->periodicidad, "text"))); 
        } 
           /** 
             * @name: getObjeto 

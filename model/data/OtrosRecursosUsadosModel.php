@@ -17,6 +17,7 @@
             * @version: 1.0 
             */ 
           public function length($fieldcount="id"){ 
+              if ($fieldcount !== "*") PartModel::sqlIdentifier($fieldcount);
               $r = $this->getAnything("SELECT count($fieldcount) as c FROM otros_recursos_usados; "); 
               if (isset($r[0])) return $r[0]["c"];
               return 0; 
@@ -29,7 +30,7 @@
             */ 
           public function add($otro_recurso,$actividad,$creador){ 
              $replicas = array();
-             $r = $this->getAnything("INSERT INTO otros_recursos_usados (otro_recurso,actividad,creador) VALUES (".("'".$otro_recurso."'").",".("'".$actividad."'").",".("'".$creador."'").");"); 
+             $r = $this->getAnythingParams("INSERT INTO otros_recursos_usados (otro_recurso,actividad,creador) VALUES ($1,$2,$3);", array(PartModel::sqlValue($otro_recurso, "text"), PartModel::sqlValue($actividad, "text"), PartModel::sqlValue($creador, "text")));
              return $replicas; 
             }
           /** 
@@ -39,7 +40,7 @@
             * @version: 1.0 
             */ 
           public function remove($otro_recurso,$actividad){ 
-                  return $this->getAnything("DELETE FROM otros_recursos_usados WHERE  otro_recurso = '$otro_recurso'  AND  actividad = '$actividad' ;");
+                  return $this->getAnythingParams("DELETE FROM otros_recursos_usados WHERE otro_recurso = $1 AND actividad = $2;", array(PartModel::sqlValue($otro_recurso, "text"), PartModel::sqlValue($actividad, "text")));
             }
           /** 
             * @name: remove 
@@ -47,7 +48,8 @@
             * @updated: 20/06/10 10:40:55 
             * @version: 1.0 
             */ 
-          public function removeBy($where, $asobjects = false){
+          public function removeBy($where, $asobjects = false, $params = null){
+                 if (is_array($params)) return $this->getAnythingParams("DELETE FROM otros_recursos_usados WHERE $where;", $params, $asobjects);
                  return $this->getAnything("DELETE FROM otros_recursos_usados WHERE $where;",$asobjects);
           } 
           /** 
@@ -64,7 +66,8 @@
             * @updated: 20/06/10 10:40:55 
             * @version: 1.0 
             */ 
-          public function set($set, $asobjects = false){
+          public function set($set, $asobjects = false, $params = null){
+               if (is_array($params)) return $this->getAnythingParams("UPDATE otros_recursos_usados SET $set;", $params, $asobjects);
                return $this->getAnything("UPDATE otros_recursos_usados SET $set;",$asobjects);
           } 
           /** 
@@ -73,7 +76,8 @@
             * @updated: 20/06/10 10:40:55 
             * @version: 1.0 
             */ 
-          public function setBy($where, $set, $asobjects = false){
+          public function setBy($where, $set, $asobjects = false, $params = null){
+               if (is_array($params)) return $this->getAnythingParams("UPDATE otros_recursos_usados SET $set WHERE $where;", $params, $asobjects);
                return $this->getAnything("UPDATE otros_recursos_usados SET $set WHERE $where;");
           } 
           /** 
@@ -83,7 +87,7 @@
             * @version: 1.0 
             */ 
           public function get($otro_recurso,$actividad){ 
-                  $r = $this->getAnything("SELECT * FROM otros_recursos_usados WHERE  otro_recurso = '$otro_recurso'  AND  actividad = '$actividad' ;",true);
+                  $r = $this->getAnythingParams("SELECT * FROM otros_recursos_usados WHERE otro_recurso = $1 AND actividad = $2;", array(PartModel::sqlValue($otro_recurso, "text"), PartModel::sqlValue($actividad, "text")), true);
                    if (isset($r[0])) return $r[0]; else return false;
             }
           /** 
@@ -93,7 +97,8 @@
             * @version: 1.0 
             */ 
           public function getAll($fields = "*", $asobjects = false){
-               return $this->getAnything("SELECT $fields FROM otros_recursos_usados;",$asobjects);
+               $r = $this->getAnything("SELECT ".PartModel::sqlSelectList($fields)." FROM otros_recursos_usados;",$asobjects);
+               return $r;
           } 
           /** 
             * @name: getAllBy 
@@ -101,8 +106,11 @@
             * @updated: 20/06/10 10:40:55 
             * @version: 1.0 
             */ 
-          public function getAllBy($where, $fields = "*", $asobjects = false){
-               return $this->getAnything("SELECT $fields FROM otros_recursos_usados WHERE $where;",$asobjects);
+          public function getAllBy($where, $fields = "*", $asobjects = false, $params = null){
+               $sql = "SELECT ".PartModel::sqlSelectList($fields)." FROM otros_recursos_usados WHERE $where;";
+               if (is_array($params)) $r = $this->getAnythingParams($sql, $params, $asobjects);
+               else $r = $this->getAnything($sql, $asobjects);
+               return $r;
           } 
           /** 
             * @name: getLimit 
@@ -111,7 +119,8 @@
             * @version: 1.0 
             */ 
           public function getLimit($limit, $offset, $fields = "*", $asobjects = false){
-               return $this->getAnything("SELECT $fields FROM otros_recursos_usados LIMIT $limit OFFSET $offset;",$asobjects);
+               $r = $this->getAnythingParams("SELECT ".PartModel::sqlSelectList($fields)." FROM otros_recursos_usados LIMIT $1 OFFSET $2;", array(PartModel::sqlValue($limit, "number"), PartModel::sqlValue($offset, "number")), $asobjects);
+               return $r;
           } 
           /** 
             * @name: getLimitBy 
@@ -119,8 +128,13 @@
             * @updated: 20/06/10 10:40:55 
             * @version: 1.0 
             */ 
-          public function getLimitBy($limit, $offset, $where, $fields = "*", $asobjects = false){
-               return $this->getAnything("SELECT $fields FROM otros_recursos_usados WHERE $where LIMIT $limit OFFSET $offset;", $asobjects);
+          public function getLimitBy($limit, $offset, $where, $fields = "*", $asobjects = false, $params = null){
+               $params = is_array($params) ? array_values($params) : array();
+               $n = count($params);
+               $params[] = PartModel::sqlValue($limit, "number");
+               $params[] = PartModel::sqlValue($offset, "number");
+               $r = $this->getAnythingParams("SELECT ".PartModel::sqlSelectList($fields)." FROM otros_recursos_usados WHERE $where LIMIT \$".($n + 1)." OFFSET \$".($n + 2).";", $params, $asobjects);
+               return $r;
           } 
           /** 
             * @name: getJoin 
@@ -129,7 +143,7 @@
             * @version: 1.0 
             */ 
           public function getJoinWithActividad($fields = "*", $asobjects = false){
-               $r = $this->getAnything("SELECT $fields FROM otros_recursos_usados INNER JOIN public.actividad ON otros_recursos_usados.actividad = public.actividad.id ");
+               $r = $this->getAnything("SELECT ".PartModel::sqlSelectList($fields)." FROM otros_recursos_usados INNER JOIN public.actividad ON otros_recursos_usados.actividad = public.actividad.id;", $asobjects);
              return $r; 
           } 
           /** 
@@ -139,7 +153,7 @@
             * @version: 1.0 
             */ 
           public function getJoinWithSeguridadUsuario($fields = "*", $asobjects = false){
-               $r = $this->getAnything("SELECT $fields FROM otros_recursos_usados INNER JOIN seguridad.usuario ON otros_recursos_usados.creador = seguridad.usuario.id ");
+               $r = $this->getAnything("SELECT ".PartModel::sqlSelectList($fields)." FROM otros_recursos_usados INNER JOIN seguridad.usuario ON otros_recursos_usados.creador = seguridad.usuario.id;", $asobjects);
              return $r; 
           } 
           /** 
@@ -149,7 +163,7 @@
             * @version: 1.0 
             */ 
           public function getJoinWithOtroRecurso($fields = "*", $asobjects = false){
-               $r = $this->getAnything("SELECT $fields FROM otros_recursos_usados INNER JOIN public.otro_recurso ON otros_recursos_usados.otro_recurso = public.otro_recurso.id ");
+               $r = $this->getAnything("SELECT ".PartModel::sqlSelectList($fields)." FROM otros_recursos_usados INNER JOIN public.otro_recurso ON otros_recursos_usados.otro_recurso = public.otro_recurso.id;", $asobjects);
              return $r; 
           } 
           /** 
@@ -158,8 +172,10 @@
             * @updated: 20/06/10 10:40:55 
             * @version: 1.0 
             */ 
-          public function getJoinWithActividadBy($where, $fields = "*", $asobjects = false){
-               $r = $this->getAnything("SELECT $fields FROM otros_recursos_usados INNER JOIN public.actividad ON otros_recursos_usados.actividad = public.actividad.id  WHERE $where");
+          public function getJoinWithActividadBy($where, $fields = "*", $asobjects = false, $params = null){
+               $sql = "SELECT ".PartModel::sqlSelectList($fields)." FROM otros_recursos_usados INNER JOIN public.actividad ON otros_recursos_usados.actividad = public.actividad.id WHERE $where;";
+               if (is_array($params)) $r = $this->getAnythingParams($sql, $params, $asobjects);
+               else $r = $this->getAnything($sql, $asobjects);
              return $r; 
           } 
           /** 
@@ -168,8 +184,10 @@
             * @updated: 20/06/10 10:40:55 
             * @version: 1.0 
             */ 
-          public function getJoinWithSeguridadUsuarioBy($where, $fields = "*", $asobjects = false){
-               $r = $this->getAnything("SELECT $fields FROM otros_recursos_usados INNER JOIN seguridad.usuario ON otros_recursos_usados.creador = seguridad.usuario.id  WHERE $where");
+          public function getJoinWithSeguridadUsuarioBy($where, $fields = "*", $asobjects = false, $params = null){
+               $sql = "SELECT ".PartModel::sqlSelectList($fields)." FROM otros_recursos_usados INNER JOIN seguridad.usuario ON otros_recursos_usados.creador = seguridad.usuario.id WHERE $where;";
+               if (is_array($params)) $r = $this->getAnythingParams($sql, $params, $asobjects);
+               else $r = $this->getAnything($sql, $asobjects);
              return $r; 
           } 
           /** 
@@ -178,8 +196,10 @@
             * @updated: 20/06/10 10:40:55 
             * @version: 1.0 
             */ 
-          public function getJoinWithOtroRecursoBy($where, $fields = "*", $asobjects = false){
-               $r = $this->getAnything("SELECT $fields FROM otros_recursos_usados INNER JOIN public.otro_recurso ON otros_recursos_usados.otro_recurso = public.otro_recurso.id  WHERE $where");
+          public function getJoinWithOtroRecursoBy($where, $fields = "*", $asobjects = false, $params = null){
+               $sql = "SELECT ".PartModel::sqlSelectList($fields)." FROM otros_recursos_usados INNER JOIN public.otro_recurso ON otros_recursos_usados.otro_recurso = public.otro_recurso.id WHERE $where;";
+               if (is_array($params)) $r = $this->getAnythingParams($sql, $params, $asobjects);
+               else $r = $this->getAnything($sql, $asobjects);
              return $r; 
           } 
           /** 
@@ -188,80 +208,38 @@
             * @updated: 20/06/10 10:40:55 
             * @version: 1.0 
             */ 
-          public function getJoinWithActividadByPhrase($phrase, $where="true", $fields="*", $asobjects = false){
-               if ($fields == "*") {
-                    $fieldstabla = explode($this->fieldnames["otros_recursos_usados"]); 
-                    $fieldsforaneas = explode($this->fieldnames["actividad"]); 
-                    $ff = "";
-                    $i = 0;
-                    foreach ($fieldstabla as $f) {
-                        $i++; 
-                        if ($i>1) $ff = $ff.",";
-                        $ff = $ff.$f;
-                    }
-                    foreach ($fieldsforaneas as $f) {
-                        $i++; 
-                        if ($i>1) $ff = $ff.",";
-                        $ff = $ff.$f;
-                    }
-                    $fields=$ff;
-               }
-               $r = $this->getAnything("SELECT $fields FROM otros_recursos_usados INNER JOIN public.actividad ON otros_recursos_usados.actividad = actividad.id  WHERE ($where) AND (".$this->getWHEREPartOfSearchFrase($phrase, $fields).")");
+          public function getJoinWithActividadByPhrase($phrase, $where="true", $fields="*", $asobjects = false, $params = null){
+               if ($fields == "*") $fields = "otros_recursos_usados.otro_recurso,otros_recursos_usados.actividad,otros_recursos_usados.creador,public.actividad.id,public.actividad.plantilla,public.actividad.grupo,public.actividad.profesor,public.actividad.lugar,public.actividad.dia,public.actividad.turno,public.actividad.momento_de_colocacion,public.actividad.creador";
+               $params = is_array($params) ? array_values($params) : array();
+               $phrasepart = $this->getWHEREPartOfSearchFrase($phrase, $fields, $params);
+               $r = $this->getAnythingParams("SELECT ".PartModel::sqlSelectList($fields)." FROM otros_recursos_usados INNER JOIN public.actividad ON otros_recursos_usados.actividad = public.actividad.id WHERE ($where) AND ($phrasepart);", $params, $asobjects);
              return $r; 
-          }
+          } 
           /** 
             * @name: getJoin 
             * @desc: Inner join between "otros_recursos_usados" and "seguridad.usuario, by phrase ..." 
             * @updated: 20/06/10 10:40:55 
             * @version: 1.0 
             */ 
-          public function getJoinWithSeguridadUsuarioByPhrase($phrase, $where="true", $fields="*", $asobjects = false){
-               if ($fields == "*") {
-                    $fieldstabla = explode($this->fieldnames["otros_recursos_usados"]); 
-                    $fieldsforaneas = explode($this->fieldnames["usuario"]); 
-                    $ff = "";
-                    $i = 0;
-                    foreach ($fieldstabla as $f) {
-                        $i++; 
-                        if ($i>1) $ff = $ff.",";
-                        $ff = $ff.$f;
-                    }
-                    foreach ($fieldsforaneas as $f) {
-                        $i++; 
-                        if ($i>1) $ff = $ff.",";
-                        $ff = $ff.$f;
-                    }
-                    $fields=$ff;
-               }
-               $r = $this->getAnything("SELECT $fields FROM otros_recursos_usados INNER JOIN seguridad.usuario ON otros_recursos_usados.creador = usuario.id  WHERE ($where) AND (".$this->getWHEREPartOfSearchFrase($phrase, $fields).")");
+          public function getJoinWithSeguridadUsuarioByPhrase($phrase, $where="true", $fields="*", $asobjects = false, $params = null){
+               if ($fields == "*") $fields = "otros_recursos_usados.otro_recurso,otros_recursos_usados.actividad,otros_recursos_usados.creador,seguridad.usuario.id,seguridad.usuario.nombre,seguridad.usuario.info,seguridad.usuario.correo,seguridad.usuario.momento_ingreso,seguridad.usuario.nick,seguridad.usuario.contrasena";
+               $params = is_array($params) ? array_values($params) : array();
+               $phrasepart = $this->getWHEREPartOfSearchFrase($phrase, $fields, $params);
+               $r = $this->getAnythingParams("SELECT ".PartModel::sqlSelectList($fields)." FROM otros_recursos_usados INNER JOIN seguridad.usuario ON otros_recursos_usados.creador = seguridad.usuario.id WHERE ($where) AND ($phrasepart);", $params, $asobjects);
              return $r; 
-          }
+          } 
           /** 
             * @name: getJoin 
             * @desc: Inner join between "otros_recursos_usados" and "public.otro_recurso, by phrase ..." 
             * @updated: 20/06/10 10:40:55 
             * @version: 1.0 
             */ 
-          public function getJoinWithOtroRecursoByPhrase($phrase, $where="true", $fields="*", $asobjects = false){
-               if ($fields == "*") {
-                    $fieldstabla = explode($this->fieldnames["otros_recursos_usados"]); 
-                    $fieldsforaneas = explode($this->fieldnames["otro_recurso"]); 
-                    $ff = "";
-                    $i = 0;
-                    foreach ($fieldstabla as $f) {
-                        $i++; 
-                        if ($i>1) $ff = $ff.",";
-                        $ff = $ff.$f;
-                    }
-                    foreach ($fieldsforaneas as $f) {
-                        $i++; 
-                        if ($i>1) $ff = $ff.",";
-                        $ff = $ff.$f;
-                    }
-                    $fields=$ff;
-               }
-               $r = $this->getAnything("SELECT $fields FROM otros_recursos_usados INNER JOIN public.otro_recurso ON otros_recursos_usados.otro_recurso = otro_recurso.id  WHERE ($where) AND (".$this->getWHEREPartOfSearchFrase($phrase, $fields).")");
+          public function getJoinWithOtroRecursoByPhrase($phrase, $where="true", $fields="*", $asobjects = false, $params = null){
+               if ($fields == "*") $fields = "otros_recursos_usados.otro_recurso,otros_recursos_usados.actividad,otros_recursos_usados.creador,public.otro_recurso.id,public.otro_recurso.nombre,public.otro_recurso.creador";
+               $params = is_array($params) ? array_values($params) : array();
+               $phrasepart = $this->getWHEREPartOfSearchFrase($phrase, $fields, $params);
+               $r = $this->getAnythingParams("SELECT ".PartModel::sqlSelectList($fields)." FROM otros_recursos_usados INNER JOIN public.otro_recurso ON otros_recursos_usados.otro_recurso = public.otro_recurso.id WHERE ($where) AND ($phrasepart);", $params, $asobjects);
              return $r; 
-          }
+          } 
     } 
 ?>

@@ -18,16 +18,16 @@ if (file_exists("../control/data/fdms/fdm_Traza_accion.php")) include "../contro
 if (file_exists("../control/data/fdms/fdm_Traza_ip.php")) include "../control/data/fdms/fdm_Traza_ip.php"; 
 
 // Getting data from POST 
-   if (isset($_POST["field_Traza_fecha"])) $fecha = $_POST["field_Traza_fecha"]; else $fecha = "null";
-   if (isset($_POST["field_Traza_usuario"])) $usuario = $_POST["field_Traza_usuario"]; else $usuario = "null";
-   if (isset($_POST["field_Traza_accion"])) $accion = $_POST["field_Traza_accion"]; else $accion = "null";
-   if (isset($_POST["field_Traza_ip"])) $ip = $_POST["field_Traza_ip"]; else $ip = "null";
+   if (isset($_POST["field_Traza_fecha"])) $fecha = $_POST["field_Traza_fecha"]; else $fecha = null;
+   if (isset($_POST["field_Traza_usuario"])) $usuario = $_POST["field_Traza_usuario"]; else $usuario = null;
+   if (isset($_POST["field_Traza_accion"])) $accion = $_POST["field_Traza_accion"]; else $accion = null;
+   if (isset($_POST["field_Traza_ip"])) $ip = $_POST["field_Traza_ip"]; else $ip = null;
 
  // Actualizando el objeto 
    $col = new TrazaCollection($dbconnection);
    $obj = $col->getItem();
-$obj->setFecha($fecha);
-$obj->setUsuario($usuario);
-$obj->setAccion($accion);
-$obj->setIp($ip);
+if ($fecha !== null) $obj->setFecha($fecha);
+if ($usuario !== null) $obj->setUsuario($usuario);
+if ($accion !== null) $obj->setAccion($accion);
+if ($ip !== null) $obj->setIp($ip);
 ?>

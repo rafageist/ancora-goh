@@ -18,17 +18,17 @@ if (file_exists("../control/data/fdms/fdm_RestriccionDePeriodo_turno.php")) incl
 if (file_exists("../control/data/fdms/fdm_RestriccionDePeriodo_valor.php")) include "../control/data/fdms/fdm_RestriccionDePeriodo_valor.php"; 
 
 // Getting data from POST 
-   if (isset($_POST["field_RestriccionDePeriodo_id"])) $id = $_POST["field_RestriccionDePeriodo_id"]; else $id = "null";
-   if (isset($_POST["field_RestriccionDePeriodo_periodo"])) $periodo = $_POST["field_RestriccionDePeriodo_periodo"]; else $periodo = "null";
-   if (isset($_POST["field_RestriccionDePeriodo_dia"])) $dia = $_POST["field_RestriccionDePeriodo_dia"]; else $dia = "null";
-   if (isset($_POST["field_RestriccionDePeriodo_turno"])) $turno = $_POST["field_RestriccionDePeriodo_turno"]; else $turno = "null";
-   if (isset($_POST["field_RestriccionDePeriodo_valor"])) $valor = $_POST["field_RestriccionDePeriodo_valor"]; else $valor = "null";
+   if (isset($_POST["field_RestriccionDePeriodo_id"])) $id = $_POST["field_RestriccionDePeriodo_id"]; else $id = null;
+   if (isset($_POST["field_RestriccionDePeriodo_periodo"])) $periodo = $_POST["field_RestriccionDePeriodo_periodo"]; else $periodo = null;
+   if (isset($_POST["field_RestriccionDePeriodo_dia"])) $dia = $_POST["field_RestriccionDePeriodo_dia"]; else $dia = null;
+   if (isset($_POST["field_RestriccionDePeriodo_turno"])) $turno = $_POST["field_RestriccionDePeriodo_turno"]; else $turno = null;
+   if (isset($_POST["field_RestriccionDePeriodo_valor"])) $valor = $_POST["field_RestriccionDePeriodo_valor"]; else $valor = null;
 
  // Actualizando el objeto 
    $col = new RestriccionDePeriodoCollection($dbconnection);
    $obj = $col->getItem($id);
-$obj->setPeriodo($periodo);
-$obj->setDia($dia);
-$obj->setTurno($turno);
-$obj->setValor($valor);
+if ($periodo !== null) $obj->setPeriodo($periodo);
+if ($dia !== null) $obj->setDia($dia);
+if ($turno !== null) $obj->setTurno($turno);
+if ($valor !== null) $obj->setValor($valor);
 ?>

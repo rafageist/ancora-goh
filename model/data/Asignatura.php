@@ -60,7 +60,7 @@
             */ 
        public function setDescripcion($value){ 
               $this->descripcion = $value; 
-              $this->data->setBy("id = '".$this->id."'", "descripcion = '$value'"); 
+              $this->data->getAnythingParams("UPDATE asignatura SET descripcion = $1 WHERE id = $2;", array(PartModel::sqlValue($value, "text"), PartModel::sqlValue($this->id, "text"))); 
        } 
           /** 
             * @name: getDescripcion 
@@ -81,7 +81,7 @@
             */ 
        public function setEspecialidad($value){ 
               $this->especialidad = $value; 
-              $this->data->setBy("id = '".$this->id."'", "especialidad = '$value'"); 
+              $this->data->getAnythingParams("UPDATE asignatura SET especialidad = $1 WHERE id = $2;", array(PartModel::sqlValue($value, "text"), PartModel::sqlValue($this->id, "text"))); 
        } 
           /** 
             * @name: getEspecialidad 
@@ -102,7 +102,7 @@
             */ 
        public function setNivel($value){ 
               $this->nivel = $value; 
-              $this->data->setBy("id = '".$this->id."'", "nivel = '$value'"); 
+              $this->data->getAnythingParams("UPDATE asignatura SET nivel = $1 WHERE id = $2;", array(PartModel::sqlValue($value, "text"), PartModel::sqlValue($this->id, "text"))); 
        } 
           /** 
             * @name: getNivel 
@@ -123,7 +123,7 @@
             */ 
        public function setCreador($value){ 
               $this->creador = $value; 
-              $this->data->setBy("id = '".$this->id."'", "creador = '$value'"); 
+              $this->data->getAnythingParams("UPDATE asignatura SET creador = $1 WHERE id = $2;", array(PartModel::sqlValue($value, "text"), PartModel::sqlValue($this->id, "text"))); 
        } 
           /** 
             * @name: getCreador 
@@ -143,7 +143,7 @@
        } 
        public function getRestriccionCondicional(){ 
           $collection = new RestriccionCondicionalCollection($this->data->db);
-          $collection->Load(null,null,"*","asig = '".$this->id."'");
+          $collection->Load(null,null,"*","asig = $1", array(PartModel::sqlValue($this->id, "text")));
            return $collection;
        } 
        public function addDesglose($periodo,$min_dias,$max_dias,$respetar_orden,$mismo_dia){ 
@@ -153,7 +153,7 @@
        } 
        public function getDesglose(){ 
           $collection = new DesgloseCollection($this->data->db);
-          $collection->Load(null,null,"*","asignatura = '".$this->id."'");
+          $collection->Load(null,null,"*","asignatura = $1", array(PartModel::sqlValue($this->id, "text")));
            return $collection;
        } 
        public function addRestriccionDeAsignatura($periodo,$dia,$turno,$valor){ 
@@ -163,7 +163,7 @@
        } 
        public function getRestriccionDeAsignatura(){ 
           $collection = new RestriccionDeAsignaturaCollection($this->data->db);
-          $collection->Load(null,null,"*","asignatura = '".$this->id."'");
+          $collection->Load(null,null,"*","asignatura = $1", array(PartModel::sqlValue($this->id, "text")));
            return $collection;
        } 
        public function addRestriccionRealDeAsignatura($restriccion_nominal,$periodicidad,$fecha,$hora_inicial,$hora_final,$por_actividad,$actividad){ 
@@ -173,7 +173,7 @@
        } 
        public function getRestriccionRealDeAsignatura(){ 
           $collection = new RestriccionRealDeAsignaturaCollection($this->data->db);
-          $collection->Load(null,null,"*","objeto = '".$this->id."'");
+          $collection->Load(null,null,"*","objeto = $1", array(PartModel::sqlValue($this->id, "text")));
            return $collection;
        } 
 } 

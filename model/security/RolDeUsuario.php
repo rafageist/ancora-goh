@@ -37,7 +37,7 @@
             */ 
        public function setUsuario($value){ 
               $this->usuario = $value; 
-              $this->data->setBy("usuario = '".$this->usuario."' AND rol = '".$this->rol."'", "usuario = '$value'"); 
+              $this->data->getAnythingParams("UPDATE seguridad.rol_de_usuario SET usuario = $1 WHERE usuario = $2 AND rol = $3;", array(PartModel::sqlValue($value, "text"), PartModel::sqlValue($this->usuario, "text"), PartModel::sqlValue($this->rol, "text"))); 
        } 
           /** 
             * @name: getUsuario 
@@ -58,7 +58,7 @@
             */ 
        public function setRol($value){ 
               $this->rol = $value; 
-              $this->data->setBy("usuario = '".$this->usuario."' AND rol = '".$this->rol."'", "rol = '$value'"); 
+              $this->data->getAnythingParams("UPDATE seguridad.rol_de_usuario SET rol = $1 WHERE usuario = $2 AND rol = $3;", array(PartModel::sqlValue($value, "text"), PartModel::sqlValue($this->usuario, "text"), PartModel::sqlValue($this->rol, "text"))); 
        } 
           /** 
             * @name: getRol 

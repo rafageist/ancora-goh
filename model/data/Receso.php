@@ -41,7 +41,7 @@
             */ 
        public function setPeriodo($value){ 
               $this->periodo = $value; 
-              $this->data->setBy("periodo = '".$this->periodo."' AND despues_del_turno = ".$this->despues_del_turno."", "periodo = '$value'"); 
+              $this->data->getAnythingParams("UPDATE receso SET periodo = $1 WHERE periodo = $2 AND despues_del_turno = $3;", array(PartModel::sqlValue($value, "text"), PartModel::sqlValue($this->periodo, "text"), PartModel::sqlValue($this->despues_del_turno, "number"))); 
        } 
           /** 
             * @name: getPeriodo 
@@ -62,7 +62,7 @@
             */ 
        public function setDespuesDelTurno($value){ 
               $this->despues_del_turno = $value; 
-              $this->data->setBy("periodo = '".$this->periodo."' AND despues_del_turno = ".$this->despues_del_turno."", "despues_del_turno = $value"); 
+              $this->data->getAnythingParams("UPDATE receso SET despues_del_turno = $1 WHERE periodo = $2 AND despues_del_turno = $3;", array(PartModel::sqlValue($value, "number"), PartModel::sqlValue($this->periodo, "text"), PartModel::sqlValue($this->despues_del_turno, "number"))); 
        } 
           /** 
             * @name: getDespuesDelTurno 
@@ -83,7 +83,7 @@
             */ 
        public function setDuracion($value){ 
               $this->duracion = $value; 
-              $this->data->setBy("periodo = '".$this->periodo."' AND despues_del_turno = ".$this->despues_del_turno."", "duracion = $value"); 
+              $this->data->getAnythingParams("UPDATE receso SET duracion = $1 WHERE periodo = $2 AND despues_del_turno = $3;", array(PartModel::sqlValue($value, "number"), PartModel::sqlValue($this->periodo, "text"), PartModel::sqlValue($this->despues_del_turno, "number"))); 
        } 
           /** 
             * @name: getDuracion 

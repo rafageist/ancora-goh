@@ -19,19 +19,19 @@ if (file_exists("../control/data/fdms/fdm_RestriccionDeAsignatura_turno.php")) i
 if (file_exists("../control/data/fdms/fdm_RestriccionDeAsignatura_valor.php")) include "../control/data/fdms/fdm_RestriccionDeAsignatura_valor.php"; 
 
 // Getting data from POST 
-   if (isset($_POST["field_RestriccionDeAsignatura_id"])) $id = $_POST["field_RestriccionDeAsignatura_id"]; else $id = "null";
-   if (isset($_POST["field_RestriccionDeAsignatura_asignatura"])) $asignatura = $_POST["field_RestriccionDeAsignatura_asignatura"]; else $asignatura = "null";
-   if (isset($_POST["field_RestriccionDeAsignatura_periodo"])) $periodo = $_POST["field_RestriccionDeAsignatura_periodo"]; else $periodo = "null";
-   if (isset($_POST["field_RestriccionDeAsignatura_dia"])) $dia = $_POST["field_RestriccionDeAsignatura_dia"]; else $dia = "null";
-   if (isset($_POST["field_RestriccionDeAsignatura_turno"])) $turno = $_POST["field_RestriccionDeAsignatura_turno"]; else $turno = "null";
-   if (isset($_POST["field_RestriccionDeAsignatura_valor"])) $valor = $_POST["field_RestriccionDeAsignatura_valor"]; else $valor = "null";
+   if (isset($_POST["field_RestriccionDeAsignatura_id"])) $id = $_POST["field_RestriccionDeAsignatura_id"]; else $id = null;
+   if (isset($_POST["field_RestriccionDeAsignatura_asignatura"])) $asignatura = $_POST["field_RestriccionDeAsignatura_asignatura"]; else $asignatura = null;
+   if (isset($_POST["field_RestriccionDeAsignatura_periodo"])) $periodo = $_POST["field_RestriccionDeAsignatura_periodo"]; else $periodo = null;
+   if (isset($_POST["field_RestriccionDeAsignatura_dia"])) $dia = $_POST["field_RestriccionDeAsignatura_dia"]; else $dia = null;
+   if (isset($_POST["field_RestriccionDeAsignatura_turno"])) $turno = $_POST["field_RestriccionDeAsignatura_turno"]; else $turno = null;
+   if (isset($_POST["field_RestriccionDeAsignatura_valor"])) $valor = $_POST["field_RestriccionDeAsignatura_valor"]; else $valor = null;
 
  // Actualizando el objeto 
    $col = new RestriccionDeAsignaturaCollection($dbconnection);
    $obj = $col->getItem($id);
-$obj->setAsignatura($asignatura);
-$obj->setPeriodo($periodo);
-$obj->setDia($dia);
-$obj->setTurno($turno);
-$obj->setValor($valor);
+if ($asignatura !== null) $obj->setAsignatura($asignatura);
+if ($periodo !== null) $obj->setPeriodo($periodo);
+if ($dia !== null) $obj->setDia($dia);
+if ($turno !== null) $obj->setTurno($turno);
+if ($valor !== null) $obj->setValor($valor);
 ?>

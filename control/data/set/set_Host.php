@@ -16,12 +16,12 @@ if (file_exists("../control/data/fdms/fdm_Host_ip.php")) include "../control/dat
 if (file_exists("../control/data/fdms/fdm_Host_usuario.php")) include "../control/data/fdms/fdm_Host_usuario.php"; 
 
 // Getting data from POST 
-   if (isset($_POST["field_Host_ip"])) $ip = $_POST["field_Host_ip"]; else $ip = "null";
-   if (isset($_POST["field_Host_usuario"])) $usuario = $_POST["field_Host_usuario"]; else $usuario = "null";
+   if (isset($_POST["field_Host_ip"])) $ip = $_POST["field_Host_ip"]; else $ip = null;
+   if (isset($_POST["field_Host_usuario"])) $usuario = $_POST["field_Host_usuario"]; else $usuario = null;
 
  // Actualizando el objeto 
    $col = new HostCollection($dbconnection);
    $obj = $col->getItem($usuario,$ip);
-$obj->setIp($ip);
-$obj->setUsuario($usuario);
+if ($ip !== null) $obj->setIp($ip);
+if ($usuario !== null) $obj->setUsuario($usuario);
 ?>

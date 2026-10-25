@@ -14,10 +14,10 @@ import("model.data.LugarCollection");
    if (file_exists("../control/data/fdms/fdm_Lugar_nombre.php")) include "../control/data/fdms/fdm_Lugar_nombre.php"; 
    if (file_exists("../control/data/fdms/fdm_Lugar_capacidad.php")) include "../control/data/fdms/fdm_Lugar_capacidad.php"; 
    if (file_exists("../control/data/fdms/fdm_Lugar_creador.php")) include "../control/data/fdms/fdm_Lugar_creador.php"; 
-   if (isset($_POST["field_Lugar_id"])) $id = $_POST["field_Lugar_id"]; else $id = "null";
-   if (isset($_POST["field_Lugar_nombre"])) $nombre = $_POST["field_Lugar_nombre"]; else $nombre = "null";
-   if (isset($_POST["field_Lugar_capacidad"])) $capacidad = $_POST["field_Lugar_capacidad"]; else $capacidad = "null";
-   if (isset($_POST["field_Lugar_creador"])) $creador = $_POST["field_Lugar_creador"]; else $creador = "null";
+   if (isset($_POST["field_Lugar_id"])) $id = $_POST["field_Lugar_id"]; else $id = null;
+   if (isset($_POST["field_Lugar_nombre"])) $nombre = $_POST["field_Lugar_nombre"]; else $nombre = null;
+   if (isset($_POST["field_Lugar_capacidad"])) $capacidad = $_POST["field_Lugar_capacidad"]; else $capacidad = null;
+   if (isset($_POST["field_Lugar_creador"])) $creador = $_POST["field_Lugar_creador"]; else $creador = null;
 
  // Eliminando el objeto 
    $col = new LugarCollection($dbconnection);

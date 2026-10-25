@@ -17,13 +17,13 @@ import("model.data.PeriodoCollection");
    if (file_exists("../control/data/fdms/fdm_Periodo_hora_inicial.php")) include "../control/data/fdms/fdm_Periodo_hora_inicial.php"; 
    if (file_exists("../control/data/fdms/fdm_Periodo_duracion_del_turno.php")) include "../control/data/fdms/fdm_Periodo_duracion_del_turno.php"; 
    if (file_exists("../control/data/fdms/fdm_Periodo_planificacion.php")) include "../control/data/fdms/fdm_Periodo_planificacion.php"; 
-   if (isset($_POST["field_Periodo_id"])) $id = $_POST["field_Periodo_id"]; else $id = "null";
-   if (isset($_POST["field_Periodo_descripcion"])) $descripcion = $_POST["field_Periodo_descripcion"]; else $descripcion = "null";
-   if (isset($_POST["field_Periodo_cant_dias"])) $cant_dias = $_POST["field_Periodo_cant_dias"]; else $cant_dias = "null";
-   if (isset($_POST["field_Periodo_cant_turnos"])) $cant_turnos = $_POST["field_Periodo_cant_turnos"]; else $cant_turnos = "null";
-   if (isset($_POST["field_Periodo_hora_inicial"])) $hora_inicial = $_POST["field_Periodo_hora_inicial"]; else $hora_inicial = "null";
-   if (isset($_POST["field_Periodo_duracion_del_turno"])) $duracion_del_turno = $_POST["field_Periodo_duracion_del_turno"]; else $duracion_del_turno = "null";
-   if (isset($_POST["field_Periodo_planificacion"])) $planificacion = $_POST["field_Periodo_planificacion"]; else $planificacion = "null";
+   if (isset($_POST["field_Periodo_id"])) $id = $_POST["field_Periodo_id"]; else $id = null;
+   if (isset($_POST["field_Periodo_descripcion"])) $descripcion = $_POST["field_Periodo_descripcion"]; else $descripcion = null;
+   if (isset($_POST["field_Periodo_cant_dias"])) $cant_dias = $_POST["field_Periodo_cant_dias"]; else $cant_dias = null;
+   if (isset($_POST["field_Periodo_cant_turnos"])) $cant_turnos = $_POST["field_Periodo_cant_turnos"]; else $cant_turnos = null;
+   if (isset($_POST["field_Periodo_hora_inicial"])) $hora_inicial = $_POST["field_Periodo_hora_inicial"]; else $hora_inicial = null;
+   if (isset($_POST["field_Periodo_duracion_del_turno"])) $duracion_del_turno = $_POST["field_Periodo_duracion_del_turno"]; else $duracion_del_turno = null;
+   if (isset($_POST["field_Periodo_planificacion"])) $planificacion = $_POST["field_Periodo_planificacion"]; else $planificacion = null;
 
  // Eliminando el objeto 
    $col = new PeriodoCollection($dbconnection);

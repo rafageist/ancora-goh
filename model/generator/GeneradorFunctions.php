@@ -23,8 +23,7 @@
             * @version: 1.0 
             */ 
           public function FueCancelado($idesp,$idnivel,$idperiodo,$asobjects = false){ 
-               $sql = "select  generador.fue_cancelado('$idesp','$idnivel','$idperiodo')"; 
-               if ($asobjects == true) return $this->db->getAsObjects($sql);
-               return $this->db->getAsArray($sql);
+               $sql = "select  generador.fue_cancelado($1,$2,$3)"; 
+               return $this->getAnythingParams($sql, array(PartModel::sqlValue($idesp, "text"), PartModel::sqlValue($idnivel, "text"), PartModel::sqlValue($idperiodo, "text")), $asobjects);
            } 
      } 

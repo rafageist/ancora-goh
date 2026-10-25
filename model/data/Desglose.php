@@ -68,7 +68,7 @@
             */ 
        public function setAsignatura($value){ 
               $this->asignatura = $value; 
-              $this->data->setBy("id = '".$this->id."'", "asignatura = '$value'"); 
+              $this->data->getAnythingParams("UPDATE desglose SET asignatura = $1 WHERE id = $2;", array(PartModel::sqlValue($value, "text"), PartModel::sqlValue($this->id, "text"))); 
        } 
           /** 
             * @name: getAsignatura 
@@ -89,7 +89,7 @@
             */ 
        public function setPeriodo($value){ 
               $this->periodo = $value; 
-              $this->data->setBy("id = '".$this->id."'", "periodo = '$value'"); 
+              $this->data->getAnythingParams("UPDATE desglose SET periodo = $1 WHERE id = $2;", array(PartModel::sqlValue($value, "text"), PartModel::sqlValue($this->id, "text"))); 
        } 
           /** 
             * @name: getPeriodo 
@@ -110,7 +110,7 @@
             */ 
        public function setMinDias($value){ 
               $this->min_dias = $value; 
-              $this->data->setBy("id = '".$this->id."'", "min_dias = $value"); 
+              $this->data->getAnythingParams("UPDATE desglose SET min_dias = $1 WHERE id = $2;", array(PartModel::sqlValue($value, "number"), PartModel::sqlValue($this->id, "text"))); 
        } 
           /** 
             * @name: getMinDias 
@@ -131,7 +131,7 @@
             */ 
        public function setMaxDias($value){ 
               $this->max_dias = $value; 
-              $this->data->setBy("id = '".$this->id."'", "max_dias = $value"); 
+              $this->data->getAnythingParams("UPDATE desglose SET max_dias = $1 WHERE id = $2;", array(PartModel::sqlValue($value, "number"), PartModel::sqlValue($this->id, "text"))); 
        } 
           /** 
             * @name: getMaxDias 
@@ -152,9 +152,7 @@
             */ 
        public function setRespetarOrden($value){ 
               $this->respetar_orden = $value; 
-               if ($value == true || $value == 1 || $value == "t") $value = "true"; 
-               else if ($value == true || $value == 0 || $value == "f") $value = "false"; 
-              $this->data->setBy("id = '".$this->id."'", "respetar_orden = $value"); 
+              $this->data->getAnythingParams("UPDATE desglose SET respetar_orden = $1 WHERE id = $2;", array(PartModel::sqlValue($value, "bool"), PartModel::sqlValue($this->id, "text"))); 
        } 
           /** 
             * @name: getRespetarOrden 
@@ -175,9 +173,7 @@
             */ 
        public function setMismoDia($value){ 
               $this->mismo_dia = $value; 
-               if ($value == true || $value == 1 || $value == "t") $value = "true"; 
-               else if ($value == true || $value == 0 || $value == "f") $value = "false"; 
-              $this->data->setBy("id = '".$this->id."'", "mismo_dia = $value"); 
+              $this->data->getAnythingParams("UPDATE desglose SET mismo_dia = $1 WHERE id = $2;", array(PartModel::sqlValue($value, "bool"), PartModel::sqlValue($this->id, "text"))); 
        } 
           /** 
             * @name: getMismoDia 
@@ -197,7 +193,7 @@
        } 
        public function getPlantillaDeActividad(){ 
           $collection = new PlantillaDeActividadCollection($this->data->db);
-          $collection->Load(null,null,"*","desglose = '".$this->id."'");
+          $collection->Load(null,null,"*","desglose = $1", array(PartModel::sqlValue($this->id, "text")));
            return $collection;
        } 
 } 

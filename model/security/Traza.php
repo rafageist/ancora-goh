@@ -45,7 +45,7 @@
             */ 
        public function setFecha($value){ 
               $this->fecha = $value; 
-              $this->data->setBy("", "fecha = '$value'"); 
+              $this->data->getAnythingParams("UPDATE seguridad.traza SET fecha = $1 WHERE ;", array(PartModel::sqlValue($value, "text"), )); 
        } 
           /** 
             * @name: getFecha 
@@ -66,7 +66,7 @@
             */ 
        public function setUsuario($value){ 
               $this->usuario = $value; 
-              $this->data->setBy("", "usuario = '$value'"); 
+              $this->data->getAnythingParams("UPDATE seguridad.traza SET usuario = $1 WHERE ;", array(PartModel::sqlValue($value, "text"), )); 
        } 
           /** 
             * @name: getUsuario 
@@ -87,7 +87,7 @@
             */ 
        public function setAccion($value){ 
               $this->accion = $value; 
-              $this->data->setBy("", "accion = '$value'"); 
+              $this->data->getAnythingParams("UPDATE seguridad.traza SET accion = $1 WHERE ;", array(PartModel::sqlValue($value, "text"), )); 
        } 
           /** 
             * @name: getAccion 
@@ -108,7 +108,7 @@
             */ 
        public function setIp($value){ 
               $this->ip = $value; 
-              $this->data->setBy("", "ip = '$value'"); 
+              $this->data->getAnythingParams("UPDATE seguridad.traza SET ip = $1 WHERE ;", array(PartModel::sqlValue($value, "text"), )); 
        } 
           /** 
             * @name: getIp 

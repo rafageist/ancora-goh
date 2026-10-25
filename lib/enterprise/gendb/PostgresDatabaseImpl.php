@@ -57,6 +57,17 @@ class PostgresDatabaseImpl implements IDatabase{
         }
         
         /**
+          * Parameterized variant of getAsArray(): rows as arrays keyed by
+          * column name, an empty array when there are none, false when the
+          * query fails. (#35)
+          */
+        public function getAsArrayParams($sql, array $params){
+            $result = $this->queryParams($sql, $params);
+            if (!$result) return false;
+            return pg_fetch_all($result);
+        }
+
+        /**
          * Return array of objects. Each row as object.
          */
         public function getAsObjects($sql){

@@ -13,9 +13,9 @@ import("model.data.OtroRecursoCollection");
 // Tomando los valores del POST 
    if (file_exists("../control/data/fdms/fdm_OtroRecurso_nombre.php")) include "../control/data/fdms/fdm_OtroRecurso_nombre.php"; 
    if (file_exists("../control/data/fdms/fdm_OtroRecurso_creador.php")) include "../control/data/fdms/fdm_OtroRecurso_creador.php"; 
-   if (isset($_POST["field_OtroRecurso_id"])) $id = $_POST["field_OtroRecurso_id"]; else $id = "null";
-   if (isset($_POST["field_OtroRecurso_nombre"])) $nombre = $_POST["field_OtroRecurso_nombre"]; else $nombre = "null";
-   if (isset($_POST["field_OtroRecurso_creador"])) $creador = $_POST["field_OtroRecurso_creador"]; else $creador = "null";
+   if (isset($_POST["field_OtroRecurso_id"])) $id = $_POST["field_OtroRecurso_id"]; else $id = null;
+   if (isset($_POST["field_OtroRecurso_nombre"])) $nombre = $_POST["field_OtroRecurso_nombre"]; else $nombre = null;
+   if (isset($_POST["field_OtroRecurso_creador"])) $creador = $_POST["field_OtroRecurso_creador"]; else $creador = null;
 
  // Eliminando el objeto 
    $col = new OtroRecursoCollection($dbconnection);

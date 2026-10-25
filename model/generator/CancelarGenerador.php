@@ -41,7 +41,7 @@
             */ 
        public function setEspecialidad($value){ 
               $this->especialidad = $value; 
-              $this->data->setBy("especialidad = '".$this->especialidad."' AND nivel = '".$this->nivel."' AND periodo = '".$this->periodo."'", "especialidad = '$value'"); 
+              $this->data->getAnythingParams("UPDATE generador.cancelar SET especialidad = $1 WHERE especialidad = $2 AND nivel = $3 AND periodo = $4;", array(PartModel::sqlValue($value, "text"), PartModel::sqlValue($this->especialidad, "text"), PartModel::sqlValue($this->nivel, "text"), PartModel::sqlValue($this->periodo, "text"))); 
        } 
           /** 
             * @name: getEspecialidad 
@@ -62,7 +62,7 @@
             */ 
        public function setNivel($value){ 
               $this->nivel = $value; 
-              $this->data->setBy("especialidad = '".$this->especialidad."' AND nivel = '".$this->nivel."' AND periodo = '".$this->periodo."'", "nivel = '$value'"); 
+              $this->data->getAnythingParams("UPDATE generador.cancelar SET nivel = $1 WHERE especialidad = $2 AND nivel = $3 AND periodo = $4;", array(PartModel::sqlValue($value, "text"), PartModel::sqlValue($this->especialidad, "text"), PartModel::sqlValue($this->nivel, "text"), PartModel::sqlValue($this->periodo, "text"))); 
        } 
           /** 
             * @name: getNivel 
@@ -83,7 +83,7 @@
             */ 
        public function setPeriodo($value){ 
               $this->periodo = $value; 
-              $this->data->setBy("especialidad = '".$this->especialidad."' AND nivel = '".$this->nivel."' AND periodo = '".$this->periodo."'", "periodo = '$value'"); 
+              $this->data->getAnythingParams("UPDATE generador.cancelar SET periodo = $1 WHERE especialidad = $2 AND nivel = $3 AND periodo = $4;", array(PartModel::sqlValue($value, "text"), PartModel::sqlValue($this->especialidad, "text"), PartModel::sqlValue($this->nivel, "text"), PartModel::sqlValue($this->periodo, "text"))); 
        } 
           /** 
             * @name: getPeriodo 

@@ -68,7 +68,7 @@
             */ 
        public function setNombre($value){ 
               $this->nombre = $value; 
-              $this->data->setBy("id = '".$this->id."'", "nombre = '$value'"); 
+              $this->data->getAnythingParams("UPDATE seguridad.usuario SET nombre = $1 WHERE id = $2;", array(PartModel::sqlValue($value, "text"), PartModel::sqlValue($this->id, "text"))); 
        } 
           /** 
             * @name: getNombre 
@@ -89,7 +89,7 @@
             */ 
        public function setInfo($value){ 
               $this->info = $value; 
-              $this->data->setBy("id = '".$this->id."'", "info = '$value'"); 
+              $this->data->getAnythingParams("UPDATE seguridad.usuario SET info = $1 WHERE id = $2;", array(PartModel::sqlValue($value, "text"), PartModel::sqlValue($this->id, "text"))); 
        } 
           /** 
             * @name: getInfo 
@@ -110,7 +110,7 @@
             */ 
        public function setCorreo($value){ 
               $this->correo = $value; 
-              $this->data->setBy("id = '".$this->id."'", "correo = '$value'"); 
+              $this->data->getAnythingParams("UPDATE seguridad.usuario SET correo = $1 WHERE id = $2;", array(PartModel::sqlValue($value, "text"), PartModel::sqlValue($this->id, "text"))); 
        } 
           /** 
             * @name: getCorreo 
@@ -131,7 +131,7 @@
             */ 
        public function setMomentoIngreso($value){ 
               $this->momento_ingreso = $value; 
-              $this->data->setBy("id = '".$this->id."'", "momento_ingreso = $value"); 
+              $this->data->getAnythingParams("UPDATE seguridad.usuario SET momento_ingreso = $1 WHERE id = $2;", array(PartModel::sqlValue($value, "number"), PartModel::sqlValue($this->id, "text"))); 
        } 
           /** 
             * @name: getMomentoIngreso 
@@ -152,7 +152,7 @@
             */ 
        public function setNick($value){ 
               $this->nick = $value; 
-              $this->data->setBy("id = '".$this->id."'", "nick = '$value'"); 
+              $this->data->getAnythingParams("UPDATE seguridad.usuario SET nick = $1 WHERE id = $2;", array(PartModel::sqlValue($value, "text"), PartModel::sqlValue($this->id, "text"))); 
        } 
           /** 
             * @name: getNick 
@@ -175,7 +175,7 @@
               if (!is_string($value) || $value === '') return false; 
               $value = PasswordUtil::hash($value); 
               $this->contrasena = $value; 
-              $this->data->setBy("id = '".$this->id."'", "contrasena = '$value'"); 
+              $this->data->getAnythingParams("UPDATE seguridad.usuario SET contrasena = $1 WHERE id = $2;", array($value, PartModel::sqlValue($this->id, "text"))); 
        } 
           /** 
             * @name: getContrasena 
@@ -195,7 +195,7 @@
        } 
        public function getBrigada(){ 
           $collection = new BrigadaCollection($this->data->db);
-          $collection->Load(null,null,"*","creador = '".$this->id."'");
+          $collection->Load(null,null,"*","creador = $1", array(PartModel::sqlValue($this->id, "text")));
            return $collection;
        } 
        public function addClasificacionDeActividad($descripcion,$duracion,$prioridad,$gasto){ 
@@ -205,7 +205,7 @@
        } 
        public function getClasificacionDeActividad(){ 
           $collection = new ClasificacionDeActividadCollection($this->data->db);
-          $collection->Load(null,null,"*","creador = '".$this->id."'");
+          $collection->Load(null,null,"*","creador = $1", array(PartModel::sqlValue($this->id, "text")));
            return $collection;
        } 
        public function addActividad($plantilla,$grupo,$profesor,$lugar,$dia,$turno,$momento_de_colocacion){ 
@@ -215,7 +215,7 @@
        } 
        public function getActividad(){ 
           $collection = new ActividadCollection($this->data->db);
-          $collection->Load(null,null,"*","creador = '".$this->id."'");
+          $collection->Load(null,null,"*","creador = $1", array(PartModel::sqlValue($this->id, "text")));
            return $collection;
        } 
        public function addLugar($nombre,$capacidad){ 
@@ -225,7 +225,7 @@
        } 
        public function getLugar(){ 
           $collection = new LugarCollection($this->data->db);
-          $collection->Load(null,null,"*","creador = '".$this->id."'");
+          $collection->Load(null,null,"*","creador = $1", array(PartModel::sqlValue($this->id, "text")));
            return $collection;
        } 
        public function addOtrosRecursosUsados($otro_recurso,$actividad){ 
@@ -235,7 +235,7 @@
        } 
        public function getOtrosRecursosUsados(){ 
           $collection = new OtrosRecursosUsadosCollection($this->data->db);
-          $collection->Load(null,null,"*","creador = '".$this->id."'");
+          $collection->Load(null,null,"*","creador = $1", array(PartModel::sqlValue($this->id, "text")));
            return $collection;
        } 
        public function addPlanificacion($descripcion,$fecha_inicial,$cant_dias,$activa){ 
@@ -245,7 +245,7 @@
        } 
        public function getPlanificacion(){ 
           $collection = new PlanificacionCollection($this->data->db);
-          $collection->Load(null,null,"*","creador = '".$this->id."'");
+          $collection->Load(null,null,"*","creador = $1", array(PartModel::sqlValue($this->id, "text")));
            return $collection;
        } 
        public function addNivel($descripcion){ 
@@ -255,7 +255,7 @@
        } 
        public function getNivel(){ 
           $collection = new NivelCollection($this->data->db);
-          $collection->Load(null,null,"*","creador = '".$this->id."'");
+          $collection->Load(null,null,"*","creador = $1", array(PartModel::sqlValue($this->id, "text")));
            return $collection;
        } 
        public function addProfesor($nombre){ 
@@ -265,7 +265,7 @@
        } 
        public function getProfesor(){ 
           $collection = new ProfesorCollection($this->data->db);
-          $collection->Load(null,null,"*","creador = '".$this->id."'");
+          $collection->Load(null,null,"*","creador = $1", array(PartModel::sqlValue($this->id, "text")));
            return $collection;
        } 
        public function addOtroRecurso($nombre){ 
@@ -275,7 +275,7 @@
        } 
        public function getOtroRecurso(){ 
           $collection = new OtroRecursoCollection($this->data->db);
-          $collection->Load(null,null,"*","creador = '".$this->id."'");
+          $collection->Load(null,null,"*","creador = $1", array(PartModel::sqlValue($this->id, "text")));
            return $collection;
        } 
        public function addAsignatura($descripcion,$especialidad,$nivel){ 
@@ -285,7 +285,7 @@
        } 
        public function getAsignatura(){ 
           $collection = new AsignaturaCollection($this->data->db);
-          $collection->Load(null,null,"*","creador = '".$this->id."'");
+          $collection->Load(null,null,"*","creador = $1", array(PartModel::sqlValue($this->id, "text")));
            return $collection;
        } 
        public function addEspecialidad($descripcion){ 
@@ -295,7 +295,7 @@
        } 
        public function getEspecialidad(){ 
           $collection = new EspecialidadCollection($this->data->db);
-          $collection->Load(null,null,"*","creador = '".$this->id."'");
+          $collection->Load(null,null,"*","creador = $1", array(PartModel::sqlValue($this->id, "text")));
            return $collection;
        } 
        public function addOtroGrupoDeRecursosParaActividad($plantilla,$prioridad,$necesarios,$imprescindibles){ 
@@ -305,7 +305,7 @@
        } 
        public function getOtroGrupoDeRecursosParaActividad(){ 
           $collection = new OtroGrupoDeRecursosParaActividadCollection($this->data->db);
-          $collection->Load(null,null,"*","creador = '".$this->id."'");
+          $collection->Load(null,null,"*","creador = $1", array(PartModel::sqlValue($this->id, "text")));
            return $collection;
        } 
        public function addSeguridadHost($ip){ 
@@ -315,7 +315,7 @@
        } 
        public function getSeguridadHost(){ 
           $collection = new SeguridadHostCollection($this->data->db);
-          $collection->Load(null,null,"*","usuario = '".$this->id."'");
+          $collection->Load(null,null,"*","usuario = $1", array(PartModel::sqlValue($this->id, "text")));
            return $collection;
        } 
        public function addSeguridadRolDeUsuario($rol){ 
@@ -325,7 +325,7 @@
        } 
        public function getSeguridadRolDeUsuario(){ 
           $collection = new SeguridadRolDeUsuarioCollection($this->data->db);
-          $collection->Load(null,null,"*","usuario = '".$this->id."'");
+          $collection->Load(null,null,"*","usuario = $1", array(PartModel::sqlValue($this->id, "text")));
            return $collection;
        } 
        public function addSeguridadTraza($fecha,$accion,$ip){ 
@@ -335,7 +335,7 @@
        } 
        public function getSeguridadTraza(){ 
           $collection = new SeguridadTrazaCollection($this->data->db);
-          $collection->Load(null,null,"*","usuario = '".$this->id."'");
+          $collection->Load(null,null,"*","usuario = $1", array(PartModel::sqlValue($this->id, "text")));
            return $collection;
        } 
 } 

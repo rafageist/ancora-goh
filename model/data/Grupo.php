@@ -64,7 +64,7 @@
             */ 
        public function setClasificacion($value){ 
               $this->clasificacion = $value; 
-              $this->data->setBy("id = '".$this->id."'", "clasificacion = '$value'"); 
+              $this->data->getAnythingParams("UPDATE grupo SET clasificacion = $1 WHERE id = $2;", array(PartModel::sqlValue($value, "text"), PartModel::sqlValue($this->id, "text"))); 
        } 
           /** 
             * @name: getClasificacion 
@@ -85,7 +85,7 @@
             */ 
        public function setDescripcion($value){ 
               $this->descripcion = $value; 
-              $this->data->setBy("id = '".$this->id."'", "descripcion = '$value'"); 
+              $this->data->getAnythingParams("UPDATE grupo SET descripcion = $1 WHERE id = $2;", array(PartModel::sqlValue($value, "text"), PartModel::sqlValue($this->id, "text"))); 
        } 
           /** 
             * @name: getDescripcion 
@@ -106,7 +106,7 @@
             */ 
        public function setEspecialidad($value){ 
               $this->especialidad = $value; 
-              $this->data->setBy("id = '".$this->id."'", "especialidad = '$value'"); 
+              $this->data->getAnythingParams("UPDATE grupo SET especialidad = $1 WHERE id = $2;", array(PartModel::sqlValue($value, "text"), PartModel::sqlValue($this->id, "text"))); 
        } 
           /** 
             * @name: getEspecialidad 
@@ -127,7 +127,7 @@
             */ 
        public function setNivel($value){ 
               $this->nivel = $value; 
-              $this->data->setBy("id = '".$this->id."'", "nivel = '$value'"); 
+              $this->data->getAnythingParams("UPDATE grupo SET nivel = $1 WHERE id = $2;", array(PartModel::sqlValue($value, "text"), PartModel::sqlValue($this->id, "text"))); 
        } 
           /** 
             * @name: getNivel 
@@ -148,7 +148,7 @@
             */ 
        public function setPlanificacion($value){ 
               $this->planificacion = $value; 
-              $this->data->setBy("id = '".$this->id."'", "planificacion = '$value'"); 
+              $this->data->getAnythingParams("UPDATE grupo SET planificacion = $1 WHERE id = $2;", array(PartModel::sqlValue($value, "text"), PartModel::sqlValue($this->id, "text"))); 
        } 
           /** 
             * @name: getPlanificacion 
@@ -168,7 +168,7 @@
        } 
        public function getActividad(){ 
           $collection = new ActividadCollection($this->data->db);
-          $collection->Load(null,null,"*","grupo = '".$this->id."'");
+          $collection->Load(null,null,"*","grupo = $1", array(PartModel::sqlValue($this->id, "text")));
            return $collection;
        } 
        public function addBrigadaDeGrupo($brigada){ 
@@ -178,7 +178,7 @@
        } 
        public function getBrigadaDeGrupo(){ 
           $collection = new BrigadaDeGrupoCollection($this->data->db);
-          $collection->Load(null,null,"*","grupo = '".$this->id."'");
+          $collection->Load(null,null,"*","grupo = $1", array(PartModel::sqlValue($this->id, "text")));
            return $collection;
        } 
        public function addLugarFijo($lugar){ 
@@ -188,7 +188,7 @@
        } 
        public function getLugarFijo(){ 
           $collection = new LugarFijoCollection($this->data->db);
-          $collection->Load(null,null,"*","grupo = '".$this->id."'");
+          $collection->Load(null,null,"*","grupo = $1", array(PartModel::sqlValue($this->id, "text")));
            return $collection;
        } 
        public function addProfesorParaGrupo($profesor_para_actividad){ 
@@ -198,7 +198,7 @@
        } 
        public function getProfesorParaGrupo(){ 
           $collection = new ProfesorParaGrupoCollection($this->data->db);
-          $collection->Load(null,null,"*","grupo = '".$this->id."'");
+          $collection->Load(null,null,"*","grupo = $1", array(PartModel::sqlValue($this->id, "text")));
            return $collection;
        } 
        public function addAccesoProhibido($lugar){ 
@@ -208,7 +208,7 @@
        } 
        public function getAccesoProhibido(){ 
           $collection = new AccesoProhibidoCollection($this->data->db);
-          $collection->Load(null,null,"*","grupo = '".$this->id."'");
+          $collection->Load(null,null,"*","grupo = $1", array(PartModel::sqlValue($this->id, "text")));
            return $collection;
        } 
 } 

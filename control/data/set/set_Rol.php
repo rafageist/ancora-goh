@@ -16,12 +16,12 @@ if (file_exists("../control/data/fdms/fdm_Rol_nombre.php")) include "../control/
 if (file_exists("../control/data/fdms/fdm_Rol_descripcion.php")) include "../control/data/fdms/fdm_Rol_descripcion.php"; 
 
 // Getting data from POST 
-   if (isset($_POST["field_Rol_nombre"])) $nombre = $_POST["field_Rol_nombre"]; else $nombre = "null";
-   if (isset($_POST["field_Rol_descripcion"])) $descripcion = $_POST["field_Rol_descripcion"]; else $descripcion = "null";
+   if (isset($_POST["field_Rol_nombre"])) $nombre = $_POST["field_Rol_nombre"]; else $nombre = null;
+   if (isset($_POST["field_Rol_descripcion"])) $descripcion = $_POST["field_Rol_descripcion"]; else $descripcion = null;
 
  // Actualizando el objeto 
    $col = new RolCollection($dbconnection);
    $obj = $col->getItem($nombre);
-$obj->setNombre($nombre);
-$obj->setDescripcion($descripcion);
+if ($nombre !== null) $obj->setNombre($nombre);
+if ($descripcion !== null) $obj->setDescripcion($descripcion);
 ?>

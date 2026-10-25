@@ -680,15 +680,19 @@ test ( 'model: UsuarioModel::add and Usuario::setContrasena no longer store md5/
 	}
 	$m = new UsuarioModel ( $dbconnection );
 	$m->add ( 'N', 'I', 'C', 0, 'nick', 'pw-model' );
-	$sql = $dbconnection->calls [0] ['sql'];
-	check ( strpos ( $sql, md5 ( 'pw-model' ) ) === false && strpos ( $sql, 'pw-model' ) === false, 'no md5/plain password in INSERT' );
-	check ( preg_match ( "/'(\\$2y\\$[^']+)'\\);$/", $sql, $mm ) === 1 && password_verify ( 'pw-model', $mm [1] ), 'password_hash in INSERT' );
+	// #35: the INSERT is parameterized; the hash is the last bound value
+	$c = $dbconnection->calls [0];
+	$all = $c ['sql'] . json_encode ( $c ['params'] );
+	check ( strpos ( $all, md5 ( 'pw-model' ) ) === false && strpos ( $all, 'pw-model' ) === false, 'no md5/plain password in INSERT' );
+	check ( $c ['sql'] === 'INSERT INTO seguridad.usuario (id,nombre,info,correo,momento_ingreso,nick,contrasena) VALUES ($1,$2,$3,$4,$5,$6,$7);', 'INSERT text is constant' );
+	check ( password_verify ( 'pw-model', ( string ) end ( $c ['params'] ) ), 'password_hash in INSERT' );
 
 	$dbconnection->calls = array ();
 	$u = new Usuario ( 'N', 'I', 'C', 0, 'nick', 'x', 'fixture-id', false, $m, false );
 	$u->setContrasena ( 'pw-set' );
-	$sql = $dbconnection->calls [0] ['sql'];
-	check ( strpos ( $sql, 'pw-set' ) === false && password_verify ( 'pw-set', $u->contrasena ), 'setter hashes' );
+	$c = $dbconnection->calls [0];
+	check ( strpos ( $c ['sql'] . json_encode ( $c ['params'] ), 'pw-set' ) === false && password_verify ( 'pw-set', $u->contrasena ), 'setter hashes' );
+	check ( $c ['params'] === array ($u->contrasena, 'fixture-id' ), 'setter binds the hash and the key' );
 	$dbconnection->calls = array ();
 	check ( $u->setContrasena ( '' ) === false && count ( $dbconnection->calls ) == 0, 'empty password not stored' );
 } );

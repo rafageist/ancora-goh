@@ -52,7 +52,7 @@
             */ 
        public function setNombre($value){ 
               $this->nombre = $value; 
-              $this->data->setBy("id = '".$this->id."'", "nombre = '$value'"); 
+              $this->data->getAnythingParams("UPDATE profesor SET nombre = $1 WHERE id = $2;", array(PartModel::sqlValue($value, "text"), PartModel::sqlValue($this->id, "text"))); 
        } 
           /** 
             * @name: getNombre 
@@ -73,7 +73,7 @@
             */ 
        public function setCreador($value){ 
               $this->creador = $value; 
-              $this->data->setBy("id = '".$this->id."'", "creador = '$value'"); 
+              $this->data->getAnythingParams("UPDATE profesor SET creador = $1 WHERE id = $2;", array(PartModel::sqlValue($value, "text"), PartModel::sqlValue($this->id, "text"))); 
        } 
           /** 
             * @name: getCreador 
@@ -94,7 +94,7 @@
        } 
        public function getRestriccionCondicional(){ 
           $collection = new RestriccionCondicionalCollection($this->data->db);
-          $collection->Load(null,null,"*","consec_profesor = '".$this->id."' AND profesor = '".$this->id."'");
+          $collection->Load(null,null,"*","consec_profesor = $1 AND profesor = $2", array(PartModel::sqlValue($this->id, "text"), PartModel::sqlValue($this->id, "text")));
            return $collection;
        } 
        public function addActividad($plantilla,$grupo,$lugar,$dia,$turno,$momento_de_colocacion,$creador){ 
@@ -104,7 +104,7 @@
        } 
        public function getActividad(){ 
           $collection = new ActividadCollection($this->data->db);
-          $collection->Load(null,null,"*","profesor = '".$this->id."'");
+          $collection->Load(null,null,"*","profesor = $1", array(PartModel::sqlValue($this->id, "text")));
            return $collection;
        } 
        public function addHerenciaDeRestricciones($planificacion,$activa,$hijo_brigada,$hijo_lugar,$hijo_otro_recurso,$padre_brigada,$padre_lugar,$padre_otro_recurso){ 
@@ -115,7 +115,7 @@
        } 
        public function getHerenciaDeRestricciones(){ 
           $collection = new HerenciaDeRestriccionesCollection($this->data->db);
-          $collection->Load(null,null,"*","hijo_profesor = '".$this->id."' AND padre_profesor = '".$this->id."'");
+          $collection->Load(null,null,"*","hijo_profesor = $1 AND padre_profesor = $2", array(PartModel::sqlValue($this->id, "text"), PartModel::sqlValue($this->id, "text")));
            return $collection;
        } 
        public function addHigieneParaProfesor($periodo,$gasto_maximo_diario){ 
@@ -125,7 +125,7 @@
        } 
        public function getHigieneParaProfesor(){ 
           $collection = new HigieneParaProfesorCollection($this->data->db);
-          $collection->Load(null,null,"*","profesor = '".$this->id."'");
+          $collection->Load(null,null,"*","profesor = $1", array(PartModel::sqlValue($this->id, "text")));
            return $collection;
        } 
        public function addProfesorParaActividad($plantilla,$prioridad){ 
@@ -135,7 +135,7 @@
        } 
        public function getProfesorParaActividad(){ 
           $collection = new ProfesorParaActividadCollection($this->data->db);
-          $collection->Load(null,null,"*","profesor = '".$this->id."'");
+          $collection->Load(null,null,"*","profesor = $1", array(PartModel::sqlValue($this->id, "text")));
            return $collection;
        } 
        public function addRestriccionDeProfesor($periodo,$dia,$turno,$valor,$por_actividad,$actividad){ 
@@ -145,7 +145,7 @@
        } 
        public function getRestriccionDeProfesor(){ 
           $collection = new RestriccionDeProfesorCollection($this->data->db);
-          $collection->Load(null,null,"*","profesor = '".$this->id."'");
+          $collection->Load(null,null,"*","profesor = $1", array(PartModel::sqlValue($this->id, "text")));
            return $collection;
        } 
        public function addRestriccionRealDeProfesor($restriccion_nominal,$periodicidad,$fecha,$hora_inicial,$hora_final,$por_actividad,$actividad){ 
@@ -155,7 +155,7 @@
        } 
        public function getRestriccionRealDeProfesor(){ 
           $collection = new RestriccionRealDeProfesorCollection($this->data->db);
-          $collection->Load(null,null,"*","objeto = '".$this->id."'");
+          $collection->Load(null,null,"*","objeto = $1", array(PartModel::sqlValue($this->id, "text")));
            return $collection;
        } 
 } 

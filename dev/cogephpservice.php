@@ -71,9 +71,11 @@ include "../lib/basic/file/DirectoryUtil.php";
                 }
                 if ($i>0) fputs($fservice,',');
                 fputs($fservice, '$asobjects = false'."){ \n");
-                fputs($fservice,'               $sql = "'.$method->SQL.'"; '."\n");
-                fputs($fservice,'               if ($asobjects==true) return $this->db->getAsObjects($sql);'."\n");
-                fputs($fservice,'               return $this->db->getAsArray($sql);'."\n");
+                // #35: each $param (optionally in single quotes) of the SQL
+                // becomes a bound placeholder; values are never interpolated.
+                list($sql, $binds) = serviceSqlParams($method);
+                fputs($fservice,'               $sql = "'.addcslashes($sql, '"\\$').'"; '."\n");
+                fputs($fservice,'               return $this->getAnythingParams($sql, array('.implode(', ', $binds).'), $asobjects);'."\n");
                 fputs($fservice,"            } \n");
             }
 
