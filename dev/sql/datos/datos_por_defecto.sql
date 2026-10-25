@@ -8,7 +8,11 @@ INSERT INTO seguridad.rol (nombre, descripcion) VALUES ('profesor','Profesor');
 INSERT INTO seguridad.rol (nombre, descripcion) VALUES ('invitado','Invitado');
 
 -- Usuarios
-INSERT INTO seguridad.usuario (id, nombre, info, correo, nick, contrasena) VALUES ('admin-superuser','admin','administrador superusuario','admin@example.com','admin',md5('changeit'));
+-- The administrator has no usable password (maintainer decision, 2026-10-25):
+-- the stored value is neither a password_hash() nor a legacy MD5 digest, so
+-- PasswordUtil rejects every login until 'php bin/setpassword.php -nick admin'
+-- sets one. The 2010 seed used a well-known default password here.
+INSERT INTO seguridad.usuario (id, nombre, info, correo, nick, contrasena) VALUES ('admin-superuser','admin','administrador superusuario','admin@example.com','admin','!unusable: set with bin/setpassword.php -nick admin');
 
 -- Roles de usuarios
 

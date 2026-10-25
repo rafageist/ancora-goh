@@ -15,8 +15,9 @@
 # PGHOSTADDR or PGSERVICE. Tests and CI never use it.
 #
 # --with-data also loads datos/datos_por_defecto.sql: the default roles and an
-# administrator account with a well-known default password. Change it at once,
-# and never use it on a reachable server (docs/modernization/security-privacy.md).
+# administrator account "admin" WITHOUT a usable password; set one with
+# php bin/setpassword.php -nick admin before the first login. Never use the
+# data seed on a reachable server (docs/modernization/security-privacy.md).
 #
 # This installs an empty database only. It is not an upgrade path.
 set -euo pipefail

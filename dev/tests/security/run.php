@@ -451,6 +451,22 @@ test ( 'migration off (default): a legacy MD5 account cannot log in and is not t
 	conf_warnings_only ();
 } );
 
+test ( 'seed: the seeded administrator has no usable password', function () {
+	global $ROOT;
+	$seed = file_get_contents ( $ROOT . '/dev/sql/datos/datos_por_defecto.sql' );
+	check ( preg_match ( "/'admin@example\\.com','admin','([^']*)'\\);/", $seed, $m ) === 1, 'seed admin row found' );
+	$stored = isset ( $m [1] ) ? $m [1] : '';
+	check ( ! PasswordUtil::isLegacyMd5 ( $stored ) && password_get_info ( $stored ) ['algo'] === null, 'stored value is neither MD5 nor password_hash' );
+	check ( stripos ( $seed, 'md5(' ) === false, 'no md5() call left in the seed' );
+	foreach ( array ($ROOT . '/dev/tests/security/fixtures/security.conf', recovery_conf () ) as $conf ) {
+		reset_request ();
+		add_user ( 'admin-superuser', 'admin', $stored, array ('superusuario' ) );
+		foreach ( array ($stored, 'admin', 'x', substr ( $stored, 1 ) ) as $try )
+			check ( login ( 'admin', $try, $conf ) === 'access_denied', 'seeded admin cannot log in (' . basename ( $conf ) . ')' );
+	}
+	conf_warnings_only ();
+} );
+
 test ( 'session: www/index.php buffers output before anything is printed', function () {
 	global $ROOT;
 	$src = file_get_contents ( $ROOT . '/www/index.php' );

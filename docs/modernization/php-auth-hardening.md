@@ -200,11 +200,10 @@ Risks and limits:
   checklist above requires zero MD5 rows. Wrapping them offline as
   `password_hash(md5)` with a marker was not done: it needs a format
   decision.
-- The seed data (`dev/sql/datos/datos_por_defecto.sql`) still contains the
-  administrator's known default password as MD5. It is not valid while
-  `legacy_md5_login` is off. Changing the seed itself, for example to an
-  unusable marker with the installer asking for a password, is left to a
-  follow-up so the #9 data file stays as reviewed (#11 C5).
+- Since #25, the seed data (`dev/sql/datos/datos_por_defecto.sql`) gives the
+  administrator an unusable value instead of the 2010 default password's MD5.
+  No login is possible, with or without `legacy_md5_login`, until
+  `bin/setpassword.php` sets a password (maintainer decision, 2026-10-25).
 - The legacy path accepts any account whose stored value happens to be 32
   hex characters. A plain-text password of that shape would be treated as
   an MD5 digest, so it would not log in with itself.

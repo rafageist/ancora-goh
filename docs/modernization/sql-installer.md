@@ -23,9 +23,7 @@ Since #26 the installer and every other tool that connects refuse any target tha
 
 **Any SQL error aborts the installation, exits non-zero and drops the half-created database.** It is an empty-database installer, not an upgrade path: many sources start with `DROP … CASCADE`.
 
-`--with-data` creates an administrator with a well-known default password stored as unsalted MD5 (`security-privacy.md` C5). Use it only on disposable servers.
-
-Maintainer decision (2026-10-25): a known seeded administrator password must never be valid in a production installation. Once #14 (PR #20) is in, legacy MD5 logins are refused unless `legacy_md5_login = true` is set in `bin/security.conf`, and the default is off. Set the administrator's password with `php bin/setpassword.php -nick <nick>` before first use. The seed file itself is unchanged. Replacing its hash with an unusable marker is a possible follow-up.
+`--with-data` creates the default roles and an administrator (`admin`) **without a usable password** (maintainer decision 2026-10-25; done in #25). The stored value is neither a `password_hash()` nor an MD5 digest, so every login is refused until `php bin/setpassword.php -nick admin` sets one. The 2010 seed had a well-known default password here (`security-privacy.md` C5).
 
 You need PHP ≥ 8.1 (CLI only) and the PostgreSQL ≥ 16 client. The ephemeral runner additionally needs the server binaries (`PG_BINDIR`).
 

@@ -1,0 +1,39 @@
+# Local-only end-to-end scheduling run (issue #25): PHP 8.4 built-in server on
+# 127.0.0.1 and a socket-only PostgreSQL 16 cluster created by the job.
+# Synthetic data only; no services, no secrets, no public listener.
+name: End-to-end (PHP 8.4 + PostgreSQL 16)
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  e2e:
+    name: HTTP login, denial, data entry, generation and readback
+    runs-on: ubuntu-24.04
+    env:
+      PG_BINDIR: /usr/lib/postgresql/16/bin
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: pgsql
+          coverage: none
+          tools: none
+
+      - name: PostgreSQL 16 server binaries
+        run: |
+          if [ ! -x "$PG_BINDIR/initdb" ]; then
+            sudo apt-get update -q
+            sudo apt-get install -y -q postgresql-16
+          fi
+          sudo systemctl stop postgresql || true
+
+      - name: Run the harness (fails on any failed check)
+        timeout-minutes: 10
+        run: dev/sql/tools/with-ephemeral-pg.sh dev/e2e/run.sh
