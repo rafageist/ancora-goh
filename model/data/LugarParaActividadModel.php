@@ -1,7 +1,7 @@
 <?php 
    class LugarParaActividadModel extends PartModel { 
  
-          public function LugarParaActividadModel($db){ 
+          public function __construct($db){ 
                 $this->db = $db; 
           } 
          /** 

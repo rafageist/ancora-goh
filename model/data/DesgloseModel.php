@@ -1,7 +1,7 @@
 <?php 
    class DesgloseModel extends PartModel { 
  
-          public function DesgloseModel($db){ 
+          public function __construct($db){ 
                 $this->db = $db; 
           } 
          /** 

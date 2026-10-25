@@ -1,7 +1,7 @@
 <?php 
    class UsuarioModel extends PartModel { 
  
-          public function UsuarioModel($db){ 
+          public function __construct($db){ 
                 $this->db = $db; 
           } 
          /** 

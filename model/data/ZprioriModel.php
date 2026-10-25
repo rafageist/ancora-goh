@@ -1,7 +1,7 @@
 <?php 
    class ZprioriModel extends PartModel { 
  
-          public function ZprioriModel($db){ 
+          public function __construct($db){ 
                 $this->db = $db; 
           } 
          /** 

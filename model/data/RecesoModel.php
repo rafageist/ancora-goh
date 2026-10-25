@@ -1,7 +1,7 @@
 <?php 
    class RecesoModel extends PartModel { 
  
-          public function RecesoModel($db){ 
+          public function __construct($db){ 
                 $this->db = $db; 
           } 
          /** 

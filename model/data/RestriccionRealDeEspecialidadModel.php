@@ -1,7 +1,7 @@
 <?php 
    class RestriccionRealDeEspecialidadModel extends PartModel { 
  
-          public function RestriccionRealDeEspecialidadModel($db){ 
+          public function __construct($db){ 
                 $this->db = $db; 
           } 
          /** 

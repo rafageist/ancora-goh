@@ -1,7 +1,7 @@
 <?php 
    class HigieneParaBrigadaModel extends PartModel { 
  
-          public function HigieneParaBrigadaModel($db){ 
+          public function __construct($db){ 
                 $this->db = $db; 
           } 
          /** 

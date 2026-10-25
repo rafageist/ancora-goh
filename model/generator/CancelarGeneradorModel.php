@@ -1,7 +1,7 @@
 <?php 
    class CancelarGeneradorModel extends PartModel { 
  
-          public function CancelarGeneradorModel($db){ 
+          public function __construct($db){ 
                 $this->db = $db; 
           } 
          /** 

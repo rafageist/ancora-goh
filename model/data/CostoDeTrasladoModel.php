@@ -1,7 +1,7 @@
 <?php 
    class CostoDeTrasladoModel extends PartModel { 
  
-          public function CostoDeTrasladoModel($db){ 
+          public function __construct($db){ 
                 $this->db = $db; 
           } 
          /** 

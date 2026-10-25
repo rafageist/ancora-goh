@@ -1,7 +1,7 @@
 <?php 
    class PlanificacionModel extends PartModel { 
  
-          public function PlanificacionModel($db){ 
+          public function __construct($db){ 
                 $this->db = $db; 
           } 
          /** 

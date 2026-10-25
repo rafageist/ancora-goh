@@ -16,7 +16,7 @@
             * @updated: 20/06/10 10:40:54 
             * @version: 1.0 
             */ 
-       public function Actividad($plantilla,$grupo,$profesor,$lugar,$dia,$turno,$momento_de_colocacion,$creador,$id = '',$construct = true, $data = false, $load = true){ 
+       public function __construct($plantilla,$grupo,$profesor,$lugar,$dia,$turno,$momento_de_colocacion,$creador,$id = '',$construct = true, $data = false, $load = true){ 
               global $dbconnection;
               if ($data == false) $this->data = new ActividadModel($dbconnection); else $this->data = $data;
 

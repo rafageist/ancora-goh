@@ -11,7 +11,7 @@
      /**
        * Constructor
        */
-     public function TDate($d, $m, $a){
+     public function __construct($d, $m, $a){
         $this->d = $d;
         $this->m = $m;
         $this->a = $a;

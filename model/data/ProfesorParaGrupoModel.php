@@ -1,7 +1,7 @@
 <?php 
    class ProfesorParaGrupoModel extends PartModel { 
  
-          public function ProfesorParaGrupoModel($db){ 
+          public function __construct($db){ 
                 $this->db = $db; 
           } 
          /** 

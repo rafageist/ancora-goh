@@ -14,7 +14,7 @@
             * @updated: 20/06/10 10:40:55 
             * @version: 1.0 
             */ 
-       public function Periodo($descripcion,$cant_dias,$cant_turnos,$hora_inicial,$duracion_del_turno,$planificacion,$id = '',$construct = true, $data = false, $load = true){ 
+       public function __construct($descripcion,$cant_dias,$cant_turnos,$hora_inicial,$duracion_del_turno,$planificacion,$id = '',$construct = true, $data = false, $load = true){ 
               global $dbconnection;
               if ($data == false) $this->data = new PeriodoModel($dbconnection); else $this->data = $data;
 

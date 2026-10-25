@@ -1,7 +1,7 @@
 <?php 
    class HerenciaDeRestriccionesModel extends PartModel { 
  
-          public function HerenciaDeRestriccionesModel($db){ 
+          public function __construct($db){ 
                 $this->db = $db; 
           } 
          /** 

@@ -7,7 +7,7 @@
          * @updated: 20/06/10 10:40:54 
          * @version: 1.0 
          */ 
-          public function PublicDatabaseViews($db){ 
+          public function __construct($db){ 
                 $this->db = $db; 
           } 
        /** 

@@ -1,7 +1,7 @@
 <?php 
    class RestriccionRealDeOtroRecursoModel extends PartModel { 
  
-          public function RestriccionRealDeOtroRecursoModel($db){ 
+          public function __construct($db){ 
                 $this->db = $db; 
           } 
          /** 

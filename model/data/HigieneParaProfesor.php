@@ -10,7 +10,7 @@
             * @updated: 20/06/10 10:40:55 
             * @version: 1.0 
             */ 
-       public function HigieneParaProfesor($periodo,$profesor,$gasto_maximo_diario,$construct = true, $data = false, $load = true){ 
+       public function __construct($periodo,$profesor,$gasto_maximo_diario,$construct = true, $data = false, $load = true){ 
               global $dbconnection;
               if ($data == false) $this->data = new HigieneParaProfesorModel($dbconnection); else $this->data = $data;
 

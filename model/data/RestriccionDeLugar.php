@@ -15,7 +15,7 @@
             * @updated: 20/06/10 10:40:56 
             * @version: 1.0 
             */ 
-       public function RestriccionDeLugar($lugar,$periodo,$dia,$turno,$valor,$por_actividad,$actividad,$id = '',$construct = true, $data = false, $load = true){ 
+       public function __construct($lugar,$periodo,$dia,$turno,$valor,$por_actividad,$actividad,$id = '',$construct = true, $data = false, $load = true){ 
               global $dbconnection;
               if ($data == false) $this->data = new RestriccionDeLugarModel($dbconnection); else $this->data = $data;
 

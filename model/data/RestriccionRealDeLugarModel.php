@@ -1,7 +1,7 @@
 <?php 
    class RestriccionRealDeLugarModel extends PartModel { 
  
-          public function RestriccionRealDeLugarModel($db){ 
+          public function __construct($db){ 
                 $this->db = $db; 
           } 
          /** 

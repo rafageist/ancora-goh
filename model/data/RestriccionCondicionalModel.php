@@ -1,7 +1,7 @@
 <?php 
    class RestriccionCondicionalModel extends PartModel { 
  
-          public function RestriccionCondicionalModel($db){ 
+          public function __construct($db){ 
                 $this->db = $db; 
           } 
          /** 

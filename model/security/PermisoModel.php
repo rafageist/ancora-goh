@@ -1,7 +1,7 @@
 <?php 
    class PermisoModel extends PartModel { 
  
-          public function PermisoModel($db){ 
+          public function __construct($db){ 
                 $this->db = $db; 
           } 
          /** 

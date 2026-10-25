@@ -10,7 +10,7 @@
             * @updated: 20/06/10 10:40:55 
             * @version: 1.0 
             */ 
-       public function Profesor($nombre,$creador,$id = '',$construct = true, $data = false, $load = true){ 
+       public function __construct($nombre,$creador,$id = '',$construct = true, $data = false, $load = true){ 
               global $dbconnection;
               if ($data == false) $this->data = new ProfesorModel($dbconnection); else $this->data = $data;
 

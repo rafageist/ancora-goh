@@ -1,7 +1,7 @@
 <?php 
    class BrigadaModel extends PartModel { 
  
-          public function BrigadaModel($db){ 
+          public function __construct($db){ 
                 $this->db = $db; 
           } 
          /** 

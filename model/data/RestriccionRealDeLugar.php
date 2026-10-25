@@ -15,7 +15,7 @@
             * @updated: 20/06/10 10:40:55 
             * @version: 1.0 
             */ 
-       public function RestriccionRealDeLugar($restriccion_nominal,$periodicidad,$fecha,$hora_inicial,$hora_final,$por_actividad,$actividad,$objeto,$construct = true, $data = false, $load = true){ 
+       public function __construct($restriccion_nominal,$periodicidad,$fecha,$hora_inicial,$hora_final,$por_actividad,$actividad,$objeto,$construct = true, $data = false, $load = true){ 
               global $dbconnection;
               if ($data == false) $this->data = new RestriccionRealDeLugarModel($dbconnection); else $this->data = $data;
 

@@ -1,7 +1,7 @@
 <?php 
    class HostModel extends PartModel { 
  
-          public function HostModel($db){ 
+          public function __construct($db){ 
                 $this->db = $db; 
           } 
          /** 

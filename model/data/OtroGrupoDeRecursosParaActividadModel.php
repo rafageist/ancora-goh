@@ -1,7 +1,7 @@
 <?php 
    class OtroGrupoDeRecursosParaActividadModel extends PartModel { 
  
-          public function OtroGrupoDeRecursosParaActividadModel($db){ 
+          public function __construct($db){ 
                 $this->db = $db; 
           } 
          /** 

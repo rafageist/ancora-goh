@@ -115,7 +115,7 @@ include "cogephp.common.php";
 
 	fputComentario($file_control,$classcontrolname,'Constructor',array());
 
-	fputs($file_control,'          public function '.$classcontrolname.'($host="'.$dbhost.'", $port='.$dbport.', $dbname="'.$dbname.'", $user="'.$dbuser.'", $password="'.$dbpass.'",$connectnow=true){'." \n");
+	fputs($file_control,'          public function __construct($host="'.$dbhost.'", $port='.$dbport.', $dbname="'.$dbname.'", $user="'.$dbuser.'", $password="'.$dbpass.'",$connectnow=true){'." \n");
 	fputs($file_control,'                $this->model = new '.$classmodelname.'($host,$port,$dbname,$user,$password,$connectnow);'." \n");
 	fputs($file_control,'          }'." \n");
 */
@@ -127,7 +127,7 @@ include "cogephp.common.php";
 
 	fputs($file_model,"   class PartModel { \n \n");
 	fputs($file_model,'          var $db;'." \n \n");
-	fputs($file_model,'          public function PartModel($db){'." \n");
+	fputs($file_model,'          public function __construct($db){'." \n");
 	fputs($file_model,'                $this->db = $db; '." \n");
 	fputs($file_model,'          }'." \n");
 	fputs($file_model,
@@ -194,7 +194,7 @@ include "cogephp.common.php";
 
 		fputComentario($file_model,capitalLetter($key)."DatabaseViews",'Constructor',array(),'','       ');
 
-		fputs($file_model,'          public function '.capitalLetter($key)."DatabaseViews".'($db){'." \n");
+		fputs($file_model,'          public function __construct($db){'." \n");
 		fputs($file_model,'                $this->db = $db; '."\n");
 		fputs($file_model,'          }'." \n");
 			
@@ -222,7 +222,7 @@ include "cogephp.common.php";
 
 		fputs($file_model,'   class '.$classname."Model extends PartModel { \n \n");
 
-		fputs($file_model,'          public function '.$classname.'Model($db){'." \n");
+		fputs($file_model,'          public function __construct($db){'." \n");
 		fputs($file_model,'                $this->db = $db;'." \n");
 		fputs($file_model,'          }'." \n");
 			
@@ -609,7 +609,7 @@ include "cogephp.common.php";
 		fputs($ficheroclass, '       var $last_limit; '." \n");
 
 		fputComentario($ficheroclass,$collectionname,'Class constructor',array(),"","       ");
-		fputs($ficheroclass, "       public function $collectionname(".'$db = false'."){ \n");
+		fputs($ficheroclass, "       public function __construct(".'$db = false'."){ \n");
 		fputs($ficheroclass, '              if ($db !=false) $this->data = new '.$classname."Model(".'$db'."); \n");
 		fputs($ficheroclass, "       } \n");
 
@@ -785,7 +785,7 @@ include "cogephp.common.php";
 
 		if ($i==1) $replicas.=",";
 
-		fputs($ficheroclass, "       public function $classname($camposphp,$replicas".'$construct = true, $data = false, $load = true'."){ \n");
+		fputs($ficheroclass, "       public function __construct($camposphp,$replicas".'$construct = true, $data = false, $load = true'."){ \n");
 		fputs($ficheroclass, '              global $dbconnection;'."\n");
 		fputs($ficheroclass, '              if ($data == false) $this->data = new '.$classname.'Model($dbconnection); else $this->data = $data;'."\n");
 		fputs($ficheroclass, "\n");
@@ -1048,7 +1048,7 @@ include "cogephp.common.php";
 	fputs($file_model,"\n");
 	fputComentario($file_model,$classmodelname,'Constructor',array());
 
-	fputs($file_model,'          public function '.$classmodelname.'($host="'.$dbhost.'", $port='.$dbport.', $dbname="'.$dbname.'", $user="'.$dbuser.'", $password="'.$dbpass.'",$connectnow=true){'." \n");
+	fputs($file_model,'          public function __construct($host="'.$dbhost.'", $port='.$dbport.', $dbname="'.$dbname.'", $user="'.$dbuser.'", $password="'.$dbpass.'",$connectnow=true){'." \n");
 	fputs($file_model,"\n              //Database connection \n");
 	fputs($file_model,'                $this->db = new '.$clase_IDatabase.'(); '." \n");
 	fputs($file_model,'                $this->host = $host;'." \n");
@@ -1107,7 +1107,7 @@ include "cogephp.common.php";
 
 		fputComentario($fsf,$key."Functions",'Constructor',array());
 			
-		fputs($fsf,'          public function '.capitalLetter($key).'Functions($db){'." \n");
+		fputs($fsf,'          public function __construct($db){'." \n");
 		fputs($fsf,'               $this->db = $db; '." \n");
 		fputs($fsf,'          }'."\n");
 

@@ -1,7 +1,7 @@
 <?php 
    class RestriccionRealDeClasifActModel extends PartModel { 
  
-          public function RestriccionRealDeClasifActModel($db){ 
+          public function __construct($db){ 
                 $this->db = $db; 
           } 
          /** 

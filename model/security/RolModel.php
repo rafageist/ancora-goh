@@ -1,7 +1,7 @@
 <?php 
    class RolModel extends PartModel { 
  
-          public function RolModel($db){ 
+          public function __construct($db){ 
                 $this->db = $db; 
           } 
          /** 

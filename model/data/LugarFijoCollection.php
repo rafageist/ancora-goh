@@ -10,7 +10,7 @@
          * @updated: 20/06/10 10:40:55 
          * @version: 1.0 
          */ 
-       public function LugarFijoCollection($db = false){ 
+       public function __construct($db = false){ 
               if ($db !=false) $this->data = new LugarFijoModel($db); 
        } 
        /** 

@@ -1,7 +1,7 @@
 <?php 
    class ExcepcionDeHrtModel extends PartModel { 
  
-          public function ExcepcionDeHrtModel($db){ 
+          public function __construct($db){ 
                 $this->db = $db; 
           } 
          /** 

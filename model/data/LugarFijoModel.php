@@ -1,7 +1,7 @@
 <?php 
    class LugarFijoModel extends PartModel { 
  
-          public function LugarFijoModel($db){ 
+          public function __construct($db){ 
                 $this->db = $db; 
           } 
          /** 

@@ -9,7 +9,7 @@
             * @updated: 20/06/10 10:40:56 
             * @version: 1.0 
             */ 
-       public function Host($ip,$usuario,$construct = true, $data = false, $load = true){ 
+       public function __construct($ip,$usuario,$construct = true, $data = false, $load = true){ 
               global $dbconnection;
               if ($data == false) $this->data = new HostModel($dbconnection); else $this->data = $data;
 

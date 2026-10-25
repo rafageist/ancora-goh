@@ -1,7 +1,7 @@
 <?php 
    class PeriodoModel extends PartModel { 
  
-          public function PeriodoModel($db){ 
+          public function __construct($db){ 
                 $this->db = $db; 
           } 
          /** 

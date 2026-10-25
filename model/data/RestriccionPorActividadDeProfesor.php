@@ -9,7 +9,7 @@
             * @updated: 20/06/10 10:40:55 
             * @version: 1.0 
             */ 
-       public function RestriccionPorActividadDeProfesor($restriccion_nominal,$actividad,$construct = true, $data = false, $load = true){ 
+       public function __construct($restriccion_nominal,$actividad,$construct = true, $data = false, $load = true){ 
               global $dbconnection;
               if ($data == false) $this->data = new RestriccionPorActividadDeProfesorModel($dbconnection); else $this->data = $data;
 

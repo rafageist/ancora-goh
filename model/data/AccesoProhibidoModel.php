@@ -1,7 +1,7 @@
 <?php 
    class AccesoProhibidoModel extends PartModel { 
  
-          public function AccesoProhibidoModel($db){ 
+          public function __construct($db){ 
                 $this->db = $db; 
           } 
          /** 

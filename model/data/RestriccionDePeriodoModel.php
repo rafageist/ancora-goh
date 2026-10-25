@@ -1,7 +1,7 @@
 <?php 
    class RestriccionDePeriodoModel extends PartModel { 
  
-          public function RestriccionDePeriodoModel($db){ 
+          public function __construct($db){ 
                 $this->db = $db; 
           } 
          /** 

@@ -11,7 +11,7 @@
     var $lastmessage;
     var $arguments;
     
-    function Console(){
+    function __construct(){
         if ($this->verifyCli() == true){
             $this->stdin = fopen("php://stdin", "r");
             $this->arguments = $_SERVER['argv'];

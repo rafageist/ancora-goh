@@ -1,7 +1,7 @@
 <?php 
    class NivelModel extends PartModel { 
  
-          public function NivelModel($db){ 
+          public function __construct($db){ 
                 $this->db = $db; 
           } 
          /** 

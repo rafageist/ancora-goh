@@ -1,7 +1,7 @@
 <?php 
    class RolDeUsuarioModel extends PartModel { 
  
-          public function RolDeUsuarioModel($db){ 
+          public function __construct($db){ 
                 $this->db = $db; 
           } 
          /** 

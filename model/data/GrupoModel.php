@@ -1,7 +1,7 @@
 <?php 
    class GrupoModel extends PartModel { 
  
-          public function GrupoModel($db){ 
+          public function __construct($db){ 
                 $this->db = $db; 
           } 
          /** 
