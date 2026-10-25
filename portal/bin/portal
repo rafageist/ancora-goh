@@ -1,0 +1,28 @@
+#!/usr/bin/env php
+<?php
+
+declare(strict_types=1);
+
+// Operator CLI of the access-request portal (see src/Cli/OperatorCli.php).
+
+use Ancora\Portal\Cli\OperatorCli;
+use Ancora\Portal\Config;
+use Ancora\Portal\Database;
+use Ancora\Portal\Log\StderrLogger;
+use Ancora\Portal\Mail\MailerFactory;
+
+if (PHP_SAPI !== 'cli') {
+    exit(1);
+}
+require dirname(__DIR__) . '/vendor/autoload.php';
+
+$config = Config::fromEnvironment();
+$logger = new StderrLogger();
+$cli = new OperatorCli(
+    Database::connect($config),
+    MailerFactory::create($config, $logger),
+    $logger,
+    $config->hmacKey(),
+    dirname(__DIR__) . '/sql/schema.sql',
+);
+exit($cli->run(array_slice($argv, 1), getenv()));

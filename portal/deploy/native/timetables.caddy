@@ -1,0 +1,31 @@
+# Caddy site for the R0 portal on studio.divengine.com. Add to /etc/caddy/Caddyfile
+# ONLY after the R0 GO (#62); it takes precedence over the *.divengine.com wildcard
+# and gets a normal (not on-demand) certificate. Rollback: remove this block and
+# run `caddy reload --config /etc/caddy/Caddyfile`.
+timetables.divengine.com {
+	import access_log
+	encode zstd gzip
+
+	request_body {
+		max_size 32KB
+	}
+
+	header {
+		Strict-Transport-Security "max-age=31536000"
+		X-Content-Type-Options nosniff
+		X-Robots-Tag "noindex, nofollow"
+		-Server
+	}
+
+	root * /opt/divengine/timetables/portal/public
+
+	# only the front controller executes; it routes everything else (404 by default)
+	@php_other {
+		path *.php
+		not path /index.php
+	}
+	respond @php_other 404
+
+	php_fastcgi unix//run/php/php8.5-fpm-timetables.sock
+	file_server
+}

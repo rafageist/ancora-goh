@@ -1,0 +1,90 @@
+# R0 access-request portal (portal/): Composer, PSR-12, unit, integration and
+# HTTP end-to-end tests against PostgreSQL, on the PHP/PostgreSQL versions of
+# the target host (8.5 / 18) and of the legacy stack (8.4 / 16); plus the Docker
+# staging journey. Synthetic data, loopback only, email to an outbox.
+name: Portal (R0)
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: PHP ${{ matrix.php }} / PostgreSQL ${{ matrix.pg }}
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { php: '8.4', pg: '16' }
+          - { php: '8.5', pg: '18' }
+    env:
+      PG_BINDIR: /usr/lib/postgresql/${{ matrix.pg }}/bin
+    defaults:
+      run:
+        working-directory: portal
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          extensions: pdo_pgsql, mbstring, curl
+          coverage: none
+          tools: composer:v2
+
+      - name: Composer validate, install, audit
+        run: |
+          composer validate --strict
+          composer install --no-interaction --no-progress
+          composer audit
+
+      - name: PSR-12
+        run: vendor/bin/phpcs
+
+      - name: Unit tests
+        run: vendor/bin/phpunit --testsuite unit
+
+      - name: PostgreSQL ${{ matrix.pg }} server binaries
+        working-directory: .
+        run: |
+          if [ ! -x "$PG_BINDIR/initdb" ]; then
+            sudo apt-get update -q
+            sudo apt-get install -y -q postgresql-common
+            sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y
+            sudo apt-get install -y -q postgresql-${{ matrix.pg }}
+          fi
+          sudo systemctl stop postgresql || true
+
+      - name: Integration and HTTP end-to-end tests
+        working-directory: .
+        timeout-minutes: 10
+        run: |
+          cat > /tmp/portal-it.sh <<'SH'
+          #!/usr/bin/env bash
+          set -e
+          . dev/sql/tools/disposable-guard.sh; agoh_require_disposable || exit 3
+          createdb portal_it
+          (cd portal && PORTAL_TEST_DSN="pgsql:host=$PGHOST;port=$PGPORT;dbname=portal_it;user=$PGUSER" vendor/bin/phpunit --testsuite integration)
+          portal/tests/e2e/run.sh
+          SH
+          chmod +x /tmp/portal-it.sh
+          dev/sql/tools/with-ephemeral-pg.sh /tmp/portal-it.sh
+
+  staging:
+    name: Docker staging journey (PHP 8.5, PostgreSQL 18)
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Stage, verify, backup and restore drill
+        timeout-minutes: 15
+        run: |
+          portal/deploy/docker/stage.sh init-secrets
+          portal/deploy/docker/stage.sh up
+          portal/deploy/docker/stage.sh verify
+          portal/deploy/docker/stage.sh backup
+          portal/deploy/docker/stage.sh restore-test
+          portal/deploy/docker/stage.sh reset

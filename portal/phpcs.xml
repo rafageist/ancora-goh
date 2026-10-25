@@ -1,0 +1,11 @@
+<?xml version="1.0"?>
+<ruleset name="portal">
+    <description>PSR-12 for the access-request portal.</description>
+    <file>src</file>
+    <file>public/index.php</file>
+    <file>bin/portal</file>
+    <file>tests</file>
+    <arg name="extensions" value="php"/>
+    <rule ref="PSR12"/>
+    <rule ref="Generic.Files.LineLength"><properties><property name="lineLimit" value="160"/></properties></rule>
+</ruleset>
