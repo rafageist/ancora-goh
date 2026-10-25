@@ -49,7 +49,7 @@ El proyecto incluye herramientas para generar código automáticamente:
 
 ```
 dev/
-├── cogephp.php           # Genera clases PHP desde JSON
+├── codegen/             # Divengine Codegen (formerly cogephp.php): PHP classes from the JSON model
 ├── crea_modelo_pg.php    # Genera modelo PostgreSQL
 └── src/
     └── *.json           # Metadatos para generación

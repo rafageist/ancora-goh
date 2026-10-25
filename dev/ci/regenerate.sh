@@ -1,13 +1,12 @@
 #!/usr/bin/env bash
-# Regenerate the generated code from the committed JSON model (#35).
+# Regenerate the generated code from the committed JSON model (#35, #39).
 #
-# Runs the three cogePHP generators (dev/cogephp.php, dev/cogephpface.php,
-# dev/cogephpservice.php) in a temporary copy of the git-tracked files, like
-# dev/ci/check-generated.sh, and copies back only the files whose content
-# changed apart from the "@updated:" timestamp lines. In a copied file each
-# "@updated:" line keeps the timestamp of the committed file, so a change to
-# the generator shows up as its semantic diff only. New generated files are
-# copied as they are. Nothing is deleted.
+# Runs Divengine Codegen (dev/codegen/bin/divengine-codegen all; formerly
+# the cogePHP generators) into a temporary directory and copies back only
+# the files whose content changed apart from the "@updated:" timestamp
+# lines. In a copied file each "@updated:" line keeps the timestamp of the
+# committed file, so a change to a template shows up as its semantic diff
+# only. New generated files are copied as they are. Nothing is deleted.
 #
 # Usage:  dev/ci/regenerate.sh        (uses `php` from PATH)
 # Then:   dev/ci/check-generated.sh   must pass.
@@ -19,15 +18,14 @@ ROOT="$PWD"
 WORK="$(mktemp -d "${TMPDIR:-/tmp}/ancora-regen.XXXXXX")"
 trap 'rm -rf "$WORK"' EXIT
 
-git ls-files -z | tar --null -T - -cf - | tar -xf - -C "$WORK"
-
-for gen in cogephp.php cogephpface.php cogephpservice.php; do
-  if ! (cd "$WORK/dev" && "$PHP" "$gen" >"$WORK/.gen.out" 2>&1); then
-    echo "[FAIL] dev/$gen exited non-zero:" >&2
-    tail -n 20 "$WORK/.gen.out" >&2
-    exit 1
-  fi
-done
+if [ ! -f dev/codegen/vendor/autoload.php ]; then
+  composer --working-dir=dev/codegen install --no-interaction --no-progress --quiet
+fi
+if ! "$PHP" dev/codegen/bin/divengine-codegen all --output "$WORK" >"$WORK/.gen.out" 2>&1; then
+  echo "[FAIL] divengine-codegen exited non-zero:" >&2
+  tail -n 20 "$WORK/.gen.out" >&2
+  exit 1
+fi
 rm -f "$WORK/.gen.out"
 
 changed=0
@@ -55,7 +53,6 @@ while IFS= read -r line; do
     "Only in $WORK"*)
       dir=${line#"Only in "}; dir=${dir%%: *}; name=${line##*: }
       rel=${dir#"$WORK"}; rel=${rel#/}; rel=${rel:+$rel/}$name
-      case "$rel" in .gen.out) continue ;; esac
       mkdir -p "$(dirname "$ROOT/$rel")"
       cp -r "$WORK/$rel" "$ROOT/$rel"
       echo "added    $rel"
