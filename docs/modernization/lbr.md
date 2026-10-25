@@ -9,24 +9,24 @@ After the Drupal decision (#66) the tool measures **named sets**, each with its 
 | Set | Scope | Status |
 | --- | --- | --- |
 | `historic-2010` | First-party legacy source that already existed in the July 2010 import, measured at `eca8aa7`. It is a **historical comparator** (§1–§2 below). | frozen: B = 854,831 bytes, 572 files |
-| `pre-drupal-cut` | **Comprehensive** cut (#67): every maintained first-party implementation file existing at the transition commit, including the 2026 recovery work (tests, tooling, Docker, CI, codegen), before the move into `legacy/` (#68). Excluded, with recorded reasons: the Drupal target `modern/`, docs, archival dumps, derived and generated outputs, third-party code. | **not frozen**: the cut commit is chosen after the in-flight PRs are reconciled, and needs maintainer approval before #68 |
+| `pre-drupal-cut` | **Comprehensive** cut (#67): every maintained first-party implementation file existing at the transition commit, including the 2026 recovery work (tests, tooling, Docker, CI, codegen), before the move into `legacy/` (#68). Excluded, with recorded reasons: the Drupal target `modern/`, docs, archival dumps, derived and generated outputs, third-party code. | **frozen at `f532e91`** (merge of PR #80, the last in-flight PR), revision 1, as a **proposal**: maintainer approval is required before #68 |
 
-Preview of `pre-drupal-cut` at `master` `bc38590` (`php dev/lbr/lbr.php preview --set=pre-drupal-cut`): **B ≈ 4,657,918 bytes in 789 files**.
+Frozen `pre-drupal-cut` at `f532e91`: **B = 4,795,406 bytes in 843 files**. C = B; retired 0. The cut commit was chosen as the merge of the last in-flight PR (#80, Divengine Codegen). The standalone portal (PR #78) is a draft outside `master`, so it is not part of the cut.
 
 | Stream | Files | Bytes |
 | --- | ---: | ---: |
 | legacy-ui-assets (first-party images) | 117 | 3,445,826 |
 | legacy-ui | 145 | 299,395 |
+| codegen (cogePHP + Divengine Codegen at the cut) | 70 | 249,378 |
 | sql-domain | 246 | 196,229 |
-| verification (tests, E2E) | 55 | 161,781 |
-| tooling (CI checks, SQL tools) | 20 | 131,247 |
+| verification (tests, E2E) | 54 | 156,607 |
+| tooling (CI checks, SQL tools) | 20 | 130,471 |
 | application-php | 140 | 121,642 |
 | mpi-prioriza | 24 | 107,749 |
-| codegen | 15 | 106,709 |
-| operations (Docker, CI workflows) | 20 | 46,844 |
+| operations (Docker, CI workflows) | 20 | 47,613 |
 | scripts-config | 7 | 40,496 |
 
-**Decision needed before the freeze.** The first-party images are 74 % of the comprehensive B, so retiring the old desktop's icons would dominate the completion percentage. The method allows this (byte weighting is a known limit of LBR), but the maintainer may prefer to exclude binary assets, or to keep them and read the per-stream figures.
+**Decision for the maintainer (approval of the cut).** The first-party images are 74 % of the comprehensive B, so retiring the old desktop's icons would dominate the completion percentage. The method allows this (byte weighting is a known limit of LBR), but the maintainer may prefer to exclude binary assets (a documented revision 2), or to keep them and read the per-stream figures.
 
 **Relocation.** `dev/lbr/relocations.tsv` maps moved directories (for example `control/` → `legacy/control/`). A relocated file is still found at HEAD, still counted in C and listed as relocated. A retirement record for it is rejected while it exists at the new path. A move never retires anything.
 

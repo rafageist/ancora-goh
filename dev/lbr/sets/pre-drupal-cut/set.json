@@ -1,5 +1,5 @@
 {
     "description": "Comprehensive pre-Drupal cut (#66, #67): every maintained first-party implementation file existing at the transition commit, including the 2026 recovery work, before the move into legacy/ (#68).",
-    "baseline_commit": null,
+    "baseline_commit": "f532e9170f34bd59fdde3d8898caba6dc8415489",
     "origin_commit": null
 }
