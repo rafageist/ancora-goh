@@ -1,0 +1,15 @@
+{#
+/**
+ * @file
+ * Platform status page of the Áncora module, rendered with the status-card
+ * Single Directory Component.
+ *
+ * Available variables:
+ * - heading: The heading of the status summary.
+ * - items: A list of items, each with a label and a value.
+ */
+#}
+{{ include('ancora_theme:status-card', {
+  heading: heading,
+  items: items,
+}, with_context = false) }}

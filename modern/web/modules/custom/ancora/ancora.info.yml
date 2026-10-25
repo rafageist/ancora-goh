@@ -1,0 +1,9 @@
+name: Áncora
+type: module
+description: 'Áncora GOH timetabling platform: foundation module (status page and academic term proof).'
+package: Áncora
+core_version_requirement: ^11.4
+dependencies:
+  - drupal:datetime
+  - drupal:user
+  - drupal:views

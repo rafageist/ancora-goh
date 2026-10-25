@@ -1,0 +1,25 @@
+$schema: https://git.drupalcode.org/project/drupal/-/raw/HEAD/core/assets/schemas/v1/metadata.schema.json
+name: Status card
+status: stable
+description: 'A titled card listing label and value pairs, for example platform facts.'
+props:
+  type: object
+  required:
+    - items
+  properties:
+    heading:
+      type: string
+      title: Heading
+    items:
+      type: array
+      title: Items
+      items:
+        type: object
+        required:
+          - label
+          - value
+        properties:
+          label:
+            type: string
+          value:
+            type: string
