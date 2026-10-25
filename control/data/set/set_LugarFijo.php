@@ -16,12 +16,12 @@ if (file_exists("../control/data/fdms/fdm_LugarFijo_grupo.php")) include "../con
 if (file_exists("../control/data/fdms/fdm_LugarFijo_lugar.php")) include "../control/data/fdms/fdm_LugarFijo_lugar.php"; 
 
 // Getting data from POST 
-   if (isset($_POST["field_LugarFijo_grupo"])) $grupo = $_POST["field_LugarFijo_grupo"]; else $grupo = "null";
-   if (isset($_POST["field_LugarFijo_lugar"])) $lugar = $_POST["field_LugarFijo_lugar"]; else $lugar = "null";
+   if (isset($_POST["field_LugarFijo_grupo"])) $grupo = $_POST["field_LugarFijo_grupo"]; else $grupo = null;
+   if (isset($_POST["field_LugarFijo_lugar"])) $lugar = $_POST["field_LugarFijo_lugar"]; else $lugar = null;
 
  // Actualizando el objeto 
    $col = new LugarFijoCollection($dbconnection);
    $obj = $col->getItem($grupo,$lugar);
-$obj->setGrupo($grupo);
-$obj->setLugar($lugar);
+if ($grupo !== null) $obj->setGrupo($grupo);
+if ($lugar !== null) $obj->setLugar($lugar);
 ?>

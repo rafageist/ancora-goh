@@ -17,14 +17,14 @@ if (file_exists("../control/data/fdms/fdm_CostoDeTraslado_destino.php")) include
 if (file_exists("../control/data/fdms/fdm_CostoDeTraslado_costo.php")) include "../control/data/fdms/fdm_CostoDeTraslado_costo.php"; 
 
 // Getting data from POST 
-   if (isset($_POST["field_CostoDeTraslado_origen"])) $origen = $_POST["field_CostoDeTraslado_origen"]; else $origen = "null";
-   if (isset($_POST["field_CostoDeTraslado_destino"])) $destino = $_POST["field_CostoDeTraslado_destino"]; else $destino = "null";
-   if (isset($_POST["field_CostoDeTraslado_costo"])) $costo = $_POST["field_CostoDeTraslado_costo"]; else $costo = "null";
+   if (isset($_POST["field_CostoDeTraslado_origen"])) $origen = $_POST["field_CostoDeTraslado_origen"]; else $origen = null;
+   if (isset($_POST["field_CostoDeTraslado_destino"])) $destino = $_POST["field_CostoDeTraslado_destino"]; else $destino = null;
+   if (isset($_POST["field_CostoDeTraslado_costo"])) $costo = $_POST["field_CostoDeTraslado_costo"]; else $costo = null;
 
  // Actualizando el objeto 
    $col = new CostoDeTrasladoCollection($dbconnection);
    $obj = $col->getItem($origen,$destino);
-$obj->setOrigen($origen);
-$obj->setDestino($destino);
-$obj->setCosto($costo);
+if ($origen !== null) $obj->setOrigen($origen);
+if ($destino !== null) $obj->setDestino($destino);
+if ($costo !== null) $obj->setCosto($costo);
 ?>

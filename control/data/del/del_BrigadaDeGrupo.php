@@ -13,8 +13,8 @@ import("model.data.BrigadaDeGrupoCollection");
 // Tomando los valores del POST 
    if (file_exists("../control/data/fdms/fdm_BrigadaDeGrupo_brigada.php")) include "../control/data/fdms/fdm_BrigadaDeGrupo_brigada.php"; 
    if (file_exists("../control/data/fdms/fdm_BrigadaDeGrupo_grupo.php")) include "../control/data/fdms/fdm_BrigadaDeGrupo_grupo.php"; 
-   if (isset($_POST["field_BrigadaDeGrupo_brigada"])) $brigada = $_POST["field_BrigadaDeGrupo_brigada"]; else $brigada = "null";
-   if (isset($_POST["field_BrigadaDeGrupo_grupo"])) $grupo = $_POST["field_BrigadaDeGrupo_grupo"]; else $grupo = "null";
+   if (isset($_POST["field_BrigadaDeGrupo_brigada"])) $brigada = $_POST["field_BrigadaDeGrupo_brigada"]; else $brigada = null;
+   if (isset($_POST["field_BrigadaDeGrupo_grupo"])) $grupo = $_POST["field_BrigadaDeGrupo_grupo"]; else $grupo = null;
 
  // Eliminando el objeto 
    $col = new BrigadaDeGrupoCollection($dbconnection);

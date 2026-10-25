@@ -16,11 +16,11 @@ import("model.data.ZprioriCollection");
    if (file_exists("../control/data/fdms/fdm_Zpriori_dia.php")) include "../control/data/fdms/fdm_Zpriori_dia.php"; 
    if (file_exists("../control/data/fdms/fdm_Zpriori_turno.php")) include "../control/data/fdms/fdm_Zpriori_turno.php"; 
    if (file_exists("../control/data/fdms/fdm_Zpriori_valor.php")) include "../control/data/fdms/fdm_Zpriori_valor.php"; 
-   if (isset($_POST["field_Zpriori_clasificacion"])) $clasificacion = $_POST["field_Zpriori_clasificacion"]; else $clasificacion = "null";
-   if (isset($_POST["field_Zpriori_periodo"])) $periodo = $_POST["field_Zpriori_periodo"]; else $periodo = "null";
-   if (isset($_POST["field_Zpriori_dia"])) $dia = $_POST["field_Zpriori_dia"]; else $dia = "null";
-   if (isset($_POST["field_Zpriori_turno"])) $turno = $_POST["field_Zpriori_turno"]; else $turno = "null";
-   if (isset($_POST["field_Zpriori_valor"])) $valor = $_POST["field_Zpriori_valor"]; else $valor = "null";
+   if (isset($_POST["field_Zpriori_clasificacion"])) $clasificacion = $_POST["field_Zpriori_clasificacion"]; else $clasificacion = null;
+   if (isset($_POST["field_Zpriori_periodo"])) $periodo = $_POST["field_Zpriori_periodo"]; else $periodo = null;
+   if (isset($_POST["field_Zpriori_dia"])) $dia = $_POST["field_Zpriori_dia"]; else $dia = null;
+   if (isset($_POST["field_Zpriori_turno"])) $turno = $_POST["field_Zpriori_turno"]; else $turno = null;
+   if (isset($_POST["field_Zpriori_valor"])) $valor = $_POST["field_Zpriori_valor"]; else $valor = null;
 
  // Eliminando el objeto 
    $col = new ZprioriCollection($dbconnection);

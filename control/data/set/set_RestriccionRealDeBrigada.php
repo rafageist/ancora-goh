@@ -22,24 +22,24 @@ if (file_exists("../control/data/fdms/fdm_RestriccionRealDeBrigada_actividad.php
 if (file_exists("../control/data/fdms/fdm_RestriccionRealDeBrigada_objeto.php")) include "../control/data/fdms/fdm_RestriccionRealDeBrigada_objeto.php"; 
 
 // Getting data from POST 
-   if (isset($_POST["field_RestriccionRealDeBrigada_restriccion_nominal"])) $restriccion_nominal = $_POST["field_RestriccionRealDeBrigada_restriccion_nominal"]; else $restriccion_nominal = "null";
-   if (isset($_POST["field_RestriccionRealDeBrigada_periodicidad"])) $periodicidad = $_POST["field_RestriccionRealDeBrigada_periodicidad"]; else $periodicidad = "null";
-   if (isset($_POST["field_RestriccionRealDeBrigada_fecha"])) $fecha = $_POST["field_RestriccionRealDeBrigada_fecha"]; else $fecha = "null";
-   if (isset($_POST["field_RestriccionRealDeBrigada_hora_inicial"])) $hora_inicial = $_POST["field_RestriccionRealDeBrigada_hora_inicial"]; else $hora_inicial = "null";
-   if (isset($_POST["field_RestriccionRealDeBrigada_hora_final"])) $hora_final = $_POST["field_RestriccionRealDeBrigada_hora_final"]; else $hora_final = "null";
-   if (isset($_POST["field_RestriccionRealDeBrigada_por_actividad"])) $por_actividad = $_POST["field_RestriccionRealDeBrigada_por_actividad"]; else $por_actividad = "null";
-   if (isset($_POST["field_RestriccionRealDeBrigada_actividad"])) $actividad = $_POST["field_RestriccionRealDeBrigada_actividad"]; else $actividad = "null";
-   if (isset($_POST["field_RestriccionRealDeBrigada_objeto"])) $objeto = $_POST["field_RestriccionRealDeBrigada_objeto"]; else $objeto = "null";
+   if (isset($_POST["field_RestriccionRealDeBrigada_restriccion_nominal"])) $restriccion_nominal = $_POST["field_RestriccionRealDeBrigada_restriccion_nominal"]; else $restriccion_nominal = null;
+   if (isset($_POST["field_RestriccionRealDeBrigada_periodicidad"])) $periodicidad = $_POST["field_RestriccionRealDeBrigada_periodicidad"]; else $periodicidad = null;
+   if (isset($_POST["field_RestriccionRealDeBrigada_fecha"])) $fecha = $_POST["field_RestriccionRealDeBrigada_fecha"]; else $fecha = null;
+   if (isset($_POST["field_RestriccionRealDeBrigada_hora_inicial"])) $hora_inicial = $_POST["field_RestriccionRealDeBrigada_hora_inicial"]; else $hora_inicial = null;
+   if (isset($_POST["field_RestriccionRealDeBrigada_hora_final"])) $hora_final = $_POST["field_RestriccionRealDeBrigada_hora_final"]; else $hora_final = null;
+   if (isset($_POST["field_RestriccionRealDeBrigada_por_actividad"])) $por_actividad = $_POST["field_RestriccionRealDeBrigada_por_actividad"]; else $por_actividad = null;
+   if (isset($_POST["field_RestriccionRealDeBrigada_actividad"])) $actividad = $_POST["field_RestriccionRealDeBrigada_actividad"]; else $actividad = null;
+   if (isset($_POST["field_RestriccionRealDeBrigada_objeto"])) $objeto = $_POST["field_RestriccionRealDeBrigada_objeto"]; else $objeto = null;
 
  // Actualizando el objeto 
    $col = new RestriccionRealDeBrigadaCollection($dbconnection);
    $obj = $col->getItem($restriccion_nominal,$periodicidad);
-$obj->setRestriccionNominal($restriccion_nominal);
-$obj->setPeriodicidad($periodicidad);
-$obj->setFecha($fecha);
-$obj->setHoraInicial($hora_inicial);
-$obj->setHoraFinal($hora_final);
-$obj->setPorActividad($por_actividad);
-$obj->setActividad($actividad);
-$obj->setObjeto($objeto);
+if ($restriccion_nominal !== null) $obj->setRestriccionNominal($restriccion_nominal);
+if ($periodicidad !== null) $obj->setPeriodicidad($periodicidad);
+if ($fecha !== null) $obj->setFecha($fecha);
+if ($hora_inicial !== null) $obj->setHoraInicial($hora_inicial);
+if ($hora_final !== null) $obj->setHoraFinal($hora_final);
+if ($por_actividad !== null) $obj->setPorActividad($por_actividad);
+if ($actividad !== null) $obj->setActividad($actividad);
+if ($objeto !== null) $obj->setObjeto($objeto);
 ?>

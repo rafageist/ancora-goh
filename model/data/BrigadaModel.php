@@ -17,6 +17,7 @@
             * @version: 1.0 
             */ 
           public function length($fieldcount="id"){ 
+              if ($fieldcount !== "*") PartModel::sqlIdentifier($fieldcount);
               $r = $this->getAnything("SELECT count($fieldcount) as c FROM brigada; "); 
               if (isset($r[0])) return $r[0]["c"];
               return 0; 
@@ -31,7 +32,7 @@
              $replicas = array();
              $id = getReplica("brigada");
              $replicas["id"] = $id;
-             $r = $this->getAnything("INSERT INTO brigada (id,descripcion,especialidad,nivel,matricula,creador) VALUES ('$id',".("'".$descripcion."'").",".("'".$especialidad."'").",".("'".$nivel."'").",".($matricula).",".("'".$creador."'").");"); 
+             $r = $this->getAnythingParams("INSERT INTO brigada (id,descripcion,especialidad,nivel,matricula,creador) VALUES ($1,$2,$3,$4,$5,$6);", array(PartModel::sqlValue($id, "text"), PartModel::sqlValue($descripcion, "text"), PartModel::sqlValue($especialidad, "text"), PartModel::sqlValue($nivel, "text"), PartModel::sqlValue($matricula, "number"), PartModel::sqlValue($creador, "text")));
              return $replicas; 
             }
           /** 
@@ -41,7 +42,7 @@
             * @version: 1.0 
             */ 
           public function remove($id){ 
-                  return $this->getAnything("DELETE FROM brigada WHERE  id = '$id' ;");
+                  return $this->getAnythingParams("DELETE FROM brigada WHERE id = $1;", array(PartModel::sqlValue($id, "text")));
             }
           /** 
             * @name: remove 
@@ -49,7 +50,8 @@
             * @updated: 20/06/10 10:40:54 
             * @version: 1.0 
             */ 
-          public function removeBy($where, $asobjects = false){
+          public function removeBy($where, $asobjects = false, $params = null){
+                 if (is_array($params)) return $this->getAnythingParams("DELETE FROM brigada WHERE $where;", $params, $asobjects);
                  return $this->getAnything("DELETE FROM brigada WHERE $where;",$asobjects);
           } 
           /** 
@@ -66,7 +68,8 @@
             * @updated: 20/06/10 10:40:54 
             * @version: 1.0 
             */ 
-          public function set($set, $asobjects = false){
+          public function set($set, $asobjects = false, $params = null){
+               if (is_array($params)) return $this->getAnythingParams("UPDATE brigada SET $set;", $params, $asobjects);
                return $this->getAnything("UPDATE brigada SET $set;",$asobjects);
           } 
           /** 
@@ -75,7 +78,8 @@
             * @updated: 20/06/10 10:40:54 
             * @version: 1.0 
             */ 
-          public function setBy($where, $set, $asobjects = false){
+          public function setBy($where, $set, $asobjects = false, $params = null){
+               if (is_array($params)) return $this->getAnythingParams("UPDATE brigada SET $set WHERE $where;", $params, $asobjects);
                return $this->getAnything("UPDATE brigada SET $set WHERE $where;");
           } 
           /** 
@@ -85,7 +89,7 @@
             * @version: 1.0 
             */ 
           public function get($id){ 
-                  $r = $this->getAnything("SELECT * FROM brigada WHERE  id = '$id' ;",true);
+                  $r = $this->getAnythingParams("SELECT * FROM brigada WHERE id = $1;", array(PartModel::sqlValue($id, "text")), true);
                    if (isset($r[0])) return $r[0]; else return false;
             }
           /** 
@@ -95,7 +99,8 @@
             * @version: 1.0 
             */ 
           public function getAll($fields = "*", $asobjects = false){
-               return $this->getAnything("SELECT $fields FROM brigada;",$asobjects);
+               $r = $this->getAnything("SELECT ".PartModel::sqlSelectList($fields)." FROM brigada;",$asobjects);
+               return $r;
           } 
           /** 
             * @name: getAllBy 
@@ -103,8 +108,11 @@
             * @updated: 20/06/10 10:40:54 
             * @version: 1.0 
             */ 
-          public function getAllBy($where, $fields = "*", $asobjects = false){
-               return $this->getAnything("SELECT $fields FROM brigada WHERE $where;",$asobjects);
+          public function getAllBy($where, $fields = "*", $asobjects = false, $params = null){
+               $sql = "SELECT ".PartModel::sqlSelectList($fields)." FROM brigada WHERE $where;";
+               if (is_array($params)) $r = $this->getAnythingParams($sql, $params, $asobjects);
+               else $r = $this->getAnything($sql, $asobjects);
+               return $r;
           } 
           /** 
             * @name: getLimit 
@@ -113,7 +121,8 @@
             * @version: 1.0 
             */ 
           public function getLimit($limit, $offset, $fields = "*", $asobjects = false){
-               return $this->getAnything("SELECT $fields FROM brigada LIMIT $limit OFFSET $offset;",$asobjects);
+               $r = $this->getAnythingParams("SELECT ".PartModel::sqlSelectList($fields)." FROM brigada LIMIT $1 OFFSET $2;", array(PartModel::sqlValue($limit, "number"), PartModel::sqlValue($offset, "number")), $asobjects);
+               return $r;
           } 
           /** 
             * @name: getLimitBy 
@@ -121,8 +130,13 @@
             * @updated: 20/06/10 10:40:54 
             * @version: 1.0 
             */ 
-          public function getLimitBy($limit, $offset, $where, $fields = "*", $asobjects = false){
-               return $this->getAnything("SELECT $fields FROM brigada WHERE $where LIMIT $limit OFFSET $offset;", $asobjects);
+          public function getLimitBy($limit, $offset, $where, $fields = "*", $asobjects = false, $params = null){
+               $params = is_array($params) ? array_values($params) : array();
+               $n = count($params);
+               $params[] = PartModel::sqlValue($limit, "number");
+               $params[] = PartModel::sqlValue($offset, "number");
+               $r = $this->getAnythingParams("SELECT ".PartModel::sqlSelectList($fields)." FROM brigada WHERE $where LIMIT \$".($n + 1)." OFFSET \$".($n + 2).";", $params, $asobjects);
+               return $r;
           } 
           /** 
             * @name: getJoin 
@@ -131,7 +145,7 @@
             * @version: 1.0 
             */ 
           public function getJoinWithSeguridadUsuario($fields = "*", $asobjects = false){
-               $r = $this->getAnything("SELECT $fields FROM brigada INNER JOIN seguridad.usuario ON brigada.creador = seguridad.usuario.id ");
+               $r = $this->getAnything("SELECT ".PartModel::sqlSelectList($fields)." FROM brigada INNER JOIN seguridad.usuario ON brigada.creador = seguridad.usuario.id;", $asobjects);
              return $r; 
           } 
           /** 
@@ -141,7 +155,7 @@
             * @version: 1.0 
             */ 
           public function getJoinWithEspecialidad($fields = "*", $asobjects = false){
-               $r = $this->getAnything("SELECT $fields FROM brigada INNER JOIN public.especialidad ON brigada.especialidad = public.especialidad.id ");
+               $r = $this->getAnything("SELECT ".PartModel::sqlSelectList($fields)." FROM brigada INNER JOIN public.especialidad ON brigada.especialidad = public.especialidad.id;", $asobjects);
              return $r; 
           } 
           /** 
@@ -151,7 +165,7 @@
             * @version: 1.0 
             */ 
           public function getJoinWithNivel($fields = "*", $asobjects = false){
-               $r = $this->getAnything("SELECT $fields FROM brigada INNER JOIN public.nivel ON brigada.nivel = public.nivel.id ");
+               $r = $this->getAnything("SELECT ".PartModel::sqlSelectList($fields)." FROM brigada INNER JOIN public.nivel ON brigada.nivel = public.nivel.id;", $asobjects);
              return $r; 
           } 
           /** 
@@ -160,8 +174,10 @@
             * @updated: 20/06/10 10:40:54 
             * @version: 1.0 
             */ 
-          public function getJoinWithSeguridadUsuarioBy($where, $fields = "*", $asobjects = false){
-               $r = $this->getAnything("SELECT $fields FROM brigada INNER JOIN seguridad.usuario ON brigada.creador = seguridad.usuario.id  WHERE $where");
+          public function getJoinWithSeguridadUsuarioBy($where, $fields = "*", $asobjects = false, $params = null){
+               $sql = "SELECT ".PartModel::sqlSelectList($fields)." FROM brigada INNER JOIN seguridad.usuario ON brigada.creador = seguridad.usuario.id WHERE $where;";
+               if (is_array($params)) $r = $this->getAnythingParams($sql, $params, $asobjects);
+               else $r = $this->getAnything($sql, $asobjects);
              return $r; 
           } 
           /** 
@@ -170,8 +186,10 @@
             * @updated: 20/06/10 10:40:54 
             * @version: 1.0 
             */ 
-          public function getJoinWithEspecialidadBy($where, $fields = "*", $asobjects = false){
-               $r = $this->getAnything("SELECT $fields FROM brigada INNER JOIN public.especialidad ON brigada.especialidad = public.especialidad.id  WHERE $where");
+          public function getJoinWithEspecialidadBy($where, $fields = "*", $asobjects = false, $params = null){
+               $sql = "SELECT ".PartModel::sqlSelectList($fields)." FROM brigada INNER JOIN public.especialidad ON brigada.especialidad = public.especialidad.id WHERE $where;";
+               if (is_array($params)) $r = $this->getAnythingParams($sql, $params, $asobjects);
+               else $r = $this->getAnything($sql, $asobjects);
              return $r; 
           } 
           /** 
@@ -180,8 +198,10 @@
             * @updated: 20/06/10 10:40:54 
             * @version: 1.0 
             */ 
-          public function getJoinWithNivelBy($where, $fields = "*", $asobjects = false){
-               $r = $this->getAnything("SELECT $fields FROM brigada INNER JOIN public.nivel ON brigada.nivel = public.nivel.id  WHERE $where");
+          public function getJoinWithNivelBy($where, $fields = "*", $asobjects = false, $params = null){
+               $sql = "SELECT ".PartModel::sqlSelectList($fields)." FROM brigada INNER JOIN public.nivel ON brigada.nivel = public.nivel.id WHERE $where;";
+               if (is_array($params)) $r = $this->getAnythingParams($sql, $params, $asobjects);
+               else $r = $this->getAnything($sql, $asobjects);
              return $r; 
           } 
           /** 
@@ -190,80 +210,38 @@
             * @updated: 20/06/10 10:40:54 
             * @version: 1.0 
             */ 
-          public function getJoinWithSeguridadUsuarioByPhrase($phrase, $where="true", $fields="*", $asobjects = false){
-               if ($fields == "*") {
-                    $fieldstabla = explode($this->fieldnames["brigada"]); 
-                    $fieldsforaneas = explode($this->fieldnames["usuario"]); 
-                    $ff = "";
-                    $i = 0;
-                    foreach ($fieldstabla as $f) {
-                        $i++; 
-                        if ($i>1) $ff = $ff.",";
-                        $ff = $ff.$f;
-                    }
-                    foreach ($fieldsforaneas as $f) {
-                        $i++; 
-                        if ($i>1) $ff = $ff.",";
-                        $ff = $ff.$f;
-                    }
-                    $fields=$ff;
-               }
-               $r = $this->getAnything("SELECT $fields FROM brigada INNER JOIN seguridad.usuario ON brigada.creador = usuario.id  WHERE ($where) AND (".$this->getWHEREPartOfSearchFrase($phrase, $fields).")");
+          public function getJoinWithSeguridadUsuarioByPhrase($phrase, $where="true", $fields="*", $asobjects = false, $params = null){
+               if ($fields == "*") $fields = "brigada.id,brigada.descripcion,brigada.especialidad,brigada.nivel,brigada.matricula,brigada.creador,seguridad.usuario.id,seguridad.usuario.nombre,seguridad.usuario.info,seguridad.usuario.correo,seguridad.usuario.momento_ingreso,seguridad.usuario.nick,seguridad.usuario.contrasena";
+               $params = is_array($params) ? array_values($params) : array();
+               $phrasepart = $this->getWHEREPartOfSearchFrase($phrase, $fields, $params);
+               $r = $this->getAnythingParams("SELECT ".PartModel::sqlSelectList($fields)." FROM brigada INNER JOIN seguridad.usuario ON brigada.creador = seguridad.usuario.id WHERE ($where) AND ($phrasepart);", $params, $asobjects);
              return $r; 
-          }
+          } 
           /** 
             * @name: getJoin 
             * @desc: Inner join between "brigada" and "public.especialidad, by phrase ..." 
             * @updated: 20/06/10 10:40:54 
             * @version: 1.0 
             */ 
-          public function getJoinWithEspecialidadByPhrase($phrase, $where="true", $fields="*", $asobjects = false){
-               if ($fields == "*") {
-                    $fieldstabla = explode($this->fieldnames["brigada"]); 
-                    $fieldsforaneas = explode($this->fieldnames["especialidad"]); 
-                    $ff = "";
-                    $i = 0;
-                    foreach ($fieldstabla as $f) {
-                        $i++; 
-                        if ($i>1) $ff = $ff.",";
-                        $ff = $ff.$f;
-                    }
-                    foreach ($fieldsforaneas as $f) {
-                        $i++; 
-                        if ($i>1) $ff = $ff.",";
-                        $ff = $ff.$f;
-                    }
-                    $fields=$ff;
-               }
-               $r = $this->getAnything("SELECT $fields FROM brigada INNER JOIN public.especialidad ON brigada.especialidad = especialidad.id  WHERE ($where) AND (".$this->getWHEREPartOfSearchFrase($phrase, $fields).")");
+          public function getJoinWithEspecialidadByPhrase($phrase, $where="true", $fields="*", $asobjects = false, $params = null){
+               if ($fields == "*") $fields = "brigada.id,brigada.descripcion,brigada.especialidad,brigada.nivel,brigada.matricula,brigada.creador,public.especialidad.id,public.especialidad.descripcion,public.especialidad.creador";
+               $params = is_array($params) ? array_values($params) : array();
+               $phrasepart = $this->getWHEREPartOfSearchFrase($phrase, $fields, $params);
+               $r = $this->getAnythingParams("SELECT ".PartModel::sqlSelectList($fields)." FROM brigada INNER JOIN public.especialidad ON brigada.especialidad = public.especialidad.id WHERE ($where) AND ($phrasepart);", $params, $asobjects);
              return $r; 
-          }
+          } 
           /** 
             * @name: getJoin 
             * @desc: Inner join between "brigada" and "public.nivel, by phrase ..." 
             * @updated: 20/06/10 10:40:54 
             * @version: 1.0 
             */ 
-          public function getJoinWithNivelByPhrase($phrase, $where="true", $fields="*", $asobjects = false){
-               if ($fields == "*") {
-                    $fieldstabla = explode($this->fieldnames["brigada"]); 
-                    $fieldsforaneas = explode($this->fieldnames["nivel"]); 
-                    $ff = "";
-                    $i = 0;
-                    foreach ($fieldstabla as $f) {
-                        $i++; 
-                        if ($i>1) $ff = $ff.",";
-                        $ff = $ff.$f;
-                    }
-                    foreach ($fieldsforaneas as $f) {
-                        $i++; 
-                        if ($i>1) $ff = $ff.",";
-                        $ff = $ff.$f;
-                    }
-                    $fields=$ff;
-               }
-               $r = $this->getAnything("SELECT $fields FROM brigada INNER JOIN public.nivel ON brigada.nivel = nivel.id  WHERE ($where) AND (".$this->getWHEREPartOfSearchFrase($phrase, $fields).")");
+          public function getJoinWithNivelByPhrase($phrase, $where="true", $fields="*", $asobjects = false, $params = null){
+               if ($fields == "*") $fields = "brigada.id,brigada.descripcion,brigada.especialidad,brigada.nivel,brigada.matricula,brigada.creador,public.nivel.id,public.nivel.descripcion,public.nivel.creador";
+               $params = is_array($params) ? array_values($params) : array();
+               $phrasepart = $this->getWHEREPartOfSearchFrase($phrase, $fields, $params);
+               $r = $this->getAnythingParams("SELECT ".PartModel::sqlSelectList($fields)." FROM brigada INNER JOIN public.nivel ON brigada.nivel = public.nivel.id WHERE ($where) AND ($phrasepart);", $params, $asobjects);
              return $r; 
-          }
+          } 
     } 
 ?>

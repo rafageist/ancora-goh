@@ -24,9 +24,8 @@
             * @version: 1.0 
             */ 
           function getPersonsByNameAndAge($name,$age,$asobjects = false){ 
-               $sql = "SELECT * FROM persons WHERE name = '$name' AND age = $age"; 
-               if ($asobjects==true) return $this->db->getAsObjects($sql);
-               return $this->db->getAsArray($sql);
+               $sql = "SELECT * FROM persons WHERE name = \$1 AND age = \$2"; 
+               return $this->getAnythingParams($sql, array(PartModel::sqlValue($name, "text"), PartModel::sqlValue($age, "text")), $asobjects);
             } 
     } 
 ?>

@@ -23,9 +23,8 @@
             * @version: 1.0 
             */ 
           public function Nivelar($arr,$criterio,$asobjects = false){ 
-               $sql = "select  prioriza.nivelar('$arr',$criterio)"; 
-               if ($asobjects == true) return $this->db->getAsObjects($sql);
-               return $this->db->getAsArray($sql);
+               $sql = "select  prioriza.nivelar($1,$2)"; 
+               return $this->getAnythingParams($sql, array(PartModel::sqlValue($arr, "text"), PartModel::sqlValue($criterio, "bool")), $asobjects);
            } 
           /** 
             * @name: nivelar_matrix 
@@ -34,8 +33,7 @@
             * @version: 1.0 
             */ 
           public function NivelarMatrix($tabla,$criterios,$asobjects = false){ 
-               $sql = "select  prioriza.nivelar_matrix('$tabla','$criterios')"; 
-               if ($asobjects == true) return $this->db->getAsObjects($sql);
-               return $this->db->getAsArray($sql);
+               $sql = "select  prioriza.nivelar_matrix($1,$2)"; 
+               return $this->getAnythingParams($sql, array(PartModel::sqlValue($tabla, "text"), PartModel::sqlValue($criterios, "text")), $asobjects);
            } 
      } 

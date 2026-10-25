@@ -76,7 +76,7 @@
             */ 
        public function setPlantilla($value){ 
               $this->plantilla = $value; 
-              $this->data->setBy("id = '".$this->id."'", "plantilla = '$value'"); 
+              $this->data->getAnythingParams("UPDATE actividad SET plantilla = $1 WHERE id = $2;", array(PartModel::sqlValue($value, "text"), PartModel::sqlValue($this->id, "text"))); 
        } 
           /** 
             * @name: getPlantilla 
@@ -97,7 +97,7 @@
             */ 
        public function setGrupo($value){ 
               $this->grupo = $value; 
-              $this->data->setBy("id = '".$this->id."'", "grupo = '$value'"); 
+              $this->data->getAnythingParams("UPDATE actividad SET grupo = $1 WHERE id = $2;", array(PartModel::sqlValue($value, "text"), PartModel::sqlValue($this->id, "text"))); 
        } 
           /** 
             * @name: getGrupo 
@@ -118,7 +118,7 @@
             */ 
        public function setProfesor($value){ 
               $this->profesor = $value; 
-              $this->data->setBy("id = '".$this->id."'", "profesor = '$value'"); 
+              $this->data->getAnythingParams("UPDATE actividad SET profesor = $1 WHERE id = $2;", array(PartModel::sqlValue($value, "text"), PartModel::sqlValue($this->id, "text"))); 
        } 
           /** 
             * @name: getProfesor 
@@ -139,7 +139,7 @@
             */ 
        public function setLugar($value){ 
               $this->lugar = $value; 
-              $this->data->setBy("id = '".$this->id."'", "lugar = '$value'"); 
+              $this->data->getAnythingParams("UPDATE actividad SET lugar = $1 WHERE id = $2;", array(PartModel::sqlValue($value, "text"), PartModel::sqlValue($this->id, "text"))); 
        } 
           /** 
             * @name: getLugar 
@@ -160,7 +160,7 @@
             */ 
        public function setDia($value){ 
               $this->dia = $value; 
-              $this->data->setBy("id = '".$this->id."'", "dia = $value"); 
+              $this->data->getAnythingParams("UPDATE actividad SET dia = $1 WHERE id = $2;", array(PartModel::sqlValue($value, "number"), PartModel::sqlValue($this->id, "text"))); 
        } 
           /** 
             * @name: getDia 
@@ -181,7 +181,7 @@
             */ 
        public function setTurno($value){ 
               $this->turno = $value; 
-              $this->data->setBy("id = '".$this->id."'", "turno = $value"); 
+              $this->data->getAnythingParams("UPDATE actividad SET turno = $1 WHERE id = $2;", array(PartModel::sqlValue($value, "number"), PartModel::sqlValue($this->id, "text"))); 
        } 
           /** 
             * @name: getTurno 
@@ -202,7 +202,7 @@
             */ 
        public function setMomentoDeColocacion($value){ 
               $this->momento_de_colocacion = $value; 
-              $this->data->setBy("id = '".$this->id."'", "momento_de_colocacion = $value"); 
+              $this->data->getAnythingParams("UPDATE actividad SET momento_de_colocacion = $1 WHERE id = $2;", array(PartModel::sqlValue($value, "number"), PartModel::sqlValue($this->id, "text"))); 
        } 
           /** 
             * @name: getMomentoDeColocacion 
@@ -223,7 +223,7 @@
             */ 
        public function setCreador($value){ 
               $this->creador = $value; 
-              $this->data->setBy("id = '".$this->id."'", "creador = '$value'"); 
+              $this->data->getAnythingParams("UPDATE actividad SET creador = $1 WHERE id = $2;", array(PartModel::sqlValue($value, "text"), PartModel::sqlValue($this->id, "text"))); 
        } 
           /** 
             * @name: getCreador 
@@ -243,7 +243,7 @@
        } 
        public function getOtrosRecursosUsados(){ 
           $collection = new OtrosRecursosUsadosCollection($this->data->db);
-          $collection->Load(null,null,"*","actividad = '".$this->id."'");
+          $collection->Load(null,null,"*","actividad = $1", array(PartModel::sqlValue($this->id, "text")));
            return $collection;
        } 
        public function addRestriccionDeBrigada($brigada,$periodo,$dia,$turno,$valor,$por_actividad){ 
@@ -253,7 +253,7 @@
        } 
        public function getRestriccionDeBrigada(){ 
           $collection = new RestriccionDeBrigadaCollection($this->data->db);
-          $collection->Load(null,null,"*","actividad = '".$this->id."'");
+          $collection->Load(null,null,"*","actividad = $1", array(PartModel::sqlValue($this->id, "text")));
            return $collection;
        } 
        public function addRestriccionDeProfesor($profesor,$periodo,$dia,$turno,$valor,$por_actividad){ 
@@ -263,7 +263,7 @@
        } 
        public function getRestriccionDeProfesor(){ 
           $collection = new RestriccionDeProfesorCollection($this->data->db);
-          $collection->Load(null,null,"*","actividad = '".$this->id."'");
+          $collection->Load(null,null,"*","actividad = $1", array(PartModel::sqlValue($this->id, "text")));
            return $collection;
        } 
        public function addRestriccionPorActividadDeLugar($restriccion_nominal){ 
@@ -273,7 +273,7 @@
        } 
        public function getRestriccionPorActividadDeLugar(){ 
           $collection = new RestriccionPorActividadDeLugarCollection($this->data->db);
-          $collection->Load(null,null,"*","actividad = '".$this->id."'");
+          $collection->Load(null,null,"*","actividad = $1", array(PartModel::sqlValue($this->id, "text")));
            return $collection;
        } 
        public function addRestriccionPorActividadDeOtroRecurso($restriccion_nominal){ 
@@ -283,7 +283,7 @@
        } 
        public function getRestriccionPorActividadDeOtroRecurso(){ 
           $collection = new RestriccionPorActividadDeOtroRecursoCollection($this->data->db);
-          $collection->Load(null,null,"*","actividad = '".$this->id."'");
+          $collection->Load(null,null,"*","actividad = $1", array(PartModel::sqlValue($this->id, "text")));
            return $collection;
        } 
        public function addRestriccionPorActividadDeProfesor($restriccion_nominal){ 
@@ -293,7 +293,7 @@
        } 
        public function getRestriccionPorActividadDeProfesor(){ 
           $collection = new RestriccionPorActividadDeProfesorCollection($this->data->db);
-          $collection->Load(null,null,"*","actividad = '".$this->id."'");
+          $collection->Load(null,null,"*","actividad = $1", array(PartModel::sqlValue($this->id, "text")));
            return $collection;
        } 
        public function addRestriccionRealDeBrigada($restriccion_nominal,$periodicidad,$fecha,$hora_inicial,$hora_final,$por_actividad,$objeto){ 
@@ -303,7 +303,7 @@
        } 
        public function getRestriccionRealDeBrigada(){ 
           $collection = new RestriccionRealDeBrigadaCollection($this->data->db);
-          $collection->Load(null,null,"*","actividad = '".$this->id."'");
+          $collection->Load(null,null,"*","actividad = $1", array(PartModel::sqlValue($this->id, "text")));
            return $collection;
        } 
        public function addRestriccionPorActividadDeBrigada($restriccion_nominal){ 
@@ -313,7 +313,7 @@
        } 
        public function getRestriccionPorActividadDeBrigada(){ 
           $collection = new RestriccionPorActividadDeBrigadaCollection($this->data->db);
-          $collection->Load(null,null,"*","actividad = '".$this->id."'");
+          $collection->Load(null,null,"*","actividad = $1", array(PartModel::sqlValue($this->id, "text")));
            return $collection;
        } 
        public function addRestriccionDeLugar($lugar,$periodo,$dia,$turno,$valor,$por_actividad){ 
@@ -323,7 +323,7 @@
        } 
        public function getRestriccionDeLugar(){ 
           $collection = new RestriccionDeLugarCollection($this->data->db);
-          $collection->Load(null,null,"*","actividad = '".$this->id."'");
+          $collection->Load(null,null,"*","actividad = $1", array(PartModel::sqlValue($this->id, "text")));
            return $collection;
        } 
        public function addRestriccionDeOtroRecurso($otro_recurso,$periodo,$dia,$turno,$valor,$por_actividad){ 
@@ -333,7 +333,7 @@
        } 
        public function getRestriccionDeOtroRecurso(){ 
           $collection = new RestriccionDeOtroRecursoCollection($this->data->db);
-          $collection->Load(null,null,"*","actividad = '".$this->id."'");
+          $collection->Load(null,null,"*","actividad = $1", array(PartModel::sqlValue($this->id, "text")));
            return $collection;
        } 
 } 

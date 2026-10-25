@@ -19,19 +19,19 @@ if (file_exists("../control/data/fdms/fdm_PlantillaDeActividad_exige_profesor.ph
 if (file_exists("../control/data/fdms/fdm_PlantillaDeActividad_exige_lugar.php")) include "../control/data/fdms/fdm_PlantillaDeActividad_exige_lugar.php"; 
 
 // Getting data from POST 
-   if (isset($_POST["field_PlantillaDeActividad_id"])) $id = $_POST["field_PlantillaDeActividad_id"]; else $id = "null";
-   if (isset($_POST["field_PlantillaDeActividad_desglose"])) $desglose = $_POST["field_PlantillaDeActividad_desglose"]; else $desglose = "null";
-   if (isset($_POST["field_PlantillaDeActividad_orden"])) $orden = $_POST["field_PlantillaDeActividad_orden"]; else $orden = "null";
-   if (isset($_POST["field_PlantillaDeActividad_clasificacion"])) $clasificacion = $_POST["field_PlantillaDeActividad_clasificacion"]; else $clasificacion = "null";
-   if (isset($_POST["field_PlantillaDeActividad_exige_profesor"])) $exige_profesor = $_POST["field_PlantillaDeActividad_exige_profesor"]; else $exige_profesor = "null";
-   if (isset($_POST["field_PlantillaDeActividad_exige_lugar"])) $exige_lugar = $_POST["field_PlantillaDeActividad_exige_lugar"]; else $exige_lugar = "null";
+   if (isset($_POST["field_PlantillaDeActividad_id"])) $id = $_POST["field_PlantillaDeActividad_id"]; else $id = null;
+   if (isset($_POST["field_PlantillaDeActividad_desglose"])) $desglose = $_POST["field_PlantillaDeActividad_desglose"]; else $desglose = null;
+   if (isset($_POST["field_PlantillaDeActividad_orden"])) $orden = $_POST["field_PlantillaDeActividad_orden"]; else $orden = null;
+   if (isset($_POST["field_PlantillaDeActividad_clasificacion"])) $clasificacion = $_POST["field_PlantillaDeActividad_clasificacion"]; else $clasificacion = null;
+   if (isset($_POST["field_PlantillaDeActividad_exige_profesor"])) $exige_profesor = $_POST["field_PlantillaDeActividad_exige_profesor"]; else $exige_profesor = null;
+   if (isset($_POST["field_PlantillaDeActividad_exige_lugar"])) $exige_lugar = $_POST["field_PlantillaDeActividad_exige_lugar"]; else $exige_lugar = null;
 
  // Actualizando el objeto 
    $col = new PlantillaDeActividadCollection($dbconnection);
    $obj = $col->getItem($id);
-$obj->setDesglose($desglose);
-$obj->setOrden($orden);
-$obj->setClasificacion($clasificacion);
-$obj->setExigeProfesor($exige_profesor);
-$obj->setExigeLugar($exige_lugar);
+if ($desglose !== null) $obj->setDesglose($desglose);
+if ($orden !== null) $obj->setOrden($orden);
+if ($clasificacion !== null) $obj->setClasificacion($clasificacion);
+if ($exige_profesor !== null) $obj->setExigeProfesor($exige_profesor);
+if ($exige_lugar !== null) $obj->setExigeLugar($exige_lugar);
 ?>

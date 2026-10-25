@@ -16,12 +16,12 @@ if (file_exists("../control/data/fdms/fdm_AccesoProhibido_grupo.php")) include "
 if (file_exists("../control/data/fdms/fdm_AccesoProhibido_lugar.php")) include "../control/data/fdms/fdm_AccesoProhibido_lugar.php"; 
 
 // Getting data from POST 
-   if (isset($_POST["field_AccesoProhibido_grupo"])) $grupo = $_POST["field_AccesoProhibido_grupo"]; else $grupo = "null";
-   if (isset($_POST["field_AccesoProhibido_lugar"])) $lugar = $_POST["field_AccesoProhibido_lugar"]; else $lugar = "null";
+   if (isset($_POST["field_AccesoProhibido_grupo"])) $grupo = $_POST["field_AccesoProhibido_grupo"]; else $grupo = null;
+   if (isset($_POST["field_AccesoProhibido_lugar"])) $lugar = $_POST["field_AccesoProhibido_lugar"]; else $lugar = null;
 
  // Actualizando el objeto 
    $col = new AccesoProhibidoCollection($dbconnection);
    $obj = $col->getItem($grupo,$lugar);
-$obj->setGrupo($grupo);
-$obj->setLugar($lugar);
+if ($grupo !== null) $obj->setGrupo($grupo);
+if ($lugar !== null) $obj->setLugar($lugar);
 ?>

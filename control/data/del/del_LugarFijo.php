@@ -13,8 +13,8 @@ import("model.data.LugarFijoCollection");
 // Tomando los valores del POST 
    if (file_exists("../control/data/fdms/fdm_LugarFijo_grupo.php")) include "../control/data/fdms/fdm_LugarFijo_grupo.php"; 
    if (file_exists("../control/data/fdms/fdm_LugarFijo_lugar.php")) include "../control/data/fdms/fdm_LugarFijo_lugar.php"; 
-   if (isset($_POST["field_LugarFijo_grupo"])) $grupo = $_POST["field_LugarFijo_grupo"]; else $grupo = "null";
-   if (isset($_POST["field_LugarFijo_lugar"])) $lugar = $_POST["field_LugarFijo_lugar"]; else $lugar = "null";
+   if (isset($_POST["field_LugarFijo_grupo"])) $grupo = $_POST["field_LugarFijo_grupo"]; else $grupo = null;
+   if (isset($_POST["field_LugarFijo_lugar"])) $lugar = $_POST["field_LugarFijo_lugar"]; else $lugar = null;
 
  // Eliminando el objeto 
    $col = new LugarFijoCollection($dbconnection);

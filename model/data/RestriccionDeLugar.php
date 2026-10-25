@@ -72,7 +72,7 @@
             */ 
        public function setLugar($value){ 
               $this->lugar = $value; 
-              $this->data->setBy("id = '".$this->id."'", "lugar = '$value'"); 
+              $this->data->getAnythingParams("UPDATE restriccion_de_lugar SET lugar = $1 WHERE id = $2;", array(PartModel::sqlValue($value, "text"), PartModel::sqlValue($this->id, "text"))); 
        } 
           /** 
             * @name: getLugar 
@@ -93,7 +93,7 @@
             */ 
        public function setPeriodo($value){ 
               $this->periodo = $value; 
-              $this->data->setBy("id = '".$this->id."'", "periodo = '$value'"); 
+              $this->data->getAnythingParams("UPDATE restriccion_de_lugar SET periodo = $1 WHERE id = $2;", array(PartModel::sqlValue($value, "text"), PartModel::sqlValue($this->id, "text"))); 
        } 
           /** 
             * @name: getPeriodo 
@@ -114,7 +114,7 @@
             */ 
        public function setDia($value){ 
               $this->dia = $value; 
-              $this->data->setBy("id = '".$this->id."'", "dia = $value"); 
+              $this->data->getAnythingParams("UPDATE restriccion_de_lugar SET dia = $1 WHERE id = $2;", array(PartModel::sqlValue($value, "number"), PartModel::sqlValue($this->id, "text"))); 
        } 
           /** 
             * @name: getDia 
@@ -135,7 +135,7 @@
             */ 
        public function setTurno($value){ 
               $this->turno = $value; 
-              $this->data->setBy("id = '".$this->id."'", "turno = $value"); 
+              $this->data->getAnythingParams("UPDATE restriccion_de_lugar SET turno = $1 WHERE id = $2;", array(PartModel::sqlValue($value, "number"), PartModel::sqlValue($this->id, "text"))); 
        } 
           /** 
             * @name: getTurno 
@@ -156,7 +156,7 @@
             */ 
        public function setValor($value){ 
               $this->valor = $value; 
-              $this->data->setBy("id = '".$this->id."'", "valor = $value"); 
+              $this->data->getAnythingParams("UPDATE restriccion_de_lugar SET valor = $1 WHERE id = $2;", array(PartModel::sqlValue($value, "number"), PartModel::sqlValue($this->id, "text"))); 
        } 
           /** 
             * @name: getValor 
@@ -177,9 +177,7 @@
             */ 
        public function setPorActividad($value){ 
               $this->por_actividad = $value; 
-               if ($value == true || $value == 1 || $value == "t") $value = "true"; 
-               else if ($value == true || $value == 0 || $value == "f") $value = "false"; 
-              $this->data->setBy("id = '".$this->id."'", "por_actividad = $value"); 
+              $this->data->getAnythingParams("UPDATE restriccion_de_lugar SET por_actividad = $1 WHERE id = $2;", array(PartModel::sqlValue($value, "bool"), PartModel::sqlValue($this->id, "text"))); 
        } 
           /** 
             * @name: getPorActividad 
@@ -200,7 +198,7 @@
             */ 
        public function setActividad($value){ 
               $this->actividad = $value; 
-              $this->data->setBy("id = '".$this->id."'", "actividad = '$value'"); 
+              $this->data->getAnythingParams("UPDATE restriccion_de_lugar SET actividad = $1 WHERE id = $2;", array(PartModel::sqlValue($value, "text"), PartModel::sqlValue($this->id, "text"))); 
        } 
           /** 
             * @name: getActividad 
@@ -220,7 +218,7 @@
        } 
        public function getRestriccionPorActividadDeLugar(){ 
           $collection = new RestriccionPorActividadDeLugarCollection($this->data->db);
-          $collection->Load(null,null,"*","restriccion_nominal = '".$this->id."'");
+          $collection->Load(null,null,"*","restriccion_nominal = $1", array(PartModel::sqlValue($this->id, "text")));
            return $collection;
        } 
        public function addRestriccionRealDeLugar($periodicidad,$fecha,$hora_inicial,$hora_final,$por_actividad,$actividad,$objeto){ 
@@ -230,7 +228,7 @@
        } 
        public function getRestriccionRealDeLugar(){ 
           $collection = new RestriccionRealDeLugarCollection($this->data->db);
-          $collection->Load(null,null,"*","restriccion_nominal = '".$this->id."'");
+          $collection->Load(null,null,"*","restriccion_nominal = $1", array(PartModel::sqlValue($this->id, "text")));
            return $collection;
        } 
 } 

@@ -37,7 +37,7 @@
             */ 
        public function setIp($value){ 
               $this->ip = $value; 
-              $this->data->setBy("usuario = '".$this->usuario."' AND ip = '".$this->ip."'", "ip = '$value'"); 
+              $this->data->getAnythingParams("UPDATE seguridad.host SET ip = $1 WHERE usuario = $2 AND ip = $3;", array(PartModel::sqlValue($value, "text"), PartModel::sqlValue($this->usuario, "text"), PartModel::sqlValue($this->ip, "text"))); 
        } 
           /** 
             * @name: getIp 
@@ -58,7 +58,7 @@
             */ 
        public function setUsuario($value){ 
               $this->usuario = $value; 
-              $this->data->setBy("usuario = '".$this->usuario."' AND ip = '".$this->ip."'", "usuario = '$value'"); 
+              $this->data->getAnythingParams("UPDATE seguridad.host SET usuario = $1 WHERE usuario = $2 AND ip = $3;", array(PartModel::sqlValue($value, "text"), PartModel::sqlValue($this->usuario, "text"), PartModel::sqlValue($this->ip, "text"))); 
        } 
           /** 
             * @name: getUsuario 

@@ -52,7 +52,7 @@
             */ 
        public function setPeriodo($value){ 
               $this->periodo = $value; 
-              $this->data->setBy("id = '".$this->id."'", "periodo = '$value'"); 
+              $this->data->getAnythingParams("UPDATE periodicidad SET periodo = $1 WHERE id = $2;", array(PartModel::sqlValue($value, "text"), PartModel::sqlValue($this->id, "text"))); 
        } 
           /** 
             * @name: getPeriodo 
@@ -73,7 +73,7 @@
             */ 
        public function setDia($value){ 
               $this->dia = $value; 
-              $this->data->setBy("id = '".$this->id."'", "dia = $value"); 
+              $this->data->getAnythingParams("UPDATE periodicidad SET dia = $1 WHERE id = $2;", array(PartModel::sqlValue($value, "number"), PartModel::sqlValue($this->id, "text"))); 
        } 
           /** 
             * @name: getDia 
@@ -93,7 +93,7 @@
        } 
        public function getRestriccionRealDeAsignatura(){ 
           $collection = new RestriccionRealDeAsignaturaCollection($this->data->db);
-          $collection->Load(null,null,"*","periodicidad = '".$this->id."'");
+          $collection->Load(null,null,"*","periodicidad = $1", array(PartModel::sqlValue($this->id, "text")));
            return $collection;
        } 
        public function addRestriccionRealDeClasifAct($restriccion_nominal,$fecha,$hora_inicial,$hora_final,$por_actividad,$actividad,$objeto){ 
@@ -103,7 +103,7 @@
        } 
        public function getRestriccionRealDeClasifAct(){ 
           $collection = new RestriccionRealDeClasifActCollection($this->data->db);
-          $collection->Load(null,null,"*","periodicidad = '".$this->id."'");
+          $collection->Load(null,null,"*","periodicidad = $1", array(PartModel::sqlValue($this->id, "text")));
            return $collection;
        } 
        public function addRestriccionRealDeLugar($restriccion_nominal,$fecha,$hora_inicial,$hora_final,$por_actividad,$actividad,$objeto){ 
@@ -113,7 +113,7 @@
        } 
        public function getRestriccionRealDeLugar(){ 
           $collection = new RestriccionRealDeLugarCollection($this->data->db);
-          $collection->Load(null,null,"*","periodicidad = '".$this->id."'");
+          $collection->Load(null,null,"*","periodicidad = $1", array(PartModel::sqlValue($this->id, "text")));
            return $collection;
        } 
        public function addRestriccionRealDeBrigada($restriccion_nominal,$fecha,$hora_inicial,$hora_final,$por_actividad,$actividad,$objeto){ 
@@ -123,7 +123,7 @@
        } 
        public function getRestriccionRealDeBrigada(){ 
           $collection = new RestriccionRealDeBrigadaCollection($this->data->db);
-          $collection->Load(null,null,"*","periodicidad = '".$this->id."'");
+          $collection->Load(null,null,"*","periodicidad = $1", array(PartModel::sqlValue($this->id, "text")));
            return $collection;
        } 
        public function addRestriccionRealDeEspecialidad($restriccion_nominal,$fecha,$hora_inicial,$hora_final,$por_actividad,$actividad,$objeto){ 
@@ -133,7 +133,7 @@
        } 
        public function getRestriccionRealDeEspecialidad(){ 
           $collection = new RestriccionRealDeEspecialidadCollection($this->data->db);
-          $collection->Load(null,null,"*","periodicidad = '".$this->id."'");
+          $collection->Load(null,null,"*","periodicidad = $1", array(PartModel::sqlValue($this->id, "text")));
            return $collection;
        } 
        public function addRestriccionRealDeOtroRecurso($restriccion_nominal,$fecha,$hora_inicial,$hora_final,$por_actividad,$actividad,$objeto){ 
@@ -143,7 +143,7 @@
        } 
        public function getRestriccionRealDeOtroRecurso(){ 
           $collection = new RestriccionRealDeOtroRecursoCollection($this->data->db);
-          $collection->Load(null,null,"*","periodicidad = '".$this->id."'");
+          $collection->Load(null,null,"*","periodicidad = $1", array(PartModel::sqlValue($this->id, "text")));
            return $collection;
        } 
        public function addRestriccionRealDeProfesor($restriccion_nominal,$fecha,$hora_inicial,$hora_final,$por_actividad,$actividad,$objeto){ 
@@ -153,7 +153,7 @@
        } 
        public function getRestriccionRealDeProfesor(){ 
           $collection = new RestriccionRealDeProfesorCollection($this->data->db);
-          $collection->Load(null,null,"*","periodicidad = '".$this->id."'");
+          $collection->Load(null,null,"*","periodicidad = $1", array(PartModel::sqlValue($this->id, "text")));
            return $collection;
        } 
        public function addRestriccionRealDePeriodo($restriccion_nominal,$fecha,$hora_inicial,$hora_final,$por_actividad,$actividad,$objeto){ 
@@ -163,7 +163,7 @@
        } 
        public function getRestriccionRealDePeriodo(){ 
           $collection = new RestriccionRealDePeriodoCollection($this->data->db);
-          $collection->Load(null,null,"*","periodicidad = '".$this->id."'");
+          $collection->Load(null,null,"*","periodicidad = $1", array(PartModel::sqlValue($this->id, "text")));
            return $collection;
        } 
 } 

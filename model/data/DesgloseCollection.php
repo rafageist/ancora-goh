@@ -34,18 +34,18 @@
          * @updated: 20/06/10 10:40:54 
          * @version: 1.0 
          */ 
-       public function Load($offset = null, $limit = null, $fields = "*", $where = "" ){ 
+       public function Load($offset = null, $limit = null, $fields = "*", $where = "", $params = null ){ 
              if ($offset==null or $limit=null) {
                  if ($where == "")
                      $r = $this->data->getAll("*",true);
                  else 
-                     $r = $this->data->getAllBy($where, "*",true);
+                     $r = $this->data->getAllBy($where, "*",true, $params);
              }
              else {
                  if ($where == "")
                   $r = $this->data->getLimit($limit,$offset,$fields,true);
                 else 
-                  $r = $this->data->getLimitBy($limit,$offset,$where,$fields,true);
+                  $r = $this->data->getLimitBy($limit,$offset,$where,$fields,true, $params);
              }
              // $r is a collection of value objects (VO)
 

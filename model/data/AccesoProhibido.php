@@ -37,7 +37,7 @@
             */ 
        public function setGrupo($value){ 
               $this->grupo = $value; 
-              $this->data->setBy("grupo = '".$this->grupo."' AND lugar = '".$this->lugar."'", "grupo = '$value'"); 
+              $this->data->getAnythingParams("UPDATE acceso_prohibido SET grupo = $1 WHERE grupo = $2 AND lugar = $3;", array(PartModel::sqlValue($value, "text"), PartModel::sqlValue($this->grupo, "text"), PartModel::sqlValue($this->lugar, "text"))); 
        } 
           /** 
             * @name: getGrupo 
@@ -58,7 +58,7 @@
             */ 
        public function setLugar($value){ 
               $this->lugar = $value; 
-              $this->data->setBy("grupo = '".$this->grupo."' AND lugar = '".$this->lugar."'", "lugar = '$value'"); 
+              $this->data->getAnythingParams("UPDATE acceso_prohibido SET lugar = $1 WHERE grupo = $2 AND lugar = $3;", array(PartModel::sqlValue($value, "text"), PartModel::sqlValue($this->grupo, "text"), PartModel::sqlValue($this->lugar, "text"))); 
        } 
           /** 
             * @name: getLugar 

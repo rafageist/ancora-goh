@@ -56,7 +56,7 @@
             */ 
        public function setNombre($value){ 
               $this->nombre = $value; 
-              $this->data->setBy("id = '".$this->id."'", "nombre = '$value'"); 
+              $this->data->getAnythingParams("UPDATE lugar SET nombre = $1 WHERE id = $2;", array(PartModel::sqlValue($value, "text"), PartModel::sqlValue($this->id, "text"))); 
        } 
           /** 
             * @name: getNombre 
@@ -77,7 +77,7 @@
             */ 
        public function setCapacidad($value){ 
               $this->capacidad = $value; 
-              $this->data->setBy("id = '".$this->id."'", "capacidad = $value"); 
+              $this->data->getAnythingParams("UPDATE lugar SET capacidad = $1 WHERE id = $2;", array(PartModel::sqlValue($value, "number"), PartModel::sqlValue($this->id, "text"))); 
        } 
           /** 
             * @name: getCapacidad 
@@ -98,7 +98,7 @@
             */ 
        public function setCreador($value){ 
               $this->creador = $value; 
-              $this->data->setBy("id = '".$this->id."'", "creador = '$value'"); 
+              $this->data->getAnythingParams("UPDATE lugar SET creador = $1 WHERE id = $2;", array(PartModel::sqlValue($value, "text"), PartModel::sqlValue($this->id, "text"))); 
        } 
           /** 
             * @name: getCreador 
@@ -119,7 +119,7 @@
        } 
        public function getRestriccionCondicional(){ 
           $collection = new RestriccionCondicionalCollection($this->data->db);
-          $collection->Load(null,null,"*","consec_lugar = '".$this->id."' AND lugar = '".$this->id."'");
+          $collection->Load(null,null,"*","consec_lugar = $1 AND lugar = $2", array(PartModel::sqlValue($this->id, "text"), PartModel::sqlValue($this->id, "text")));
            return $collection;
        } 
        public function addActividad($plantilla,$grupo,$profesor,$dia,$turno,$momento_de_colocacion,$creador){ 
@@ -129,7 +129,7 @@
        } 
        public function getActividad(){ 
           $collection = new ActividadCollection($this->data->db);
-          $collection->Load(null,null,"*","lugar = '".$this->id."'");
+          $collection->Load(null,null,"*","lugar = $1", array(PartModel::sqlValue($this->id, "text")));
            return $collection;
        } 
        public function addHerenciaDeRestricciones($planificacion,$activa,$hijo_brigada,$hijo_profesor,$hijo_otro_recurso,$padre_brigada,$padre_profesor,$padre_otro_recurso){ 
@@ -140,7 +140,7 @@
        } 
        public function getHerenciaDeRestricciones(){ 
           $collection = new HerenciaDeRestriccionesCollection($this->data->db);
-          $collection->Load(null,null,"*","hijo_lugar = '".$this->id."' AND padre_lugar = '".$this->id."'");
+          $collection->Load(null,null,"*","hijo_lugar = $1 AND padre_lugar = $2", array(PartModel::sqlValue($this->id, "text"), PartModel::sqlValue($this->id, "text")));
            return $collection;
        } 
        public function addCostoDeTraslado($costo){ 
@@ -151,7 +151,7 @@
        } 
        public function getCostoDeTraslado(){ 
           $collection = new CostoDeTrasladoCollection($this->data->db);
-          $collection->Load(null,null,"*","destino = '".$this->id."' AND origen = '".$this->id."'");
+          $collection->Load(null,null,"*","destino = $1 AND origen = $2", array(PartModel::sqlValue($this->id, "text"), PartModel::sqlValue($this->id, "text")));
            return $collection;
        } 
        public function addLugarFijo($grupo){ 
@@ -161,7 +161,7 @@
        } 
        public function getLugarFijo(){ 
           $collection = new LugarFijoCollection($this->data->db);
-          $collection->Load(null,null,"*","lugar = '".$this->id."'");
+          $collection->Load(null,null,"*","lugar = $1", array(PartModel::sqlValue($this->id, "text")));
            return $collection;
        } 
        public function addRestriccionRealDeLugar($restriccion_nominal,$periodicidad,$fecha,$hora_inicial,$hora_final,$por_actividad,$actividad){ 
@@ -171,7 +171,7 @@
        } 
        public function getRestriccionRealDeLugar(){ 
           $collection = new RestriccionRealDeLugarCollection($this->data->db);
-          $collection->Load(null,null,"*","objeto = '".$this->id."'");
+          $collection->Load(null,null,"*","objeto = $1", array(PartModel::sqlValue($this->id, "text")));
            return $collection;
        } 
        public function addLugarParaActividad($plantilla,$prioridad){ 
@@ -181,7 +181,7 @@
        } 
        public function getLugarParaActividad(){ 
           $collection = new LugarParaActividadCollection($this->data->db);
-          $collection->Load(null,null,"*","lugar = '".$this->id."'");
+          $collection->Load(null,null,"*","lugar = $1", array(PartModel::sqlValue($this->id, "text")));
            return $collection;
        } 
        public function addRestriccionDeLugar($periodo,$dia,$turno,$valor,$por_actividad,$actividad){ 
@@ -191,7 +191,7 @@
        } 
        public function getRestriccionDeLugar(){ 
           $collection = new RestriccionDeLugarCollection($this->data->db);
-          $collection->Load(null,null,"*","lugar = '".$this->id."'");
+          $collection->Load(null,null,"*","lugar = $1", array(PartModel::sqlValue($this->id, "text")));
            return $collection;
        } 
        public function addAccesoProhibido($grupo){ 
@@ -201,7 +201,7 @@
        } 
        public function getAccesoProhibido(){ 
           $collection = new AccesoProhibidoCollection($this->data->db);
-          $collection->Load(null,null,"*","lugar = '".$this->id."'");
+          $collection->Load(null,null,"*","lugar = $1", array(PartModel::sqlValue($this->id, "text")));
            return $collection;
        } 
 } 

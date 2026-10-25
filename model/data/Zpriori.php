@@ -49,7 +49,7 @@
             */ 
        public function setClasificacion($value){ 
               $this->clasificacion = $value; 
-              $this->data->setBy("clasificacion = '".$this->clasificacion."' AND periodo = '".$this->periodo."' AND dia = ".$this->dia." AND turno = ".$this->turno."", "clasificacion = '$value'"); 
+              $this->data->getAnythingParams("UPDATE zpriori SET clasificacion = $1 WHERE clasificacion = $2 AND periodo = $3 AND dia = $4 AND turno = $5;", array(PartModel::sqlValue($value, "text"), PartModel::sqlValue($this->clasificacion, "text"), PartModel::sqlValue($this->periodo, "text"), PartModel::sqlValue($this->dia, "number"), PartModel::sqlValue($this->turno, "number"))); 
        } 
           /** 
             * @name: getClasificacion 
@@ -70,7 +70,7 @@
             */ 
        public function setPeriodo($value){ 
               $this->periodo = $value; 
-              $this->data->setBy("clasificacion = '".$this->clasificacion."' AND periodo = '".$this->periodo."' AND dia = ".$this->dia." AND turno = ".$this->turno."", "periodo = '$value'"); 
+              $this->data->getAnythingParams("UPDATE zpriori SET periodo = $1 WHERE clasificacion = $2 AND periodo = $3 AND dia = $4 AND turno = $5;", array(PartModel::sqlValue($value, "text"), PartModel::sqlValue($this->clasificacion, "text"), PartModel::sqlValue($this->periodo, "text"), PartModel::sqlValue($this->dia, "number"), PartModel::sqlValue($this->turno, "number"))); 
        } 
           /** 
             * @name: getPeriodo 
@@ -91,7 +91,7 @@
             */ 
        public function setDia($value){ 
               $this->dia = $value; 
-              $this->data->setBy("clasificacion = '".$this->clasificacion."' AND periodo = '".$this->periodo."' AND dia = ".$this->dia." AND turno = ".$this->turno."", "dia = $value"); 
+              $this->data->getAnythingParams("UPDATE zpriori SET dia = $1 WHERE clasificacion = $2 AND periodo = $3 AND dia = $4 AND turno = $5;", array(PartModel::sqlValue($value, "number"), PartModel::sqlValue($this->clasificacion, "text"), PartModel::sqlValue($this->periodo, "text"), PartModel::sqlValue($this->dia, "number"), PartModel::sqlValue($this->turno, "number"))); 
        } 
           /** 
             * @name: getDia 
@@ -112,7 +112,7 @@
             */ 
        public function setTurno($value){ 
               $this->turno = $value; 
-              $this->data->setBy("clasificacion = '".$this->clasificacion."' AND periodo = '".$this->periodo."' AND dia = ".$this->dia." AND turno = ".$this->turno."", "turno = $value"); 
+              $this->data->getAnythingParams("UPDATE zpriori SET turno = $1 WHERE clasificacion = $2 AND periodo = $3 AND dia = $4 AND turno = $5;", array(PartModel::sqlValue($value, "number"), PartModel::sqlValue($this->clasificacion, "text"), PartModel::sqlValue($this->periodo, "text"), PartModel::sqlValue($this->dia, "number"), PartModel::sqlValue($this->turno, "number"))); 
        } 
           /** 
             * @name: getTurno 
@@ -133,7 +133,7 @@
             */ 
        public function setValor($value){ 
               $this->valor = $value; 
-              $this->data->setBy("clasificacion = '".$this->clasificacion."' AND periodo = '".$this->periodo."' AND dia = ".$this->dia." AND turno = ".$this->turno."", "valor = $value"); 
+              $this->data->getAnythingParams("UPDATE zpriori SET valor = $1 WHERE clasificacion = $2 AND periodo = $3 AND dia = $4 AND turno = $5;", array(PartModel::sqlValue($value, "number"), PartModel::sqlValue($this->clasificacion, "text"), PartModel::sqlValue($this->periodo, "text"), PartModel::sqlValue($this->dia, "number"), PartModel::sqlValue($this->turno, "number"))); 
        } 
           /** 
             * @name: getValor 

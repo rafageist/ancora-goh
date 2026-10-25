@@ -41,7 +41,7 @@
             */ 
        public function setPeriodo($value){ 
               $this->periodo = $value; 
-              $this->data->setBy("periodo = '".$this->periodo."' AND brigada = '".$this->brigada."' AND gasto_maximo_diario = ".$this->gasto_maximo_diario."", "periodo = '$value'"); 
+              $this->data->getAnythingParams("UPDATE higiene_para_brigada SET periodo = $1 WHERE periodo = $2 AND brigada = $3 AND gasto_maximo_diario = $4;", array(PartModel::sqlValue($value, "text"), PartModel::sqlValue($this->periodo, "text"), PartModel::sqlValue($this->brigada, "text"), PartModel::sqlValue($this->gasto_maximo_diario, "number"))); 
        } 
           /** 
             * @name: getPeriodo 
@@ -62,7 +62,7 @@
             */ 
        public function setBrigada($value){ 
               $this->brigada = $value; 
-              $this->data->setBy("periodo = '".$this->periodo."' AND brigada = '".$this->brigada."' AND gasto_maximo_diario = ".$this->gasto_maximo_diario."", "brigada = '$value'"); 
+              $this->data->getAnythingParams("UPDATE higiene_para_brigada SET brigada = $1 WHERE periodo = $2 AND brigada = $3 AND gasto_maximo_diario = $4;", array(PartModel::sqlValue($value, "text"), PartModel::sqlValue($this->periodo, "text"), PartModel::sqlValue($this->brigada, "text"), PartModel::sqlValue($this->gasto_maximo_diario, "number"))); 
        } 
           /** 
             * @name: getBrigada 
@@ -83,7 +83,7 @@
             */ 
        public function setGastoMaximoDiario($value){ 
               $this->gasto_maximo_diario = $value; 
-              $this->data->setBy("periodo = '".$this->periodo."' AND brigada = '".$this->brigada."' AND gasto_maximo_diario = ".$this->gasto_maximo_diario."", "gasto_maximo_diario = $value"); 
+              $this->data->getAnythingParams("UPDATE higiene_para_brigada SET gasto_maximo_diario = $1 WHERE periodo = $2 AND brigada = $3 AND gasto_maximo_diario = $4;", array(PartModel::sqlValue($value, "number"), PartModel::sqlValue($this->periodo, "text"), PartModel::sqlValue($this->brigada, "text"), PartModel::sqlValue($this->gasto_maximo_diario, "number"))); 
        } 
           /** 
             * @name: getGastoMaximoDiario 

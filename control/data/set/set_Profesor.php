@@ -16,13 +16,13 @@ if (file_exists("../control/data/fdms/fdm_Profesor_nombre.php")) include "../con
 if (file_exists("../control/data/fdms/fdm_Profesor_creador.php")) include "../control/data/fdms/fdm_Profesor_creador.php"; 
 
 // Getting data from POST 
-   if (isset($_POST["field_Profesor_id"])) $id = $_POST["field_Profesor_id"]; else $id = "null";
-   if (isset($_POST["field_Profesor_nombre"])) $nombre = $_POST["field_Profesor_nombre"]; else $nombre = "null";
-   if (isset($_POST["field_Profesor_creador"])) $creador = $_POST["field_Profesor_creador"]; else $creador = "null";
+   if (isset($_POST["field_Profesor_id"])) $id = $_POST["field_Profesor_id"]; else $id = null;
+   if (isset($_POST["field_Profesor_nombre"])) $nombre = $_POST["field_Profesor_nombre"]; else $nombre = null;
+   if (isset($_POST["field_Profesor_creador"])) $creador = $_POST["field_Profesor_creador"]; else $creador = null;
 
  // Actualizando el objeto 
    $col = new ProfesorCollection($dbconnection);
    $obj = $col->getItem($id);
-$obj->setNombre($nombre);
-$obj->setCreador($creador);
+if ($nombre !== null) $obj->setNombre($nombre);
+if ($creador !== null) $obj->setCreador($creador);
 ?>

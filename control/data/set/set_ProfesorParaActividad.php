@@ -17,15 +17,15 @@ if (file_exists("../control/data/fdms/fdm_ProfesorParaActividad_profesor.php")) 
 if (file_exists("../control/data/fdms/fdm_ProfesorParaActividad_prioridad.php")) include "../control/data/fdms/fdm_ProfesorParaActividad_prioridad.php"; 
 
 // Getting data from POST 
-   if (isset($_POST["field_ProfesorParaActividad_id"])) $id = $_POST["field_ProfesorParaActividad_id"]; else $id = "null";
-   if (isset($_POST["field_ProfesorParaActividad_plantilla"])) $plantilla = $_POST["field_ProfesorParaActividad_plantilla"]; else $plantilla = "null";
-   if (isset($_POST["field_ProfesorParaActividad_profesor"])) $profesor = $_POST["field_ProfesorParaActividad_profesor"]; else $profesor = "null";
-   if (isset($_POST["field_ProfesorParaActividad_prioridad"])) $prioridad = $_POST["field_ProfesorParaActividad_prioridad"]; else $prioridad = "null";
+   if (isset($_POST["field_ProfesorParaActividad_id"])) $id = $_POST["field_ProfesorParaActividad_id"]; else $id = null;
+   if (isset($_POST["field_ProfesorParaActividad_plantilla"])) $plantilla = $_POST["field_ProfesorParaActividad_plantilla"]; else $plantilla = null;
+   if (isset($_POST["field_ProfesorParaActividad_profesor"])) $profesor = $_POST["field_ProfesorParaActividad_profesor"]; else $profesor = null;
+   if (isset($_POST["field_ProfesorParaActividad_prioridad"])) $prioridad = $_POST["field_ProfesorParaActividad_prioridad"]; else $prioridad = null;
 
  // Actualizando el objeto 
    $col = new ProfesorParaActividadCollection($dbconnection);
    $obj = $col->getItem($id);
-$obj->setPlantilla($plantilla);
-$obj->setProfesor($profesor);
-$obj->setPrioridad($prioridad);
+if ($plantilla !== null) $obj->setPlantilla($plantilla);
+if ($profesor !== null) $obj->setProfesor($profesor);
+if ($prioridad !== null) $obj->setPrioridad($prioridad);
 ?>

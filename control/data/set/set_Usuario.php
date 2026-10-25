@@ -20,22 +20,22 @@ if (file_exists("../control/data/fdms/fdm_Usuario_nick.php")) include "../contro
 if (file_exists("../control/data/fdms/fdm_Usuario_contrasena.php")) include "../control/data/fdms/fdm_Usuario_contrasena.php"; 
 
 // Getting data from POST 
-   if (isset($_POST["field_Usuario_id"])) $id = $_POST["field_Usuario_id"]; else $id = "null";
-   if (isset($_POST["field_Usuario_nombre"])) $nombre = $_POST["field_Usuario_nombre"]; else $nombre = "null";
-   if (isset($_POST["field_Usuario_info"])) $info = $_POST["field_Usuario_info"]; else $info = "null";
-   if (isset($_POST["field_Usuario_correo"])) $correo = $_POST["field_Usuario_correo"]; else $correo = "null";
-   if (isset($_POST["field_Usuario_momento_ingreso"])) $momento_ingreso = $_POST["field_Usuario_momento_ingreso"]; else $momento_ingreso = "null";
-   if (isset($_POST["field_Usuario_nick"])) $nick = $_POST["field_Usuario_nick"]; else $nick = "null";
-   if (isset($_POST["field_Usuario_contrasena"])) $contrasena = $_POST["field_Usuario_contrasena"]; else $contrasena = "null";
+   if (isset($_POST["field_Usuario_id"])) $id = $_POST["field_Usuario_id"]; else $id = null;
+   if (isset($_POST["field_Usuario_nombre"])) $nombre = $_POST["field_Usuario_nombre"]; else $nombre = null;
+   if (isset($_POST["field_Usuario_info"])) $info = $_POST["field_Usuario_info"]; else $info = null;
+   if (isset($_POST["field_Usuario_correo"])) $correo = $_POST["field_Usuario_correo"]; else $correo = null;
+   if (isset($_POST["field_Usuario_momento_ingreso"])) $momento_ingreso = $_POST["field_Usuario_momento_ingreso"]; else $momento_ingreso = null;
+   if (isset($_POST["field_Usuario_nick"])) $nick = $_POST["field_Usuario_nick"]; else $nick = null;
+   if (isset($_POST["field_Usuario_contrasena"])) $contrasena = $_POST["field_Usuario_contrasena"]; else $contrasena = null;
 
  // Actualizando el objeto 
    $col = new UsuarioCollection($dbconnection);
    $obj = $col->getItem($id);
-$obj->setNombre($nombre);
-$obj->setInfo($info);
-$obj->setCorreo($correo);
-$obj->setMomentoIngreso($momento_ingreso);
-$obj->setNick($nick);
+if ($nombre !== null) $obj->setNombre($nombre);
+if ($info !== null) $obj->setInfo($info);
+if ($correo !== null) $obj->setCorreo($correo);
+if ($momento_ingreso !== null) $obj->setMomentoIngreso($momento_ingreso);
+if ($nick !== null) $obj->setNick($nick);
 // #14: only change the password when a new one was posted; the "null"
 // placeholder above must not become a password (it is hashed now)
 if (isset($_POST["field_Usuario_contrasena"]) && is_string($_POST["field_Usuario_contrasena"]) && $_POST["field_Usuario_contrasena"] !== '') $obj->setContrasena($contrasena);

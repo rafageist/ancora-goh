@@ -37,7 +37,7 @@
             */ 
        public function setNombre($value){ 
               $this->nombre = $value; 
-              $this->data->setBy("nombre = '".$this->nombre."'", "nombre = '$value'"); 
+              $this->data->getAnythingParams("UPDATE seguridad.rol SET nombre = $1 WHERE nombre = $2;", array(PartModel::sqlValue($value, "text"), PartModel::sqlValue($this->nombre, "text"))); 
        } 
           /** 
             * @name: getNombre 
@@ -58,7 +58,7 @@
             */ 
        public function setDescripcion($value){ 
               $this->descripcion = $value; 
-              $this->data->setBy("nombre = '".$this->nombre."'", "descripcion = '$value'"); 
+              $this->data->getAnythingParams("UPDATE seguridad.rol SET descripcion = $1 WHERE nombre = $2;", array(PartModel::sqlValue($value, "text"), PartModel::sqlValue($this->nombre, "text"))); 
        } 
           /** 
             * @name: getDescripcion 
@@ -78,7 +78,7 @@
        } 
        public function getSeguridadPermiso(){ 
           $collection = new SeguridadPermisoCollection($this->data->db);
-          $collection->Load(null,null,"*","rol = '".$this->nombre."'");
+          $collection->Load(null,null,"*","rol = $1", array(PartModel::sqlValue($this->nombre, "text")));
            return $collection;
        } 
        public function addSeguridadRolDeUsuario($usuario){ 
@@ -88,7 +88,7 @@
        } 
        public function getSeguridadRolDeUsuario(){ 
           $collection = new SeguridadRolDeUsuarioCollection($this->data->db);
-          $collection->Load(null,null,"*","rol = '".$this->nombre."'");
+          $collection->Load(null,null,"*","rol = $1", array(PartModel::sqlValue($this->nombre, "text")));
            return $collection;
        } 
 } 

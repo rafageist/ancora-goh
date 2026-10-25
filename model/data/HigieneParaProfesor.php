@@ -41,7 +41,7 @@
             */ 
        public function setPeriodo($value){ 
               $this->periodo = $value; 
-              $this->data->setBy("periodo = '".$this->periodo."' AND profesor = '".$this->profesor."' AND gasto_maximo_diario = ".$this->gasto_maximo_diario."", "periodo = '$value'"); 
+              $this->data->getAnythingParams("UPDATE higiene_para_profesor SET periodo = $1 WHERE periodo = $2 AND profesor = $3 AND gasto_maximo_diario = $4;", array(PartModel::sqlValue($value, "text"), PartModel::sqlValue($this->periodo, "text"), PartModel::sqlValue($this->profesor, "text"), PartModel::sqlValue($this->gasto_maximo_diario, "number"))); 
        } 
           /** 
             * @name: getPeriodo 
@@ -62,7 +62,7 @@
             */ 
        public function setProfesor($value){ 
               $this->profesor = $value; 
-              $this->data->setBy("periodo = '".$this->periodo."' AND profesor = '".$this->profesor."' AND gasto_maximo_diario = ".$this->gasto_maximo_diario."", "profesor = '$value'"); 
+              $this->data->getAnythingParams("UPDATE higiene_para_profesor SET profesor = $1 WHERE periodo = $2 AND profesor = $3 AND gasto_maximo_diario = $4;", array(PartModel::sqlValue($value, "text"), PartModel::sqlValue($this->periodo, "text"), PartModel::sqlValue($this->profesor, "text"), PartModel::sqlValue($this->gasto_maximo_diario, "number"))); 
        } 
           /** 
             * @name: getProfesor 
@@ -83,7 +83,7 @@
             */ 
        public function setGastoMaximoDiario($value){ 
               $this->gasto_maximo_diario = $value; 
-              $this->data->setBy("periodo = '".$this->periodo."' AND profesor = '".$this->profesor."' AND gasto_maximo_diario = ".$this->gasto_maximo_diario."", "gasto_maximo_diario = $value"); 
+              $this->data->getAnythingParams("UPDATE higiene_para_profesor SET gasto_maximo_diario = $1 WHERE periodo = $2 AND profesor = $3 AND gasto_maximo_diario = $4;", array(PartModel::sqlValue($value, "number"), PartModel::sqlValue($this->periodo, "text"), PartModel::sqlValue($this->profesor, "text"), PartModel::sqlValue($this->gasto_maximo_diario, "number"))); 
        } 
           /** 
             * @name: getGastoMaximoDiario 

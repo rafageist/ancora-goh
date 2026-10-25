@@ -16,13 +16,13 @@ if (file_exists("../control/data/fdms/fdm_Especialidad_descripcion.php")) includ
 if (file_exists("../control/data/fdms/fdm_Especialidad_creador.php")) include "../control/data/fdms/fdm_Especialidad_creador.php"; 
 
 // Getting data from POST 
-   if (isset($_POST["field_Especialidad_id"])) $id = $_POST["field_Especialidad_id"]; else $id = "null";
-   if (isset($_POST["field_Especialidad_descripcion"])) $descripcion = $_POST["field_Especialidad_descripcion"]; else $descripcion = "null";
-   if (isset($_POST["field_Especialidad_creador"])) $creador = $_POST["field_Especialidad_creador"]; else $creador = "null";
+   if (isset($_POST["field_Especialidad_id"])) $id = $_POST["field_Especialidad_id"]; else $id = null;
+   if (isset($_POST["field_Especialidad_descripcion"])) $descripcion = $_POST["field_Especialidad_descripcion"]; else $descripcion = null;
+   if (isset($_POST["field_Especialidad_creador"])) $creador = $_POST["field_Especialidad_creador"]; else $creador = null;
 
  // Actualizando el objeto 
    $col = new EspecialidadCollection($dbconnection);
    $obj = $col->getItem($id);
-$obj->setDescripcion($descripcion);
-$obj->setCreador($creador);
+if ($descripcion !== null) $obj->setDescripcion($descripcion);
+if ($creador !== null) $obj->setCreador($creador);
 ?>

@@ -72,7 +72,7 @@
             */ 
        public function setOtroRecurso($value){ 
               $this->otro_recurso = $value; 
-              $this->data->setBy("id = '".$this->id."'", "otro_recurso = '$value'"); 
+              $this->data->getAnythingParams("UPDATE restriccion_de_otro_recurso SET otro_recurso = $1 WHERE id = $2;", array(PartModel::sqlValue($value, "text"), PartModel::sqlValue($this->id, "text"))); 
        } 
           /** 
             * @name: getOtroRecurso 
@@ -93,7 +93,7 @@
             */ 
        public function setPeriodo($value){ 
               $this->periodo = $value; 
-              $this->data->setBy("id = '".$this->id."'", "periodo = '$value'"); 
+              $this->data->getAnythingParams("UPDATE restriccion_de_otro_recurso SET periodo = $1 WHERE id = $2;", array(PartModel::sqlValue($value, "text"), PartModel::sqlValue($this->id, "text"))); 
        } 
           /** 
             * @name: getPeriodo 
@@ -114,7 +114,7 @@
             */ 
        public function setDia($value){ 
               $this->dia = $value; 
-              $this->data->setBy("id = '".$this->id."'", "dia = $value"); 
+              $this->data->getAnythingParams("UPDATE restriccion_de_otro_recurso SET dia = $1 WHERE id = $2;", array(PartModel::sqlValue($value, "number"), PartModel::sqlValue($this->id, "text"))); 
        } 
           /** 
             * @name: getDia 
@@ -135,7 +135,7 @@
             */ 
        public function setTurno($value){ 
               $this->turno = $value; 
-              $this->data->setBy("id = '".$this->id."'", "turno = $value"); 
+              $this->data->getAnythingParams("UPDATE restriccion_de_otro_recurso SET turno = $1 WHERE id = $2;", array(PartModel::sqlValue($value, "number"), PartModel::sqlValue($this->id, "text"))); 
        } 
           /** 
             * @name: getTurno 
@@ -156,7 +156,7 @@
             */ 
        public function setValor($value){ 
               $this->valor = $value; 
-              $this->data->setBy("id = '".$this->id."'", "valor = $value"); 
+              $this->data->getAnythingParams("UPDATE restriccion_de_otro_recurso SET valor = $1 WHERE id = $2;", array(PartModel::sqlValue($value, "number"), PartModel::sqlValue($this->id, "text"))); 
        } 
           /** 
             * @name: getValor 
@@ -177,9 +177,7 @@
             */ 
        public function setPorActividad($value){ 
               $this->por_actividad = $value; 
-               if ($value == true || $value == 1 || $value == "t") $value = "true"; 
-               else if ($value == true || $value == 0 || $value == "f") $value = "false"; 
-              $this->data->setBy("id = '".$this->id."'", "por_actividad = $value"); 
+              $this->data->getAnythingParams("UPDATE restriccion_de_otro_recurso SET por_actividad = $1 WHERE id = $2;", array(PartModel::sqlValue($value, "bool"), PartModel::sqlValue($this->id, "text"))); 
        } 
           /** 
             * @name: getPorActividad 
@@ -200,7 +198,7 @@
             */ 
        public function setActividad($value){ 
               $this->actividad = $value; 
-              $this->data->setBy("id = '".$this->id."'", "actividad = '$value'"); 
+              $this->data->getAnythingParams("UPDATE restriccion_de_otro_recurso SET actividad = $1 WHERE id = $2;", array(PartModel::sqlValue($value, "text"), PartModel::sqlValue($this->id, "text"))); 
        } 
           /** 
             * @name: getActividad 
@@ -220,7 +218,7 @@
        } 
        public function getRestriccionPorActividadDeOtroRecurso(){ 
           $collection = new RestriccionPorActividadDeOtroRecursoCollection($this->data->db);
-          $collection->Load(null,null,"*","restriccion_nominal = '".$this->id."'");
+          $collection->Load(null,null,"*","restriccion_nominal = $1", array(PartModel::sqlValue($this->id, "text")));
            return $collection;
        } 
        public function addRestriccionRealDeOtroRecurso($periodicidad,$fecha,$hora_inicial,$hora_final,$por_actividad,$actividad,$objeto){ 
@@ -230,7 +228,7 @@
        } 
        public function getRestriccionRealDeOtroRecurso(){ 
           $collection = new RestriccionRealDeOtroRecursoCollection($this->data->db);
-          $collection->Load(null,null,"*","restriccion_nominal = '".$this->id."'");
+          $collection->Load(null,null,"*","restriccion_nominal = $1", array(PartModel::sqlValue($this->id, "text")));
            return $collection;
        } 
 } 

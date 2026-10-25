@@ -23,9 +23,8 @@
             * @version: 1.0 
             */ 
           public function CreateStringList($filas,$asobjects = false){ 
-               $sql = "select  matrix.create_string_list($filas)"; 
-               if ($asobjects == true) return $this->db->getAsObjects($sql);
-               return $this->db->getAsArray($sql);
+               $sql = "select  matrix.create_string_list($1)"; 
+               return $this->getAnythingParams($sql, array(PartModel::sqlValue($filas, "number")), $asobjects);
            } 
           /** 
             * @name: echo 
@@ -34,9 +33,8 @@
             * @version: 1.0 
             */ 
           public function goEcho($arr,$asobjects = false){ 
-               $sql = "select  matrix.echo('$arr')"; 
-               if ($asobjects == true) return $this->db->getAsObjects($sql);
-               return $this->db->getAsArray($sql);
+               $sql = "select  matrix.echo($1)"; 
+               return $this->getAnythingParams($sql, array(PartModel::sqlValue($arr, "text")), $asobjects);
            } 
           /** 
             * @name: extract_boolean_column 
@@ -45,9 +43,8 @@
             * @version: 1.0 
             */ 
           public function ExtractBooleanColumn($arr,$c,$asobjects = false){ 
-               $sql = "select  matrix.extract_boolean_column('$arr',$c)"; 
-               if ($asobjects == true) return $this->db->getAsObjects($sql);
-               return $this->db->getAsArray($sql);
+               $sql = "select  matrix.extract_boolean_column($1,$2)"; 
+               return $this->getAnythingParams($sql, array(PartModel::sqlValue($arr, "text"), PartModel::sqlValue($c, "number")), $asobjects);
            } 
           /** 
             * @name: extract_numeric_column 
@@ -56,9 +53,8 @@
             * @version: 1.0 
             */ 
           public function ExtractNumericColumn($arr,$c,$asobjects = false){ 
-               $sql = "select  matrix.extract_numeric_column('$arr',$c)"; 
-               if ($asobjects == true) return $this->db->getAsObjects($sql);
-               return $this->db->getAsArray($sql);
+               $sql = "select  matrix.extract_numeric_column($1,$2)"; 
+               return $this->getAnythingParams($sql, array(PartModel::sqlValue($arr, "text"), PartModel::sqlValue($c, "number")), $asobjects);
            } 
           /** 
             * @name: extract_string_column 
@@ -67,9 +63,8 @@
             * @version: 1.0 
             */ 
           public function ExtractStringColumn($arr,$c,$asobjects = false){ 
-               $sql = "select  matrix.extract_string_column('$arr',$c)"; 
-               if ($asobjects == true) return $this->db->getAsObjects($sql);
-               return $this->db->getAsArray($sql);
+               $sql = "select  matrix.extract_string_column($1,$2)"; 
+               return $this->getAnythingParams($sql, array(PartModel::sqlValue($arr, "text"), PartModel::sqlValue($c, "number")), $asobjects);
            } 
           /** 
             * @name: get_count_of_dims 
@@ -78,9 +73,8 @@
             * @version: 1.0 
             */ 
           public function GetCountOfDims($arr,$asobjects = false){ 
-               $sql = "select  matrix.get_count_of_dims('$arr')"; 
-               if ($asobjects == true) return $this->db->getAsObjects($sql);
-               return $this->db->getAsArray($sql);
+               $sql = "select  matrix.get_count_of_dims($1)"; 
+               return $this->getAnythingParams($sql, array(PartModel::sqlValue($arr, "text")), $asobjects);
            } 
           /** 
             * @name: get_count_of_value_in 
@@ -89,9 +83,8 @@
             * @version: 1.0 
             */ 
           public function GetCountOfValueIn($arr,$valor,$asobjects = false){ 
-               $sql = "select  matrix.get_count_of_value_in('$arr','$valor')"; 
-               if ($asobjects == true) return $this->db->getAsObjects($sql);
-               return $this->db->getAsArray($sql);
+               $sql = "select  matrix.get_count_of_value_in($1,$2)"; 
+               return $this->getAnythingParams($sql, array(PartModel::sqlValue($arr, "text"), PartModel::sqlValue($valor, "text")), $asobjects);
            } 
           /** 
             * @name: get_max 
@@ -100,9 +93,8 @@
             * @version: 1.0 
             */ 
           public function GetMax($arr,$asobjects = false){ 
-               $sql = "select  matrix.get_max('$arr')"; 
-               if ($asobjects == true) return $this->db->getAsObjects($sql);
-               return $this->db->getAsArray($sql);
+               $sql = "select  matrix.get_max($1)"; 
+               return $this->getAnythingParams($sql, array(PartModel::sqlValue($arr, "text")), $asobjects);
            } 
           /** 
             * @name: get_max_pos 
@@ -111,9 +103,8 @@
             * @version: 1.0 
             */ 
           public function GetMaxPos($arr,$asobjects = false){ 
-               $sql = "select  matrix.get_max_pos('$arr')"; 
-               if ($asobjects == true) return $this->db->getAsObjects($sql);
-               return $this->db->getAsArray($sql);
+               $sql = "select  matrix.get_max_pos($1)"; 
+               return $this->getAnythingParams($sql, array(PartModel::sqlValue($arr, "text")), $asobjects);
            } 
           /** 
             * @name: get_length_of 
@@ -122,9 +113,8 @@
             * @version: 1.0 
             */ 
           public function GetLengthOf($arr,$dimension,$asobjects = false){ 
-               $sql = "select  matrix.get_length_of('$arr',$dimension)"; 
-               if ($asobjects == true) return $this->db->getAsObjects($sql);
-               return $this->db->getAsArray($sql);
+               $sql = "select  matrix.get_length_of($1,$2)"; 
+               return $this->getAnythingParams($sql, array(PartModel::sqlValue($arr, "text"), PartModel::sqlValue($dimension, "number")), $asobjects);
            } 
           /** 
             * @name: get_min_pos 
@@ -133,9 +123,8 @@
             * @version: 1.0 
             */ 
           public function GetMinPos($arr,$asobjects = false){ 
-               $sql = "select  matrix.get_min_pos('$arr')"; 
-               if ($asobjects == true) return $this->db->getAsObjects($sql);
-               return $this->db->getAsArray($sql);
+               $sql = "select  matrix.get_min_pos($1)"; 
+               return $this->getAnythingParams($sql, array(PartModel::sqlValue($arr, "text")), $asobjects);
            } 
           /** 
             * @name: get_pos_of 
@@ -144,9 +133,8 @@
             * @version: 1.0 
             */ 
           public function GetPosOf($arr,$v,$asobjects = false){ 
-               $sql = "select  matrix.get_pos_of('$arr','$v')"; 
-               if ($asobjects == true) return $this->db->getAsObjects($sql);
-               return $this->db->getAsArray($sql);
+               $sql = "select  matrix.get_pos_of($1,$2)"; 
+               return $this->getAnythingParams($sql, array(PartModel::sqlValue($arr, "text"), PartModel::sqlValue($v, "text")), $asobjects);
            } 
           /** 
             * @name: set_matrix_in_cube 
@@ -155,9 +143,8 @@
             * @version: 1.0 
             */ 
           public function SetMatrixInCube($pcube,$pmatrix,$pos,$asobjects = false){ 
-               $sql = "select  matrix.set_matrix_in_cube('$pcube','$pmatrix',$pos)"; 
-               if ($asobjects == true) return $this->db->getAsObjects($sql);
-               return $this->db->getAsArray($sql);
+               $sql = "select  matrix.set_matrix_in_cube($1,$2,$3)"; 
+               return $this->getAnythingParams($sql, array(PartModel::sqlValue($pcube, "text"), PartModel::sqlValue($pmatrix, "text"), PartModel::sqlValue($pos, "number")), $asobjects);
            } 
           /** 
             * @name: create_boolean_matrix 
@@ -166,9 +153,8 @@
             * @version: 1.0 
             */ 
           public function CreateBooleanMatrix($filas,$columnas,$asobjects = false){ 
-               $sql = "select  matrix.create_boolean_matrix($filas,$columnas)"; 
-               if ($asobjects == true) return $this->db->getAsObjects($sql);
-               return $this->db->getAsArray($sql);
+               $sql = "select  matrix.create_boolean_matrix($1,$2)"; 
+               return $this->getAnythingParams($sql, array(PartModel::sqlValue($filas, "number"), PartModel::sqlValue($columnas, "number")), $asobjects);
            } 
           /** 
             * @name: create_numeric_list 
@@ -177,9 +163,8 @@
             * @version: 1.0 
             */ 
           public function CreateNumericList($filas,$asobjects = false){ 
-               $sql = "select  matrix.create_numeric_list($filas)"; 
-               if ($asobjects == true) return $this->db->getAsObjects($sql);
-               return $this->db->getAsArray($sql);
+               $sql = "select  matrix.create_numeric_list($1)"; 
+               return $this->getAnythingParams($sql, array(PartModel::sqlValue($filas, "number")), $asobjects);
            } 
           /** 
             * @name: get_min 
@@ -188,9 +173,8 @@
             * @version: 1.0 
             */ 
           public function GetMin($arr,$asobjects = false){ 
-               $sql = "select  matrix.get_min('$arr')"; 
-               if ($asobjects == true) return $this->db->getAsObjects($sql);
-               return $this->db->getAsArray($sql);
+               $sql = "select  matrix.get_min($1)"; 
+               return $this->getAnythingParams($sql, array(PartModel::sqlValue($arr, "text")), $asobjects);
            } 
           /** 
             * @name: create_boolean_cube 
@@ -199,9 +183,8 @@
             * @version: 1.0 
             */ 
           public function CreateBooleanCube($x,$y,$z,$asobjects = false){ 
-               $sql = "select  matrix.create_boolean_cube($x,$y,$z)"; 
-               if ($asobjects == true) return $this->db->getAsObjects($sql);
-               return $this->db->getAsArray($sql);
+               $sql = "select  matrix.create_boolean_cube($1,$2,$3)"; 
+               return $this->getAnythingParams($sql, array(PartModel::sqlValue($x, "number"), PartModel::sqlValue($y, "number"), PartModel::sqlValue($z, "number")), $asobjects);
            } 
           /** 
             * @name: create_string_matrix 
@@ -210,9 +193,8 @@
             * @version: 1.0 
             */ 
           public function CreateStringMatrix($filas,$columnas,$asobjects = false){ 
-               $sql = "select  matrix.create_string_matrix($filas,$columnas)"; 
-               if ($asobjects == true) return $this->db->getAsObjects($sql);
-               return $this->db->getAsArray($sql);
+               $sql = "select  matrix.create_string_matrix($1,$2)"; 
+               return $this->getAnythingParams($sql, array(PartModel::sqlValue($filas, "number"), PartModel::sqlValue($columnas, "number")), $asobjects);
            } 
           /** 
             * @name: create_numeric_matrix 
@@ -221,9 +203,8 @@
             * @version: 1.0 
             */ 
           public function CreateNumericMatrix($filas,$columnas,$asobjects = false){ 
-               $sql = "select  matrix.create_numeric_matrix($filas,$columnas)"; 
-               if ($asobjects == true) return $this->db->getAsObjects($sql);
-               return $this->db->getAsArray($sql);
+               $sql = "select  matrix.create_numeric_matrix($1,$2)"; 
+               return $this->getAnythingParams($sql, array(PartModel::sqlValue($filas, "number"), PartModel::sqlValue($columnas, "number")), $asobjects);
            } 
           /** 
             * @name: create_boolean_list 
@@ -232,8 +213,7 @@
             * @version: 1.0 
             */ 
           public function CreateBooleanList($filas,$asobjects = false){ 
-               $sql = "select  matrix.create_boolean_list($filas)"; 
-               if ($asobjects == true) return $this->db->getAsObjects($sql);
-               return $this->db->getAsArray($sql);
+               $sql = "select  matrix.create_boolean_list($1)"; 
+               return $this->getAnythingParams($sql, array(PartModel::sqlValue($filas, "number")), $asobjects);
            } 
      } 

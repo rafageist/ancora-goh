@@ -16,12 +16,12 @@ if (file_exists("../control/data/fdms/fdm_BrigadaDeGrupo_brigada.php")) include 
 if (file_exists("../control/data/fdms/fdm_BrigadaDeGrupo_grupo.php")) include "../control/data/fdms/fdm_BrigadaDeGrupo_grupo.php"; 
 
 // Getting data from POST 
-   if (isset($_POST["field_BrigadaDeGrupo_brigada"])) $brigada = $_POST["field_BrigadaDeGrupo_brigada"]; else $brigada = "null";
-   if (isset($_POST["field_BrigadaDeGrupo_grupo"])) $grupo = $_POST["field_BrigadaDeGrupo_grupo"]; else $grupo = "null";
+   if (isset($_POST["field_BrigadaDeGrupo_brigada"])) $brigada = $_POST["field_BrigadaDeGrupo_brigada"]; else $brigada = null;
+   if (isset($_POST["field_BrigadaDeGrupo_grupo"])) $grupo = $_POST["field_BrigadaDeGrupo_grupo"]; else $grupo = null;
 
  // Actualizando el objeto 
    $col = new BrigadaDeGrupoCollection($dbconnection);
    $obj = $col->getItem($brigada,$grupo);
-$obj->setBrigada($brigada);
-$obj->setGrupo($grupo);
+if ($brigada !== null) $obj->setBrigada($brigada);
+if ($grupo !== null) $obj->setGrupo($grupo);
 ?>

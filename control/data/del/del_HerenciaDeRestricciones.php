@@ -21,17 +21,17 @@ import("model.data.HerenciaDeRestriccionesCollection");
    if (file_exists("../control/data/fdms/fdm_HerenciaDeRestricciones_padre_profesor.php")) include "../control/data/fdms/fdm_HerenciaDeRestricciones_padre_profesor.php"; 
    if (file_exists("../control/data/fdms/fdm_HerenciaDeRestricciones_padre_lugar.php")) include "../control/data/fdms/fdm_HerenciaDeRestricciones_padre_lugar.php"; 
    if (file_exists("../control/data/fdms/fdm_HerenciaDeRestricciones_padre_otro_recurso.php")) include "../control/data/fdms/fdm_HerenciaDeRestricciones_padre_otro_recurso.php"; 
-   if (isset($_POST["field_HerenciaDeRestricciones_id"])) $id = $_POST["field_HerenciaDeRestricciones_id"]; else $id = "null";
-   if (isset($_POST["field_HerenciaDeRestricciones_planificacion"])) $planificacion = $_POST["field_HerenciaDeRestricciones_planificacion"]; else $planificacion = "null";
-   if (isset($_POST["field_HerenciaDeRestricciones_activa"])) $activa = $_POST["field_HerenciaDeRestricciones_activa"]; else $activa = "null";
-   if (isset($_POST["field_HerenciaDeRestricciones_hijo_brigada"])) $hijo_brigada = $_POST["field_HerenciaDeRestricciones_hijo_brigada"]; else $hijo_brigada = "null";
-   if (isset($_POST["field_HerenciaDeRestricciones_hijo_profesor"])) $hijo_profesor = $_POST["field_HerenciaDeRestricciones_hijo_profesor"]; else $hijo_profesor = "null";
-   if (isset($_POST["field_HerenciaDeRestricciones_hijo_lugar"])) $hijo_lugar = $_POST["field_HerenciaDeRestricciones_hijo_lugar"]; else $hijo_lugar = "null";
-   if (isset($_POST["field_HerenciaDeRestricciones_hijo_otro_recurso"])) $hijo_otro_recurso = $_POST["field_HerenciaDeRestricciones_hijo_otro_recurso"]; else $hijo_otro_recurso = "null";
-   if (isset($_POST["field_HerenciaDeRestricciones_padre_brigada"])) $padre_brigada = $_POST["field_HerenciaDeRestricciones_padre_brigada"]; else $padre_brigada = "null";
-   if (isset($_POST["field_HerenciaDeRestricciones_padre_profesor"])) $padre_profesor = $_POST["field_HerenciaDeRestricciones_padre_profesor"]; else $padre_profesor = "null";
-   if (isset($_POST["field_HerenciaDeRestricciones_padre_lugar"])) $padre_lugar = $_POST["field_HerenciaDeRestricciones_padre_lugar"]; else $padre_lugar = "null";
-   if (isset($_POST["field_HerenciaDeRestricciones_padre_otro_recurso"])) $padre_otro_recurso = $_POST["field_HerenciaDeRestricciones_padre_otro_recurso"]; else $padre_otro_recurso = "null";
+   if (isset($_POST["field_HerenciaDeRestricciones_id"])) $id = $_POST["field_HerenciaDeRestricciones_id"]; else $id = null;
+   if (isset($_POST["field_HerenciaDeRestricciones_planificacion"])) $planificacion = $_POST["field_HerenciaDeRestricciones_planificacion"]; else $planificacion = null;
+   if (isset($_POST["field_HerenciaDeRestricciones_activa"])) $activa = $_POST["field_HerenciaDeRestricciones_activa"]; else $activa = null;
+   if (isset($_POST["field_HerenciaDeRestricciones_hijo_brigada"])) $hijo_brigada = $_POST["field_HerenciaDeRestricciones_hijo_brigada"]; else $hijo_brigada = null;
+   if (isset($_POST["field_HerenciaDeRestricciones_hijo_profesor"])) $hijo_profesor = $_POST["field_HerenciaDeRestricciones_hijo_profesor"]; else $hijo_profesor = null;
+   if (isset($_POST["field_HerenciaDeRestricciones_hijo_lugar"])) $hijo_lugar = $_POST["field_HerenciaDeRestricciones_hijo_lugar"]; else $hijo_lugar = null;
+   if (isset($_POST["field_HerenciaDeRestricciones_hijo_otro_recurso"])) $hijo_otro_recurso = $_POST["field_HerenciaDeRestricciones_hijo_otro_recurso"]; else $hijo_otro_recurso = null;
+   if (isset($_POST["field_HerenciaDeRestricciones_padre_brigada"])) $padre_brigada = $_POST["field_HerenciaDeRestricciones_padre_brigada"]; else $padre_brigada = null;
+   if (isset($_POST["field_HerenciaDeRestricciones_padre_profesor"])) $padre_profesor = $_POST["field_HerenciaDeRestricciones_padre_profesor"]; else $padre_profesor = null;
+   if (isset($_POST["field_HerenciaDeRestricciones_padre_lugar"])) $padre_lugar = $_POST["field_HerenciaDeRestricciones_padre_lugar"]; else $padre_lugar = null;
+   if (isset($_POST["field_HerenciaDeRestricciones_padre_otro_recurso"])) $padre_otro_recurso = $_POST["field_HerenciaDeRestricciones_padre_otro_recurso"]; else $padre_otro_recurso = null;
 
  // Eliminando el objeto 
    $col = new HerenciaDeRestriccionesCollection($dbconnection);

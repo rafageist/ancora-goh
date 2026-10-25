@@ -19,19 +19,19 @@ if (file_exists("../control/data/fdms/fdm_RestriccionDeClasifAct_turno.php")) in
 if (file_exists("../control/data/fdms/fdm_RestriccionDeClasifAct_valor.php")) include "../control/data/fdms/fdm_RestriccionDeClasifAct_valor.php"; 
 
 // Getting data from POST 
-   if (isset($_POST["field_RestriccionDeClasifAct_id"])) $id = $_POST["field_RestriccionDeClasifAct_id"]; else $id = "null";
-   if (isset($_POST["field_RestriccionDeClasifAct_clasificacion"])) $clasificacion = $_POST["field_RestriccionDeClasifAct_clasificacion"]; else $clasificacion = "null";
-   if (isset($_POST["field_RestriccionDeClasifAct_periodo"])) $periodo = $_POST["field_RestriccionDeClasifAct_periodo"]; else $periodo = "null";
-   if (isset($_POST["field_RestriccionDeClasifAct_dia"])) $dia = $_POST["field_RestriccionDeClasifAct_dia"]; else $dia = "null";
-   if (isset($_POST["field_RestriccionDeClasifAct_turno"])) $turno = $_POST["field_RestriccionDeClasifAct_turno"]; else $turno = "null";
-   if (isset($_POST["field_RestriccionDeClasifAct_valor"])) $valor = $_POST["field_RestriccionDeClasifAct_valor"]; else $valor = "null";
+   if (isset($_POST["field_RestriccionDeClasifAct_id"])) $id = $_POST["field_RestriccionDeClasifAct_id"]; else $id = null;
+   if (isset($_POST["field_RestriccionDeClasifAct_clasificacion"])) $clasificacion = $_POST["field_RestriccionDeClasifAct_clasificacion"]; else $clasificacion = null;
+   if (isset($_POST["field_RestriccionDeClasifAct_periodo"])) $periodo = $_POST["field_RestriccionDeClasifAct_periodo"]; else $periodo = null;
+   if (isset($_POST["field_RestriccionDeClasifAct_dia"])) $dia = $_POST["field_RestriccionDeClasifAct_dia"]; else $dia = null;
+   if (isset($_POST["field_RestriccionDeClasifAct_turno"])) $turno = $_POST["field_RestriccionDeClasifAct_turno"]; else $turno = null;
+   if (isset($_POST["field_RestriccionDeClasifAct_valor"])) $valor = $_POST["field_RestriccionDeClasifAct_valor"]; else $valor = null;
 
  // Actualizando el objeto 
    $col = new RestriccionDeClasifActCollection($dbconnection);
    $obj = $col->getItem($id);
-$obj->setClasificacion($clasificacion);
-$obj->setPeriodo($periodo);
-$obj->setDia($dia);
-$obj->setTurno($turno);
-$obj->setValor($valor);
+if ($clasificacion !== null) $obj->setClasificacion($clasificacion);
+if ($periodo !== null) $obj->setPeriodo($periodo);
+if ($dia !== null) $obj->setDia($dia);
+if ($turno !== null) $obj->setTurno($turno);
+if ($valor !== null) $obj->setValor($valor);
 ?>

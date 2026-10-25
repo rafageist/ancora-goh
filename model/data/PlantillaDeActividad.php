@@ -64,7 +64,7 @@
             */ 
        public function setDesglose($value){ 
               $this->desglose = $value; 
-              $this->data->setBy("id = '".$this->id."'", "desglose = '$value'"); 
+              $this->data->getAnythingParams("UPDATE plantilla_de_actividad SET desglose = $1 WHERE id = $2;", array(PartModel::sqlValue($value, "text"), PartModel::sqlValue($this->id, "text"))); 
        } 
           /** 
             * @name: getDesglose 
@@ -85,7 +85,7 @@
             */ 
        public function setOrden($value){ 
               $this->orden = $value; 
-              $this->data->setBy("id = '".$this->id."'", "orden = $value"); 
+              $this->data->getAnythingParams("UPDATE plantilla_de_actividad SET orden = $1 WHERE id = $2;", array(PartModel::sqlValue($value, "number"), PartModel::sqlValue($this->id, "text"))); 
        } 
           /** 
             * @name: getOrden 
@@ -106,7 +106,7 @@
             */ 
        public function setClasificacion($value){ 
               $this->clasificacion = $value; 
-              $this->data->setBy("id = '".$this->id."'", "clasificacion = '$value'"); 
+              $this->data->getAnythingParams("UPDATE plantilla_de_actividad SET clasificacion = $1 WHERE id = $2;", array(PartModel::sqlValue($value, "text"), PartModel::sqlValue($this->id, "text"))); 
        } 
           /** 
             * @name: getClasificacion 
@@ -127,9 +127,7 @@
             */ 
        public function setExigeProfesor($value){ 
               $this->exige_profesor = $value; 
-               if ($value == true || $value == 1 || $value == "t") $value = "true"; 
-               else if ($value == true || $value == 0 || $value == "f") $value = "false"; 
-              $this->data->setBy("id = '".$this->id."'", "exige_profesor = $value"); 
+              $this->data->getAnythingParams("UPDATE plantilla_de_actividad SET exige_profesor = $1 WHERE id = $2;", array(PartModel::sqlValue($value, "bool"), PartModel::sqlValue($this->id, "text"))); 
        } 
           /** 
             * @name: getExigeProfesor 
@@ -150,9 +148,7 @@
             */ 
        public function setExigeLugar($value){ 
               $this->exige_lugar = $value; 
-               if ($value == true || $value == 1 || $value == "t") $value = "true"; 
-               else if ($value == true || $value == 0 || $value == "f") $value = "false"; 
-              $this->data->setBy("id = '".$this->id."'", "exige_lugar = $value"); 
+              $this->data->getAnythingParams("UPDATE plantilla_de_actividad SET exige_lugar = $1 WHERE id = $2;", array(PartModel::sqlValue($value, "bool"), PartModel::sqlValue($this->id, "text"))); 
        } 
           /** 
             * @name: getExigeLugar 
@@ -172,7 +168,7 @@
        } 
        public function getActividad(){ 
           $collection = new ActividadCollection($this->data->db);
-          $collection->Load(null,null,"*","plantilla = '".$this->id."'");
+          $collection->Load(null,null,"*","plantilla = $1", array(PartModel::sqlValue($this->id, "text")));
            return $collection;
        } 
        public function addProfesorParaActividad($profesor,$prioridad){ 
@@ -182,7 +178,7 @@
        } 
        public function getProfesorParaActividad(){ 
           $collection = new ProfesorParaActividadCollection($this->data->db);
-          $collection->Load(null,null,"*","plantilla = '".$this->id."'");
+          $collection->Load(null,null,"*","plantilla = $1", array(PartModel::sqlValue($this->id, "text")));
            return $collection;
        } 
        public function addLugarParaActividad($lugar,$prioridad){ 
@@ -192,7 +188,7 @@
        } 
        public function getLugarParaActividad(){ 
           $collection = new LugarParaActividadCollection($this->data->db);
-          $collection->Load(null,null,"*","plantilla = '".$this->id."'");
+          $collection->Load(null,null,"*","plantilla = $1", array(PartModel::sqlValue($this->id, "text")));
            return $collection;
        } 
        public function addOtroGrupoDeRecursosParaActividad($prioridad,$necesarios,$imprescindibles,$creador){ 
@@ -202,7 +198,7 @@
        } 
        public function getOtroGrupoDeRecursosParaActividad(){ 
           $collection = new OtroGrupoDeRecursosParaActividadCollection($this->data->db);
-          $collection->Load(null,null,"*","plantilla = '".$this->id."'");
+          $collection->Load(null,null,"*","plantilla = $1", array(PartModel::sqlValue($this->id, "text")));
            return $collection;
        } 
 } 

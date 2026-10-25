@@ -17,14 +17,14 @@ if (file_exists("../control/data/fdms/fdm_HigieneParaBrigada_brigada.php")) incl
 if (file_exists("../control/data/fdms/fdm_HigieneParaBrigada_gasto_maximo_diario.php")) include "../control/data/fdms/fdm_HigieneParaBrigada_gasto_maximo_diario.php"; 
 
 // Getting data from POST 
-   if (isset($_POST["field_HigieneParaBrigada_periodo"])) $periodo = $_POST["field_HigieneParaBrigada_periodo"]; else $periodo = "null";
-   if (isset($_POST["field_HigieneParaBrigada_brigada"])) $brigada = $_POST["field_HigieneParaBrigada_brigada"]; else $brigada = "null";
-   if (isset($_POST["field_HigieneParaBrigada_gasto_maximo_diario"])) $gasto_maximo_diario = $_POST["field_HigieneParaBrigada_gasto_maximo_diario"]; else $gasto_maximo_diario = "null";
+   if (isset($_POST["field_HigieneParaBrigada_periodo"])) $periodo = $_POST["field_HigieneParaBrigada_periodo"]; else $periodo = null;
+   if (isset($_POST["field_HigieneParaBrigada_brigada"])) $brigada = $_POST["field_HigieneParaBrigada_brigada"]; else $brigada = null;
+   if (isset($_POST["field_HigieneParaBrigada_gasto_maximo_diario"])) $gasto_maximo_diario = $_POST["field_HigieneParaBrigada_gasto_maximo_diario"]; else $gasto_maximo_diario = null;
 
  // Actualizando el objeto 
    $col = new HigieneParaBrigadaCollection($dbconnection);
    $obj = $col->getItem($periodo,$brigada,$gasto_maximo_diario);
-$obj->setPeriodo($periodo);
-$obj->setBrigada($brigada);
-$obj->setGastoMaximoDiario($gasto_maximo_diario);
+if ($periodo !== null) $obj->setPeriodo($periodo);
+if ($brigada !== null) $obj->setBrigada($brigada);
+if ($gasto_maximo_diario !== null) $obj->setGastoMaximoDiario($gasto_maximo_diario);
 ?>

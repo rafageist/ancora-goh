@@ -56,7 +56,7 @@
             */ 
        public function setPlantilla($value){ 
               $this->plantilla = $value; 
-              $this->data->setBy("id = '".$this->id."'", "plantilla = '$value'"); 
+              $this->data->getAnythingParams("UPDATE profesor_para_actividad SET plantilla = $1 WHERE id = $2;", array(PartModel::sqlValue($value, "text"), PartModel::sqlValue($this->id, "text"))); 
        } 
           /** 
             * @name: getPlantilla 
@@ -77,7 +77,7 @@
             */ 
        public function setProfesor($value){ 
               $this->profesor = $value; 
-              $this->data->setBy("id = '".$this->id."'", "profesor = '$value'"); 
+              $this->data->getAnythingParams("UPDATE profesor_para_actividad SET profesor = $1 WHERE id = $2;", array(PartModel::sqlValue($value, "text"), PartModel::sqlValue($this->id, "text"))); 
        } 
           /** 
             * @name: getProfesor 
@@ -98,7 +98,7 @@
             */ 
        public function setPrioridad($value){ 
               $this->prioridad = $value; 
-              $this->data->setBy("id = '".$this->id."'", "prioridad = $value"); 
+              $this->data->getAnythingParams("UPDATE profesor_para_actividad SET prioridad = $1 WHERE id = $2;", array(PartModel::sqlValue($value, "number"), PartModel::sqlValue($this->id, "text"))); 
        } 
           /** 
             * @name: getPrioridad 
@@ -118,7 +118,7 @@
        } 
        public function getProfesorParaGrupo(){ 
           $collection = new ProfesorParaGrupoCollection($this->data->db);
-          $collection->Load(null,null,"*","profesor_para_actividad = '".$this->id."'");
+          $collection->Load(null,null,"*","profesor_para_actividad = $1", array(PartModel::sqlValue($this->id, "text")));
            return $collection;
        } 
 } 

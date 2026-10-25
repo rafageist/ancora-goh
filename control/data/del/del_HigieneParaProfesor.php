@@ -14,9 +14,9 @@ import("model.data.HigieneParaProfesorCollection");
    if (file_exists("../control/data/fdms/fdm_HigieneParaProfesor_periodo.php")) include "../control/data/fdms/fdm_HigieneParaProfesor_periodo.php"; 
    if (file_exists("../control/data/fdms/fdm_HigieneParaProfesor_profesor.php")) include "../control/data/fdms/fdm_HigieneParaProfesor_profesor.php"; 
    if (file_exists("../control/data/fdms/fdm_HigieneParaProfesor_gasto_maximo_diario.php")) include "../control/data/fdms/fdm_HigieneParaProfesor_gasto_maximo_diario.php"; 
-   if (isset($_POST["field_HigieneParaProfesor_periodo"])) $periodo = $_POST["field_HigieneParaProfesor_periodo"]; else $periodo = "null";
-   if (isset($_POST["field_HigieneParaProfesor_profesor"])) $profesor = $_POST["field_HigieneParaProfesor_profesor"]; else $profesor = "null";
-   if (isset($_POST["field_HigieneParaProfesor_gasto_maximo_diario"])) $gasto_maximo_diario = $_POST["field_HigieneParaProfesor_gasto_maximo_diario"]; else $gasto_maximo_diario = "null";
+   if (isset($_POST["field_HigieneParaProfesor_periodo"])) $periodo = $_POST["field_HigieneParaProfesor_periodo"]; else $periodo = null;
+   if (isset($_POST["field_HigieneParaProfesor_profesor"])) $profesor = $_POST["field_HigieneParaProfesor_profesor"]; else $profesor = null;
+   if (isset($_POST["field_HigieneParaProfesor_gasto_maximo_diario"])) $gasto_maximo_diario = $_POST["field_HigieneParaProfesor_gasto_maximo_diario"]; else $gasto_maximo_diario = null;
 
  // Eliminando el objeto 
    $col = new HigieneParaProfesorCollection($dbconnection);

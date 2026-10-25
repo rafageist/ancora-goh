@@ -16,12 +16,12 @@ if (file_exists("../control/data/fdms/fdm_Permiso_permiso.php")) include "../con
 if (file_exists("../control/data/fdms/fdm_Permiso_rol.php")) include "../control/data/fdms/fdm_Permiso_rol.php"; 
 
 // Getting data from POST 
-   if (isset($_POST["field_Permiso_permiso"])) $permiso = $_POST["field_Permiso_permiso"]; else $permiso = "null";
-   if (isset($_POST["field_Permiso_rol"])) $rol = $_POST["field_Permiso_rol"]; else $rol = "null";
+   if (isset($_POST["field_Permiso_permiso"])) $permiso = $_POST["field_Permiso_permiso"]; else $permiso = null;
+   if (isset($_POST["field_Permiso_rol"])) $rol = $_POST["field_Permiso_rol"]; else $rol = null;
 
  // Actualizando el objeto 
    $col = new PermisoCollection($dbconnection);
    $obj = $col->getItem($permiso,$rol);
-$obj->setPermiso($permiso);
-$obj->setRol($rol);
+if ($permiso !== null) $obj->setPermiso($permiso);
+if ($rol !== null) $obj->setRol($rol);
 ?>

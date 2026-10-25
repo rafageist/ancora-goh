@@ -64,7 +64,7 @@
             */ 
        public function setDescripcion($value){ 
               $this->descripcion = $value; 
-              $this->data->setBy("id = '".$this->id."'", "descripcion = '$value'"); 
+              $this->data->getAnythingParams("UPDATE clasificacion_de_actividad SET descripcion = $1 WHERE id = $2;", array(PartModel::sqlValue($value, "text"), PartModel::sqlValue($this->id, "text"))); 
        } 
           /** 
             * @name: getDescripcion 
@@ -85,7 +85,7 @@
             */ 
        public function setDuracion($value){ 
               $this->duracion = $value; 
-              $this->data->setBy("id = '".$this->id."'", "duracion = $value"); 
+              $this->data->getAnythingParams("UPDATE clasificacion_de_actividad SET duracion = $1 WHERE id = $2;", array(PartModel::sqlValue($value, "number"), PartModel::sqlValue($this->id, "text"))); 
        } 
           /** 
             * @name: getDuracion 
@@ -106,7 +106,7 @@
             */ 
        public function setCreador($value){ 
               $this->creador = $value; 
-              $this->data->setBy("id = '".$this->id."'", "creador = '$value'"); 
+              $this->data->getAnythingParams("UPDATE clasificacion_de_actividad SET creador = $1 WHERE id = $2;", array(PartModel::sqlValue($value, "text"), PartModel::sqlValue($this->id, "text"))); 
        } 
           /** 
             * @name: getCreador 
@@ -127,7 +127,7 @@
             */ 
        public function setPrioridad($value){ 
               $this->prioridad = $value; 
-              $this->data->setBy("id = '".$this->id."'", "prioridad = $value"); 
+              $this->data->getAnythingParams("UPDATE clasificacion_de_actividad SET prioridad = $1 WHERE id = $2;", array(PartModel::sqlValue($value, "number"), PartModel::sqlValue($this->id, "text"))); 
        } 
           /** 
             * @name: getPrioridad 
@@ -148,7 +148,7 @@
             */ 
        public function setGasto($value){ 
               $this->gasto = $value; 
-              $this->data->setBy("id = '".$this->id."'", "gasto = $value"); 
+              $this->data->getAnythingParams("UPDATE clasificacion_de_actividad SET gasto = $1 WHERE id = $2;", array(PartModel::sqlValue($value, "number"), PartModel::sqlValue($this->id, "text"))); 
        } 
           /** 
             * @name: getGasto 
@@ -168,7 +168,7 @@
        } 
        public function getGrupo(){ 
           $collection = new GrupoCollection($this->data->db);
-          $collection->Load(null,null,"*","clasificacion = '".$this->id."'");
+          $collection->Load(null,null,"*","clasificacion = $1", array(PartModel::sqlValue($this->id, "text")));
            return $collection;
        } 
        public function addRestriccionCondicional($planificacion,$activa,$asig,$brigada,$profesor,$lugar,$otro_recurso,$especialidad,$nivel,$fecha_ini,$fecha_fin,$hora_ini,$hora_fin,$discreto_exacto,$dia_ini_planif,$dia_fin_planif,$hora_ini_planif,$hora_fin_planif,$discreto_exacto_planif,$periodo,$dia_ini,$dia_fin,$turno_ini,$turno_fin,$discreto,$hoy,$ahora,$dia_relativo_anterior,$cant_dias_relativo_anterior,$dia_relativo_posterior,$cant_dias_relativo_posterior,$rango_tiempo_relativo_anterior_ini,$rango_tiempo_relativo_anterior_tamano,$turno_relativo_anterior,$cant_turnos_relativo_anterior,$turno_relativo_posterior,$cant_turnos_relativo_posterior,$rango_tiempo_relativo_posterior_ini,$rango_tiempo_relativo_posterior_tamano,$entre_dias_antes,$entre_dias_despues,$entre_turnos_antes,$entre_turnos_despues,$entre_tiempo_antes,$entre_tiempo_despues,$cant_exa,$cant_min,$cant_max,$consec_brigada,$consec_profesor,$consec_lugar,$consec_otro_recurso,$consec_periodo,$consec_dia_ini,$consec_dia_fin,$consec_turno_ini,$consec_turno_fin,$consec_discreto,$siempre,$valor){ 
@@ -178,7 +178,7 @@
        } 
        public function getRestriccionCondicional(){ 
           $collection = new RestriccionCondicionalCollection($this->data->db);
-          $collection->Load(null,null,"*","clasif_act = '".$this->id."'");
+          $collection->Load(null,null,"*","clasif_act = $1", array(PartModel::sqlValue($this->id, "text")));
            return $collection;
        } 
        public function addRestriccionDeClasifAct($periodo,$dia,$turno,$valor){ 
@@ -188,7 +188,7 @@
        } 
        public function getRestriccionDeClasifAct(){ 
           $collection = new RestriccionDeClasifActCollection($this->data->db);
-          $collection->Load(null,null,"*","clasificacion = '".$this->id."'");
+          $collection->Load(null,null,"*","clasificacion = $1", array(PartModel::sqlValue($this->id, "text")));
            return $collection;
        } 
        public function addRestriccionRealDeClasifAct($restriccion_nominal,$periodicidad,$fecha,$hora_inicial,$hora_final,$por_actividad,$actividad){ 
@@ -198,7 +198,7 @@
        } 
        public function getRestriccionRealDeClasifAct(){ 
           $collection = new RestriccionRealDeClasifActCollection($this->data->db);
-          $collection->Load(null,null,"*","objeto = '".$this->id."'");
+          $collection->Load(null,null,"*","objeto = $1", array(PartModel::sqlValue($this->id, "text")));
            return $collection;
        } 
        public function addZpriori($periodo,$dia,$turno,$valor){ 
@@ -208,7 +208,7 @@
        } 
        public function getZpriori(){ 
           $collection = new ZprioriCollection($this->data->db);
-          $collection->Load(null,null,"*","clasificacion = '".$this->id."'");
+          $collection->Load(null,null,"*","clasificacion = $1", array(PartModel::sqlValue($this->id, "text")));
            return $collection;
        } 
        public function addPlantillaDeActividad($desglose,$orden,$exige_profesor,$exige_lugar){ 
@@ -218,7 +218,7 @@
        } 
        public function getPlantillaDeActividad(){ 
           $collection = new PlantillaDeActividadCollection($this->data->db);
-          $collection->Load(null,null,"*","clasificacion = '".$this->id."'");
+          $collection->Load(null,null,"*","clasificacion = $1", array(PartModel::sqlValue($this->id, "text")));
            return $collection;
        } 
 } 

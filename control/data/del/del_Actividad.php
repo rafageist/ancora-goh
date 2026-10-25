@@ -19,15 +19,15 @@ import("model.data.ActividadCollection");
    if (file_exists("../control/data/fdms/fdm_Actividad_turno.php")) include "../control/data/fdms/fdm_Actividad_turno.php"; 
    if (file_exists("../control/data/fdms/fdm_Actividad_momento_de_colocacion.php")) include "../control/data/fdms/fdm_Actividad_momento_de_colocacion.php"; 
    if (file_exists("../control/data/fdms/fdm_Actividad_creador.php")) include "../control/data/fdms/fdm_Actividad_creador.php"; 
-   if (isset($_POST["field_Actividad_id"])) $id = $_POST["field_Actividad_id"]; else $id = "null";
-   if (isset($_POST["field_Actividad_plantilla"])) $plantilla = $_POST["field_Actividad_plantilla"]; else $plantilla = "null";
-   if (isset($_POST["field_Actividad_grupo"])) $grupo = $_POST["field_Actividad_grupo"]; else $grupo = "null";
-   if (isset($_POST["field_Actividad_profesor"])) $profesor = $_POST["field_Actividad_profesor"]; else $profesor = "null";
-   if (isset($_POST["field_Actividad_lugar"])) $lugar = $_POST["field_Actividad_lugar"]; else $lugar = "null";
-   if (isset($_POST["field_Actividad_dia"])) $dia = $_POST["field_Actividad_dia"]; else $dia = "null";
-   if (isset($_POST["field_Actividad_turno"])) $turno = $_POST["field_Actividad_turno"]; else $turno = "null";
-   if (isset($_POST["field_Actividad_momento_de_colocacion"])) $momento_de_colocacion = $_POST["field_Actividad_momento_de_colocacion"]; else $momento_de_colocacion = "null";
-   if (isset($_POST["field_Actividad_creador"])) $creador = $_POST["field_Actividad_creador"]; else $creador = "null";
+   if (isset($_POST["field_Actividad_id"])) $id = $_POST["field_Actividad_id"]; else $id = null;
+   if (isset($_POST["field_Actividad_plantilla"])) $plantilla = $_POST["field_Actividad_plantilla"]; else $plantilla = null;
+   if (isset($_POST["field_Actividad_grupo"])) $grupo = $_POST["field_Actividad_grupo"]; else $grupo = null;
+   if (isset($_POST["field_Actividad_profesor"])) $profesor = $_POST["field_Actividad_profesor"]; else $profesor = null;
+   if (isset($_POST["field_Actividad_lugar"])) $lugar = $_POST["field_Actividad_lugar"]; else $lugar = null;
+   if (isset($_POST["field_Actividad_dia"])) $dia = $_POST["field_Actividad_dia"]; else $dia = null;
+   if (isset($_POST["field_Actividad_turno"])) $turno = $_POST["field_Actividad_turno"]; else $turno = null;
+   if (isset($_POST["field_Actividad_momento_de_colocacion"])) $momento_de_colocacion = $_POST["field_Actividad_momento_de_colocacion"]; else $momento_de_colocacion = null;
+   if (isset($_POST["field_Actividad_creador"])) $creador = $_POST["field_Actividad_creador"]; else $creador = null;
 
  // Eliminando el objeto 
    $col = new ActividadCollection($dbconnection);

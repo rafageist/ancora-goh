@@ -23,9 +23,8 @@
             * @version: 1.0 
             */ 
           public function CheckHost($pusuario,$pip,$asobjects = false){ 
-               $sql = "select  seguridad.check_host('$pusuario','$pip')"; 
-               if ($asobjects == true) return $this->db->getAsObjects($sql);
-               return $this->db->getAsArray($sql);
+               $sql = "select  seguridad.check_host($1,$2)"; 
+               return $this->getAnythingParams($sql, array(PartModel::sqlValue($pusuario, "text"), PartModel::sqlValue($pip, "text")), $asobjects);
            } 
           /** 
             * @name: tiene_permiso 
@@ -34,8 +33,7 @@
             * @version: 1.0 
             */ 
           public function TienePermiso($pusuario,$ppermiso,$asobjects = false){ 
-               $sql = "select  seguridad.tiene_permiso('$pusuario','$ppermiso')"; 
-               if ($asobjects == true) return $this->db->getAsObjects($sql);
-               return $this->db->getAsArray($sql);
+               $sql = "select  seguridad.tiene_permiso($1,$2)"; 
+               return $this->getAnythingParams($sql, array(PartModel::sqlValue($pusuario, "text"), PartModel::sqlValue($ppermiso, "text")), $asobjects);
            } 
      } 
