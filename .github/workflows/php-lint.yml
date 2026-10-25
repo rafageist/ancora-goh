@@ -29,5 +29,36 @@ jobs:
       - name: PHP 8 compatibility checks (static + constructor smoke)
         run: dev/ci/php84-check.sh
 
-      - name: Generated code matches its generator (cogePHP)
+  divengine-codegen:
+    name: Divengine Codegen (Composer, PSR-12, PHPUnit, output parity)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: dev/codegen
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          coverage: none
+          tools: composer:v2
+
+      - name: composer validate --strict
+        run: composer validate --strict
+
+      - name: composer install (locked)
+        run: composer install --no-interaction --no-progress
+
+      - name: composer audit
+        run: composer audit
+
+      - name: PSR-12 (phpcs)
+        run: vendor/bin/phpcs
+
+      - name: PHPUnit
+        run: vendor/bin/phpunit
+
+      - name: Generated code matches its generator (divengine-codegen check)
+        working-directory: .
         run: dev/ci/check-generated.sh
