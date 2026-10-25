@@ -13,3 +13,6 @@
 # Docker Compose deployment (#32): local secrets and database backups
 /secrets/
 /backups/
+
+# Divengine Codegen (#39): Composer dependencies of the build-time generator
+/dev/codegen/vendor/

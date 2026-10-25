@@ -1,0 +1,15 @@
+<?xml version="1.0"?>
+<ruleset name="divengine-codegen">
+    <description>PSR-12 for the Divengine Codegen sources, CLI and tests.</description>
+    <arg name="extensions" value="php"/>
+    <arg name="colors"/>
+    <arg value="sp"/>
+    <file>src</file>
+    <file>bin/divengine-codegen</file>
+    <file>tests</file>
+    <file>profiles</file>
+    <rule ref="PSR12">
+        <!-- generated SQL/PHP fragments and messages are long by nature -->
+        <exclude name="Generic.Files.LineLength"/>
+    </rule>
+</ruleset>
