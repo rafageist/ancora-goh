@@ -59,6 +59,7 @@ if ($selfTest) {
         'const2.php' => array("<?php define('MYC', 1); echo MYC; \$a = \"\$b[key] {\$c['d']}\"; \$o->p; X::Y; new Z; function f(Z \$z, array &\$w) {} try {} catch (E \$e) {}", array()),
         'const3.php' => array("<?php echo \"{\$a[bar]}\";", array('const')),
         'st.php'    => array("<?php class U { function a() {} static function b() {} } class V extends U { function c() { parent::a(); U::a(); self::b(); } static function d() { parent::a(); } } U::a(); U::b(); function g() { V::c(); }", array('static-call', 'static-call', 'static-call')),
+        'rtype.php' => array("<?php function f(): never {} \$g = fn(string \$k): string => \$k; function h(int \$a): ?int {} class R { function v(): void {} } echo \$a ? B : C;", array('const', 'const')),
         'fn.php'    => array("<?php \$a = split(',', \$b); while (list(\$k) = each(\$a)); mysql_query('x'); \$o->split(1);", array('removed-fn', 'removed-fn', 'removed-fn')),
     );
     $fail = 0;
@@ -243,6 +244,14 @@ foreach ($tokens as $f => $t) {
         if (in_array(strtolower($name), array('true', 'false', 'null'), true)) continue;
         if (defined($name) || isset($userConsts[strtolower($name)])) continue;
         if ($next === ':' && ($prevId === ';' || $prevId === '{' || $prevId === '}')) continue; // goto label
+        if ($prevId === '?' && $p !== null) { // nullable return type "): ?int"
+            $p = sig($t, $p, -1);
+            $prevId = $p === null ? null : tid($t[$p]);
+        }
+        if ($prevId === ':' && $p !== null) { // return type "): string", not a ternary "a ? b : C"
+            $pp = sig($t, $p, -1);
+            if ($pp !== null && $t[$pp] === ')') continue;
+        }
         if (!is_allowed('const', $f, $allow)) {
             $errors[] = "$f:{$tok[2]}: [const] undefined constant '$name' (PHP 8: Error)";
         }
