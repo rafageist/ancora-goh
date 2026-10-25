@@ -602,8 +602,12 @@ PHPCODE
 
 		fputs($ficheroclass, '       var $data; '." \n");
 		fputs($ficheroclass, '       var $collection; '." \n");
-		fputs($ficheroclass, '       var $last_offest; '." \n");
+		// #44: the arguments of the last Load(), replayed by Reload()
+		fputs($ficheroclass, '       var $last_offset; '." \n");
 		fputs($ficheroclass, '       var $last_limit; '." \n");
+		fputs($ficheroclass, '       var $last_fields = "*"; '." \n");
+		fputs($ficheroclass, '       var $last_where = ""; '." \n");
+		fputs($ficheroclass, '       var $last_params; '." \n");
 
 		fputComentario($ficheroclass,$collectionname,'Class constructor',array(),"","       ");
 		fputs($ficheroclass, "       public function __construct(".'$db = false'."){ \n");
@@ -621,7 +625,10 @@ PHPCODE
 		fputComentario($ficheroclass,"Load",'Load somes objects to memory collection',array(),"","       ");
 		// #35: $params binds the values of $where ($1..$n)
 		fputs($ficheroclass, '       public function Load($offset = null, $limit = null, $fields = "*", $where = "", $params = null ){ '."\n");
-		fputs($ficheroclass, '             if ($offset==null or $limit=null) {'."\n");
+		fputs($ficheroclass, '             $this->last_offset = $offset; $this->last_limit = $limit;'."\n");
+		fputs($ficheroclass, '             $this->last_fields = $fields; $this->last_where = $where; $this->last_params = $params;'."\n");
+		// #44: was "$limit=null" (an assignment), so a limit was never applied
+		fputs($ficheroclass, '             if ($offset === null || $limit === null) {'."\n");
 		fputs($ficheroclass, '                 if ($where == "")'."\n");
 		fputs($ficheroclass, '                     $r = $this->data->getAll("*",true);'. "\n");
 		fputs($ficheroclass, '                 else '."\n");
@@ -674,7 +681,8 @@ PHPCODE
 
 		fputComentario($ficheroclass,"Reload",'Reload objects to memory collection with last offset and limit',array(),"","       ");
 		fputs($ficheroclass, '       public function Reload(){ '."\n");
-		fputs($ficheroclass, '            $this->Load($last_offset, $last_limit); '."\n");
+		fputs($ficheroclass, '            $this->collection = array(); '."\n");
+		fputs($ficheroclass, '            $this->Load($this->last_offset, $this->last_limit, $this->last_fields, $this->last_where, $this->last_params); '."\n");
 		fputs($ficheroclass, '       } '."\n");
 
 
