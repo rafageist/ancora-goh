@@ -4,6 +4,8 @@
 # copy of dev/sql/ and the libpq environment (run under with-ephemeral-pg.sh).
 set -uo pipefail
 here=$(cd "$(dirname "$0")/.." && pwd)
+. "$here/tools/disposable-guard.sh"
+agoh_require_disposable || exit 3
 work=$(mktemp -d "${TMPDIR:-/tmp}/agoh-it.XXXXXX"); trap 'rm -rf "$work"' EXIT
 cp -r "$here" "$work/sql"
 printf '\nCREATE TABLE broken_on_purpose (;\n' >> "$work/sql/organizacion/nivel.sql"

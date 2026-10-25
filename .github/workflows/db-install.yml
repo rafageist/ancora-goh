@@ -48,6 +48,12 @@ jobs:
           php dev/sql/compilasql.php --with-data --out result-with-data.sql
           sha256sum result.sql result-with-data.sql
 
+      - name: Disposable-cluster guard (tools refuse unsafe targets)
+        run: |
+          # direct invocation must be refused before connecting (#26)
+          if dev/sql/tools/check-sources.sh; then echo "unguarded direct run"; exit 1; fi
+          dev/sql/tools/with-ephemeral-pg.sh dev/sql/tools/test-guard.sh
+
       - name: Compile every source, install, smoke check
         run: |
           dev/sql/tools/with-ephemeral-pg.sh bash -euo pipefail -c '

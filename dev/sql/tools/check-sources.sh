@@ -37,6 +37,8 @@ while [ $# -gt 0 ]; do
 done
 
 sqldir=$(cd "$(dirname "$0")/.." && pwd)
+. "$sqldir/tools/disposable-guard.sh"
+agoh_require_disposable || exit 3
 db="agoh_srccheck_$$"
 work=$(mktemp -d "${TMPDIR:-/tmp}/agoh-src.XXXXXX")
 trap 'rm -rf "$work"; [ $keep = 1 ] || dropdb --if-exists "$db" >/dev/null 2>&1' EXIT
