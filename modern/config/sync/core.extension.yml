@@ -2,6 +2,7 @@ _core:
   default_config_hash: 4GIX5Esnc_umpXUBj4IIocRX7Mt5fPhm4AgXfE3E56E
 module:
   ancora: 0
+  ancora_engine: 0
   block: 0
   datetime: 0
   dblog: 0

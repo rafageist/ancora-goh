@@ -1,0 +1,159 @@
+<?php
+
+/**
+ * @file
+ * Install, update and uninstall functions for the Áncora engine module.
+ */
+
+declare(strict_types=1);
+
+/**
+ * Implements hook_schema().
+ *
+ * The job table lives in the site's Drupal database. The engine database of
+ * the site holds only the legacy MPI/Prioriza schema; nothing of Drupal is
+ * ever created there.
+ */
+function ancora_engine_schema(): array {
+  $schema['ancora_engine_job'] = [
+    'description' => 'Timetable generation jobs run by the engine worker.',
+    'fields' => [
+      'id' => [
+        'type' => 'serial',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ],
+      'uuid' => [
+        'type' => 'varchar_ascii',
+        'length' => 36,
+        'not null' => TRUE,
+      ],
+      'scope_specialty' => [
+        'description' => 'Specialty id in the engine database.',
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+      ],
+      'scope_level' => [
+        'description' => 'Level id in the engine database.',
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+      ],
+      'scope_period' => [
+        'description' => 'Period id in the engine database.',
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+      ],
+      'options' => [
+        'description' => 'Validated generar() options, JSON.',
+        'type' => 'text',
+        'not null' => TRUE,
+      ],
+      'time_limit' => [
+        'description' => 'statement_timeout of the run, in seconds.',
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ],
+      'state' => [
+        'type' => 'varchar_ascii',
+        'length' => 16,
+        'not null' => TRUE,
+      ],
+      'cancel_requested' => [
+        'type' => 'int',
+        'size' => 'tiny',
+        'not null' => TRUE,
+        'default' => 0,
+      ],
+      'cancel_mode' => [
+        'description' => 'soft (generador.cancelar) or hard (pg_cancel_backend).',
+        'type' => 'varchar_ascii',
+        'length' => 8,
+        'not null' => FALSE,
+      ],
+      'requested_by' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+      ],
+      'cancelled_by' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => FALSE,
+      ],
+      'retry_of' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => FALSE,
+      ],
+      'created' => [
+        'type' => 'int',
+        'not null' => TRUE,
+      ],
+      'changed' => [
+        'type' => 'int',
+        'not null' => TRUE,
+      ],
+      'started' => [
+        'type' => 'int',
+        'not null' => FALSE,
+      ],
+      'finished' => [
+        'type' => 'int',
+        'not null' => FALSE,
+      ],
+      'heartbeat' => [
+        'type' => 'int',
+        'not null' => FALSE,
+      ],
+      'worker_id' => [
+        'type' => 'varchar_ascii',
+        'length' => 128,
+        'not null' => FALSE,
+      ],
+      'attempts' => [
+        'description' => 'Number of claims; also the fencing token of a run.',
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+      ],
+      'result' => [
+        'description' => 'Metrics of the run, JSON.',
+        'type' => 'text',
+        'not null' => FALSE,
+      ],
+      'error' => [
+        'description' => 'Error summary without secrets.',
+        'type' => 'varchar',
+        'length' => 1024,
+        'not null' => FALSE,
+      ],
+    ],
+    'primary key' => ['id'],
+    'unique keys' => [
+      'uuid' => ['uuid'],
+    ],
+    'indexes' => [
+      'state' => ['state', 'id'],
+      'created' => ['created'],
+    ],
+  ];
+  return $schema;
+}
+
+/**
+ * Implements hook_install().
+ *
+ * At most one running job per site, enforced by the database: a partial
+ * unique index (PostgreSQL), in addition to the claim lock of the worker.
+ */
+function ancora_engine_install(): void {
+  $connection = \Drupal::database();
+  $index = $connection->getPrefix() . 'ancora_engine_job_one_running';
+  $connection->query('CREATE UNIQUE INDEX "' . $index . '" ON {ancora_engine_job} (state) WHERE state = \'running\'');
+}

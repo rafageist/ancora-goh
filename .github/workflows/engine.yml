@@ -1,0 +1,87 @@
+# Scheduling engine worker (issue #71): mid-flight cancellation evidence of
+# generar() across two connections, and the ancora_engine worker end to end
+# (Drupal site database + two engine databases, success with the E2E digest,
+# soft/hard cancellation, timeouts, stale-worker recovery, two-site role
+# boundary). Disposable socket-only PostgreSQL clusters only. The module's
+# Kernel and Functional tests run in modern.yml.
+name: Engine worker
+
+on:
+  push:
+    paths:
+      - 'modern/**'
+      - 'dev/sql/**'
+      - 'dev/e2e/**'
+      - '.github/workflows/engine.yml'
+  pull_request:
+    paths:
+      - 'modern/**'
+      - 'dev/sql/**'
+      - 'dev/e2e/**'
+      - '.github/workflows/engine.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  engine:
+    name: PHP ${{ matrix.php }} + PostgreSQL ${{ matrix.postgres }}
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - php: '8.4'
+            postgres: '16'
+          - php: '8.5'
+            postgres: '18'
+    env:
+      PG_BINDIR: /usr/lib/postgresql/${{ matrix.postgres }}/bin
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          extensions: pdo_pgsql, pgsql, gd, mbstring, xml, curl, zip, opcache, pcntl
+          coverage: none
+          tools: composer:v2
+
+      - name: PostgreSQL ${{ matrix.postgres }} server binaries (PGDG when missing)
+        run: |
+          if [ ! -x "$PG_BINDIR/initdb" ]; then
+            sudo install -d /usr/share/postgresql-common/pgdg
+            sudo curl -fsSL -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc \
+              https://www.postgresql.org/media/keys/ACCC4CF8.asc
+            . /etc/os-release
+            echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] https://apt.postgresql.org/pub/repos/apt ${VERSION_CODENAME}-pgdg main" \
+              | sudo tee /etc/apt/sources.list.d/pgdg.list >/dev/null
+            sudo apt-get update -q
+            sudo apt-get install -y -q "postgresql-${{ matrix.postgres }}"
+          fi
+          sudo systemctl stop postgresql || true
+          "$PG_BINDIR/postgres" --version
+          command -v jq
+
+      - name: Mid-flight cancellation of generar() (two connections)
+        timeout-minutes: 10
+        run: dev/sql/tools/with-ephemeral-pg.sh dev/sql/tests/concurrency/cancel_midflight.sh
+
+      - name: Composer cache directory
+        id: composer-cache
+        working-directory: modern
+        run: echo "dir=$(composer config cache-files-dir)" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/cache@v4
+        with:
+          path: ${{ steps.composer-cache.outputs.dir }}
+          key: composer-${{ runner.os }}-php${{ matrix.php }}-${{ hashFiles('modern/composer.lock') }}
+          restore-keys: composer-${{ runner.os }}-php${{ matrix.php }}-
+
+      - name: composer install (locked)
+        working-directory: modern
+        run: composer install --no-interaction --no-progress
+
+      - name: Engine worker integration
+        timeout-minutes: 15
+        run: dev/sql/tools/with-ephemeral-pg.sh modern/scripts/engine-integration.sh
