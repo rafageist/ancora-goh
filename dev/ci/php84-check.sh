@@ -21,7 +21,11 @@ ALLOW=(
 
 "$PHP" dev/ci/php84-static-check.php --self-test
 # single invocation, so constants defined in one file are known in all
-mapfile -d '' FILES < <(git ls-files -z -- '*.php' '*.tpl')
+# The checker targets the legacy PHP 4/5 code. The modern Composer projects
+# (portal/, dev/codegen/) are PHP 8.4+ by design and have their own php -l,
+# PSR-12 and PHPUnit jobs; their syntax (union types, enums, ...) is out of
+# this checker's scope.
+mapfile -d '' FILES < <(git ls-files -z -- '*.php' '*.tpl' ':!portal/' ':!dev/codegen/')
 "$PHP" dev/ci/php84-static-check.php "${ALLOW[@]}" "${FILES[@]}"
 
 # Constructors of the generated data layer really run (no database needed).
