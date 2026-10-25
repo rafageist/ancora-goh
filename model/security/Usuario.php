@@ -172,6 +172,8 @@
             * @version: 1.0 
             */ 
        public function setContrasena($value){ 
+              if (!is_string($value) || $value === '') return false; 
+              $value = PasswordUtil::hash($value); 
               $this->contrasena = $value; 
               $this->data->setBy("id = '".$this->id."'", "contrasena = '$value'"); 
        } 

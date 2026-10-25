@@ -25,13 +25,35 @@ class PostgresDatabaseImpl implements IDatabase{
           * Return crudal result
           */
         public function getDefault($sql, $debug = false){
-             if ($debug == true) {
-                 echo "[SQL] ".$sql."\n";
-                 $f = fopen("query.log","a");
-                 fputs($f,$sql."\n");
-                 fclose($f);
-            }
+             // #14: debug mode used to echo the SQL into the HTTP response and
+             // append it to query.log in the current directory (the web root),
+             // which could publish credentials and data. It now goes only to
+             // the PHP error log.
+             if ($debug == true) error_log("[SQL] ".$sql);
              return pg_query($this->connection,$sql);
+        }
+
+        /**
+          * Run a parameterized query ($1, $2, ... placeholders) with
+          * pg_query_params. Values are sent separately from the SQL text and
+          * are never interpolated. (#14)
+          */
+        public function queryParams($sql, array $params){
+             if (!$this->connection) return false;
+             return pg_query_params($this->connection, $sql, array_values($params));
+        }
+
+        /**
+          * Parameterized variant of getAsObjects(). (#14)
+          */
+        public function getAsObjectsParams($sql, array $params){
+            $result = $this->queryParams($sql, $params);
+            if (!$result) return false;
+            $array = array();
+            while ( $row = pg_fetch_object($result) ){
+               $array[] = $row;
+            }
+            return $array;
         }
         
         /**

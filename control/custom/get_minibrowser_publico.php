@@ -32,35 +32,32 @@
 	
 	
 	
-	$idperiodo = $_POST['idperiodo'];
-		
-	$col = new ActividadModel($dbconnection);
-	
-	$actividaddes = false;
-	
-	if (isset($_POST['idbrg'])){
-		$idbrg = $_POST['idbrg'];
-		$actividades = $col->getAllBy("matrix.get_pos_of(dame_lista_id_brigadas_de_grupo(grupo), '$idbrg')>-1 AND dame_periodo_plantilla_de_actividad(plantilla) = '$idperiodo'","*, dame_clasif_plantilla_de_actividad(plantilla) as clasificacion, dame_asignatura_desglose(dame_desglose_de_plantilla(plantilla)) as asignatura", true);
-	}
-	
-	if (isset($_POST['idprofe'])){
-		$idprofe = $_POST['idprofe'];
-		$actividades = $col->getAllBy("profesor = '$idprofe' AND dame_periodo_plantilla_de_actividad(plantilla) = '$idperiodo'","*, dame_clasif_plantilla_de_actividad(plantilla) as clasificacion, dame_asignatura_desglose(dame_desglose_de_plantilla(plantilla)) as asignatura", true);
-	}
-	
-	if (isset($_POST['idlug'])){
-		$idlug = $_POST['idlug'];
-		$actividades = $col->getAllBy("lugar = '$idlug' AND dame_periodo_plantilla_de_actividad(plantilla) = '$idperiodo'","*, dame_clasif_plantilla_de_actividad(plantilla) as clasificacion, dame_asignatura_desglose(dame_desglose_de_plantilla(plantilla)) as asignatura", true);
-	}
-	
-	if (isset($_POST['idres'])){
-		$idres = $_POST['idres'];
-		$actividades = $col->getAllBy("matrix.get_pos_of(dame_lista_id_otros_recursos_usados(id), '$idres')>-1 AND dame_periodo_plantilla_de_actividad(plantilla) = '$idperiodo'","*, dame_clasif_plantilla_de_actividad(plantilla) as clasificacion, dame_asignatura_desglose(dame_desglose_de_plantilla(plantilla)) as asignatura", true);
-	}
-	
-	$col = new PeriodoCollection($dbconnection);
-	
-	$periodo = $col->getItem($idperiodo);
+	// #14: this handler is anonymous (Application::$anonymous_events), so the
+	// request values are bound as query parameters instead of being
+	// interpolated into the SQL text. Same queries and columns as before.
+	$idperiodo = (isset($_POST['idperiodo']) && is_string($_POST['idperiodo'])) ? $_POST['idperiodo'] : "";
+
+	$actividades = false;
+
+	$campos_publico = "*, dame_clasif_plantilla_de_actividad(plantilla) as clasificacion, dame_asignatura_desglose(dame_desglose_de_plantilla(plantilla)) as asignatura";
+	$filtros_publico = array(
+		'idbrg' => "matrix.get_pos_of(dame_lista_id_brigadas_de_grupo(grupo), $1)>-1",
+		'idprofe' => "profesor = $1",
+		'idlug' => "lugar = $1",
+		'idres' => "matrix.get_pos_of(dame_lista_id_otros_recursos_usados(id), $1)>-1"
+	);
+
+	// as before, when several ids are posted the last one wins
+	foreach ($filtros_publico as $campo_post => $filtro)
+		if (isset($_POST[$campo_post]) && is_string($_POST[$campo_post]))
+			$actividades = $dbconnection->getAsObjectsParams("SELECT $campos_publico FROM actividad WHERE $filtro AND dame_periodo_plantilla_de_actividad(plantilla) = $2;", array($_POST[$campo_post], $idperiodo));
+
+	// #14: PeriodoCollection::getItem() interpolates the id into its SQL;
+	// read the same row with a bound parameter. The template only uses
+	// $periodo->cant_dias and $periodo->cant_turnos.
+	$periodo = false;
+	$filas_periodo = $dbconnection->getAsObjectsParams("SELECT * FROM periodo WHERE id = $1;", array($idperiodo));
+	if (is_array($filas_periodo) && isset($filas_periodo[0])) $periodo = $filas_periodo[0];
 	
 	$horario = array();
 	

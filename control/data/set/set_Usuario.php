@@ -36,5 +36,7 @@ $obj->setInfo($info);
 $obj->setCorreo($correo);
 $obj->setMomentoIngreso($momento_ingreso);
 $obj->setNick($nick);
-$obj->setContrasena($contrasena);
+// #14: only change the password when a new one was posted; the "null"
+// placeholder above must not become a password (it is hashed now)
+if (isset($_POST["field_Usuario_contrasena"]) && is_string($_POST["field_Usuario_contrasena"]) && $_POST["field_Usuario_contrasena"] !== '') $obj->setContrasena($contrasena);
 ?>

@@ -1,5 +1,11 @@
 <?php
-   session_start();
+   // #14: strict mode, HttpOnly/SameSite cookies (see SessionUtil)
+   include_once "../lib/basic/security/SessionUtil.php";
+   SessionUtil::start();
+   // #14: buffer the page so session headers can still be sent after the
+   // header template has printed HTML: the session id is regenerated at
+   // login and the cookie expired at logout (found by the #25 HTTP run).
+   ob_start();
    
    if (file_exists("path.php")) include "path.php";
    
@@ -12,6 +18,7 @@
    
    // Main imports
    import("lib.basic.file.PropertiesFile");
+   import("lib.basic.security.PasswordUtil");
    import("lib.enterprise.gendb.PostgresDatabaseImpl");
    import("lib.basic.string.StringUtils");
    import("lib.basic.php.PHPUtils");
