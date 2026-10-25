@@ -57,6 +57,8 @@ After #22 (default settings, 34 cases): **18 PASS, 16 XFAIL, 0 FAIL / XPASS / XW
 
 After #23 (35 cases): **23 PASS, 12 XFAIL, 0 FAIL / XPASS / XWRONG**. Cases 023, 041, 064 and 065 now pass, case 044 was added and case 066 was reworked (`sql-mpi-termination.md`). Every other case is unchanged.
 
+After #24 (36 cases): **26 PASS, 10 XFAIL, 0 FAIL / XPASS / XWRONG**. Cases 081 and 082 now pass, case 083 was added and case 080 records the repaired booking (`sql-other-resource-occupancy.md`). Every other result and every METRIC line is unchanged.
+
 A negative run confirmed that the runner exits non-zero. It used a temporary copy of the suite with three cases modified to give one FAIL, one XPASS and one XWRONG.
 
 ### Coverage against the issue
@@ -90,7 +92,7 @@ Each xfail case asserts the **intended** behavior. Where it matters, a PASS base
 | 6.9 HRT evaluation: polymorphic `iif` | `dame_tipo_hijo_hrt.sql:8` | — | 072 (42804) |
 | 6.17 start overflowing the day accepted | `posible_inicio.sql` | 020 | 025 (P0001) |
 | 6.18 conditional restriction evaluator uses undefined names | `valor_restriccion_condicional.sql:13-34` | — | 100 (42703) |
-| 6.19 / D-05 other-resource occupancy cannot be recorded | `restringe_por_uso_de_otro_recurso.sql`, `agrega_actividad.sql:22` | 080 | 081 (42601), 082 (23502) |
+| 6.19 / D-05 other-resource occupancy cannot be recorded | `restringe_por_uso_de_otro_recurso.sql`, `agrega_actividad.sql:22` | 080 | 081, 082: **fixed by #24**, now PASS; see also 083 |
 | 6.20 unplaced work only reported as NOTICE | `generar.sql:1465-1468` | 063 | — (nothing to assert yet) |
 | 6.22 `set_matrix_in_cube` returns NULL | `matrix/set_matrix_in_cube.sql:7` | 050 | — |
 | 6.23 `extract_boolean_column` returns one extra element | `matrix/extract_boolean_column.sql` | 050 | 051 (P0001) |

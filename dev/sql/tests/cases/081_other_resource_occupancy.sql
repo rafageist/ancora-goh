@@ -1,7 +1,7 @@
--- expect: xfail
--- sqlstate: 42601
--- refs: tiempo/restriccion/nominal/restringe_por_uso_de_otro_recurso.sql (decision D-05, pending); assessment 6.19
--- Intended: using an other resource records its occupancy, like teachers and places.
+-- expect: pass
+-- refs: tiempo/restriccion/nominal/restringe_por_uso_de_otro_recurso.sql (D-05 option B); assessment 6.19; #24
+-- Using an other resource records its occupancy, like teachers and places.
+-- Until #24 the occupancy RULE failed (42601): the function could not compile.
 \ir ../fixtures/base.sql
 INSERT INTO otro_recurso (id, nombre, creador) VALUES ('R1', 'Projector 1', 'u1');
 INSERT INTO actividad (id, plantilla, grupo, profesor, lugar, dia, turno, creador) VALUES ('ACT1', 'T1', 'G1', 'TA', 'L1', 1, 1, 'u1');
