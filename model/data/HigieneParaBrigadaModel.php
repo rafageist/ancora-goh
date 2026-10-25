@@ -29,7 +29,7 @@
             */ 
           public function add($periodo,$brigada,$gasto_maximo_diario){ 
              $replicas = array();
-             $r = $this->getAnything("INSERT INTO higiene_para_brigada (periodo,brigada,gasto_maximo_diario) VALUES (".(periodo==null?'null':"'".$periodo."'").",".(brigada==null?'null':"'".$brigada."'").",".(gasto_maximo_diario==null?'null':$gasto_maximo_diario).");"); 
+             $r = $this->getAnything("INSERT INTO higiene_para_brigada (periodo,brigada,gasto_maximo_diario) VALUES (".("'".$periodo."'").",".("'".$brigada."'").",".($gasto_maximo_diario).");"); 
              return $replicas; 
             }
           /** 

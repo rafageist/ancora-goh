@@ -31,7 +31,7 @@
              $replicas = array();
              $id = getReplica("grupo");
              $replicas["id"] = $id;
-             $r = $this->getAnything("INSERT INTO grupo (id,clasificacion,descripcion,especialidad,nivel,planificacion) VALUES ('$id',".(clasificacion==null?'null':"'".$clasificacion."'").",".(descripcion==null?'null':"'".$descripcion."'").",".(especialidad==null?'null':"'".$especialidad."'").",".(nivel==null?'null':"'".$nivel."'").",".(planificacion==null?'null':"'".$planificacion."'").");"); 
+             $r = $this->getAnything("INSERT INTO grupo (id,clasificacion,descripcion,especialidad,nivel,planificacion) VALUES ('$id',".("'".$clasificacion."'").",".("'".$descripcion."'").",".("'".$especialidad."'").",".("'".$nivel."'").",".("'".$planificacion."'").");"); 
              return $replicas; 
             }
           /** 

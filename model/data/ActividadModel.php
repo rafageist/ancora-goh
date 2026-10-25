@@ -31,7 +31,7 @@
              $replicas = array();
              $id = getReplica("actividad");
              $replicas["id"] = $id;
-             $r = $this->getAnything("INSERT INTO actividad (id,plantilla,grupo,profesor,lugar,dia,turno,momento_de_colocacion,creador) VALUES ('$id',".(plantilla==null?'null':"'".$plantilla."'").",".(grupo==null?'null':"'".$grupo."'").",".(profesor==null?'null':"'".$profesor."'").",".(lugar==null?'null':"'".$lugar."'").",".(dia==null?'null':$dia).",".(turno==null?'null':$turno).",".(momento_de_colocacion==null?'null':$momento_de_colocacion).",".(creador==null?'null':"'".$creador."'").");"); 
+             $r = $this->getAnything("INSERT INTO actividad (id,plantilla,grupo,profesor,lugar,dia,turno,momento_de_colocacion,creador) VALUES ('$id',".("'".$plantilla."'").",".("'".$grupo."'").",".("'".$profesor."'").",".("'".$lugar."'").",".($dia).",".($turno).",".($momento_de_colocacion).",".("'".$creador."'").");"); 
              return $replicas; 
             }
           /** 

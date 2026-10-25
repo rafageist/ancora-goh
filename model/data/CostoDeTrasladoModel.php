@@ -29,7 +29,7 @@
             */ 
           public function add($origen,$destino,$costo){ 
              $replicas = array();
-             $r = $this->getAnything("INSERT INTO costo_de_traslado (origen,destino,costo) VALUES (".(origen==null?'null':"'".$origen."'").",".(destino==null?'null':"'".$destino."'").",".(costo==null?'null':$costo).");"); 
+             $r = $this->getAnything("INSERT INTO costo_de_traslado (origen,destino,costo) VALUES (".("'".$origen."'").",".("'".$destino."'").",".($costo).");"); 
              return $replicas; 
             }
           /** 

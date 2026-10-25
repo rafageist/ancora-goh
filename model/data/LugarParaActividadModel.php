@@ -29,7 +29,7 @@
             */ 
           public function add($plantilla,$lugar,$prioridad){ 
              $replicas = array();
-             $r = $this->getAnything("INSERT INTO lugar_para_actividad (plantilla,lugar,prioridad) VALUES (".(plantilla==null?'null':"'".$plantilla."'").",".(lugar==null?'null':"'".$lugar."'").",".(prioridad==null?'null':$prioridad).");"); 
+             $r = $this->getAnything("INSERT INTO lugar_para_actividad (plantilla,lugar,prioridad) VALUES (".("'".$plantilla."'").",".("'".$lugar."'").",".($prioridad).");"); 
              return $replicas; 
             }
           /** 

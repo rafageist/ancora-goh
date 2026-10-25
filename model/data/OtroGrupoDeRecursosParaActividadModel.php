@@ -41,7 +41,7 @@
              $replicas["id"] = $id;
                if ($imprescindibles == true || $imprescindibles == 1 || $imprescindibles == "t") $imprescindibles = "true"; 
                else if ($imprescindibles== true || $imprescindibles == 0 || $imprescindibles == "f") $imprescindibles = "false"; 
-             $r = $this->getAnything("INSERT INTO otro_grupo_de_recursos_para_actividad (id,plantilla,prioridad,necesarios,imprescindibles,creador) VALUES ('$id',".(plantilla==null?'null':"'".$plantilla."'").",".(prioridad==null?'null':$prioridad).",".(necesarios==null?'null':$necesarios).",".(imprescindibles==null?'null':$imprescindibles).",".(creador==null?'null':"'".$creador."'").");"); 
+             $r = $this->getAnything("INSERT INTO otro_grupo_de_recursos_para_actividad (id,plantilla,prioridad,necesarios,imprescindibles,creador) VALUES ('$id',".("'".$plantilla."'").",".($prioridad).",".($necesarios).",".($imprescindibles).",".("'".$creador."'").");"); 
              return $replicas; 
             }
           /** 

@@ -29,7 +29,7 @@
             */ 
           public function add($grupo_de_recursos,$prioridad,$otro_recurso){ 
              $replicas = array();
-             $r = $this->getAnything("INSERT INTO otro_recurso_para_actividad (grupo_de_recursos,prioridad,otro_recurso) VALUES (".(grupo_de_recursos==null?'null':"'".$grupo_de_recursos."'").",".(prioridad==null?'null':$prioridad).",".(otro_recurso==null?'null':"'".$otro_recurso."'").");"); 
+             $r = $this->getAnything("INSERT INTO otro_recurso_para_actividad (grupo_de_recursos,prioridad,otro_recurso) VALUES (".("'".$grupo_de_recursos."'").",".($prioridad).",".("'".$otro_recurso."'").");"); 
              return $replicas; 
             }
           /** 

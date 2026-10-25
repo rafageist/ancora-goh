@@ -29,7 +29,7 @@
             */ 
           public function add($usuario,$rol){ 
              $replicas = array();
-             $r = $this->getAnything("INSERT INTO seguridad.rol_de_usuario (usuario,rol) VALUES (".(usuario==null?'null':"'".$usuario."'").",".(rol==null?'null':"'".$rol."'").");"); 
+             $r = $this->getAnything("INSERT INTO seguridad.rol_de_usuario (usuario,rol) VALUES (".("'".$usuario."'").",".("'".$rol."'").");"); 
              return $replicas; 
             }
           /** 

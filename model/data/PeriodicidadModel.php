@@ -31,7 +31,7 @@
              $replicas = array();
              $id = getReplica("periodicidad");
              $replicas["id"] = $id;
-             $r = $this->getAnything("INSERT INTO periodicidad (id,periodo,dia) VALUES ('$id',".(periodo==null?'null':"'".$periodo."'").",".(dia==null?'null':$dia).");"); 
+             $r = $this->getAnything("INSERT INTO periodicidad (id,periodo,dia) VALUES ('$id',".("'".$periodo."'").",".($dia).");"); 
              return $replicas; 
             }
           /** 

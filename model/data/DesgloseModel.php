@@ -45,7 +45,7 @@
                else if ($respetar_orden== true || $respetar_orden == 0 || $respetar_orden == "f") $respetar_orden = "false"; 
                if ($mismo_dia == true || $mismo_dia == 1 || $mismo_dia == "t") $mismo_dia = "true"; 
                else if ($mismo_dia== true || $mismo_dia == 0 || $mismo_dia == "f") $mismo_dia = "false"; 
-             $r = $this->getAnything("INSERT INTO desglose (id,asignatura,periodo,min_dias,max_dias,respetar_orden,mismo_dia) VALUES ('$id',".(asignatura==null?'null':"'".$asignatura."'").",".(periodo==null?'null':"'".$periodo."'").",".(min_dias==null?'null':$min_dias).",".(max_dias==null?'null':$max_dias).",".(respetar_orden==null?'null':$respetar_orden).",".(mismo_dia==null?'null':$mismo_dia).");"); 
+             $r = $this->getAnything("INSERT INTO desglose (id,asignatura,periodo,min_dias,max_dias,respetar_orden,mismo_dia) VALUES ('$id',".("'".$asignatura."'").",".("'".$periodo."'").",".($min_dias).",".($max_dias).",".($respetar_orden).",".($mismo_dia).");"); 
              return $replicas; 
             }
           /** 

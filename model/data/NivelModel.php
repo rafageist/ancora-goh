@@ -31,7 +31,7 @@
              $replicas = array();
              $id = getReplica("nivel");
              $replicas["id"] = $id;
-             $r = $this->getAnything("INSERT INTO nivel (id,descripcion,creador) VALUES ('$id',".(descripcion==null?'null':"'".$descripcion."'").",".(creador==null?'null':"'".$creador."'").");"); 
+             $r = $this->getAnything("INSERT INTO nivel (id,descripcion,creador) VALUES ('$id',".("'".$descripcion."'").",".("'".$creador."'").");"); 
              return $replicas; 
             }
           /** 

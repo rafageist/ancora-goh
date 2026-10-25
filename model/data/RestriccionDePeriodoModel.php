@@ -31,7 +31,7 @@
              $replicas = array();
              $id = getReplica("restriccion_de_periodo");
              $replicas["id"] = $id;
-             $r = $this->getAnything("INSERT INTO restriccion_de_periodo (id,periodo,dia,turno,valor) VALUES ('$id',".(periodo==null?'null':"'".$periodo."'").",".(dia==null?'null':$dia).",".(turno==null?'null':$turno).",".(valor==null?'null':$valor).");"); 
+             $r = $this->getAnything("INSERT INTO restriccion_de_periodo (id,periodo,dia,turno,valor) VALUES ('$id',".("'".$periodo."'").",".($dia).",".($turno).",".($valor).");"); 
              return $replicas; 
             }
           /** 

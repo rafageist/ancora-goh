@@ -45,7 +45,7 @@
                else if ($exige_profesor== true || $exige_profesor == 0 || $exige_profesor == "f") $exige_profesor = "false"; 
                if ($exige_lugar == true || $exige_lugar == 1 || $exige_lugar == "t") $exige_lugar = "true"; 
                else if ($exige_lugar== true || $exige_lugar == 0 || $exige_lugar == "f") $exige_lugar = "false"; 
-             $r = $this->getAnything("INSERT INTO plantilla_de_actividad (id,desglose,orden,clasificacion,exige_profesor,exige_lugar) VALUES ('$id',".(desglose==null?'null':"'".$desglose."'").",".(orden==null?'null':$orden).",".(clasificacion==null?'null':"'".$clasificacion."'").",".(exige_profesor==null?'null':$exige_profesor).",".(exige_lugar==null?'null':$exige_lugar).");"); 
+             $r = $this->getAnything("INSERT INTO plantilla_de_actividad (id,desglose,orden,clasificacion,exige_profesor,exige_lugar) VALUES ('$id',".("'".$desglose."'").",".($orden).",".("'".$clasificacion."'").",".($exige_profesor).",".($exige_lugar).");"); 
              return $replicas; 
             }
           /** 

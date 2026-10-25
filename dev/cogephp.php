@@ -316,10 +316,13 @@ include "cogephp.common.php";
 				if ($campo->type=='md5')
 				fputs($file_model,"'".'".md5($'.$campo->name.')."'."'");
 				else {
+					// #13: this used to emit (name==null?'null':...) with a bare
+					// constant `name`, always false on PHP 5/7 and an Error on
+					// PHP 8; emit the branch that historically always ran.
 					if ($entrecom[$campo->name])
-					fputs($file_model,'".('.$campo->name."==null?'null':".'"\'".$'.$campo->name.'."\'")."');
+					fputs($file_model,'".('.'"\'".$'.$campo->name.'."\'")."');
 					else
-					fputs($file_model,'".('.$campo->name."==null?'null':$".$campo->name.')."');
+					fputs($file_model,'".($'.$campo->name.')."');
 					//fputs($file_model,"$".$campo->name);
 				}
 			}

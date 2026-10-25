@@ -29,7 +29,7 @@
             */ 
           public function add($ip,$usuario){ 
              $replicas = array();
-             $r = $this->getAnything("INSERT INTO seguridad.host (ip,usuario) VALUES (".(ip==null?'null':"'".$ip."'").",".(usuario==null?'null':"'".$usuario."'").");"); 
+             $r = $this->getAnything("INSERT INTO seguridad.host (ip,usuario) VALUES (".("'".$ip."'").",".("'".$usuario."'").");"); 
              return $replicas; 
             }
           /** 

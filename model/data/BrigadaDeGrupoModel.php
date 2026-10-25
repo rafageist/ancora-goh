@@ -29,7 +29,7 @@
             */ 
           public function add($brigada,$grupo){ 
              $replicas = array();
-             $r = $this->getAnything("INSERT INTO brigada_de_grupo (brigada,grupo) VALUES (".(brigada==null?'null':"'".$brigada."'").",".(grupo==null?'null':"'".$grupo."'").");"); 
+             $r = $this->getAnything("INSERT INTO brigada_de_grupo (brigada,grupo) VALUES (".("'".$brigada."'").",".("'".$grupo."'").");"); 
              return $replicas; 
             }
           /** 

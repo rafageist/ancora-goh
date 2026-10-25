@@ -29,7 +29,7 @@
             */ 
           public function add($periodo,$profesor,$gasto_maximo_diario){ 
              $replicas = array();
-             $r = $this->getAnything("INSERT INTO higiene_para_profesor (periodo,profesor,gasto_maximo_diario) VALUES (".(periodo==null?'null':"'".$periodo."'").",".(profesor==null?'null':"'".$profesor."'").",".(gasto_maximo_diario==null?'null':$gasto_maximo_diario).");"); 
+             $r = $this->getAnything("INSERT INTO higiene_para_profesor (periodo,profesor,gasto_maximo_diario) VALUES (".("'".$periodo."'").",".("'".$profesor."'").",".($gasto_maximo_diario).");"); 
              return $replicas; 
             }
           /** 
