@@ -21,8 +21,8 @@
 <div id="div_tree_especs" style="height:300px;width:300px;overflow:auto; background: #EEEEEE; border: 1px dashed blue;">
 <?php
 
-    $es = $especs->getAllBy("creador ='{$_SESSION['user']}'");
-    $ns = $niveles->getAllBy("creador ='{$_SESSION['user']}'");
+    $es = $especs->getAllBy('creador = $1', "*", false, array($_SESSION['user']));
+    $ns = $niveles->getAllBy('creador = $1', "*", false, array($_SESSION['user']));
     
     $i = 0;
     echo "<ul>";

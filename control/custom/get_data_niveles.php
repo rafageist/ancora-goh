@@ -6,7 +6,7 @@
 	
 	$col = new NivelCollection($dbconnection);
 	
-	$col->Load(null,null,"creador = '{$_SESSION['user']}'");
+	$col->Load(null, null, "*", 'creador = $1', array($_SESSION['user']));
 	
 	if (is_array($col->collection)){
 		$i =0;

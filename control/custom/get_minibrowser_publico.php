@@ -39,18 +39,16 @@
 
 	$actividades = false;
 
-	$campos_publico = "*, dame_clasif_plantilla_de_actividad(plantilla) as clasificacion, dame_asignatura_desglose(dame_desglose_de_plantilla(plantilla)) as asignatura";
-	$filtros_publico = array(
-		'idbrg' => "matrix.get_pos_of(dame_lista_id_brigadas_de_grupo(grupo), $1)>-1",
-		'idprofe' => "profesor = $1",
-		'idlug' => "lugar = $1",
-		'idres' => "matrix.get_pos_of(dame_lista_id_otros_recursos_usados(id), $1)>-1"
-	);
-
-	// as before, when several ids are posted the last one wins
-	foreach ($filtros_publico as $campo_post => $filtro)
-		if (isset($_POST[$campo_post]) && is_string($_POST[$campo_post]))
-			$actividades = $dbconnection->getAsObjectsParams("SELECT $campos_publico FROM actividad WHERE $filtro AND dame_periodo_plantilla_de_actividad(plantilla) = $2;", array($_POST[$campo_post], $idperiodo));
+	// #44: each query is constant SQL text; as before, when several ids are
+	// posted the last one wins (idbrg, idprofe, idlug, idres)
+	if (isset($_POST['idbrg']) && is_string($_POST['idbrg']))
+		$actividades = $dbconnection->getAsObjectsParams('SELECT *, dame_clasif_plantilla_de_actividad(plantilla) as clasificacion, dame_asignatura_desglose(dame_desglose_de_plantilla(plantilla)) as asignatura FROM actividad WHERE matrix.get_pos_of(dame_lista_id_brigadas_de_grupo(grupo), $1)>-1 AND dame_periodo_plantilla_de_actividad(plantilla) = $2;', array($_POST['idbrg'], $idperiodo));
+	if (isset($_POST['idprofe']) && is_string($_POST['idprofe']))
+		$actividades = $dbconnection->getAsObjectsParams('SELECT *, dame_clasif_plantilla_de_actividad(plantilla) as clasificacion, dame_asignatura_desglose(dame_desglose_de_plantilla(plantilla)) as asignatura FROM actividad WHERE profesor = $1 AND dame_periodo_plantilla_de_actividad(plantilla) = $2;', array($_POST['idprofe'], $idperiodo));
+	if (isset($_POST['idlug']) && is_string($_POST['idlug']))
+		$actividades = $dbconnection->getAsObjectsParams('SELECT *, dame_clasif_plantilla_de_actividad(plantilla) as clasificacion, dame_asignatura_desglose(dame_desglose_de_plantilla(plantilla)) as asignatura FROM actividad WHERE lugar = $1 AND dame_periodo_plantilla_de_actividad(plantilla) = $2;', array($_POST['idlug'], $idperiodo));
+	if (isset($_POST['idres']) && is_string($_POST['idres']))
+		$actividades = $dbconnection->getAsObjectsParams('SELECT *, dame_clasif_plantilla_de_actividad(plantilla) as clasificacion, dame_asignatura_desglose(dame_desglose_de_plantilla(plantilla)) as asignatura FROM actividad WHERE matrix.get_pos_of(dame_lista_id_otros_recursos_usados(id), $1)>-1 AND dame_periodo_plantilla_de_actividad(plantilla) = $2;', array($_POST['idres'], $idperiodo));
 
 	// #14: PeriodoCollection::getItem() interpolates the id into its SQL;
 	// read the same row with a bound parameter. The template only uses

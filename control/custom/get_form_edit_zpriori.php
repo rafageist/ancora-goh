@@ -20,7 +20,7 @@ $planifs = array ();
 
 $col = new PlanificacionCollection ( $dbconnection );
 
-$col->Load ( null, null, "creador = '{$_SESSION['user']}'" );
+$col->Load(null, null, "*", 'creador = $1', array($_SESSION['user']));
 
 if (is_array ( $col->collection )) {
 	
@@ -46,7 +46,7 @@ if (isset ( $_POST ['periodo'] )) {
 	
 	$col = new ZprioriCollection ( $dbconnection );
 	
-	$col->Load ( null, null, "*", "clasificacion = '$idclasif' AND periodo = '$idperiodo'" );
+	$col->Load ( null, null, "*", 'clasificacion = $1 AND periodo = $2', array ($idclasif, $idperiodo ) );
 	
 	$zps = $col->collection;
 	

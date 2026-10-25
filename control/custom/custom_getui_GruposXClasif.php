@@ -9,7 +9,7 @@
     $brggrupomodel = new BrigadaDeGrupoModel($dbconnection);
     $clasifmodel = new ClasificacionDeActividadModel($dbconnection);
     
-    $clasifs = $clasifmodel->getAllBy("creador = '{$_SESSION['user']}'");
+    $clasifs = $clasifmodel->getAllBy('creador = $1', "*", false, array($_SESSION['user']));
     
     include "../tpl/grupos.tpl";
     

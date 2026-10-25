@@ -10,14 +10,14 @@
 	
 	$m = new OtroGrupoDeRecursosParaActividadModel($dbconnection);
 	
-	$rxact = $m->getAllBy("plantilla = '$idplantilla' ORDER BY id");
+	$rxact = $m->getAllBy('plantilla = $1 ORDER BY id', "*", false, array($idplantilla));
 
 	$m = new OtroRecursoParaActividadModel($dbconnection);
 	
 	$recursos = array();
 	if (is_array($rxact))
 	foreach ($rxact as $r){
-		$o = $m->getAllBy("grupo_de_recursos = '{$r['id']}'");
+		$o = $m->getAllBy('grupo_de_recursos = $1', "*", false, array($r['id']));
 		$recursos[$r['id']] = array();
 		if (is_array($o)) foreach ($o as $or){
 			$cr = new OtroRecursoCollection($dbconnection);

@@ -15,7 +15,7 @@
    $planifdesc = $planif->descripcion;
 
    $periodos = new PeriodoCollection($dbconnection);
-   $periodos->Load(null,null,"*","dame_creador_de_planificacion(planificacion) ='{$_SESSION['user']}' AND planificacion = '$planificacion'");
+   $periodos->Load(null, null, "*", 'dame_creador_de_planificacion(planificacion) = $1 AND planificacion = $2', array($_SESSION['user'], $planificacion));
    
    include "../view/custom/browser_periodos.tpl";
 

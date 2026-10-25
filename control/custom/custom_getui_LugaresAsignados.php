@@ -8,7 +8,7 @@
 	
 	$m = new LugarParaActividadModel($dbconnection);
 	
-	$lxact = $m->getAllBy("plantilla = '$idplantilla' ORDER BY prioridad");
+	$lxact = $m->getAllBy('plantilla = $1 ORDER BY prioridad', "*", false, array($idplantilla));
 	
 	$lmodel = new LugarModel($dbconnection);
 	

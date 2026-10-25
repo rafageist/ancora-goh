@@ -18,7 +18,7 @@
     $brgmodel = new BrigadaModel($dbconnection);
     $grupomodel = new GrupoModel($dbconnection);
                 
-    $grupos = $grupomodel->getAllBy("especialidad = '$idesp' AND nivel = '$idnivel' AND clasificacion = '$idclasif' AND planificacion = '$idplanif' ORDER BY descripcion");
+    $grupos = $grupomodel->getAllBy('especialidad = $1 AND nivel = $2 AND clasificacion = $3 AND planificacion = $4 ORDER BY descripcion', "*", false, array($idesp, $idnivel, $idclasif, $idplanif));
 
     $m = new PublicFunctions($dbconnection);
     

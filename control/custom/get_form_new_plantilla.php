@@ -6,7 +6,7 @@
 		import("model.data.PublicFunctions");
 
 		$clasifs = new ClasificacionDeActividadCollection($dbconnection);
-		$clasifs->Load(null,null,"*","creador ='{$_SESSION['user']}'");
+		$clasifs->Load(null, null, "*", 'creador = $1', array($_SESSION['user']));
 
 		$for_new = true;
 		

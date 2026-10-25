@@ -7,5 +7,5 @@
 	
 	$m = new OtroGrupoDeRecursosParaActividadModel($dbconnection);
 	
-	$m->setBy("id='$idrxact'","prioridad=$prioridad");
+	$m->setBy('id = $1', 'prioridad = $2', false, array($idrxact, $prioridad));
 ?>

@@ -6,7 +6,7 @@
 	
 	$coll = new PlanificacionCollection($dbconnection);
 	
-	$coll->Load(null,null,"*","creador = '{$_SESSION['user']}'");
+	$coll->Load(null, null, "*", 'creador = $1', array($_SESSION['user']));
 	
 	$planifs = $coll->collection;
 	

@@ -5,7 +5,7 @@ import("model.data.OtroRecurso");
 import("model.data.OtroRecursoCollection");
 
 $col = new OtroRecursoCollection($dbconnection);
-$col->Load(null,null,"*","creador = '{$_SESSION['user']}' ORDER BY nombre");
+$col->Load(null, null, "*", 'creador = $1 ORDER BY nombre', array($_SESSION['user']));
 
 $recursos = $col->collection;
 

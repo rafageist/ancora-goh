@@ -40,22 +40,22 @@
 	
 	if (isset($_POST['idbrg'])){
 		$idbrg = $_POST['idbrg'];
-		$actividades = $col->getAllBy("matrix.get_pos_of(dame_lista_id_brigadas_de_grupo(grupo), '$idbrg')>-1 AND dame_periodo_plantilla_de_actividad(plantilla) = '$idperiodo'","*, dame_clasif_plantilla_de_actividad(plantilla) as clasificacion, dame_asignatura_desglose(dame_desglose_de_plantilla(plantilla)) as asignatura", true);
+		$actividades = $col->getAllBy('matrix.get_pos_of(dame_lista_id_brigadas_de_grupo(grupo), $1)>-1 AND dame_periodo_plantilla_de_actividad(plantilla) = $2',"*, dame_clasif_plantilla_de_actividad(plantilla) as clasificacion, dame_asignatura_desglose(dame_desglose_de_plantilla(plantilla)) as asignatura", true, array($idbrg, $idperiodo));
 	}
 	
 	if (isset($_POST['idprofe'])){
 		$idprofe = $_POST['idprofe'];
-		$actividades = $col->getAllBy("profesor = '$idprofe' AND dame_periodo_plantilla_de_actividad(plantilla) = '$idperiodo'","*, dame_clasif_plantilla_de_actividad(plantilla) as clasificacion, dame_asignatura_desglose(dame_desglose_de_plantilla(plantilla)) as asignatura", true);
+		$actividades = $col->getAllBy('profesor = $1 AND dame_periodo_plantilla_de_actividad(plantilla) = $2',"*, dame_clasif_plantilla_de_actividad(plantilla) as clasificacion, dame_asignatura_desglose(dame_desglose_de_plantilla(plantilla)) as asignatura", true, array($idprofe, $idperiodo));
 	}
 	
 	if (isset($_POST['idlug'])){
 		$idlug = $_POST['idlug'];
-		$actividades = $col->getAllBy("lugar = '$idlug' AND dame_periodo_plantilla_de_actividad(plantilla) = '$idperiodo'","*, dame_clasif_plantilla_de_actividad(plantilla) as clasificacion, dame_asignatura_desglose(dame_desglose_de_plantilla(plantilla)) as asignatura", true);
+		$actividades = $col->getAllBy('lugar = $1 AND dame_periodo_plantilla_de_actividad(plantilla) = $2',"*, dame_clasif_plantilla_de_actividad(plantilla) as clasificacion, dame_asignatura_desglose(dame_desglose_de_plantilla(plantilla)) as asignatura", true, array($idlug, $idperiodo));
 	}
 	
 	if (isset($_POST['idres'])){
 		$idres = $_POST['idres'];
-		$actividades = $col->getAllBy("matrix.get_pos_of(dame_lista_id_otros_recursos_usados(id), '$idres')>-1 AND dame_periodo_plantilla_de_actividad(plantilla) = '$idperiodo'","*, dame_clasif_plantilla_de_actividad(plantilla) as clasificacion, dame_asignatura_desglose(dame_desglose_de_plantilla(plantilla)) as asignatura", true);
+		$actividades = $col->getAllBy('matrix.get_pos_of(dame_lista_id_otros_recursos_usados(id), $1)>-1 AND dame_periodo_plantilla_de_actividad(plantilla) = $2',"*, dame_clasif_plantilla_de_actividad(plantilla) as clasificacion, dame_asignatura_desglose(dame_desglose_de_plantilla(plantilla)) as asignatura", true, array($idres, $idperiodo));
 	}
 	
 	$col = new PeriodoCollection($dbconnection);

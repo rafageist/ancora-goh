@@ -21,7 +21,7 @@ $periodos = new PeriodoCollection ( $dbconnection );
 $periodo = $periodos->getItem ( $id );
 
 $planificaciones = new PlanificacionCollection ( $dbconnection );
-$planificaciones->Load ( null, null, "*", "creador = '{$_SESSION['user']}'" );
+$planificaciones->Load(null, null, "*", 'creador = $1', array($_SESSION['user']));
 
 $planif = $planificaciones->getItem ( $periodo->planificacion );
 

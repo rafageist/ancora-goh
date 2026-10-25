@@ -13,7 +13,7 @@
     $dia = 0;
     foreach ($arr as $cas){
         $dia++;
-        	$r = $m->getAllBy("periodo = '$id' AND dia = $dia");
+        	$r = $m->getAllBy('periodo = $1 AND dia = $2', "*", false, array($id, $dia));
         	
         	$existe = false;
         	
@@ -24,7 +24,7 @@
         			$m->add($id, $dia);
         	} else {
         		if ($cas == 0 && $cas == '0'){
-        			$m->removeBy("periodo = '$id' AND dia = $dia");
+        			$m->removeBy('periodo = $1 AND dia = $2', false, array($id, $dia));
         		} 
         	}
    }

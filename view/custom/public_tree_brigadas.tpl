@@ -31,7 +31,7 @@
         	$id .= "_".$j;
         	echo "<li><label style = 'cursor: pointer;' onclick = \"showhide('$id');\"><img src='images/nivel_lite.png'>".$nivel['descripcion']."</label>";
             
-            $bs = $brgs->getAllBy("especialidad ='{$esp['id']}' AND nivel = '{$nivel['id']}'");
+            $bs = $brgs->getAllBy('especialidad = $1 AND nivel = $2', "*", false, array($esp['id'], $nivel['id']));
             
             if (is_array($bs)){
             	echo "<ul id='$id'>";

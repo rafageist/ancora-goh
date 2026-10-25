@@ -17,7 +17,7 @@
                 $m = new RestriccionDeLugarModel($dbconnection);
                 
                 //eliminar las actuales
-                $m->removeBy("lugar = '$id' AND periodo = '$periodo'");
+                $m->removeBy('lugar = $1 AND periodo = $2', false, array($id, $periodo));
                 
                 // insertar las nuevas y viejas
                 $prefix = "field_rest_";
@@ -43,7 +43,7 @@
                 $m = new RestriccionDeOtroRecursoModel($dbconnection);
                 
                 //eliminar las actuales
-                $m->removeBy("otro_recurso = '$id' AND periodo = '$periodo'");
+                $m->removeBy('otro_recurso = $1 AND periodo = $2', false, array($id, $periodo));
                 
                 // insertar las nuevas y viejas
                 $prefix = "field_rest_";
