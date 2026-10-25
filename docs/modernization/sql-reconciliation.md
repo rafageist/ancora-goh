@@ -124,7 +124,7 @@ Status values:
 | D-11 | `portal/portal.sql` (empty `portal` schema) | Kept in sources | Not in the dump or manifest, and no objects depend on it. | None | Applied. #9 decides whether to install it. |
 | D-12 | Debugger objects in the dump (`pldbg_*` functions, 5 composite types, `plpgsql_oid_debug`) | Excluded from the canonical set | They belong to the `pldbgapi` developer extension, not to Áncora. | None | Applied |
 | D-13 | UTF-8 BOM at the start of 39 source files | **Not stripped** here | psql ignores a BOM at the start of a file, and all 39 compile when loaded per file (verified). BOMs only break concatenation. | None | Deferred to the #9 bundler |
-| D-14 | PL/pgSQL parameter/column name collisions (`id` ambiguity) | **No code change** | `valor_restriccion_profesor('x','p1',1,1)` → `column reference "id" is ambiguous` on PostgreSQL 16, and returns `0` with `plpgsql.variable_conflict = use_variable` (verified on the source-built database). | — | See §6 |
+| D-14 | PL/pgSQL parameter/column name collisions (`id` ambiguity) | **No code change** | `valor_restriccion_profesor('x','p1',1,1)` → `column reference "id" is ambiguous` on PostgreSQL 16, and returns `0` with `plpgsql.variable_conflict = use_variable` (verified on the source-built database). | — | **Superseded by #22**: a per-function directive in the 3 affected functions (§6) |
 | D-15 | `result.sql`, `tabla.sql` | Not used or edited | Stale bundles (assessment §4.1–4.2). | — | Deferred to #9 |
 
 ## 5. Decision D-05: `restringe_por_uso_de_otro_recurso`
@@ -146,7 +146,9 @@ behavioral-fix issue, with regression tests.
 
 The original recommendation was "A now, B after #10 records the current behavior", and that is what was approved.
 
-## 6. Compatibility setting for tests (`id` ambiguity)
+## 6. Variable/column name collisions (`id` ambiguity)
+
+**Since #22 this section is historical.** The three affected functions carry a per-function `#variable_conflict use_variable` directive, and no session, role, database or server setting is needed or used. The analysis is in `sql-variable-conflict.md`. The text below describes the interim test-only setting that #22 replaced.
 
 Pre-9.0 PL/pgSQL substituted variables before resolving column names. Many functions (`valor_restriccion_generica` and every `valor_restriccion_*`, among others) have a parameter named like a column (`id`), so on PostgreSQL ≥ 9.0 they fail with `column reference "id" is ambiguous`.
 

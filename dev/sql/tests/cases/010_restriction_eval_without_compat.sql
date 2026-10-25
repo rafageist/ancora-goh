@@ -1,9 +1,8 @@
--- expect: xfail
--- sqlstate: 42702
--- compat: off
--- refs: tiempo/restriccion/valor_restriccion_generica.sql:26; assessment 6.1; sql-reconciliation.md §6
--- Restriction evaluation on PostgreSQL >= 9.0 without the per-session
--- compatibility setting: parameter "id" collides with column "id"
--- (column reference "id" is ambiguous). Intended: evaluates to 0 or 1.
+-- expect: pass
+-- refs: tiempo/restriccion/valor_restriccion_generica.sql; assessment 6.1; sql-reconciliation.md §6; #22
+-- Restriction evaluation with the server's default settings (no session
+-- plpgsql.variable_conflict override). Until #22 the parameter "id" collided
+-- with column "id" (42702, column reference "id" is ambiguous); the function
+-- now carries "#variable_conflict use_variable" and evaluates to 0 or 1.
 \ir ../fixtures/base.sql
 SELECT tst.check(valor_restriccion_profesor('TA', 'PER', 1, 1) IN (0, 1), 'teacher restriction evaluates');

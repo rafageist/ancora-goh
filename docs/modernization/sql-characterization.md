@@ -41,9 +41,9 @@ The helpers live in `fixtures/helpers.sql` (`tst.demand`, `tst.placed`, `tst.col
 
 CI runs the suite in `.github/workflows/db-characterization.yml` on PostgreSQL 16, inside a socket-only cluster that the job creates.
 
-### Compatibility setting
+### Default settings only
 
-The runner sets `plpgsql.variable_conflict = use_variable` **per session** through `PGOPTIONS`, as `sql-reconciliation.md` §6 requires. It never applies the setting to the database or server. A case can opt out with `-- compat: off`. Case `010` does this to record that every restriction check fails without the setting.
+Since #22, every case runs with the server's default settings. The runner no longer sets `plpgsql.variable_conflict`: the three functions that need it carry their own `#variable_conflict use_variable` directive (`sql-variable-conflict.md`). The runner refuses two things: a `PGOPTIONS` that overrides the option, and a case that `SET`s it. Case 010 (formerly an expected failure with SQLSTATE 42702) now passes. Case 013 checks the default setting, the exact set of functions with the directive, and the affected code paths.
 
 ### Data
 
@@ -52,6 +52,8 @@ Only synthetic fixtures are used (`tests/fixtures/`), with invented names (Teach
 ## Verified results (PostgreSQL 16.15, local)
 
 The suite was run twice in a fresh throwaway cluster. Both runs produced identical output: **16 PASS, 17 XFAIL, 0 FAIL / XPASS / XWRONG**, about 30 s per run.
+
+After #22 (default settings, 34 cases): **18 PASS, 16 XFAIL, 0 FAIL / XPASS / XWRONG**. Case 010 now passes and case 013 was added. Every other case has the same result and the same METRIC lines as before.
 
 A negative run confirmed that the runner exits non-zero. It used a temporary copy of the suite with three cases modified to give one FAIL, one XPASS and one XWRONG.
 
@@ -74,7 +76,7 @@ Each xfail case asserts the **intended** behavior. Where it matters, a PASS base
 
 | Defect (assessment §6) | Source | Baseline (PASS) | Intended (XFAIL, SQLSTATE) |
 | --- | --- | --- | --- |
-| 6.1 `id` ambiguity without the compatibility setting | `valor_restriccion_generica.sql:26` | 011 (with the setting) | 010 (42702) |
+| 6.1 `id` ambiguity without the compatibility setting | `valor_restriccion_generica.sql:26` | 011 | 010: **fixed by #22**, now PASS; see also 013 |
 | 6.2 0-based loops over 1-based arrays (only teacher, only place, both teachers) | `posible_inicio.sql:117-183` | 020, 030 | 021, 022 (P0001) |
 | 6.3 `k` not initialized: non-termination | `posible_inicio.sql:200-254` | — | 023 (57014, 3 s timeout) |
 | 6.3 / 6.13 `k` carried over: essential resources ignored | same | 020 | 024 (P0001) |
