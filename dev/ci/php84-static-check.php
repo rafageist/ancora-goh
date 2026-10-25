@@ -59,6 +59,7 @@ if ($selfTest) {
         'const2.php' => array("<?php define('MYC', 1); echo MYC; \$a = \"\$b[key] {\$c['d']}\"; \$o->p; X::Y; new Z; function f(Z \$z, array &\$w) {} try {} catch (E \$e) {}", array()),
         'const3.php' => array("<?php echo \"{\$a[bar]}\";", array('const')),
         'st.php'    => array("<?php class U { function a() {} static function b() {} } class V extends U { function c() { parent::a(); U::a(); self::b(); } static function d() { parent::a(); } } U::a(); U::b(); function g() { V::c(); }", array('static-call', 'static-call', 'static-call')),
+        'modern.php' => array("<?php declare(strict_types=1); try {} catch (RuntimeException) {} try {} catch (LogicException | DomainException) {} echo NOT_A_CONST;", array('const')),
         'rtype.php' => array("<?php function f(): never {} \$g = fn(string \$k): string => \$k; function h(int \$a): ?int {} class R { function v(): void {} } echo \$a ? B : C;", array('const', 'const')),
         'fn.php'    => array("<?php \$a = split(',', \$b); while (list(\$k) = each(\$a)); mysql_query('x'); \$o->split(1);", array('removed-fn', 'removed-fn', 'removed-fn')),
     );
@@ -242,6 +243,19 @@ foreach ($tokens as $f => $t) {
             if ($k !== null && tid($t[$k]) === T_VARIABLE) continue;
         }
         if (in_array(strtolower($name), array('true', 'false', 'null'), true)) continue;
+        // declare(strict_types=1) directive
+        if ($prevId === '(' && $p !== null) {
+            $pp = sig($t, $p, -1);
+            if ($pp !== null && tid($t[$pp]) === T_DECLARE) continue;
+        }
+        // catch (A | B) without a variable (PHP 8.0+): class names, not constants
+        $k = $i;
+        while (($k = sig($t, $k, -1)) !== null && (in_array(tid($t[$k]), array(T_STRING, T_NAME_QUALIFIED, T_NAME_FULLY_QUALIFIED), true) || $t[$k] === '|')) {
+        }
+        if ($k !== null && $t[$k] === '(') {
+            $kk = sig($t, $k, -1);
+            if ($kk !== null && tid($t[$kk]) === T_CATCH) continue;
+        }
         if (defined($name) || isset($userConsts[strtolower($name)])) continue;
         if ($next === ':' && ($prevId === ';' || $prevId === '{' || $prevId === '}')) continue; // goto label
         if ($prevId === '?' && $p !== null) { // nullable return type "): ?int"
