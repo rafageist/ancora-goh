@@ -16,8 +16,11 @@
 #                                (57014 = timeout, P0001 = assertion, ...)
 #   -- timeout: 5s               statement_timeout (default 20s); a wall-clock
 #                                guard of 3x this value also applies
-#   -- compat: on | off          plpgsql.variable_conflict = use_variable for this
-#                                session (default on; see sql-reconciliation.md §6)
+#
+# Every case runs with the server's default settings. In particular there is no
+# plpgsql.variable_conflict override: functions that need it carry their own
+# "#variable_conflict use_variable" directive (#22). A case that sets the
+# option itself, or a PGOPTIONS that does, is refused.
 #   -- refs: ...                 source lines / assessment defect ids
 #
 # Result per case: PASS, XFAIL (failed as documented), FAIL, XPASS (an expected
@@ -36,6 +39,10 @@ trap cleanup EXIT
 "$here/../install.sh" "$tpl" >"$work/install.log" 2>&1 || { cat "$work/install.log"; exit 2; }
 psql -X -q -v ON_ERROR_STOP=1 -d "$tpl" -f "$here/fixtures/helpers.sql" >/dev/null || exit 2
 
+case "${PGOPTIONS:-}" in
+  *variable_conflict*) echo "[REFUSED] PGOPTIONS overrides plpgsql.variable_conflict; the suite runs with default settings" >&2; exit 2 ;;
+esac
+
 hdr() { sed -n "s/^-- $1: *//p" "$2" | head -1; }
 declare -A count=([PASS]=0 [XFAIL]=0 [FAIL]=0 [XPASS]=0 [XWRONG]=0)
 printf '%-7s %-6s %-46s %s\n' RESULT TIME CASE DETAIL
@@ -49,10 +56,11 @@ for f in "$here"/cases/*.sql; do
   expect=$(hdr expect "$f"); expect=${expect:-pass}
   want=$(hdr sqlstate "$f")
   limit=$(hdr timeout "$f"); limit=${limit:-20s}
-  compat=$(hdr compat "$f"); compat=${compat:-on}
+  if grep -v '^[[:space:]]*--' "$f" | grep -qiE '(\bset\b|set_config).*variable_conflict'; then
+    echo "[REFUSED] $name sets plpgsql.variable_conflict; cases must run with default settings" >&2; exit 2
+  fi
   secs=${limit%s}
   opts="-c statement_timeout=${secs}s -c client_min_messages=warning"
-  [ "$compat" = on ] && opts="$opts -c plpgsql.variable_conflict=use_variable"
 
   db="agoh_case_$$"
   createdb -T "$tpl" "$db" || exit 2

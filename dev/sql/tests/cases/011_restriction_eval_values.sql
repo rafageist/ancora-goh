@@ -1,6 +1,6 @@
 -- expect: pass
 -- refs: tiempo/restriccion/valor_restriccion_{profesor,lugar,brigada,periodo,generica}.sql
--- Nominal restriction values per object, day and slot (compat setting on).
+-- Nominal restriction values per object, day and slot (default settings).
 \ir ../fixtures/base.sql
 INSERT INTO restriccion_de_profesor (id, profesor, periodo, dia, turno, valor, por_actividad) VALUES ('RP1', 'TA', 'PER', 1, 2, 1, false);
 INSERT INTO restriccion_de_lugar    (id, lugar,    periodo, dia, turno, valor, por_actividad) VALUES ('RL1', 'L1', 'PER', 2, 1, 1, false);

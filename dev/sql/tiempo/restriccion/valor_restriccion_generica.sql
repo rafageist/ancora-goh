@@ -5,6 +5,10 @@
 CREATE OR REPLACE FUNCTION valor_restriccion_generica(ptipo character varying, id character varying, idperiodo character varying, pdia integer, pturno integer, tipo_restricc character varying)
   RETURNS integer AS
 $BODY$
+#variable_conflict use_variable
+-- #22: a name that is both a variable and a column resolves to the variable,
+-- as PostgreSQL 8.4 (2010) always did; PostgreSQL >= 9.0 raises 42702 instead.
+-- Here: parameter "id" (the restricted object) vs. the "id" columns of the queried tables.
         DECLARE r record;
             rperiodo record;
             rper record;

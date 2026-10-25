@@ -2,6 +2,10 @@
 -- SELECT dame_costo_trasladar_recurso('r1','l1','si',1,2);
 CREATE OR REPLACE FUNCTION dame_costo_trasladar_recurso(idrecurso VARCHAR, idlugar VARCHAR, idperiodo VARCHAR, pdia INTEGER, pturno INTEGER) RETURNS BIGINT as
 $$
+#variable_conflict use_variable
+-- #22: a name that is both a variable and a column resolves to the variable,
+-- as PostgreSQL 8.4 (2010) always did; PostgreSQL >= 9.0 raises 42702 instead.
+-- Here: variables "id" and "costo" vs. the "id" and "costo" columns.
     DECLARE i BIGINT; j BIGINT;
         costo BIGINT;
         rperiodo record;
