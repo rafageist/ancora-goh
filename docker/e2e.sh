@@ -34,6 +34,8 @@ set -uo pipefail
 
 repo=$(cd "$(dirname "$0")/.." && pwd)
 mode=disposable
+bind=${ANCORA_BIND_ADDRESS:-$(sed -n 's/^ANCORA_BIND_ADDRESS=\([^ #]*\).*/\1/p' "$repo/.env" 2>/dev/null | tail -1)}
+bind=${bind:-127.0.0.1}
 case "${1:-}" in
   "") ;;
   --deployed) mode=deployed ;;
@@ -82,13 +84,17 @@ exposure_checks() {
   local web_id db_id hostips dbports internal listen
   web_id=$(dc ps -q web); db_id=$(dc ps -q db)
   hostips=$(docker inspect -f '{{range $p, $b := .NetworkSettings.Ports}}{{range $b}}{{.HostIp}}:{{.HostPort}} {{end}}{{end}}' "$web_id")
-  check "web publishes only 127.0.0.1:$port ($hostips)" test "$hostips" = "127.0.0.1:$port "
+  if [ "$bind" = 127.0.0.1 ]; then
+    check "web publishes only 127.0.0.1:$port ($hostips)" test "$hostips" = "127.0.0.1:$port "
+  else
+    echo "NOTE  web is published on $hostips(ANCORA_BIND_ADDRESS=$bind, not loopback-only)"
+  fi
   dbports=$(docker inspect -f '{{range $p, $b := .NetworkSettings.Ports}}{{range $b}}{{.HostIp}}:{{.HostPort}} {{end}}{{end}}' "$db_id")
   check "database publishes no host port" test -z "$dbports"
   internal=$(docker network inspect -f '{{.Internal}}' "${project}_backend")
   check "database network is internal (no route out)" test "$internal" = true
   listen=$(ss -Hltn "sport = :$port" 2>/dev/null | awk '{print $4}' | sort -u | tr '\n' ' ')
-  check "host listens on port $port at 127.0.0.1 only ($listen)" test "$listen" = "127.0.0.1:$port "
+  [ "$bind" != 127.0.0.1 ] || check "host listens on port $port at 127.0.0.1 only ($listen)" test "$listen" = "127.0.0.1:$port "
 }
 
 image_checks() { # secret values that must not appear
@@ -135,7 +141,8 @@ if [ "$mode" = disposable ]; then
   for f in postgres_password db_password; do
     od -An -N16 -tx1 /dev/urandom | tr -d ' \n' > "$work/secrets/$f"; chmod 644 "$work/secrets/$f"
   done
-  export ANCORA_SECRETS_DIR=$work/secrets ANCORA_HTTP_PORT=$port
+  # the disposable project is always loopback-only, whatever .env says
+  export ANCORA_SECRETS_DIR=$work/secrets ANCORA_HTTP_PORT=$port ANCORA_BIND_ADDRESS=127.0.0.1; bind=127.0.0.1
   echo "# compose project $project on 127.0.0.1:$port"
   check "docker compose config is valid" bash -c "docker compose -f '$repo/compose.yaml' -p '$project' --profile setup config -q"
   timeout 1200 docker compose -f "$repo/compose.yaml" -p "$project" --profile setup build > "$work/build.log" 2>&1 \
