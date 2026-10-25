@@ -2,6 +2,10 @@
 
 Issue: #35. This is an inventory and a proposal only: **nothing is renamed**. The proposed name, **Divengine Codegen** (CLI `divengine-codegen`), is a working proposal until the maintainer confirms it.
 
+> **Status (#39).** The maintainer confirmed the name **Divengine Codegen**, the CLI `divengine-codegen` and the directory `dev/codegen/`. The generator was re-implemented there, not renamed in place: a Composer project with Div templates and the Áncora GOH profile (see [divengine-codegen.md](divengine-codegen.md)). The CI guard runs it, and it reproduces all generated files.
+>
+> The cogePHP entrypoints listed below are still in place but no longer called. They will be retired once the introspector is ported (see divengine-codegen.md §7). Shims are therefore not needed.
+
 Scope: the PHP code generator historically called **cogePHP** ("C-oge O-tro GE-nerador para PHP", by Rafael Rodríguez Ramírez, 2010). It is **not** the MPI scheduling generator. The `generar()` SQL function, the `generador` schema and the `model/generator` PHP package all belong to the scheduling generator; they are out of scope here and belong to #21.
 
 ## 1. Inventory

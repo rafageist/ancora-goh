@@ -81,7 +81,7 @@ ancora-php/
 │       └── gallery/         # Datos para grillas (AJAX)
 │
 ├── dev/                    # Desarrollo
-│   ├── cogephp.php         # Generador de código PHP
+│   ├── codegen/            # Divengine Codegen code generator (formerly cogePHP; see docs/modernization/divengine-codegen.md)
 │   ├── crea_modelo_pg.php  # Generador de modelo PostgreSQL
 │   └── sql/                # Scripts SQL (fuentes mantenidas; ver dev/sql/install.sh)
 │       ├── deploy.priority # Orden de instalación de las fuentes
