@@ -97,6 +97,11 @@ Each xfail case asserts the **intended** behavior. Where it matters, a PASS base
 - **Other resources cannot be booked by the generator.** `agrega_actividad()` inserts into `otros_recursos_usados` without the `NOT NULL` `creador` column (case 082), so this fails before the D-05 rule function is even reached. Generation with other resources therefore fails in two independent places.
 - **The fixture needs `profesor_para_grupo` rows.** Without them `generar()` places nothing (`cantActualProfe = 0`). This is an input requirement, not a defect, but the PHP UI and any future importer must create these rows.
 
+### Maintainer decisions affecting the suite (2026-10-25)
+
+- **D-05 and 082** stay expected failures. They are approved known defects of the current baseline. Their repair, along option B of `sql-reconciliation.md` §5, comes with a separate behavioral-fix issue. Case 081 or 082 will then XPASS and must be flipped to `expect: pass` in that same PR. The occupancy RULE stays installed: no case may disable it.
+- **D-10**: the source-only functions are kept. Their paths are exercised by the essential-resource and overlap cases (020, 024, 030).
+
 ## When behavior changes
 
 A fix that changes behavior must be approved separately. When it lands:
