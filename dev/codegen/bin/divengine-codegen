@@ -1,0 +1,18 @@
+#!/usr/bin/env php
+<?php
+
+/**
+ * Divengine Codegen (formerly cogePHP, by Rafael Rodríguez Ramírez, 2010).
+ * Build-time tool: run `composer install` in dev/codegen first.
+ */
+
+declare(strict_types=1);
+
+$autoload = dirname(__DIR__) . '/vendor/autoload.php';
+if (!is_file($autoload)) {
+    fwrite(STDERR, "divengine-codegen: run `composer install` in dev/codegen first\n");
+    exit(1);
+}
+require $autoload;
+
+exit((new Divengine\Codegen\Cli\Application())->run($argv));
