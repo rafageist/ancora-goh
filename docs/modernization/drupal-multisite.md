@@ -59,8 +59,9 @@ web/o/<slug> -> ..                       published site (removed = unpublished)
 $ANCORA_SITES_DIR/                       e.g. /etc/ancora/sites, mode 0751
   audit.log                              one line per operation: time, operator, action, site, result
   <slug>/                                0750, group = web server
-    site.ini                             0640: SLUG, STATUS, SITE_NAME, DB_*, HASH_SALT_FILE, PRIVATE_PATH, TMP_PATH
+    site.ini                             0640: SLUG, STATUS, SITE_NAME, DB_*, HASH_SALT_FILE, PRIVATE_PATH, TMP_PATH, ENGINE_DB_*
     db-password                          0640: runtime role
+    engine-db-password                   0640: engine runtime role (tt_<slug>_engine_app)
     hash-salt                            0640
     owner-password                       0600: owner role, operator only; the web server cannot read it
     provision.state                      provisioning progress (INSTALLED, ADMIN, PROVISIONED)
@@ -136,6 +137,7 @@ The control site uses the same scheme. Its names come from `ANCORA_DB_NAME`, `AN
 | `deprovision <slug> --backup-dir <dir> --confirm <slug>` | Refuses an active site. Unpublishes the site, takes a final `pg_dump -Fc`, then drops the database and both roles and deletes the site's files and record. The audit log keeps the history. |
 | `update-all [--backup-dir <dir>]` | The update loop (below). |
 | `list` | Sites and status. |
+| `work <slug> [--once …]` | The engine worker of one active site (`drush ancora-engine:work`), as the site's runtime role. No lock. |
 
 It needs an administrative PostgreSQL connection through the usual `PG*` variables: a superuser, or `CREATEDB` + `CREATEROLE` with membership in the site roles. It also needs `ANCORA_SITES_DIR`, `ANCORA_SITES_DATA_DIR`, `ANCORA_PUBLIC_URL` and the shared `ANCORA_DB_HOST`/`PORT`. `ANCORA_WEB_GROUP` sets the group of the files the pool must read.
 
@@ -145,6 +147,7 @@ Only one command runs at a time (`flock` on `$ANCORA_SITES_DIR/.lock`).
 
 1. **record**: site directory and secrets. Secrets are created once and kept on re-runs. `site.ini` is written with `STATUS=provisioning`, or the existing status is kept.
 2. **database**: owner and runtime roles (created if missing, passwords set from the secret files). The database is created if missing. Then: `REVOKE ALL ... FROM PUBLIC`, `pg_trgm`, schema privileges and default privileges.
+   Then the site's **engine database** `tt_<slug>_engine` and its runtime role `tt_<slug>_engine_app` (`engine-db.sh create --admin-install --if-missing`; installed once, password and grants applied again on re-runs).
 3. **files**: private and temporary directories, `web/sites/org-<slug>/settings.php`.
 4. **install**: `drush site:install --existing-config` as the owner, unless `INSTALLED=1` is recorded and the tables exist. The account is `admin` with the given mail. Drush receives a random throwaway password that is never shown.
 5. **grants**: the runtime tables, then DML grants to the runtime role.
@@ -207,7 +210,7 @@ The verification runs as follows:
 
 The test site address accepts any `Host`, so the Host tricks reach Drupal; a production address names the host. The verification refuses to run if `web/o` or `web/sites/org-*` already exist, and deletes everything on exit.
 
-**Result on the development workstation** (PHP 8.4.27, PHP-FPM 8.4, Caddy 2.11.7, PostgreSQL 16.15): **159 checks, 159 PASS, 0 FAIL**, in about 100 s. Provisioning one organization takes about 7 s.
+**Result on the development workstation** (PHP 8.4.27, PHP-FPM 8.4, Caddy 2.11.7, PostgreSQL 16.15): **167 checks, 167 PASS, 0 FAIL**, in about 105 s (159 before the engine databases, plus 8 engine checks: both engine databases exist, `site.ini` and Drupal resolve each site's own engine database and role, `engine-db.sh check-isolation` both ways, the engine password file mode, and the engine database and role of a deprovisioned site are gone after a final backup). Provisioning one organization takes about 7 s.
 
 | Area | Checks |
 | --- | --- |
@@ -282,7 +285,7 @@ There is no positive private-file download test. The `file` module is not part o
 
 - One FPM pool or a pool per organization (secret isolation versus memory), with the capacity decision (#76).
 - Where the audit record lives. A file today; ADR-002 wants it on the control site, with the R0 entities (#73).
-- The engine databases `tt_<slug>_engine` and their roles (#71). The tool's `db_ensure` is the place to add them.
+- ~~The engine databases `tt_<slug>_engine` and their roles (#71).~~ Done: `provision` creates them (`engine_ensure`, with `engine-db.sh`), `deprovision` backs them up and drops them, and `work <slug>` runs a site's worker. See [r1-scheduling-journey.md](r1-scheduling-journey.md).
 - Per-site cron scheduling and its failure policy.
 - Slug reuse after retirement. Allowed today; the old cookie names would be reused, but their sessions are gone.
 - A Content-Security-Policy for all sites.

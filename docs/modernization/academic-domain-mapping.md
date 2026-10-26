@@ -315,4 +315,4 @@ The module adds no file to the frozen LBR baseline, and it modifies no legacy fi
 3. **Restrictions.** How should the time restrictions be modelled: entities per target type, or one entity with a target reference? Should the legacy "real restriction" materialization stay in the engine?
 4. **Cohort membership.** Legacy `mueve_o_crea_brigada_de_grupo` moves a cohort between groups. Should a cohort be in at most one group per activity type? This is not enforced yet.
 5. **Capacity.** Rooms smaller than the enrolment of a group's cohorts are filtered by the engine (`quita_segun_capacidad`). Should the UI warn about this as an export issue?
-6. **Engine IDs.** Is a per-plan `$prefix` on legacy IDs enough for #71, or should the engine tables carry the UUID keys?
+6. **Engine IDs.** Is a per-plan `$prefix` on legacy IDs enough for #71, or should the engine tables carry the UUID keys? *Answered by the R1 journey:* the prefix `p<plan id>:` is used, with a legacy owner per plan; see [r1-scheduling-journey.md](r1-scheduling-journey.md).

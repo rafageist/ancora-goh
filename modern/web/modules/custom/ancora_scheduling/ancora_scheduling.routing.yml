@@ -1,0 +1,35 @@
+ancora_scheduling.request:
+  path: '/ancora/scheduling/request'
+  defaults:
+    _form: '\Drupal\ancora_scheduling\Form\RequestRunForm'
+    _title: 'Request a timetable'
+  requirements:
+    # Both: queueing a job, and seeing the records to pick from.
+    _permission: 'request ancora engine jobs,view academic data'
+  options:
+    no_cache: TRUE
+
+ancora_scheduling.job:
+  path: '/ancora/scheduling/jobs/{job}'
+  defaults:
+    _controller: '\Drupal\ancora_scheduling\Controller\SchedulingController::job'
+    _title_callback: '\Drupal\ancora_scheduling\Controller\SchedulingController::jobTitle'
+  requirements:
+    _permission: 'view ancora engine jobs,view academic data'
+    job: '\d+'
+  options:
+    no_cache: TRUE
+
+ancora_scheduling.timetable:
+  path: '/ancora/planning/{ancora_plan}/timetable'
+  defaults:
+    _controller: '\Drupal\ancora_scheduling\Controller\SchedulingController::timetable'
+    _title_callback: '\Drupal\ancora_scheduling\Controller\SchedulingController::timetableTitle'
+  requirements:
+    _permission: 'view academic data'
+    _entity_access: 'ancora_plan.view'
+    ancora_plan: '\d+'
+  options:
+    parameters:
+      ancora_plan:
+        type: 'entity:ancora_plan'

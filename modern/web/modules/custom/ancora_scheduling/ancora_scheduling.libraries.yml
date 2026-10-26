@@ -1,0 +1,4 @@
+timetable:
+  css:
+    component:
+      css/timetable.css: {}

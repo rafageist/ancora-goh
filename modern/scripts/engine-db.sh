@@ -1,19 +1,24 @@
 #!/usr/bin/env bash
 # Provision the scheduling engine database of one site (issue #71).
 #
-#   engine-db.sh create [--with-data] [--admin-install] [--password-file FILE] <database> <role>
+#   engine-db.sh create [--with-data] [--admin-install] [--if-missing] [--password-file FILE] <database> <role>
 #   engine-db.sh check-isolation <database> <own role> <other role>
 #
 # create:
 #   1. installs the maintained legacy MPI/Prioriza schema into a NEW database
 #      with dev/sql/install.sh (one transaction; the database is removed on
-#      any error). --with-data also loads the legacy seed
+#      any error). With --if-missing, an existing database that already holds
+#      the schema is kept as it is (re-runs of the provisioning of #72), and
+#      only steps 2 and 3 run. --with-data also loads the legacy seed
 #      (datos/datos_por_defecto.sql: roles and an administrator WITHOUT a
 #      usable password), which synthetic fixtures such as dev/e2e/fixture.sql
 #      need as record owner;
 #   2. creates the site's engine runtime role (LOGIN, no superuser, no
-#      CREATEDB/CREATEROLE), with the password read from --password-file when
-#      given (never from the command line), unless it already exists;
+#      CREATEDB/CREATEROLE), unless it already exists, and sets its password
+#      from --password-file when given (never from the command line). It
+#      fails if the role has SUPERUSER, REPLICATION, BYPASSRLS, CREATEDB or
+#      CREATEROLE. Nothing here needs a superuser: an operator role with
+#      CREATEDB and CREATEROLE (PostgreSQL 16+ rules) can run it;
 #   3. revokes CONNECT and TEMP on the database from PUBLIC and grants the
 #      runtime role exactly: CONNECT and TEMP on this database, USAGE on its
 #      schemas, SELECT/INSERT/UPDATE/DELETE on its tables, USAGE/SELECT/UPDATE
@@ -35,17 +40,18 @@ repo=$(cd "$here/../.." && pwd -P)
 # shellcheck source=../../dev/sql/tools/disposable-guard.sh
 . "$repo/dev/sql/tools/disposable-guard.sh"
 
-usage() { sed -n '2,6p' "$0" | sed 's/^# \{0,1\}//'; exit 2; }
+usage() { sed -n '2,4p' "$0" | sed 's/^# \{0,1\}//'; exit 2; }
 ident() { [[ $1 =~ ^[a-z_][a-z0-9_]{0,62}$ ]] || { echo "invalid identifier: $1 (lowercase letters, digits, _)" >&2; exit 2; }; }
 
 cmd=${1:-}; [ $# -gt 0 ] && shift
 case "$cmd" in
   create)
-    install_args=(); admin=0; password_file=""
+    install_args=(); admin=0; password_file=""; if_missing=0
     while [ $# -gt 0 ]; do
       case "$1" in
         --with-data) install_args+=(--with-data) ;;
         --admin-install) admin=1; install_args+=(--admin-install) ;;
+        --if-missing) if_missing=1 ;;
         --password-file) password_file=${2:-}; shift ;;
         -*) usage ;;
         *) break ;;
@@ -60,7 +66,16 @@ case "$cmd" in
       echo "the password file is missing, unreadable or empty" >&2; exit 2
     fi
 
-    "$repo/dev/sql/install.sh" "${install_args[@]}" "$db"
+    exists=$(psql -X -At -d postgres -v db="$db" <<<"SELECT count(*) FROM pg_database WHERE datname = :'db'")
+    if [ "$exists" = 1 ] && [ $if_missing = 1 ]; then
+      # install.sh is one transaction and drops the database on failure, so an
+      # existing database is complete; check it is an engine database anyway.
+      [ "$(psql -X -At -d "$db" -c "SELECT to_regclass('public.actividad') IS NOT NULL AND to_regproc('public.generar') IS NOT NULL")" = t ] \
+        || { echo "database $db exists but does not hold the engine schema" >&2; exit 1; }
+      echo "[OK] engine database $db already installed"
+    else
+      "$repo/dev/sql/install.sh" "${install_args[@]}" "$db"
+    fi
 
     psql -X -q -v ON_ERROR_STOP=1 -d "$db" -v role="$role" <<'SQL'
 SELECT NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = :'role') AS create_role \gset
@@ -77,6 +92,13 @@ ALTER ROLE :"role" PASSWORD :'password';
 SQL
     fi
     psql -X -q -v ON_ERROR_STOP=1 -d "$db" -v role="$role" -v db="$db" <<'SQL'
+SELECT NOT (rolsuper OR rolreplication OR rolbypassrls OR rolcreatedb OR rolcreaterole) AS role_ok
+  FROM pg_roles WHERE rolname = :'role' \gset
+\if :role_ok
+\else
+  \echo 'the engine role has SUPERUSER, REPLICATION, BYPASSRLS, CREATEDB or CREATEROLE'
+  SELECT 1/0;
+\endif
 REVOKE ALL ON DATABASE :"db" FROM PUBLIC;
 GRANT CONNECT, TEMPORARY ON DATABASE :"db" TO :"role";
 SELECT format('GRANT USAGE ON SCHEMA %I TO %I', nspname, :'role'),

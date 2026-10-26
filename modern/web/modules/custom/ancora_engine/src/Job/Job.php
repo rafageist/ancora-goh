@@ -30,7 +30,15 @@ final class Job {
     public readonly int $attempts,
     public readonly ?array $result,
     public readonly ?string $error,
+    public readonly ?JobSource $source = NULL,
   ) {}
+
+  /**
+   * The prefix of the engine ids of the job's plan ('' without a source).
+   */
+  public function idPrefix(): string {
+    return $this->source?->idPrefix ?? '';
+  }
 
   /**
    * Builds a job from a database row.
@@ -59,6 +67,7 @@ final class Job {
       (int) $row->attempts,
       is_array($result) ? $result : NULL,
       $row->error,
+      JobSource::fromRow($row),
     );
   }
 

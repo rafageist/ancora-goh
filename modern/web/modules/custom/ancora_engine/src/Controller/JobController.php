@@ -80,7 +80,7 @@ final class JobController extends ControllerBase {
       [$this->t('Attempts'), (string) $entry->attempts],
       [$this->t('Cancellation requested'), $entry->cancelRequested ? ($entry->cancelMode ?? 'soft') : $this->t('No')],
     ];
-    foreach (['demands', 'placed', 'unplaced', 'collisions', 'overflow', 'digest', 'duration_ms', 'kept'] as $key) {
+    foreach (['demands', 'placed', 'unplaced', 'collisions', 'overflow', 'digest', 'duration_ms', 'kept', 'input_hash'] as $key) {
       if (array_key_exists($key, $result)) {
         $items[] = [$key, is_scalar($result[$key]) ? (string) $result[$key] : json_encode($result[$key])];
       }

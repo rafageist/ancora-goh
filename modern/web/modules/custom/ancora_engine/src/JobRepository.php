@@ -7,9 +7,11 @@ namespace Drupal\ancora_engine;
 use Drupal\ancora_engine\Job\Job;
 use Drupal\ancora_engine\Job\JobOptions;
 use Drupal\ancora_engine\Job\JobScope;
+use Drupal\ancora_engine\Job\JobSource;
 use Drupal\ancora_engine\Job\JobState;
 use Drupal\Component\Datetime\TimeInterface;
 use Drupal\Component\Uuid\UuidInterface;
+use Drupal\Core\Cache\CacheTagsInvalidatorInterface;
 use Drupal\Core\Database\Connection;
 
 /**
@@ -20,8 +22,21 @@ use Drupal\Core\Database\Connection;
  * other. A run is fenced by its attempt number: a worker whose job was
  * recovered (requeued or failed) and claimed again can no longer write a
  * heartbeat or an outcome.
+ *
+ * Every state change invalidates the cache tag CACHE_TAG, so pages that show
+ * jobs or the placements they produced (the timetable) are rebuilt.
  */
 final class JobRepository {
+
+  /**
+   * Cache tag of everything derived from the jobs of the site.
+   */
+  public const CACHE_TAG = 'ancora_engine_job_list';
+
+  /**
+   * States whose run changed the placements of its scope (see the docs).
+   */
+  public const PLACEMENT_STATES = ['succeeded', 'partial', 'cancelled'];
 
   /**
    * Advisory lock key that serializes claims within the site's database.
@@ -32,7 +47,15 @@ final class JobRepository {
     private readonly Connection $database,
     private readonly TimeInterface $time,
     private readonly UuidInterface $uuid,
+    private readonly ?CacheTagsInvalidatorInterface $cacheTagsInvalidator = NULL,
   ) {}
+
+  /**
+   * Invalidates the pages derived from the jobs.
+   */
+  private function changed(): void {
+    $this->cacheTagsInvalidator?->invalidateTags([self::CACHE_TAG]);
+  }
 
   /**
    * Queues a job.
@@ -40,13 +63,18 @@ final class JobRepository {
    * @return int
    *   The job id.
    */
-  public function enqueue(JobScope $scope, JobOptions $options, int $timeLimit, int $requestedBy, ?int $retryOf = NULL): int {
+  public function enqueue(JobScope $scope, JobOptions $options, int $timeLimit, int $requestedBy, ?int $retryOf = NULL, ?JobSource $source = NULL): int {
     if ($timeLimit < 1) {
       throw new \InvalidArgumentException('The time limit must be a positive number of seconds.');
     }
     $now = $this->time->getCurrentTime();
-    return (int) $this->database->insert('ancora_engine_job')
+    $id = (int) $this->database->insert('ancora_engine_job')
       ->fields([
+        'plan_id' => $source?->planId,
+        'period_id' => $source?->periodId,
+        'specialty_id' => $source?->specialtyId,
+        'level_id' => $source?->levelId,
+        'id_prefix' => $source?->idPrefix,
         'uuid' => $this->uuid->generate(),
         'scope_specialty' => $scope->specialty,
         'scope_level' => $scope->level,
@@ -60,6 +88,58 @@ final class JobRepository {
         'changed' => $now,
       ])
       ->execute();
+    $this->changed();
+    return $id;
+  }
+
+  /**
+   * The jobs synced from one plan and period, newest first.
+   *
+   * @return \Drupal\ancora_engine\Job\Job[]
+   *   Jobs keyed by id.
+   */
+  public function forSource(int $planId, int $periodId, int $limit = 200): array {
+    $jobs = [];
+    $rows = $this->database->select('ancora_engine_job', 'j')
+      ->fields('j')
+      ->condition('plan_id', $planId)
+      ->condition('period_id', $periodId)
+      ->orderBy('id', 'DESC')
+      ->range(0, $limit)
+      ->execute();
+    foreach ($rows as $row) {
+      $jobs[(int) $row->id] = Job::fromRow($row);
+    }
+    return $jobs;
+  }
+
+  /**
+   * The queued or running job of a scope, if any.
+   */
+  public function activeForScope(JobScope $scope): ?Job {
+    $row = $this->database->select('ancora_engine_job', 'j')
+      ->fields('j')
+      ->condition('scope_specialty', $scope->specialty)
+      ->condition('scope_level', $scope->level)
+      ->condition('scope_period', $scope->period)
+      ->condition('state', [JobState::Queued->value, JobState::Running->value], 'IN')
+      ->orderBy('id')
+      ->range(0, 1)
+      ->execute()
+      ->fetchObject();
+    return $row ? Job::fromRow($row) : NULL;
+  }
+
+  /**
+   * Whether the run of a job changed the placements of its scope.
+   *
+   * Succeeded and partial runs did, and a cancelled run that kept the
+   * placements made before the cancellation (a draft). A rolled-back run
+   * (failed, timed out, hard-cancelled) did not.
+   */
+  public static function changedPlacements(Job $job): bool {
+    return in_array($job->state->value, self::PLACEMENT_STATES, TRUE)
+      && ($job->state !== JobState::Cancelled || ($job->result['kept'] ?? 'none') === 'partial');
   }
 
   /**
@@ -128,7 +208,11 @@ final class JobRepository {
       $transaction->rollBack();
       throw $e;
     }
-    return $claimed === 1 ? $this->load((int) $id) : NULL;
+    if ($claimed !== 1) {
+      return NULL;
+    }
+    $this->changed();
+    return $this->load((int) $id);
   }
 
   /**
@@ -183,7 +267,11 @@ final class JobRepository {
         ':attempt' => $job->attempts,
       ],
     );
-    return $updated === 1 ? $this->load($job->id)?->state : NULL;
+    if ($updated !== 1) {
+      return NULL;
+    }
+    $this->changed();
+    return $this->load($job->id)?->state;
   }
 
   /**
@@ -212,6 +300,7 @@ final class JobRepository {
       ],
     );
     if ($queued === 1) {
+      $this->changed();
       return JobState::Cancelled;
     }
     // A hard request may upgrade an earlier soft one, never the reverse.
@@ -220,6 +309,7 @@ final class JobRepository {
       [':mode' => $hard ? 'hard' : 'soft', ':uid' => $uid, ':now' => $now, ':id' => $id],
     );
     if ($running === 1) {
+      $this->changed();
       return JobState::Running;
     }
     throw new \InvalidArgumentException(sprintf('Job %d does not exist or has already ended.', $id));
@@ -277,7 +367,11 @@ final class JobRepository {
         ':attempt' => $job->attempts,
       ],
     );
-    return $updated === 1 ? $state : NULL;
+    if ($updated !== 1) {
+      return NULL;
+    }
+    $this->changed();
+    return $state;
   }
 
   /**

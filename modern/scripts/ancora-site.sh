@@ -12,6 +12,7 @@
 #   ancora-site.sh deprovision <slug> --backup-dir <dir> --confirm <slug>
 #   ancora-site.sh update-all [--backup-dir <dir>]
 #   ancora-site.sh list
+#   ancora-site.sh work <slug> [worker options, e.g. --once]
 #
 # Every command is idempotent: a failed run is repaired by running the same
 # command again (see docs/modernization/drupal-multisite.md, "Failure
@@ -27,6 +28,11 @@
 #                                 /var/lib/ancora/sites
 #   ANCORA_PUBLIC_URL             public base URL, e.g. https://timetables.example
 #   ANCORA_DB_HOST, ANCORA_DB_PORT  database server as seen by Drupal
+#   ANCORA_ENGINE_ADMIN_INSTALL   1 (default): engine databases are installed
+#                                 with engine-db.sh --admin-install into the
+#                                 server the PG* variables name (the
+#                                 operator's choice); 0: only into a verified
+#                                 disposable cluster
 #   ANCORA_WEB_GROUP              optional: group of the PHP-FPM pool; readable
 #                                 secrets get this group, writable data
 #                                 directories too
@@ -42,6 +48,7 @@ project=$(cd "$(dirname "$0")/.." && pwd -P)
 web=$project/web
 drush_bin=$project/vendor/bin/drush
 tasks=$project/scripts/lib/site-tasks.php
+engine_db=$project/scripts/engine-db.sh
 
 die() { echo "ancora-site: $*" >&2; exit 1; }
 say() { echo "ancora-site: $*"; }
@@ -118,6 +125,7 @@ write_ini() { # slug status name
       DB_NAME "$id" DB_USER "${id}_app" DB_PASSWORD_FILE "$dir/db-password" \
       DB_OWNER_USER "${id}_owner" DB_OWNER_PASSWORD_FILE "$dir/owner-password" \
       HASH_SALT_FILE "$dir/hash-salt" \
+      ENGINE_DB_NAME "${id}_engine" ENGINE_DB_USER "${id}_engine_app" ENGINE_DB_PASSWORD_FILE "$dir/engine-db-password" \
       PRIVATE_PATH "$data_dir/$slug/private" TMP_PATH "$data_dir/$slug/tmp"
   } >"$dir/site.ini.tmp"
   chmod 0640 "$dir/site.ini.tmp"
@@ -185,6 +193,20 @@ GRANT SELECT, INSERT, UPDATE, DELETE, TRUNCATE ON ALL TABLES IN SCHEMA public TO
 GRANT USAGE, SELECT, UPDATE ON ALL SEQUENCES IN SCHEMA public TO :"app";
 REVOKE CREATE ON SCHEMA public FROM :"app";
 SQL
+}
+
+# engine_ensure <slug>: the site's scheduling engine database tt_<slug>_engine
+# and its runtime role tt_<slug>_engine_app (scripts/engine-db.sh, #71),
+# idempotently: an installed engine database is kept; the role's password and
+# the grants are applied again. The legacy schema is installed without the
+# legacy seed: the sync from Drupal creates the owner of each plan's rows.
+engine_ensure() {
+  local slug=$1 id mode=()
+  id=$(db_id "$slug")
+  if [ "${ANCORA_ENGINE_ADMIN_INSTALL:-1}" = 1 ]; then mode=(--admin-install); fi
+  quiet env AGOH_ADMIN_INSTALL_CONFIRM="${id}_engine" "$engine_db" create "${mode[@]}" --if-missing \
+    --password-file "$sites_dir/$slug/engine-db-password" "${id}_engine" "${id}_engine_app" \
+    || die "$slug: the engine database could not be provisioned"
 }
 
 db_exists() { # db
@@ -259,6 +281,7 @@ cmd_provision() {
   secret "$dir/db-password" 0640 24
   secret "$dir/owner-password" 0600 24
   secret "$dir/hash-salt" 0640 48
+  secret "$dir/engine-db-password" 0640 24
   status=$(ini_get "$slug" STATUS)
   case "$status" in
     ""|provisioning) status=provisioning ;;
@@ -270,6 +293,10 @@ cmd_provision() {
 
   # 2. Database and roles.
   db_ensure "$id" "${id}_owner" "${id}_app" "$dir/owner-password" "$dir/db-password"
+  # The site's engine database, with its own runtime role (#71). The site
+  # reads its connection settings from site.ini (ENGINE_DB_*), never from job
+  # or request data.
+  engine_ensure "$slug"
   fail_point database
 
   # 3. Files: private and temporary directories outside the web root, the
@@ -386,6 +413,17 @@ cmd_deprovision() {
   # 1. Unpublish, then a final backup of the database (when it exists).
   rm -f "$web/o/$slug"
   if [ -f "$sites_dir/$slug/site.ini" ]; then write_ini "$slug" retired "$(ini_get "$slug" SITE_NAME)"; fi
+  if db_exists "${id}_engine"; then
+    mkdir -p "$backup"
+    local engine_dump
+    engine_dump="$backup/${id}_engine-$(date -u +%Y%m%dT%H%M%SZ).dump"
+    (umask 077 && pg_dump -Fc -d "${id}_engine" -f "$engine_dump")
+    say "$slug: final backup $engine_dump"
+    psql_admin -d postgres -v db="${id}_engine" <<'SQL'
+SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = :'db' AND pid <> pg_backend_pid();
+SQL
+    psql_admin -d postgres -c "DROP DATABASE IF EXISTS \"${id}_engine\""
+  fi
   if db_exists "$id"; then
     mkdir -p "$backup"
     local dump
@@ -398,7 +436,8 @@ SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = :'db' AND
 SQL
     psql_admin -d postgres -c "DROP DATABASE IF EXISTS \"$id\""
   fi
-  psql_admin -d postgres -c "DROP ROLE IF EXISTS \"${id}_app\"" -c "DROP ROLE IF EXISTS \"${id}_owner\""
+  psql_admin -d postgres -c "DROP ROLE IF EXISTS \"${id}_app\"" -c "DROP ROLE IF EXISTS \"${id}_owner\"" \
+    -c "DROP ROLE IF EXISTS \"${id}_engine_app\""
   # 3. Files and the site record (the audit log keeps the history).
   if [ -d "$web/sites/org-$slug" ]; then chmod -R u+w "$web/sites/org-$slug"; rm -rf "$web/sites/org-$slug"; fi
   rm -rf "$data_dir/$slug" "$sites_dir/$slug"
@@ -412,6 +451,16 @@ org_sites() { # slugs with a site.ini, sorted
     [ -f "$f" ] || continue
     basename "$(dirname "$f")"
   done | sort
+}
+
+# work <slug> [options]: the engine worker of one site (drush
+# ancora-engine:work) with the site's runtime role. It takes no lock: a worker
+# loop runs for a long time, and operator commands must not wait for it.
+cmd_work() {
+  local slug=${1:-}
+  shift || true
+  valid_slug "$slug" && [ "$(ini_get "$slug" STATUS)" = active ] || die "$slug is not an active site"
+  site_drush "$slug" ancora-engine:work "$@"
 }
 
 cmd_list() {
@@ -499,5 +548,6 @@ case "$command" in
   deprovision) cmd_deprovision "$@" ;;
   update-all) cmd_update_all "$@" ;;
   list) cmd_list ;;
+  work) cmd_work "$@" ;;
   *) sed -n '2,40p' "$0" | sed 's/^# \{0,1\}//'; exit 2 ;;
 esac

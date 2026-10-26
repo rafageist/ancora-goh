@@ -153,7 +153,7 @@ final class AncoraEngineCommands extends DrushCommands {
     if ($job === NULL || !$job->state->isTerminal()) {
       throw new \InvalidArgumentException('Only an ended job can be retried.');
     }
-    $new = $this->jobs->enqueue($job->scope, $job->options, min($job->timeLimit, $this->settings->maxTimeLimit()), (int) $options['requested-by'], $job->id);
+    $new = $this->jobs->enqueue($job->scope, $job->options, min($job->timeLimit, $this->settings->maxTimeLimit()), (int) $options['requested-by'], $job->id, $job->source);
     $this->output()->writeln((string) $new);
     return self::EXIT_SUCCESS;
   }
@@ -194,6 +194,13 @@ final class AncoraEngineCommands extends DrushCommands {
         'specialty' => $job->scope->specialty,
         'level' => $job->scope->level,
         'period' => $job->scope->period,
+      ],
+      'source' => $job->source === NULL ? NULL : [
+        'plan' => $job->source->planId,
+        'period' => $job->source->periodId,
+        'specialty' => $job->source->specialtyId,
+        'level' => $job->source->levelId,
+        'id_prefix' => $job->source->idPrefix,
       ],
       'options' => $job->options->toArray(),
       'time_limit' => $job->timeLimit,

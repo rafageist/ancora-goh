@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Drupal\ancora_engine;
 
 use Drupal\ancora_engine\Engine\EngineClient;
+use Drupal\ancora_engine\Engine\JobInputInterface;
 use Drupal\ancora_engine\Engine\RunResult;
 use Drupal\ancora_engine\Job\Job;
 use Drupal\ancora_engine\Job\JobState;
@@ -35,6 +36,10 @@ use Psr\Log\LoggerInterface;
  * transaction as generar() (replace semantics), so a retry or a requeued run
  * starts fresh, and a rolled-back run leaves the previous placements as they
  * were.
+ *
+ * A job with a source (Drupal academic records) is synced first, in that same
+ * transaction, by the job input service (JobInputInterface): a failed sync
+ * fails the job and leaves the engine database untouched.
  */
 final class Worker {
 
@@ -44,6 +49,7 @@ final class Worker {
     private readonly EngineSettings $settings,
     private readonly TimeInterface $time,
     private readonly LoggerInterface $logger,
+    private readonly ?JobInputInterface $input = NULL,
   ) {}
 
   /**
@@ -124,7 +130,7 @@ final class Worker {
     };
 
     try {
-      $run = $this->engine->run($job, $tick);
+      $run = $this->engine->run($job, $tick, $this->input);
     }
     catch (\RuntimeException $e) {
       $run = new RunResult(RunResult::ERROR, message: $e->getMessage());
@@ -165,6 +171,11 @@ final class Worker {
       'replaced' => $run->replaced,
       'attempt' => $job->attempts,
     ];
+    if ($run->input !== []) {
+      // The versioned input snapshot of a synced job.
+      $result['input_hash'] = $run->input['hash'] ?? NULL;
+      $result['input'] = $run->input;
+    }
     if ($run->status === RunResult::RETURNED) {
       $complete = ($run->metrics['unplaced'] ?? 1) === 0;
       $result['partial'] = !$complete;

@@ -91,4 +91,35 @@ if (($ancora_site_values['SITE_NAME'] ?? '') !== '') {
   $config['system.site']['name'] = $ancora_site_values['SITE_NAME'];
 }
 
+// The site's scheduling engine database (#71), provisioned with the site by
+// scripts/ancora-site.sh. Its name, role and password file come only from the
+// site file; the engine module's environment fallback is never used for an
+// organization, so a site can never reach another site's engine database.
+// Only the server address and the limits may be shared (environment).
+$settings['ancora_engine'] = ['database' => []];
+if (($ancora_site_values['ENGINE_DB_NAME'] ?? '') !== '' && ($ancora_site_values['ENGINE_DB_USER'] ?? '') !== '') {
+  $ancora_shared = static function (string $name, string $fallback = ''): string {
+    $value = getenv('ANCORA_ENGINE_' . $name);
+    if ($value === FALSE || $value === '') {
+      $value = getenv('ANCORA_' . $name);
+    }
+    return ($value === FALSE || $value === '') ? $fallback : $value;
+  };
+  $settings['ancora_engine']['database'] = [
+    'host' => $ancora_shared('DB_HOST', 'localhost'),
+    'port' => (int) $ancora_shared('DB_PORT', '5432'),
+    'database' => $ancora_site_values['ENGINE_DB_NAME'],
+    'username' => $ancora_site_values['ENGINE_DB_USER'],
+    'password_file' => $ancora_site_values['ENGINE_DB_PASSWORD_FILE'] ?? '',
+    'sslmode' => (string) getenv('ANCORA_ENGINE_DB_SSLMODE'),
+  ];
+  foreach (['time_limit', 'max_time_limit', 'heartbeat_interval', 'stale_after', 'max_attempts', 'cancel_grace'] as $ancora_name) {
+    $ancora_value = getenv('ANCORA_ENGINE_' . strtoupper($ancora_name));
+    if ($ancora_value !== FALSE && ctype_digit($ancora_value)) {
+      $settings['ancora_engine'][$ancora_name] = (int) $ancora_value;
+    }
+  }
+  unset($ancora_shared, $ancora_value);
+}
+
 unset($ancora_match, $ancora_sites_dir, $ancora_site_file, $ancora_site_values, $ancora_site_only, $ancora_name, $ancora_site_slug);

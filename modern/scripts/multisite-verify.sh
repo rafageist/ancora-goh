@@ -83,14 +83,9 @@ cleanup() {
 }
 trap cleanup EXIT
 
-pass=0 fail=0
-check() { # description, test command...
-  local what=$1; shift
-  if "$@"; then pass=$((pass + 1)); echo "PASS $what"; else fail=$((fail + 1)); echo "FAIL $what"; fi
-}
-section() { printf '\n--- %s\n' "$*"; }
+# shellcheck source=lib/stack.sh
+. "$project/scripts/lib/stack.sh"
 
-free_port() { php -r '$s = stream_socket_server("tcp://127.0.0.1:0"); echo explode(":", stream_socket_get_name($s, FALSE))[1];'; }
 port=$(free_port)
 naive_port=$(free_port)
 base="http://127.0.0.1:$port"
@@ -146,31 +141,7 @@ mark sites/org-alpha "$base/o/alpha" ALPHA
 mark sites/org-beta "$base/o/beta" BETA
 
 step "PHP-FPM ($fpm_bin) and Caddy ($("$caddy_bin" version | cut -d' ' -f1)) on 127.0.0.1:$port"
-{
-  printf '[global]\npid = %s/fpm.pid\nerror_log = %s/log/fpm.log\ndaemonize = no\n' "$work" "$work"
-  sed -e '/^user = \|^group = \|^listen\.owner\|^listen\.group/d' \
-      -e "s#^listen = .*#listen = $work/fpm.sock#" \
-      -e "s#^php_admin_value\[error_log\] = .*#php_admin_value[error_log] = $work/log/php.log#" \
-      -e "s#/srv/ancora/modern#$project#g; s#/etc/ancora#$work/etc#g; s#/var/lib/ancora#$work/var#g" \
-      -e '/^env\[/d' "$project/deploy/php-fpm/ancora.conf"
-  for v in ANCORA_ENVIRONMENT ANCORA_DB_HOST ANCORA_DB_PORT ANCORA_TRUSTED_HOSTS ANCORA_SITES_DIR \
-           ANCORA_DB_NAME ANCORA_DB_USER ANCORA_DB_PASSWORD_FILE ANCORA_HASH_SALT_FILE \
-           ANCORA_PRIVATE_PATH ANCORA_TMP_PATH; do
-    printf 'env[%s] = "%s"\n' "$v" "${!v}"
-  done
-} >"$work/fpm.conf"
-"$fpm_bin" -F -y "$work/fpm.conf" >"$work/log/fpm.out" 2>&1 &
-pids+=($!)
-{
-  printf '{\n\tadmin off\n\tauto_https off\n\tpersist_config off\n\tdefault_bind 127.0.0.1\n}\n'
-  cat "$project/deploy/caddy/ancora.caddy"
-} >"$work/Caddyfile"
-# The test site address accepts any Host header, so the Drupal-side checks
-# see the tricks; a production address names the host.
-ANCORA_CADDY_SITE="http://:$port" ANCORA_WEB_ROOT="$web" ANCORA_FPM="unix/$work/fpm.sock" \
-XDG_DATA_HOME="$work/caddy-data" XDG_CONFIG_HOME="$work/caddy-config" \
-  "$caddy_bin" run --config "$work/Caddyfile" --adapter caddyfile >"$work/log/caddy.log" 2>&1 &
-pids+=($!)
+stack_start
 # The careless router on a second port (PHP built-in server, same settings).
 (cd "$web" && exec env -i PATH="$PATH" ANCORA_ENVIRONMENT=production ANCORA_DB_HOST="$PGHOST" ANCORA_DB_PORT="$PGPORT" \
   ANCORA_TRUSTED_HOSTS=127.0.0.1,localhost ANCORA_SITES_DIR="$ANCORA_SITES_DIR" ANCORA_DB_NAME=tt_control \
@@ -178,39 +149,15 @@ pids+=($!)
   ANCORA_PRIVATE_PATH="$ANCORA_PRIVATE_PATH" ANCORA_TMP_PATH="$ANCORA_TMP_PATH" \
   php -S "127.0.0.1:$naive_port" ../scripts/lib/naive-router.php) >"$work/log/naive.log" 2>&1 &
 pids+=($!)
-up=0
-for _ in $(seq 1 100); do
-  # A PHP page through Caddy (PHP-FPM ready) and through the careless router.
-  if curl -sf -o /dev/null "$base/user/login" && curl -sf -o /dev/null "http://127.0.0.1:$naive_port/user/login"; then up=1; break; fi
-  sleep 0.2
-done
-if [ "$up" != 1 ]; then
-  for f in "$work"/log/*; do echo "--- $f"; tail -20 "$f"; done
-  echo "the servers did not start" >&2
-  exit 1
-fi
+# A PHP page through Caddy (PHP-FPM ready) and through the careless router.
+stack_wait "$base/user/login" "http://127.0.0.1:$naive_port/user/login"
 listen=$(ss -Hltn | awk '{print $4}' | grep -E ":($port|$naive_port)\$" | sort -u | tr '\n' ' ')
 
-# HTTP helpers: body, headers and status of the last request in $work/r.*.
-mkdir -p "$work/jar"
-req() { # jar (or -) path [curl args...]
-  local jar=$1 path=$2; shift 2
-  local cookies=()
-  [ "$jar" = - ] || cookies=(-b "$work/jar/$jar" -c "$work/jar/$jar")
-  curl -s --path-as-is -o "$work/r.body" -D "$work/r.headers" -w '%{http_code}' "${cookies[@]}" "$@" "$base$path" >"$work/r.status" || echo 000 >"$work/r.status"
-}
 naive() { # path [curl args...]
   local path=$1; shift
   curl -s --path-as-is -o "$work/r.body" -D "$work/r.headers" -w '%{http_code}' "$@" "http://127.0.0.1:$naive_port$path" >"$work/r.status" || echo 000 >"$work/r.status"
 }
-status_is() { [ "$(cat "$work/r.status")" = "$1" ]; }
-status_in() { local s; s=$(cat "$work/r.status"); [[ " $* " == *" $s "* ]]; }
-body_has() { grep -q -- "$1" "$work/r.body"; }
-body_lacks() { ! grep -q -- "$1" "$work/r.body"; }
-header_has() { grep -qi -- "$1" "$work/r.headers"; }
-title_has() { grep -o '<title>[^<]*</title>' "$work/r.body" | grep -q -- "$1"; }
 not_drupal_page() { ! grep -q 'class="site-header"\|<title>' "$work/r.body"; }
-sql() { psql -X -At -d "$1" -c "$2"; }
 session_cookie() { # jar: "name=value" of the Drupal session cookie
   awk '$6 ~ /^S?SESS/ {print $6 "=" $7}' "$work/jar/$1" | tail -1
 }
@@ -408,6 +355,15 @@ check "tt_alpha_app cannot drop a Drupal table" bash -c "! psql -X -U tt_alpha_a
 check "tt_alpha_app can read and write rows (DML)" bash -c "psql -X -U tt_alpha_app -d tt_alpha -v ON_ERROR_STOP=1 -c 'UPDATE key_value SET name = name WHERE false' >/dev/null 2>&1"
 check "the site roles are not superusers and cannot create roles or databases" test "$(sql postgres "SELECT count(*) FROM pg_roles WHERE rolname LIKE 'tt\_%' AND (rolsuper OR rolcreaterole OR rolcreatedb)")" = 0
 check "secrets and site files are mode 0640/0600" bash -c "[ \"\$(stat -c %a '$ANCORA_SITES_DIR/alpha/site.ini' '$ANCORA_SITES_DIR/alpha/db-password' '$ANCORA_SITES_DIR/alpha/hash-salt' '$ANCORA_SITES_DIR/alpha/owner-password' | tr '\n' ' ')\" = '640 640 640 600 ' ]"
+section "Engine databases (one per site, #71)"
+check "tt_alpha_engine and tt_beta_engine exist" test "$(sql postgres "SELECT count(*) FROM pg_database WHERE datname IN ('tt_alpha_engine', 'tt_beta_engine')")" = 2
+check "alpha's site file names its own engine database and role" bash -c "grep -q '^ENGINE_DB_NAME = \"tt_alpha_engine\"' '$ANCORA_SITES_DIR/alpha/site.ini' && grep -q '^ENGINE_DB_USER = \"tt_alpha_engine_app\"' '$ANCORA_SITES_DIR/alpha/site.ini'"
+engine_of() { ANCORA_EXPECT_SITE_PATH=$1 "${drush[@]}" --uri="$2" php:eval '$d = \Drupal::service("ancora_engine.settings")->database(); print $d["database"] . "/" . $d["username"];' 2>/dev/null; }
+check "Drupal on alpha resolves the engine settings to tt_alpha_engine" test "$(engine_of sites/org-alpha "$base/o/alpha")" = tt_alpha_engine/tt_alpha_engine_app
+check "Drupal on beta resolves the engine settings to tt_beta_engine" test "$(engine_of sites/org-beta "$base/o/beta")" = tt_beta_engine/tt_beta_engine_app
+check "check-isolation: tt_alpha_engine admits alpha's engine role, refuses beta's" "$project/scripts/engine-db.sh" check-isolation tt_alpha_engine tt_alpha_engine_app tt_beta_engine_app
+check "check-isolation: tt_beta_engine admits beta's engine role, refuses alpha's" "$project/scripts/engine-db.sh" check-isolation tt_beta_engine tt_beta_engine_app tt_alpha_engine_app
+check "the engine password file is mode 0640" test "$(stat -c %a "$ANCORA_SITES_DIR/alpha/engine-db-password")" = 640
 check "no secret is in the web root" bash -c "! grep -rqsF \"\$(cat '$ANCORA_SITES_DIR/alpha/db-password')\" '$web/sites'"
 
 section "Provisioning: idempotent re-run, failure and recovery, suspend, retire"
@@ -446,6 +402,7 @@ check "deprovision gamma (suspended) with a final backup" bash -c "PGUSER=ancora
 check "gamma's final backup exists" bash -c "ls '$work/backup'/tt_gamma-*.dump >/dev/null 2>&1"
 req - /o/gamma/
 check "a retired site answers 404" status_is 404
+check "gamma's engine database and engine role are gone, after a final backup" bash -c "[ \"\$(psql -X -At -d postgres -c \"SELECT count(*) FROM pg_database WHERE datname = 'tt_gamma_engine'\")/\$(psql -X -At -d postgres -c \"SELECT count(*) FROM pg_roles WHERE rolname = 'tt_gamma_engine_app'\")\" = 0/0 ] && ls '$work/backup'/tt_gamma_engine-*.dump >/dev/null 2>&1"
 check "gamma's database, roles and files are gone" bash -c "[ \"\$(psql -X -At -d postgres -c \"SELECT count(*) FROM pg_database WHERE datname = 'tt_gamma'\")\" = 0 ] && [ ! -e '$web/sites/org-gamma' ] && [ ! -e '$ANCORA_SITES_DATA_DIR/gamma' ] && [ ! -e '$ANCORA_SITES_DIR/gamma' ]"
 check "the audit log records the operations" bash -c "grep -q 'provision	alpha	ok' '$ANCORA_SITES_DIR/audit.log' && grep -q 'deprovision	gamma	ok' '$ANCORA_SITES_DIR/audit.log'"
 

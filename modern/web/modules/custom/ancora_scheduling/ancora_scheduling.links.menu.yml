@@ -1,0 +1,6 @@
+ancora_scheduling.request:
+  title: 'Request a timetable'
+  description: 'Queue a timetable generation for a plan, period, specialty and level.'
+  route_name: ancora_scheduling.request
+  parent: ancora_academic.planning
+  weight: 100

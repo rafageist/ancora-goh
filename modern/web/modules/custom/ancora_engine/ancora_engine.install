@@ -46,6 +46,36 @@ function ancora_engine_schema(): array {
         'length' => 255,
         'not null' => TRUE,
       ],
+      'plan_id' => [
+        'description' => 'Drupal plan (ancora_plan) whose data the worker syncs into the engine before the run; NULL when the data is already in the engine database.',
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => FALSE,
+      ],
+      'period_id' => [
+        'description' => 'Drupal period (ancora_period) of a synced job.',
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => FALSE,
+      ],
+      'specialty_id' => [
+        'description' => 'Drupal specialty (ancora_specialty) of a synced job.',
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => FALSE,
+      ],
+      'level_id' => [
+        'description' => 'Drupal level (ancora_level) of a synced job.',
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => FALSE,
+      ],
+      'id_prefix' => [
+        'description' => 'Prefix of every engine id of the synced plan.',
+        'type' => 'varchar_ascii',
+        'length' => 64,
+        'not null' => FALSE,
+      ],
       'options' => [
         'description' => 'Validated generar() options, JSON.',
         'type' => 'text',
@@ -141,6 +171,7 @@ function ancora_engine_schema(): array {
     'indexes' => [
       'state' => ['state', 'id'],
       'created' => ['created'],
+      'source' => ['plan_id', 'period_id', 'id'],
     ],
   ];
   return $schema;
@@ -156,4 +187,21 @@ function ancora_engine_install(): void {
   $connection = \Drupal::database();
   $index = $connection->getPrefix() . 'ancora_engine_job_one_running';
   $connection->query('CREATE UNIQUE INDEX "' . $index . '" ON {ancora_engine_job} (state) WHERE state = \'running\'');
+}
+
+/**
+ * Adds the source columns: the Drupal plan, period, specialty and level.
+ */
+function ancora_engine_update_11001(): string {
+  $schema = \Drupal::database()->schema();
+  $fields = ancora_engine_schema()['ancora_engine_job']['fields'];
+  foreach (['plan_id', 'period_id', 'specialty_id', 'level_id', 'id_prefix'] as $name) {
+    if (!$schema->fieldExists('ancora_engine_job', $name)) {
+      $schema->addField('ancora_engine_job', $name, $fields[$name]);
+    }
+  }
+  if (!$schema->indexExists('ancora_engine_job', 'source')) {
+    $schema->addIndex('ancora_engine_job', 'source', ['plan_id', 'period_id', 'id'], ancora_engine_schema()['ancora_engine_job']);
+  }
+  return 'Added the source columns of synced jobs.';
 }

@@ -8,6 +8,7 @@ use Drupal\ancora_engine\EngineSettings;
 use Drupal\ancora_engine\Job\Job;
 use Drupal\ancora_engine\Job\JobScope;
 use PgSql\Connection as PgConnection;
+use PgSql\Result as PgResult;
 
 /**
  * Explicit SQL on the site's engine database (legacy MPI/Prioriza schema).
@@ -87,15 +88,34 @@ final class EngineClient {
    *
    * Template/group/teacher name/place/day/slot, comma-joined in template and
    * group order. Its md5 is the placement digest
-   * (dev/e2e/expected-placements.md5 for the E2E organization).
+   * (dev/e2e/expected-placements.md5 for the E2E organization). The ids are
+   * listed without the prefix of a synced plan ($4, '' otherwise), so the
+   * digest of a plan synced from Drupal compares with the legacy one.
    */
-  private const PLACEMENTS = "SELECT coalesce(string_agg(a.plantilla || '/' || a.grupo || '/' || p.nombre || '/' || a.lugar || '/' || a.dia || '/' || a.turno, ',' ORDER BY a.plantilla, a.grupo), '')
+  private const PLACEMENTS = "SELECT coalesce(string_agg(
+        CASE WHEN left(a.plantilla, length($4)) = $4 THEN substr(a.plantilla, length($4) + 1) ELSE a.plantilla END
+        || '/' || CASE WHEN left(a.grupo, length($4)) = $4 THEN substr(a.grupo, length($4) + 1) ELSE a.grupo END
+        || '/' || p.nombre
+        || '/' || CASE WHEN left(a.lugar, length($4)) = $4 THEN substr(a.lugar, length($4) + 1) ELSE a.lugar END
+        || '/' || a.dia || '/' || a.turno, ',' ORDER BY a.plantilla, a.grupo), '')
     FROM actividad a
     JOIN profesor p ON p.id = a.profesor
     JOIN plantilla_de_actividad pa ON pa.id = a.plantilla
     JOIN desglose d ON d.id = pa.desglose
     JOIN asignatura s ON s.id = d.asignatura
     WHERE s.especialidad = $1 AND s.nivel = $2 AND d.periodo = $3";
+
+  /**
+   * The placements of a scope, for the timetable read model.
+   */
+  private const SCOPE_GRID = "SELECT a.plantilla, a.grupo, a.profesor, a.lugar, a.dia, a.turno, c.duracion
+    FROM actividad a
+    JOIN plantilla_de_actividad pa ON pa.id = a.plantilla
+    JOIN clasificacion_de_actividad c ON c.id = pa.clasificacion
+    JOIN desglose d ON d.id = pa.desglose
+    JOIN asignatura s ON s.id = d.asignatura
+    WHERE s.especialidad = $1 AND s.nivel = $2 AND d.periodo = $3
+    ORDER BY a.dia, a.turno, a.plantilla, a.grupo";
 
   /**
    * Polling interval of the asynchronous run, in microseconds.
@@ -122,8 +142,11 @@ final class EngineClient {
    *   Called about every 100 ms while generar() runs, with the elapsed
    *   seconds. It returns NULL to continue, or one of the
    *   RunResult::STOP_* constants to stop the run (pg_cancel_backend).
+   * @param \Drupal\ancora_engine\Engine\JobInputInterface|null $input
+   *   The job input service; required for a job with a source, whose input
+   *   it loads inside the run's transaction.
    */
-  public function run(Job $job, callable $tick): RunResult {
+  public function run(Job $job, callable $tick, ?JobInputInterface $input = NULL): RunResult {
     $app = self::applicationName($job->id, $job->attempts);
     $conn = $this->connect($app);
     try {
@@ -132,7 +155,8 @@ final class EngineClient {
       // A backend whose worker disappeared stops at the next check.
       $this->value($conn, "SELECT set_config('client_connection_check_interval', '5s', false)");
       $params = $job->scope->toParameters();
-      if (!$this->scopeExists($conn, $job->scope)) {
+      // A synced job's scope may exist only after its input is loaded.
+      if ($job->source === NULL && !$this->scopeExists($conn, $job->scope)) {
         return new RunResult(RunResult::ERROR, message: 'The scope does not exist in the engine database.');
       }
       // A request left over from an earlier run must not stop this one; it
@@ -140,6 +164,26 @@ final class EngineClient {
       $this->value($conn, 'DELETE FROM generador.cancelar WHERE especialidad = $1 AND nivel = $2 AND periodo = $3', $params);
 
       $this->value($conn, 'BEGIN ISOLATION LEVEL READ COMMITTED');
+      $loaded = [];
+      if ($job->source !== NULL) {
+        // The input is loaded in the run's transaction: it is committed only
+        // with the run, and rolled back with it.
+        if ($input === NULL) {
+          $this->value($conn, 'ROLLBACK');
+          return new RunResult(RunResult::ERROR, message: 'This job must be synced from Drupal, but no job input service is installed.');
+        }
+        try {
+          $loaded = $input->prepare($job, $conn, $this);
+        }
+        catch (\RuntimeException $e) {
+          @pg_query($conn, 'ROLLBACK');
+          return new RunResult(RunResult::ERROR, sqlstate: $e instanceof EngineException ? $e->sqlstate : NULL, message: self::summary('The input sync failed and was rolled back: ' . $e->getMessage()));
+        }
+        if (!$this->scopeExists($conn, $job->scope)) {
+          $this->value($conn, 'ROLLBACK');
+          return new RunResult(RunResult::ERROR, message: 'The scope does not exist in the engine database after the input sync; nothing was kept.');
+        }
+      }
       $replaced = (int) $this->value($conn, 'WITH gone AS (DELETE FROM actividad WHERE id IN (' . self::SCOPE_PLACEMENTS . ') RETURNING 1) SELECT count(*) FROM gone', $params);
 
       $start = hrtime(TRUE);
@@ -168,23 +212,30 @@ final class EngineClient {
         $sqlstate = $result === FALSE ? NULL : pg_result_error_field($result, PGSQL_DIAG_SQLSTATE);
         $message = $result === FALSE ? pg_last_error($conn) : pg_result_error_field($result, PGSQL_DIAG_MESSAGE_PRIMARY);
         @pg_query($conn, 'ROLLBACK');
-        return new RunResult(RunResult::ERROR, durationMs: $duration, sqlstate: $sqlstate ?: NULL, message: self::summary((string) $message), stoppedBy: $stopped, replaced: $replaced);
+        return new RunResult(RunResult::ERROR, durationMs: $duration, sqlstate: $sqlstate ?: NULL, message: self::summary((string) $message), stoppedBy: $stopped, replaced: $replaced, input: self::loaded($loaded, FALSE));
       }
 
       // generar() returned. A cancellation row still present was not
       // consumed: the run finished before seeing it.
       $left = (int) $this->value($conn, 'WITH gone AS (DELETE FROM generador.cancelar WHERE especialidad = $1 AND nivel = $2 AND periodo = $3 RETURNING 1) SELECT count(*) FROM gone', $params);
-      $metrics = $this->metrics($conn, $job->scope);
+      $metrics = $this->metrics($conn, $job->scope, $job->idPrefix());
       if ($metrics['collisions'] > 0 || $metrics['overflow'] > 0) {
         $this->value($conn, 'ROLLBACK');
-        return new RunResult(RunResult::INVALID, $metrics, $duration, message: 'The placements broke an engine invariant (collision or overflow); the run was rolled back.', stoppedBy: $stopped, replaced: $replaced);
+        return new RunResult(RunResult::INVALID, $metrics, $duration, message: 'The placements broke an engine invariant (collision or overflow); the run was rolled back.', stoppedBy: $stopped, replaced: $replaced, input: self::loaded($loaded, FALSE));
       }
       $this->value($conn, 'COMMIT');
-      return new RunResult(RunResult::RETURNED, $metrics, $duration, stoppedBy: $stopped, cancelRowLeft: $left > 0, replaced: $replaced);
+      return new RunResult(RunResult::RETURNED, $metrics, $duration, stoppedBy: $stopped, cancelRowLeft: $left > 0, replaced: $replaced, input: self::loaded($loaded, TRUE));
     }
     finally {
       pg_close($conn);
     }
+  }
+
+  /**
+   * The input summary of a run, marked committed or rolled back.
+   */
+  private static function loaded(array $loaded, bool $committed): array {
+    return $loaded === [] ? [] : ['committed' => $committed] + $loaded;
   }
 
   /**
@@ -283,10 +334,40 @@ final class EngineClient {
   /**
    * The metrics and the placement digest of a scope, outside any run.
    */
-  public function scopeMetrics(JobScope $scope): array {
-    $conn = $this->connect('ancora_engine_read');
+  public function scopeMetrics(JobScope $scope, string $idPrefix = ''): array {
+    $conn = $this->connectReadOnly();
     try {
-      return $this->metrics($conn, $scope);
+      return $this->metrics($conn, $scope, $idPrefix);
+    }
+    finally {
+      pg_close($conn);
+    }
+  }
+
+  /**
+   * The placements of a scope, ordered by day, slot, template and group.
+   *
+   * Read only: a web request may call it (the timetable page). The values
+   * are engine ids: template, group, teacher, room, day, slot, and the
+   * duration in slots.
+   *
+   * @return list<array{plantilla: string, grupo: string, profesor: ?string, lugar: ?string, dia: int, turno: int, duracion: int}>
+   *   The placements.
+   *
+   * @throws \Drupal\ancora_engine\Engine\EngineException
+   */
+  public function placements(JobScope $scope): array {
+    $conn = $this->connectReadOnly();
+    try {
+      return array_map(static fn (array $row): array => [
+        'plantilla' => (string) $row['plantilla'],
+        'grupo' => (string) $row['grupo'],
+        'profesor' => $row['profesor'],
+        'lugar' => $row['lugar'],
+        'dia' => (int) $row['dia'],
+        'turno' => (int) $row['turno'],
+        'duracion' => max(1, (int) $row['duracion']),
+      ], $this->rows($conn, self::SCOPE_GRID, $scope->toParameters()));
     }
     finally {
       pg_close($conn);
@@ -296,10 +377,10 @@ final class EngineClient {
   /**
    * Reads the metrics and the placement digest of a scope.
    */
-  private function metrics(PgConnection $conn, JobScope $scope): array {
+  private function metrics(PgConnection $conn, JobScope $scope, string $idPrefix = ''): array {
     $params = $scope->toParameters();
     $row = $this->row($conn, self::METRICS, $params);
-    $list = (string) $this->value($conn, self::PLACEMENTS, $params);
+    $list = (string) $this->value($conn, self::PLACEMENTS, [...$params, $idPrefix]);
     return [
       'demands' => (int) $row['demands'],
       'placed' => (int) $row['placed'],
@@ -323,7 +404,7 @@ final class EngineClient {
    * @throws \Drupal\ancora_engine\Engine\EngineException
    *   When the connection fails. The message never includes the password.
    */
-  public function connect(string $applicationName): PgConnection {
+  public function connect(string $applicationName, string $options = ''): PgConnection {
     $db = $this->settings->database();
     $parts = [
       'host' => (string) $db['host'],
@@ -334,7 +415,7 @@ final class EngineClient {
       'sslmode' => (string) $db['sslmode'],
       'connect_timeout' => '10',
       'application_name' => $applicationName,
-      'options' => '-c client_min_messages=warning',
+      'options' => trim('-c client_min_messages=warning ' . $options),
     ];
     $dsn = [];
     foreach ($parts as $key => $value) {
@@ -365,6 +446,41 @@ final class EngineClient {
   }
 
   /**
+   * Opens a read-only connection with a short statement timeout.
+   *
+   * Used by web requests (the timetable page): every transaction of the
+   * session is read only, so a read path can never change the engine data.
+   */
+  public function connectReadOnly(): PgConnection {
+    return $this->connect('ancora_engine_read', '-c default_transaction_read_only=on -c statement_timeout=5s');
+  }
+
+  /**
+   * Runs one statement with bound parameters and returns every row.
+   *
+   * @return list<array<string, string|null>>
+   *   The rows, as text values (PostgreSQL output format).
+   *
+   * @throws \Drupal\ancora_engine\Engine\EngineException
+   */
+  public function rows(PgConnection $conn, string $sql, array $params = []): array {
+    $rows = pg_fetch_all($this->result($conn, $sql, $params), PGSQL_ASSOC);
+    return array_values($rows);
+  }
+
+  /**
+   * Runs one data-changing statement with bound parameters.
+   *
+   * @return int
+   *   The number of affected rows.
+   *
+   * @throws \Drupal\ancora_engine\Engine\EngineException
+   */
+  public function affected(PgConnection $conn, string $sql, array $params = []): int {
+    return pg_affected_rows($this->result($conn, $sql, $params));
+  }
+
+  /**
    * Runs one statement with bound parameters and returns the first value.
    *
    * @throws \Drupal\ancora_engine\Engine\EngineException
@@ -380,6 +496,16 @@ final class EngineClient {
    * @throws \Drupal\ancora_engine\Engine\EngineException
    */
   private function row(PgConnection $conn, string $sql, array $params = []): ?array {
+    $row = pg_fetch_assoc($this->result($conn, $sql, $params));
+    return $row === FALSE ? NULL : $row;
+  }
+
+  /**
+   * Runs one statement with bound parameters and returns its result.
+   *
+   * @throws \Drupal\ancora_engine\Engine\EngineException
+   */
+  private function result(PgConnection $conn, string $sql, array $params = []): PgResult {
     if (!pg_send_query_params($conn, $sql, $params)) {
       throw new EngineException('The engine connection is not usable.');
     }
@@ -397,8 +523,7 @@ final class EngineClient {
         (string) pg_result_error_field($result, PGSQL_DIAG_SQLSTATE),
       );
     }
-    $row = pg_fetch_assoc($result);
-    return $row === FALSE ? NULL : $row;
+    return $result;
   }
 
   /**

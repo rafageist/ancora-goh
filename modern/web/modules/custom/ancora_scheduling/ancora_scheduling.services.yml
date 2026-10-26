@@ -1,0 +1,16 @@
+services:
+  # The optional job input service of the engine worker (ancora_engine):
+  # syncs a job's plan into the engine database inside the run.
+  ancora_engine.job_input:
+    class: Drupal\ancora_scheduling\Sync\EngineSync
+    arguments: ['@entity_type.manager', '@Drupal\ancora_academic\Export\AcademicExport', '@Drupal\ancora_academic\Export\LegacyRows', '@entity.memory_cache']
+  Drupal\ancora_scheduling\Sync\EngineSync: '@ancora_engine.job_input'
+
+  ancora_scheduling.timetable:
+    class: Drupal\ancora_scheduling\Timetable\TimetableReader
+    arguments: ['@ancora_engine.job_repository', '@ancora_engine.engine_client', '@ancora_engine.settings', '@Drupal\ancora_academic\Export\AcademicExport', '@Drupal\ancora_academic\Export\LegacyRows', '@logger.channel.ancora_scheduling']
+  Drupal\ancora_scheduling\Timetable\TimetableReader: '@ancora_scheduling.timetable'
+
+  logger.channel.ancora_scheduling:
+    parent: logger.channel_base
+    arguments: ['ancora_scheduling']
