@@ -457,7 +457,6 @@ final class LegacyDriver {
     ]);
     $body = curl_exec($curl);
     $status = curl_getinfo($curl, CURLINFO_RESPONSE_CODE);
-    curl_close($curl);
     if (!is_string($body) || $status !== 200) {
       $this->fail("POST $url: HTTP $status");
       return '';
