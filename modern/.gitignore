@@ -54,6 +54,8 @@ services.local.yml
 *.sql
 *.sql.gz
 *.dump
+# Source code of the single-database workspace prototype (#93), not dumps.
+!/scripts/lib/workspace/*.sql
 
 # Written by Drupal into the sync directory; it is outside the web root.
 /config/sync/.htaccess
