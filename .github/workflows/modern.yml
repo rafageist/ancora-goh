@@ -349,10 +349,10 @@ jobs:
       - name: composer install (locked)
         run: composer install --no-interaction --no-progress
 
-      - name: Differential parity (legacy over HTTP vs Drupal + engine sync, every scenario)
+      - name: Differential parity (legacy over HTTP vs Drupal + engine sync, and the single-database workspace path, every scenario)
         working-directory: .
         timeout-minutes: 20
-        run: dev/sql/tools/with-ephemeral-pg.sh modern/scripts/parity-diff.sh --skip-composer
+        run: dev/sql/tools/with-ephemeral-pg.sh modern/scripts/parity-diff.sh --skip-composer --workspace
 
   artifact:
     name: Production build contents (no dev dependencies, no secrets)

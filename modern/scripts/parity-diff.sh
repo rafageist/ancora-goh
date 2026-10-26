@@ -2,7 +2,7 @@
 # Differential parity harness (issue #70): one synthetic scenario entered
 # through the legacy application and through Drupal, then compared.
 #
-#   dev/sql/tools/with-ephemeral-pg.sh modern/scripts/parity-diff.sh [--skip-composer] [scenario...]
+#   dev/sql/tools/with-ephemeral-pg.sh modern/scripts/parity-diff.sh [--skip-composer] [--workspace] [scenario...]
 #
 # A scenario is a JSON file of modern/tests/parity/scenarios/ (a path or its
 # base name, without .json). Without arguments every scenario runs.
@@ -29,14 +29,26 @@
 #    or FAIL per table, per other table and per run, with a diff on mismatch.
 #    PHP warnings and SQL errors of both sides are reported.
 #
+# 4. With --workspace (issue #93), additionally: the unchanged legacy engine
+#    is installed INTO the site database (scripts/lib/workspace/install.sh)
+#    and every run is executed again in a job-scoped workspace schema there,
+#    from one REPEATABLE READ snapshot of the Drupal entities, reduced to the
+#    #92 closure (scripts/lib/parity/workspace-driver.php). Its placements,
+#    inserted rows and DML counters are compared with the full engine
+#    database and with the legacy application's database, both measured by
+#    a rolled-back rerun (workspace-oracle.php, workspace-compare.php). The
+#    comparisons above are unchanged and run first.
+#
 # Exit status 0 only if no scenario has a FAIL.
 set -euo pipefail
 
 skip_composer=0
+workspace=0
 scenarios=()
 for arg in "$@"; do
   case "$arg" in
     --skip-composer) skip_composer=1 ;;
+    --workspace) workspace=1 ;;
     -*) echo "unknown option: $arg" >&2; exit 2 ;;
     *) scenarios+=("$arg") ;;
   esac
@@ -213,6 +225,24 @@ EOF
   php "$lib/normalize.php" "$file" "$db" "$out/legacy-users.json" >"$out/legacy.json"
   php "$lib/normalize.php" "$file" "$edb" "$out/drupal-users.json" >"$out/drupal.json"
   php "$lib/compare.php" "$file" "$out/legacy.json" "$out/drupal.json" "$known" || rc=1
+
+  # ---------------------------------------------------------------- workspace (--workspace)
+  if [ "$workspace" -eq 1 ]; then
+    echo "--- workspace: the engine inside the site database ancora_parity_${n}, no engine database"
+    local t_ws=$SECONDS
+    "$project/scripts/lib/workspace/install.sh" "ancora_parity_${n}" >"$out/workspace-install.log" 2>&1 \
+      || { cat "$out/workspace-install.log"; return 1; }
+    for d in "$db" "$edb"; do
+      PGOPTIONS="-c client_min_messages=warning" psql_q -d "$d" -f "$project/scripts/lib/workspace/measure.sql" >/dev/null
+    done
+    drush php:script "$lib/workspace-driver.php" -- "$file" "$out" >"$out/workspace-driver.log" 2>&1 \
+      || { echo "FAIL  workspace driver"; tail -20 "$out/workspace-driver.log"; return 1; }
+    grep '^ok' "$out/workspace-driver.log" | sed 's/^/      /'
+    php "$lib/workspace-oracle.php" "$file" "$db" "$out/legacy-users.json" legacy "$out/workspace.json" >"$out/legacy-oracle.json" || return 1
+    php "$lib/workspace-oracle.php" "$file" "$edb" "$out/drupal-users.json" engine "$out/workspace.json" >"$out/engine-oracle.json" || return 1
+    php "$lib/workspace-compare.php" "$file" "$out" || rc=1
+    echo "METRIC two-database layout: engine database $edb $(psql -X -At -d postgres -c "SELECT pg_database_size('$edb')") bytes, its sync wrote $(jq '[.runs[] | .site_rows] | max' "$out/workspace.json") rows of the whole site per job; single database: workspace path $((SECONDS - t_ws)) s for $(jq '.runs | length' "$out/workspace.json") jobs"
+  fi
 
   # ---------------------------------------------------------------- characterization (legacy only)
   if [ "$(jq '.characterize // [] | length' "$file")" -gt 0 ]; then

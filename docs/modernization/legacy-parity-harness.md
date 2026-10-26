@@ -191,6 +191,16 @@ Numbered after D15 of the inventory.
 
 Legacy defects found by the harness (no Drupal counterpart to change): `add_RolDeUsuario.php` fails with a fatal error; `add_Planificacion.php` reads an undefined `field_Planificacion_activa`.
 
+## Workspace mode (`--workspace`, issue #93)
+
+With `--workspace`, each scenario is run a third time. After the comparisons above, which are unchanged, the unchanged legacy engine is installed into the site database itself (schema `scheduler`). Every timetable request then runs in a job-scoped workspace schema:
+
+- the input is read from one REPEATABLE READ snapshot of the Drupal entities;
+- it is reduced to the #92 closure;
+- the request runs with no engine database.
+
+Its placements, inserted rows and DML counters are compared with the full engine database and with the legacy application's database. The model, the evidence and the results are in [single-db-workspace.md](single-db-workspace.md).
+
 ## LBR impact
 
 **0 bytes retired.** The harness is test code; the slice changes target code only.
