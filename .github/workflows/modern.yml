@@ -6,13 +6,22 @@
 # The multisite job (#72) runs the organization sites behind the real stack,
 # Caddy and PHP-FPM, on 127.0.0.1. The journey job runs the R1 scheduling
 # journey on the same stack: request over HTTP, sync into the site's engine
-# database, worker, timetable page and isolation between two sites.
+# database, worker, timetable page and isolation between two sites. The parity
+# job enters the same scenarios through the legacy application and through
+# Drupal and compares the legacy tables and the generar() outcome (#70).
 name: Drupal foundation (modern/)
 
 on:
   push:
     paths:
       - 'modern/**'
+      # The parity job drives the legacy application.
+      - 'control/**'
+      - 'model/**'
+      - 'lib/**'
+      - 'view/**'
+      - 'www/**'
+      - 'bin/**'
       - '.github/workflows/modern.yml'
       - 'dev/sql/tools/with-ephemeral-pg.sh'
       - 'dev/sql/tools/disposable-guard.sh'
@@ -21,6 +30,13 @@ on:
   pull_request:
     paths:
       - 'modern/**'
+      # The parity job drives the legacy application.
+      - 'control/**'
+      - 'model/**'
+      - 'lib/**'
+      - 'view/**'
+      - 'www/**'
+      - 'bin/**'
       - '.github/workflows/modern.yml'
       - 'dev/sql/tools/with-ephemeral-pg.sh'
       - 'dev/sql/tools/disposable-guard.sh'
@@ -277,6 +293,66 @@ jobs:
         working-directory: .
         timeout-minutes: 20
         run: dev/sql/tools/with-ephemeral-pg.sh modern/scripts/r1-journey.sh --skip-composer
+
+  parity:
+    name: Legacy parity harness PHP ${{ matrix.php }} + PostgreSQL ${{ matrix.postgres }}
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - php: '8.4'
+            postgres: '16'
+          - php: '8.5'
+            postgres: '18'
+    env:
+      PG_BINDIR: /usr/lib/postgresql/${{ matrix.postgres }}/bin
+    defaults:
+      run:
+        working-directory: modern
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          extensions: pdo_pgsql, pgsql, gd, mbstring, xml, curl, zip, opcache
+          coverage: none
+          tools: composer:v2
+
+      - name: PostgreSQL ${{ matrix.postgres }} server binaries (PGDG when missing)
+        working-directory: .
+        run: |
+          if [ ! -x "$PG_BINDIR/initdb" ]; then
+            sudo install -d /usr/share/postgresql-common/pgdg
+            sudo curl -fsSL -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc \
+              https://www.postgresql.org/media/keys/ACCC4CF8.asc
+            . /etc/os-release
+            echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] https://apt.postgresql.org/pub/repos/apt ${VERSION_CODENAME}-pgdg main" \
+              | sudo tee /etc/apt/sources.list.d/pgdg.list >/dev/null
+            sudo apt-get update -q
+            sudo apt-get install -y -q "postgresql-${{ matrix.postgres }}"
+          fi
+          sudo systemctl stop postgresql || true
+          "$PG_BINDIR/postgres" --version
+
+      - name: Composer cache directory
+        id: composer-cache
+        run: echo "dir=$(composer config cache-files-dir)" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/cache@v4
+        with:
+          path: ${{ steps.composer-cache.outputs.dir }}
+          key: composer-${{ runner.os }}-php${{ matrix.php }}-${{ hashFiles('modern/composer.lock') }}
+          restore-keys: composer-${{ runner.os }}-php${{ matrix.php }}-
+
+      - name: composer install (locked)
+        run: composer install --no-interaction --no-progress
+
+      - name: Differential parity (legacy over HTTP vs Drupal + engine sync, every scenario)
+        working-directory: .
+        timeout-minutes: 20
+        run: dev/sql/tools/with-ephemeral-pg.sh modern/scripts/parity-diff.sh --skip-composer
 
   artifact:
     name: Production build contents (no dev dependencies, no secrets)
