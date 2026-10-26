@@ -1,3 +1,19 @@
+.ancora-timetable__links {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 1rem;
+}
+.ancora-timetable__periods {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-block: 0.5rem;
+}
+.ancora-timetable__periods [aria-current="page"] {
+  font-weight: bold;
+  text-decoration: none;
+}
 .ancora-timetable__filters {
   display: flex;
   flex-wrap: wrap;
@@ -5,14 +21,29 @@
   align-items: end;
   margin-block: 1rem;
 }
-.ancora-timetable__filters label {
+.ancora-timetable__filter {
   display: flex;
   flex-direction: column;
 }
+.ancora-timetable__filter label {
+  font-weight: 600;
+}
+.ancora-timetable__scope {
+  margin-block: 1.5rem;
+}
+.ancora-timetable__grid-wrapper {
+  overflow-x: auto;
+}
 .ancora-timetable__grid {
   width: 100%;
+  min-width: 40rem;
   border-collapse: collapse;
   table-layout: fixed;
+}
+.ancora-timetable__grid caption {
+  padding-block: 0.25rem;
+  text-align: start;
+  font-weight: 600;
 }
 .ancora-timetable__grid th,
 .ancora-timetable__grid td {
@@ -20,23 +51,56 @@
   padding: 0.25rem;
   vertical-align: top;
 }
+.ancora-timetable__grid thead th {
+  text-align: center;
+}
+.ancora-timetable__grid tbody th {
+  width: 7rem;
+}
 .ancora-timetable__time {
   display: block;
+  font-variant-numeric: tabular-nums;
+}
+.ancora-timetable__slot {
+  display: block;
   font-weight: normal;
+  font-size: 0.85em;
 }
 .ancora-placement {
   margin-block-end: 0.25rem;
-  padding: 0.25rem;
+  padding: 0.25rem 0.4rem;
+  border-inline-start: 3px solid #1f5f8b;
   background: #eef4fb;
+  color: #1d2733;
+  font-size: 0.875rem;
+  line-height: 1.3;
 }
 .ancora-placement span {
   display: block;
+  overflow-wrap: anywhere;
 }
 .ancora-placement__activity {
   font-weight: bold;
 }
+.ancora-placement__teacher,
+.ancora-placement__room {
+  color: #4a5666;
+}
 .is-draft .ancora-placement {
+  border-inline-start-color: #c47f00;
   background: repeating-linear-gradient(45deg, #fff6e0, #fff6e0 6px, #fdebc4 6px, #fdebc4 12px);
+}
+.ancora-badge {
+  display: inline-block;
+  margin-block: 0 0.5rem;
+  padding: 0.1rem 0.6rem;
+  border-radius: 1rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+.ancora-badge--final {
+  color: #fff;
+  background: #2b6e3f;
 }
 .ancora-timetable__draft-label,
 .ancora-timetable__stale,
@@ -44,4 +108,47 @@
   padding: 0.5rem;
   border-inline-start: 4px solid #c47f00;
   background: #fff6e0;
+  color: #1d2733;
+}
+.ancora-timetable__active {
+  padding: 0.5rem;
+  border-inline-start: 4px solid #1f5f8b;
+}
+
+/* Narrow screens: a list per day instead of the grid. */
+.ancora-timetable__list {
+  display: none;
+}
+.ancora-timetable__day ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.ancora-timetable__item {
+  display: flex;
+  flex-direction: column;
+  margin-block-end: 0.5rem;
+  padding: 0.5rem;
+  border-inline-start: 3px solid #1f5f8b;
+  background: #eef4fb;
+  color: #1d2733;
+}
+.is-draft .ancora-timetable__item {
+  border-inline-start-color: #c47f00;
+  background: #fff6e0;
+}
+.ancora-timetable__item-time {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+.ancora-timetable__item-activity {
+  font-weight: bold;
+}
+@media (max-width: 47.99rem) {
+  .ancora-timetable__grid-wrapper {
+    display: none;
+  }
+  .ancora-timetable__list {
+    display: block;
+  }
 }

@@ -1,0 +1,21 @@
+{#
+/**
+ * @file
+ * The main menu: the planner navigation (#105).
+ *
+ * The header block shows the first level; the section block of the content
+ * region shows the children of the active section. Items in the active trail
+ * carry the class "is-active-trail".
+ *
+ * Available variables: see core/modules/system/templates/menu.html.twig.
+ */
+#}
+{% if items %}
+  <ul{{ attributes.addClass('menu', 'menu--main') }}>
+    {% for item in items %}
+      <li{{ item.attributes.addClass('menu__item', item.in_active_trail ? 'is-active-trail') }}>
+        {{ link(item.title, item.url, item.in_active_trail ? {'class': ['is-active-trail']} : {}) }}
+      </li>
+    {% endfor %}
+  </ul>
+{% endif %}

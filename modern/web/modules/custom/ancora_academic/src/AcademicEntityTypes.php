@@ -54,6 +54,57 @@ final class AcademicEntityTypes {
   ];
 
   /**
+   * The sections of the planner navigation (#105): section => entity types.
+   *
+   * Only a grouping of the lists for the menus and section pages; the data
+   * entry order stays the order of SEGMENTS.
+   */
+  public const SECTIONS = [
+    'plans' => [
+      'ancora_plan',
+      'ancora_period',
+    ],
+    'catalogues' => [
+      'ancora_teacher',
+      'ancora_room',
+      'ancora_subject',
+      'ancora_specialty',
+      'ancora_level',
+      'ancora_cohort',
+      'ancora_student_group',
+      'ancora_activity_type',
+    ],
+    'assignments' => [
+      'ancora_activity_template',
+      'ancora_teacher_assignment',
+      'ancora_room_assignment',
+    ],
+  ];
+
+  /**
+   * Returns the title and introduction of each navigation section.
+   *
+   * @return array<string, array{title: \Drupal\Core\StringTranslation\TranslatableMarkup, intro: \Drupal\Core\StringTranslation\TranslatableMarkup}>
+   *   Keyed by section.
+   */
+  public static function sections(): array {
+    return [
+      'plans' => [
+        'title' => new TranslatableMarkup('Plans & periods'),
+        'intro' => new TranslatableMarkup('A plan is one planning cycle; its periods are the weekly time grids the timetable is generated for.'),
+      ],
+      'catalogues' => [
+        'title' => new TranslatableMarkup('Academic catalogues'),
+        'intro' => new TranslatableMarkup('Your teachers, rooms, subjects, specialties, levels, cohorts, groups and activity types. Catalogue records serve all your plans; groups belong to one plan.'),
+      ],
+      'assignments' => [
+        'title' => new TranslatableMarkup('Assignments & templates'),
+        'intro' => new TranslatableMarkup('The weekly activities of each subject, and which teachers and rooms may take them.'),
+      ],
+    ];
+  }
+
+  /**
    * Whether records of a type are owned by their creator (not by a plan).
    */
   public static function isOwned(string $entity_type_id): bool {

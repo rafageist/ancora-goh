@@ -1,3 +1,47 @@
+# The landing page of an organization site (the front page, #105). Anonymous
+# users get the way to log in; the page varies by user.
+ancora_scheduling.workspace:
+  path: '/ancora'
+  defaults:
+    _controller: '\Drupal\ancora_scheduling\Controller\WorkspaceController::landing'
+    _title: 'Overview'
+  requirements:
+    # Open on purpose: it is the front page. Anonymous visitors only get the
+    # login link; every list on it is access-checked.
+    _access: 'TRUE'
+
+ancora_scheduling.plan:
+  path: '/ancora/planning/{ancora_plan}'
+  defaults:
+    _controller: '\Drupal\ancora_scheduling\Controller\WorkspaceController::plan'
+    _title_callback: '\Drupal\ancora_scheduling\Controller\WorkspaceController::planTitle'
+  requirements:
+    _permission: 'view academic data+administer academic data'
+    _entity_access: 'ancora_plan.view'
+    ancora_plan: '\d+'
+  options:
+    parameters:
+      ancora_plan:
+        type: 'entity:ancora_plan'
+
+ancora_scheduling.timetables:
+  path: '/ancora/timetables'
+  defaults:
+    _controller: '\Drupal\ancora_scheduling\Controller\WorkspaceController::timetables'
+    _title: 'Timetables'
+  requirements:
+    _permission: 'view academic data+administer academic data'
+
+ancora_scheduling.jobs:
+  path: '/ancora/scheduling/jobs'
+  defaults:
+    _controller: '\Drupal\ancora_scheduling\Controller\WorkspaceController::jobs'
+    _title: 'Timetable runs'
+  requirements:
+    _permission: 'view ancora engine jobs,view academic data'
+  options:
+    no_cache: TRUE
+
 ancora_scheduling.request:
   path: '/ancora/scheduling/request'
   defaults:
@@ -16,6 +60,8 @@ ancora_scheduling.job:
     _title_callback: '\Drupal\ancora_scheduling\Controller\SchedulingController::jobTitle'
   requirements:
     _permission: 'view ancora engine jobs,view academic data'
+    # And the plan of the job is one the user may view.
+    _custom_access: '\Drupal\ancora_scheduling\Controller\SchedulingController::jobAccess'
     job: '\d+'
   options:
     no_cache: TRUE

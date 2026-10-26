@@ -2,3 +2,8 @@ timetable:
   css:
     component:
       css/timetable.css: {}
+
+workspace:
+  css:
+    component:
+      css/workspace.css: {}
