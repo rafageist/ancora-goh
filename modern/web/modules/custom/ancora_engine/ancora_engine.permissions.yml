@@ -1,0 +1,10 @@
+view ancora engine jobs:
+  title: 'View scheduling engine jobs'
+  description: 'See the generation jobs of the site, their state and their metrics.'
+request ancora engine jobs:
+  title: 'Request scheduling engine jobs'
+  description: 'Queue a timetable generation and cancel the jobs one requested.'
+administer ancora engine:
+  title: 'Administer the scheduling engine'
+  description: 'Cancel any generation job of the site.'
+  restrict access: true
