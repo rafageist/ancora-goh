@@ -77,7 +77,10 @@ CREATE TABLE scheduler_control.workspace (
   state text NOT NULL DEFAULT 'created',
   created_at timestamptz NOT NULL DEFAULT clock_timestamp(),
   updated_at timestamptz NOT NULL DEFAULT clock_timestamp(),
-  keep_until timestamptz
+  keep_until timestamptz,
+  -- TRUE for a workspace opened by the engine worker (open_job_workspace): its
+  -- job role is dropped with it.
+  provisioned boolean NOT NULL DEFAULT false
 );
 
 -- ---------------------------------------------------------------- engine code
@@ -171,12 +174,19 @@ REVOKE ALL ON FUNCTION scheduler_control.drop_workspace(text) FROM PUBLIC;
 CREATE FUNCTION scheduler_control.cleanup(p_now timestamptz DEFAULT clock_timestamp()) RETURNS SETOF text LANGUAGE plpgsql AS $$
 DECLARE w record;
 BEGIN
+  -- A job's backend is found by its role (a job role that logs in) or by the
+  -- application name of the worker's job connection (EngineClient::applicationName()).
   UPDATE scheduler_control.workspace SET state = 'failed', updated_at = clock_timestamp()
    WHERE state IN ('created', 'loaded', 'running')
-     AND NOT EXISTS (SELECT 1 FROM pg_stat_activity a WHERE a.usename = job_role);
-  FOR w IN SELECT job FROM scheduler_control.workspace
+     AND NOT EXISTS (SELECT 1 FROM pg_stat_activity a
+                      WHERE a.usename = job_role OR a.application_name = 'ancora_engine_job_' || job);
+  FOR w IN SELECT job, provisioned FROM scheduler_control.workspace
             WHERE state = 'failed' OR (state = 'kept' AND keep_until IS NOT NULL AND keep_until <= p_now) LOOP
-    PERFORM scheduler_control.drop_workspace(w.job);
+    IF w.provisioned THEN
+      PERFORM scheduler_control.close_job_workspace(w.job, 0);
+    ELSE
+      PERFORM scheduler_control.drop_workspace(w.job);
+    END IF;
     RETURN NEXT w.job;
   END LOOP;
 END $$;
@@ -376,3 +386,73 @@ BEGIN
   RETURN n;
 END $$;
 REVOKE ALL ON FUNCTION scheduler_control.store_output(text) FROM PUBLIC;
+
+-- ---------------------------------------------------------------- worker provisioning (#95)
+-- The engine worker of the site (its login role, granted by worker.sql) opens
+-- one workspace per job attempt. These functions run with the privileges of
+-- their owner (the installer: a role with CREATEROLE that owns the workspace
+-- layer), so the worker itself needs no CREATEROLE and no CREATE on the
+-- database. The job role is NOLOGIN; the worker is made a member WITH INHERIT
+-- FALSE and must SET ROLE to it explicitly, so the worker's own identity has
+-- no access to any workspace.
+
+-- p_job: "<job id>_<attempt>".
+CREATE FUNCTION scheduler_control.open_job_workspace(p_job text) RETURNS TABLE (schema_name name, job_role name)
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = pg_catalog, pg_temp AS $$
+DECLARE
+  v_schema name := 'scheduler_job_' || p_job;
+  v_role name := left('agoh_' || current_database() || '_j' || p_job, 63);
+BEGIN
+  IF p_job !~ '^[0-9]{1,12}_[0-9]{1,6}$' THEN
+    RAISE EXCEPTION 'invalid job key %', p_job USING ERRCODE = '22023';
+  END IF;
+  EXECUTE format('CREATE ROLE %I NOLOGIN IN ROLE agoh_engine', v_role);
+  EXECUTE format('GRANT %I TO %I WITH INHERIT FALSE, SET TRUE', v_role, session_user);
+  EXECUTE format('GRANT TEMPORARY ON DATABASE %I TO %I', current_database(), v_role);
+  PERFORM scheduler_control.create_workspace(p_job, v_schema, v_role);
+  UPDATE scheduler_control.workspace SET provisioned = true, state = 'loaded', updated_at = clock_timestamp() WHERE job = p_job;
+  RETURN QUERY SELECT v_schema, v_role;
+END $$;
+REVOKE ALL ON FUNCTION scheduler_control.open_job_workspace(text) FROM PUBLIC;
+
+-- Records the state of a workspace opened by the worker.
+CREATE FUNCTION scheduler_control.mark_workspace(p_job text, p_state text) RETURNS void
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = pg_catalog, pg_temp AS $$
+BEGIN
+  IF p_state NOT IN ('loaded', 'running', 'ran', 'failed') THEN
+    RAISE EXCEPTION 'invalid workspace state %', p_state USING ERRCODE = '22023';
+  END IF;
+  UPDATE scheduler_control.workspace SET state = p_state, updated_at = clock_timestamp() WHERE job = p_job AND provisioned;
+END $$;
+REVOKE ALL ON FUNCTION scheduler_control.mark_workspace(text, text) FROM PUBLIC;
+
+-- Closes a workspace: dropped now (p_keep_seconds = 0), or kept for
+-- diagnosis until the given time and dropped by cleanup() after it.
+CREATE FUNCTION scheduler_control.close_job_workspace(p_job text, p_keep_seconds integer DEFAULT 0) RETURNS text
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = pg_catalog, pg_temp AS $$
+DECLARE w record;
+BEGIN
+  SELECT * INTO w FROM scheduler_control.workspace WHERE job = p_job AND provisioned FOR UPDATE;
+  IF NOT FOUND THEN
+    RETURN 'unknown';
+  END IF;
+  IF p_keep_seconds > 0 THEN
+    UPDATE scheduler_control.workspace SET state = 'kept', keep_until = clock_timestamp() + make_interval(secs => p_keep_seconds),
+           updated_at = clock_timestamp() WHERE job = p_job;
+    RETURN 'kept';
+  END IF;
+  PERFORM scheduler_control.drop_workspace(p_job);
+  IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = w.job_role) THEN
+    EXECUTE format('REVOKE TEMPORARY ON DATABASE %I FROM %I', current_database(), w.job_role);
+    EXECUTE format('DROP ROLE %I', w.job_role);
+  END IF;
+  RETURN 'dropped';
+END $$;
+REVOKE ALL ON FUNCTION scheduler_control.close_job_workspace(text, integer) FROM PUBLIC;
+
+-- cleanup() for the worker (recovery at the start of each worker cycle).
+CREATE FUNCTION scheduler_control.worker_cleanup() RETURNS SETOF text
+LANGUAGE sql SECURITY DEFINER SET search_path = pg_catalog, pg_temp AS $$
+  SELECT scheduler_control.cleanup()
+$$;
+REVOKE ALL ON FUNCTION scheduler_control.worker_cleanup() FROM PUBLIC;

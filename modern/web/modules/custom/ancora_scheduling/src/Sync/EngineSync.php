@@ -4,13 +4,11 @@ declare(strict_types=1);
 
 namespace Drupal\ancora_scheduling\Sync;
 
-use Drupal\ancora_academic\AcademicEntityTypes;
 use Drupal\ancora_academic\Entity\Level;
 use Drupal\ancora_academic\Entity\Period;
 use Drupal\ancora_academic\Entity\Plan;
 use Drupal\ancora_academic\Entity\Specialty;
 use Drupal\ancora_academic\Export\AcademicExport;
-use Drupal\ancora_academic\Export\LegacyRows;
 use Drupal\ancora_engine\Engine\EngineClient;
 use Drupal\ancora_engine\Engine\JobInputInterface;
 use Drupal\ancora_engine\Job\Job;
@@ -51,8 +49,8 @@ final class EngineSync implements JobInputInterface {
   public function __construct(
     private readonly EntityTypeManagerInterface $entityTypeManager,
     private readonly AcademicExport $export,
-    private readonly LegacyRows $legacyRows,
     private readonly MemoryCacheInterface $entityMemoryCache,
+    private readonly SiteRows $rows,
   ) {}
 
   /**
@@ -95,59 +93,14 @@ final class EngineSync implements JobInputInterface {
   }
 
   /**
-   * The legacy rows of the whole site.
+   * The legacy rows of the whole site (SiteRows::site()).
    *
    * @return array{0: array<string, list<array<string, scalar|null>>>, 1: list<string>, 2: int}
    *   The rows by table (LegacyRows order), the legacy users who own them,
    *   and the number of export issues of every plan.
    */
   private function siteRows(): array {
-    $owners = [];
-    foreach (AcademicEntityTypes::OWNED as $entity_type_id) {
-      $storage = $this->entityTypeManager->getStorage($entity_type_id);
-      foreach ($storage->getAggregateQuery()->accessCheck(FALSE)->groupBy('uid')->execute() as $row) {
-        $owners[(int) $row['uid']] = TRUE;
-      }
-    }
-    ksort($owners);
-    $plans = $this->entityTypeManager->getStorage('ancora_plan')->getQuery()
-      ->accessCheck(FALSE)
-      ->sort('id')
-      ->execute();
-    $by_owner = [];
-    foreach ($this->entityTypeManager->getStorage('ancora_plan')->loadMultiple($plans) as $plan) {
-      assert($plan instanceof Plan);
-      $by_owner[(int) $plan->getCreatorId()][] = $plan;
-    }
-
-    $rows = array_fill_keys(LegacyRows::TABLES, []);
-    $seen = [];
-    $issues = 0;
-    $creators = [];
-    foreach (array_keys($owners) as $owner) {
-      $creator = ScopeMapper::creatorOf($owner);
-      $creators[] = $creator;
-      $exports = [];
-      foreach ($by_owner[$owner] ?? [] as $plan) {
-        $exports[] = $this->export->export($plan);
-      }
-      $exports = $exports ?: [$this->export->catalogue($owner)];
-      foreach ($exports as $export) {
-        $issues += count($export['issues']);
-        foreach ($this->legacyRows->build($export, $creator, TRUE) as $table => $list) {
-          foreach ($list as $row) {
-            // A user's catalogue rows are in the export of each of the
-            // user's plans; they are written once.
-            $key = $table . "\x1F" . LegacyTableSync::keyOf($row, LegacyTableSync::TABLES[$table][0]);
-            if (!isset($seen[$key])) {
-              $seen[$key] = TRUE;
-              $rows[$table][] = $row;
-            }
-          }
-        }
-      }
-    }
-    return [$rows, $creators, $issues];
+    return $this->rows->site();
   }
 
   /**

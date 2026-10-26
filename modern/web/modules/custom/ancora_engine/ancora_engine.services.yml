@@ -14,9 +14,15 @@ services:
     arguments: ['@ancora_engine.settings']
   Drupal\ancora_engine\Engine\EngineClient: '@ancora_engine.engine_client'
 
+  # Workspace mode (#95): runs in a job-scoped workspace of the site database.
+  ancora_engine.workspace_client:
+    class: Drupal\ancora_engine\Engine\WorkspaceClient
+    arguments: ['@ancora_engine.engine_client', '@ancora_engine.settings']
+  Drupal\ancora_engine\Engine\WorkspaceClient: '@ancora_engine.workspace_client'
+
   ancora_engine.worker:
     class: Drupal\ancora_engine\Worker
-    arguments: ['@ancora_engine.job_repository', '@ancora_engine.engine_client', '@ancora_engine.settings', '@datetime.time', '@logger.channel.ancora_engine', '@?ancora_engine.job_input']
+    arguments: ['@ancora_engine.job_repository', '@ancora_engine.engine_client', '@ancora_engine.settings', '@datetime.time', '@logger.channel.ancora_engine', '@?ancora_engine.job_input', '@ancora_engine.workspace_client', '@?ancora_engine.workspace_input', '@?ancora_engine.job_output']
   Drupal\ancora_engine\Worker: '@ancora_engine.worker'
 
   logger.channel.ancora_engine:

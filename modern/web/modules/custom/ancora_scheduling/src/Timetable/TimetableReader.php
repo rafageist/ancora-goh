@@ -13,7 +13,9 @@ use Drupal\ancora_engine\EngineSettings;
 use Drupal\ancora_engine\Job\Job;
 use Drupal\ancora_engine\Job\JobState;
 use Drupal\ancora_engine\JobRepository;
+use Drupal\ancora_scheduling\Entity\Placement;
 use Drupal\ancora_scheduling\ScopeMapper;
+use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Psr\Log\LoggerInterface;
 
 /**
@@ -31,6 +33,12 @@ use Psr\Log\LoggerInterface;
  * ids LegacyRows gives them (LegacyRows::engineId()). An id that no longer
  * maps (the record was deleted after the run) is shown as its code, the part
  * after the separator.
+ *
+ * Workspace mode (#95): the placements are the placement entities of the
+ * scope (period, and the specialty and level of the template's subject), of
+ * every run: legacy continuation keeps the earlier runs' placements. The
+ * placements of a job that is still running are never shown: they become
+ * visible when its outcome is recorded.
  */
 final class TimetableReader {
 
@@ -41,6 +49,7 @@ final class TimetableReader {
     private readonly AcademicExport $export,
     private readonly LegacyRows $legacyRows,
     private readonly LoggerInterface $logger,
+    private readonly ?EntityTypeManagerInterface $entityTypeManager = NULL,
   ) {}
 
   /**
@@ -89,7 +98,9 @@ final class TimetableReader {
       ];
       if ($shown !== NULL) {
         try {
-          $scope['placements'] = $this->placements($shown, $index);
+          $scope['placements'] = $this->settings->isWorkspace() && $this->entityTypeManager !== NULL
+            ? $this->storedPlacements($shown, $active, $index)
+            : $this->placements($shown, $index);
         }
         catch (\RuntimeException $e) {
           $this->logger->error('Timetable of plan @plan: the engine database could not be read: @message', [
@@ -134,6 +145,47 @@ final class TimetableReader {
         'teacher_code' => $row['profesor'] === NULL ? '' : self::strip($row['profesor']),
         'room' => $row['lugar'] === NULL ? '' : ($index['rooms'][$row['lugar']] ?? self::strip($row['lugar'])),
         'room_code' => $row['lugar'] === NULL ? '' : self::strip($row['lugar']),
+      ];
+    }
+    return $placements;
+  }
+
+  /**
+   * The placement entities of a job's scope, mapped like placements().
+   */
+  private function storedPlacements(Job $job, ?Job $active, array $index): array {
+    $source = $job->source;
+    $storage = $this->entityTypeManager->getStorage('ancora_placement');
+    $query = $storage->getQuery()->accessCheck(FALSE)
+      ->condition('period', $source->periodId)
+      ->condition('template.entity:ancora_activity_template.subject.entity:ancora_subject.specialty', $source->specialtyId)
+      ->condition('template.entity:ancora_activity_template.subject.entity:ancora_subject.level', $source->levelId)
+      ->sort('day')
+      ->sort('slot')
+      ->sort('id');
+    if ($active !== NULL) {
+      $query->condition('job', $active->id, '<>');
+    }
+    $placements = [];
+    foreach ($storage->loadMultiple($query->execute()) as $placement) {
+      assert($placement instanceof Placement);
+      $template = $placement->getTemplate();
+      $teacher = $placement->get('teacher')->entity;
+      $room = $placement->get('room')->entity;
+      $group = $placement->get('student_group')->entity;
+      $type = $template?->getActivityType();
+      $placements[] = [
+        'day' => (int) $placement->get('day')->value,
+        'slot' => (int) $placement->get('slot')->value,
+        'slots' => max(1, (int) ($type?->get('duration_slots')->value ?? 1)),
+        'activity' => $template ? ($template->getSubject()?->label() ?? '') . ' #' . $template->getSequence() : '',
+        'subject' => $template?->getSubject()?->label() ?? '',
+        'group' => $group?->label() ?? '',
+        'group_code' => $group?->getCode() ?? '',
+        'teacher' => $teacher?->label() ?? '',
+        'teacher_code' => $teacher?->getCode() ?? '',
+        'room' => $room?->label() ?? '',
+        'room_code' => $room?->getCode() ?? '',
       ];
     }
     return $placements;

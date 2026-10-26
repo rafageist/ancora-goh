@@ -1,0 +1,23 @@
+<?php
+
+/**
+ * @file
+ * Install and update functions for the Áncora scheduling module.
+ */
+
+declare(strict_types=1);
+
+/**
+ * Adds the placement entity type (#95, workspace mode).
+ *
+ * It only creates the empty table "ancora_placement". The two-database mode
+ * does not use it, and no data is migrated.
+ */
+function ancora_scheduling_update_11001(): string {
+  $manager = \Drupal::entityDefinitionUpdateManager();
+  if ($manager->getEntityType('ancora_placement') === NULL) {
+    $manager->installEntityType(\Drupal::entityTypeManager()->getDefinition('ancora_placement'));
+    return 'Installed the placement entity type.';
+  }
+  return 'The placement entity type is already installed.';
+}

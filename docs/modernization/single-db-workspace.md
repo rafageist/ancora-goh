@@ -240,6 +240,16 @@ TEMP tables: **no-go** as the primary model. They need `pg_temp` first in the pa
 - Later jobs must then receive accepted placements from the Drupal snapshot, in their original order. That needs `LegacyRows`/`LegacyTableSync` to export and load placements, which today sync 17 tables and no placement. Rebuilding their occupancy rows through the legacy RULEs on load is proven equal (continuation scenarios).
 - Partial and soft-cancelled outputs are committed in the workspace and can be promoted as legacy keeps them (D8, D12). The workspace path does not delete the scope's placements (no D7).
 
+## 10b. Since #95: the worker's workspace mode
+
+The prototype of this document now runs in the real worker: `EngineSettings::mode() = workspace`, `WorkspaceClient`, `WorkspaceSync` and `PlacementPublisher`. The output is published as Drupal placement entities, and the next request loads them back (legacy continuation). The model, the states and the recovery are in [placement-promotion.md](placement-promotion.md).
+
+The changes to the layer of this document are these:
+
+- **Worker provisioning.** `dev/workspace/install.sh --worker <role>` adds the SECURITY DEFINER functions `open_job_workspace`, `mark_workspace`, `close_job_workspace` and `worker_cleanup`, and grants the worker only those plus soft cancellation (`worker.sql`).
+- **Job roles.** One NOLOGIN role per job attempt, named after the database and the attempt. The worker is a member WITH INHERIT FALSE and must `SET ROLE` to it.
+- **Lost attempts.** `cleanup()` also finds an attempt's backend by its application name, and drops the job role with the workspace.
+
 ## 11. LBR impact
 
 **0 bytes retired.** The prototype and the harness mode are test code. The legacy tree is not moved or renamed.

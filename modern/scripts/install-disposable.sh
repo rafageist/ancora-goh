@@ -130,6 +130,16 @@ if [ "$skip_tests" -eq 1 ]; then
   exit 0
 fi
 
+step "Engine in workspace mode (#95): the unchanged engine inside this site's database, no engine database"
+# New disposable and CI installs use the single-database workspace mode; the
+# deployed release keeps the two-database mode (scripts/ancora-site.sh).
+random_hex 24 >"$work/secrets/engine-worker-password"
+psql -X -q -v ON_ERROR_STOP=1 -d postgres -c "CREATE ROLE ancora_engine_worker LOGIN PASSWORD '$(cat "$work/secrets/engine-worker-password")'"
+"$repo/dev/workspace/install.sh" --worker ancora_engine_worker ancora >"$work/engine-install.log" 2>&1 || { cat "$work/engine-install.log"; exit 1; }
+export ANCORA_ENGINE_MODE=workspace ANCORA_ENGINE_DB_HOST="$PGHOST" ANCORA_ENGINE_DB_PORT="$PGPORT"
+export ANCORA_ENGINE_DB_NAME=ancora ANCORA_ENGINE_DB_USER=ancora_engine_worker ANCORA_ENGINE_DB_PASSWORD_FILE="$work/secrets/engine-worker-password"
+"${drush[@]}" php:eval 'echo "engine mode: " . \Drupal::service("ancora_engine.settings")->mode() . "\n";'
+
 step "Academic data (#70): synthetic fixture through the Entity API, export for the engine"
 "${drush[@]}" ancora-academic:load-fixture
 "${drush[@]}" ancora-academic:export P --period=PER --legacy >"$work/legacy-rows.json"
@@ -145,7 +155,10 @@ step "HTTP server on 127.0.0.1"
 port=$(php -r '$s = stream_socket_server("tcp://127.0.0.1:0"); echo explode(":", stream_socket_get_name($s, FALSE))[1];')
 # The working directory must be the web root: Drupal resolves template paths
 # relative to it.
-(cd web && PHP_CLI_SERVER_WORKERS=4 exec php -S "127.0.0.1:$port" .ht.router.php) >"$work/server.log" 2>&1 &
+# It also serves the PHPUnit functional test sites, which configure no
+# engine: the disposable site's workspace settings are not passed to it.
+(cd web && PHP_CLI_SERVER_WORKERS=4 exec env -u ANCORA_ENGINE_MODE -u ANCORA_ENGINE_DB_NAME -u ANCORA_ENGINE_DB_USER -u ANCORA_ENGINE_DB_PASSWORD_FILE \
+  php -S "127.0.0.1:$port" .ht.router.php) >"$work/server.log" 2>&1 &
 server_pid=$!
 for _ in $(seq 1 50); do
   curl -s -o /dev/null "http://127.0.0.1:$port/robots.txt" && break
@@ -155,6 +168,9 @@ base_url="http://127.0.0.1:$port"
 
 step "PHPUnit Kernel and Functional tests (database ancora_test)"
 mkdir -p web/sites/simpletest/browser_output
+# The test sites configure their own engine (none): the disposable site's
+# workspace settings must not leak into them.
+env -u ANCORA_ENGINE_MODE -u ANCORA_ENGINE_DB_HOST -u ANCORA_ENGINE_DB_PORT -u ANCORA_ENGINE_DB_NAME -u ANCORA_ENGINE_DB_USER -u ANCORA_ENGINE_DB_PASSWORD_FILE \
 SIMPLETEST_DB="pgsql://ancora@localhost:$PGPORT/ancora_test" \
 ANCORA_TEST_DB_SOCKET_DIR="$PGHOST" \
 SIMPLETEST_BASE_URL="$base_url" \
