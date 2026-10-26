@@ -160,6 +160,7 @@ display:
         - 'languages:language_content'
         - 'languages:language_interface'
         - url.query_args
+        - user
         - user.permissions
       tags: {  }
   page_1:
@@ -176,5 +177,6 @@ display:
         - 'languages:language_content'
         - 'languages:language_interface'
         - url.query_args
+        - user
         - user.permissions
       tags: {  }

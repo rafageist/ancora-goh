@@ -54,6 +54,7 @@ use Drupal\views\EntityViewsData;
     'collection' => '/admin/ancora/teacher-assignments',
   ],
   admin_permission: 'administer academic data',
+  list_cache_contexts: ['user'],
   collection_permission: 'view academic data',
   base_table: 'ancora_teacher_assignment',
   label_count: [
@@ -61,11 +62,11 @@ use Drupal\views\EntityViewsData;
     'plural' => '@count teacher assignments',
   ],
   constraints: [
-    'AncoraUniqueInPlan' => [
+    'AncoraUniqueInScope' => [
       'fields' => ['template', 'teacher'],
       'message' => 'This teacher is already assigned to this activity template.',
     ],
-    'AncoraSamePlan' => [],
+    'AncoraSameCreator' => [],
     'AncoraEligibleGroups' => [],
   ],
 )]

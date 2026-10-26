@@ -5,9 +5,12 @@ declare(strict_types=1);
 namespace Drupal\ancora_academic\Fixture;
 
 use Drupal\ancora_academic\AcademicEntityInterface;
+use Drupal\ancora_academic\AcademicEntityTypes;
 use Drupal\ancora_academic\Entity\Plan;
 use Drupal\Core\Database\Connection;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
+use Drupal\Core\Session\AccountInterface;
+use Drupal\Core\Session\AccountSwitcherInterface;
 
 /**
  * Creates the synthetic dataset of dev/e2e/fixture.sql through the Entity API.
@@ -27,8 +30,12 @@ use Drupal\Core\Entity\EntityTypeManagerInterface;
  * place 8 of 8 activities.
  *
  * Every record is validated before it is saved, so the fixture also proves
- * the constraints accept a coherent dataset. Loading is refused when plan P
- * already exists, so a run never mixes with earlier data.
+ * the constraints accept a coherent dataset. The records belong to one user,
+ * as the fixture rows belong to "admin-superuser": the plan and the
+ * catalogues are that user's, and they are created and validated as that
+ * user (the reference choices are the user's own records). Loading is
+ * refused when that user already has a plan P, so a run never mixes with
+ * earlier data.
  */
 final class SyntheticFixture {
 
@@ -37,9 +44,15 @@ final class SyntheticFixture {
    */
   public const PLAN_CODE = 'P';
 
+  /**
+   * The user ID of the owner of the records being created.
+   */
+  private int $owner = 0;
+
   public function __construct(
     private readonly EntityTypeManagerInterface $entityTypeManager,
     private readonly Connection $database,
+    private readonly AccountSwitcherInterface $accountSwitcher,
   ) {}
 
   /**
@@ -47,28 +60,43 @@ final class SyntheticFixture {
    *
    * @param bool $complete
    *   Also apply the data entry steps of the HTTP harness (Teacher Beta).
+   * @param \Drupal\Core\Session\AccountInterface|null $owner
+   *   The user who owns the records; by default the site's first account.
    *
    * @throws \RuntimeException
-   *   When plan P exists or a record does not validate; nothing is kept.
+   *   When the owner has plan P or a record does not validate; nothing is
+   *   kept.
    */
-  public function load(bool $complete = TRUE): Plan {
+  public function load(bool $complete = TRUE, ?AccountInterface $owner = NULL): Plan {
+    $owner ??= $this->entityTypeManager->getStorage('user')->load(1);
+    if (!$owner instanceof AccountInterface) {
+      throw new \RuntimeException('The fixture needs an owner account.');
+    }
     $transaction = $this->database->startTransaction();
+    $this->accountSwitcher->switchTo($owner);
     try {
-      return $this->doLoad($complete);
+      return $this->doLoad($complete, (int) $owner->id());
     }
     catch (\Throwable $e) {
       $transaction->rollBack();
       throw $e;
+    }
+    finally {
+      $this->accountSwitcher->switchBack();
     }
   }
 
   /**
    * Creates the dataset.
    */
-  private function doLoad(bool $complete): Plan {
-    $existing = $this->entityTypeManager->getStorage('ancora_plan')->loadByProperties(['code' => self::PLAN_CODE]);
+  private function doLoad(bool $complete, int $owner): Plan {
+    $this->owner = $owner;
+    $existing = $this->entityTypeManager->getStorage('ancora_plan')->loadByProperties([
+      'code' => self::PLAN_CODE,
+      'uid' => $owner,
+    ]);
     if ($existing) {
-      throw new \RuntimeException(sprintf('A plan with code "%s" already exists; the fixture is loaded only once.', self::PLAN_CODE));
+      throw new \RuntimeException(sprintf('The user already has a plan with code "%s"; the fixture is loaded only once.', self::PLAN_CODE));
     }
 
     $plan = $this->create('ancora_plan', [
@@ -186,6 +214,11 @@ final class SyntheticFixture {
    *   The field values.
    */
   private function create(string $entity_type_id, array $values): AcademicEntityInterface {
+    if (AcademicEntityTypes::isOwned($entity_type_id)) {
+      // A catalogue record serves every plan of its owner: no plan.
+      unset($values['plan']);
+      $values['uid'] = $this->owner;
+    }
     $entity = $this->entityTypeManager->getStorage($entity_type_id)->create($values);
     assert($entity instanceof AcademicEntityInterface);
     $violations = $entity->validate();

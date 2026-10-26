@@ -44,16 +44,17 @@ final class FixtureExportTest extends AcademicKernelTestBase {
     $this->assertSame(AcademicExport::SCHEMA, $export['schema']);
     $this->assertSame('P', $export['plan']['code']);
     $this->assertSame(30, $export['plan']['duration_days']);
-    $counts = array_map('count', array_diff_key($export, array_flip(['schema', 'plan'])));
+    $this->assertSame((int) $this->owner->id(), $export['owner']);
+    $counts = array_map('count', array_diff_key($export, array_flip(['schema', 'owner', 'plan'])));
     $this->assertSame([
       'periods' => 1,
+      'student_groups' => 2,
+      'activity_templates' => 4,
       'activity_types' => 1,
       'specialties' => 1,
       'levels' => 1,
       'cohorts' => 2,
-      'student_groups' => 2,
       'subjects' => 2,
-      'activity_templates' => 4,
       'rooms' => 2,
       'teachers' => 2,
       'teacher_assignments' => 4,
@@ -181,11 +182,21 @@ final class FixtureExportTest extends AcademicKernelTestBase {
    * The complete dataset adds Teacher Beta exactly as dev/e2e/lib.sh does.
    */
   public function testCompleteDatasetMatchesTheHttpHarness(): void {
-    $rows = $this->container->get(LegacyRows::class)->build($this->exportFixture(TRUE), 'owner', 'x.');
-    $this->assertSame(['x.TA', 'x.TB'], array_column($rows['profesor'], 'id'));
+    $export = $this->exportFixture(TRUE);
+    $rows = $this->container->get(LegacyRows::class)->build($export, 'owner', TRUE);
+    // Numbered ids: the entity id, ":" and the code.
+    $teachers = array_column($export['teachers'], 'id', 'code');
+    $tb = LegacyRows::engineId($teachers['TB'], 'TB');
+    $this->assertSame([LegacyRows::engineId($teachers['TA'], 'TA'), $tb], array_column($rows['profesor'], 'id'));
     $this->assertSame(['owner'], array_values(array_unique(array_column($rows['profesor'], 'creador'))));
-    $beta = array_values(array_filter($rows['profesor_para_actividad'], static fn (array $r): bool => $r['profesor'] === 'x.TB'));
-    $this->assertSame(['x.B1', 'x.B2'], array_column($beta, 'plantilla'));
+    $beta = array_values(array_filter($rows['profesor_para_actividad'], static fn (array $r): bool => $r['profesor'] === $tb));
+    $this->assertSame(['B1', 'B2'], array_map(static fn (string $id): string => substr($id, 11), array_column($beta, 'plantilla')));
+    // Ids sort in creation order, like the legacy replica ids.
+    $groups = array_column($rows['grupo'], 'id');
+    $sorted = $groups;
+    sort($sorted, SORT_STRING);
+    $this->assertSame($sorted, $groups);
+    $this->assertMatchesRegularExpression('/^[0-9]{10}:G1$/', $groups[0]);
     $links = array_filter($rows['profesor_para_grupo'], static fn (array $r): bool => in_array($r['profesor_para_actividad'], array_column($beta, 'id'), TRUE));
     $this->assertCount(4, $links);
     // 4 templates x 2 groups = 8 demands, each with a teacher and a room.
@@ -229,13 +240,23 @@ final class FixtureExportTest extends AcademicKernelTestBase {
     catch (\InvalidArgumentException $e) {
       $this->assertStringContainsString('does not belong', $e->getMessage());
     }
-    // The other plan exports on its own, with no data of plan P.
+    // The other plan has its own periods, groups and templates, and shares
+    // the catalogues of its creator (legacy PAR-003).
     $export = $this->container->get(AcademicExport::class)->export($other);
-    $this->assertSame([], $export['subjects']);
+    $this->assertSame(['A', 'B'], array_column($export['subjects'], 'code'));
+    $this->assertSame(['TA', 'TB'], array_column($export['teachers'], 'code'));
     $this->assertCount(1, $export['periods']);
+    $this->assertSame([], $export['activity_templates']);
+    $this->assertSame([], $export['student_groups']);
+
+    // Another user's catalogue is empty.
+    $other_user = $this->createUser(['view academic data', 'edit academic data']);
+    $catalogue = $this->container->get(AcademicExport::class)->catalogue((int) $other_user->id());
+    $this->assertNull($catalogue['plan']);
+    $this->assertSame([], $catalogue['subjects']);
 
     $this->expectException(\RuntimeException::class);
-    $this->expectExceptionMessage('already exists');
+    $this->expectExceptionMessage('already has a plan');
     $this->loadFixture();
   }
 

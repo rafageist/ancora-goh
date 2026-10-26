@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\ancora_scheduling\Sync;
 
+use Drupal\ancora_academic\AcademicEntityTypes;
 use Drupal\ancora_academic\Entity\Level;
 use Drupal\ancora_academic\Entity\Period;
 use Drupal\ancora_academic\Entity\Plan;
@@ -19,19 +20,27 @@ use Drupal\Core\Entity\EntityTypeManagerInterface;
 use PgSql\Connection as PgConnection;
 
 /**
- * Syncs a job's plan from Drupal into the engine database, inside the run.
+ * Syncs the site's planning data into the engine database, inside the run.
  *
  * Registered as "ancora_engine.job_input", the optional job input service of
  * the engine worker. For a job with a source it:
  * 1. loads the plan, period, specialty and level the job was queued for, and
- *    refuses the job when one is gone, moved to another plan, or when its
- *    code changed since the job was queued (the queued scope would no longer
- *    match the data);
- * 2. exports the whole plan (AcademicExport, every period), which keeps the
- *    legacy ids of all the plan's scopes stable whichever period runs;
- * 3. records the input snapshot: the sha256 of the canonical export;
- * 4. builds the legacy rows with the plan's prefix and owner (LegacyRows)
- *    and writes them with replace semantics (LegacyTableSync).
+ *    refuses the job when one is gone, or when the period moved to another
+ *    plan or the specialty or level to another user;
+ * 2. records the input snapshot: the sha256 of the canonical export of the
+ *    job's plan (its records and its creator's catalogues);
+ * 3. builds the legacy rows of the whole site (LegacyRows, numbered ids):
+ *    every plan with its creator's catalogues, and the catalogues of users
+ *    without a plan, each owned by the legacy user of its creator
+ *    (ScopeMapper::creatorOf()), and writes them with replace semantics
+ *    (LegacyTableSync).
+ *
+ * The whole site, because the legacy database the engine was written for
+ * holds every user's rows at all times: a user's catalogues serve all the
+ * user's plans, the breakdown triggers pair a subject with the periods of
+ * every plan of its creator, and generar() reads data across plans (for
+ * example the groups of every plan, quirk Q-02, and the activity type order
+ * of every user, Q-03). The diff keeps unchanged rows untouched.
  *
  * It runs in the worker's engine transaction, so a failure here, or any
  * failure of the run afterwards, rolls the sync back too and leaves the
@@ -70,20 +79,75 @@ final class EngineSync implements JobInputInterface {
     catch (\InvalidArgumentException $e) {
       throw new \RuntimeException($e->getMessage(), 0, $e);
     }
-    if ($scope->toParameters() !== $job->scope->toParameters() || ScopeMapper::prefix($plan) !== $source->idPrefix) {
-      throw new \RuntimeException('The codes of the plan, period, specialty or level changed after the job was queued; queue it again.');
+    if ($scope->toParameters() !== $job->scope->toParameters() || $source->idPrefix !== ScopeMapper::ID_MARKER) {
+      throw new \RuntimeException('The engine ids of the plan, period, specialty or level changed after the job was queued; queue it again.');
     }
 
-    $export = $this->export->export($plan);
-    $hash = ScopeMapper::hash($export);
-    $rows = $this->legacyRows->build($export, ScopeMapper::creator($plan), $source->idPrefix);
-    $changes = (new LegacyTableSync($engine, $connection))->sync($rows, $source->idPrefix, ScopeMapper::creator($plan));
+    $hash = ScopeMapper::hash($this->export->export($plan));
+    [$rows, $creators, $issues] = $this->siteRows();
+    $changes = (new LegacyTableSync($engine, $connection))->sync($rows, $creators);
     return [
       'hash' => $hash,
-      'schema' => $export['schema'],
-      'issues' => count($export['issues']),
+      'schema' => AcademicExport::SCHEMA,
+      'issues' => $issues,
       'rows' => array_sum(array_map('count', $rows)),
     ] + $changes;
+  }
+
+  /**
+   * The legacy rows of the whole site.
+   *
+   * @return array{0: array<string, list<array<string, scalar|null>>>, 1: list<string>, 2: int}
+   *   The rows by table (LegacyRows order), the legacy users who own them,
+   *   and the number of export issues of every plan.
+   */
+  private function siteRows(): array {
+    $owners = [];
+    foreach (AcademicEntityTypes::OWNED as $entity_type_id) {
+      $storage = $this->entityTypeManager->getStorage($entity_type_id);
+      foreach ($storage->getAggregateQuery()->accessCheck(FALSE)->groupBy('uid')->execute() as $row) {
+        $owners[(int) $row['uid']] = TRUE;
+      }
+    }
+    ksort($owners);
+    $plans = $this->entityTypeManager->getStorage('ancora_plan')->getQuery()
+      ->accessCheck(FALSE)
+      ->sort('id')
+      ->execute();
+    $by_owner = [];
+    foreach ($this->entityTypeManager->getStorage('ancora_plan')->loadMultiple($plans) as $plan) {
+      assert($plan instanceof Plan);
+      $by_owner[(int) $plan->getCreatorId()][] = $plan;
+    }
+
+    $rows = array_fill_keys(LegacyRows::TABLES, []);
+    $seen = [];
+    $issues = 0;
+    $creators = [];
+    foreach (array_keys($owners) as $owner) {
+      $creator = ScopeMapper::creatorOf($owner);
+      $creators[] = $creator;
+      $exports = [];
+      foreach ($by_owner[$owner] ?? [] as $plan) {
+        $exports[] = $this->export->export($plan);
+      }
+      $exports = $exports ?: [$this->export->catalogue($owner)];
+      foreach ($exports as $export) {
+        $issues += count($export['issues']);
+        foreach ($this->legacyRows->build($export, $creator, TRUE) as $table => $list) {
+          foreach ($list as $row) {
+            // A user's catalogue rows are in the export of each of the
+            // user's plans; they are written once.
+            $key = $table . "\x1F" . LegacyTableSync::keyOf($row, LegacyTableSync::TABLES[$table][0]);
+            if (!isset($seen[$key])) {
+              $seen[$key] = TRUE;
+              $rows[$table][] = $row;
+            }
+          }
+        }
+      }
+    }
+    return [$rows, $creators, $issues];
   }
 
   /**

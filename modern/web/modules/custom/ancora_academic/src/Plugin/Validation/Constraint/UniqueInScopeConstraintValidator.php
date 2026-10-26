@@ -13,9 +13,9 @@ use Symfony\Component\Validator\ConstraintValidator;
 use Symfony\Component\Validator\Exception\UnexpectedTypeException;
 
 /**
- * Validates the AncoraUniqueInPlan constraint.
+ * Validates the AncoraUniqueInScope constraint.
  */
-final class UniqueInPlanConstraintValidator extends ConstraintValidator implements ContainerInjectionInterface {
+final class UniqueInScopeConstraintValidator extends ConstraintValidator implements ContainerInjectionInterface {
 
   public function __construct(
     private readonly EntityTypeManagerInterface $entityTypeManager,
@@ -32,20 +32,22 @@ final class UniqueInPlanConstraintValidator extends ConstraintValidator implemen
    * {@inheritdoc}
    */
   public function validate(mixed $value, Constraint $constraint): void {
-    if (!$constraint instanceof UniqueInPlanConstraint) {
-      throw new UnexpectedTypeException($constraint, UniqueInPlanConstraint::class);
+    if (!$constraint instanceof UniqueInScopeConstraint) {
+      throw new UnexpectedTypeException($constraint, UniqueInScopeConstraint::class);
     }
-    if (!$value instanceof AcademicEntityInterface || !$value->hasField('plan')) {
+    if (!$value instanceof AcademicEntityInterface) {
       return;
     }
-    $plan_id = $value->getPlanId();
-    if ($plan_id === NULL) {
+    // The scope: the plan of a plan record, the owner of an owned record.
+    $scope_field = $value->hasField('plan') ? 'plan' : ($value->hasField('uid') ? 'uid' : NULL);
+    $scope = $scope_field === NULL ? NULL : $value->get($scope_field)->target_id;
+    if ($scope === NULL || $scope === '') {
       return;
     }
 
     $query = $this->entityTypeManager->getStorage($value->getEntityTypeId())->getQuery()
       ->accessCheck(FALSE)
-      ->condition('plan', $plan_id)
+      ->condition($scope_field, $scope)
       ->range(0, 1);
     foreach ($constraint->fields as $field_name) {
       $item = $value->get($field_name)->first();

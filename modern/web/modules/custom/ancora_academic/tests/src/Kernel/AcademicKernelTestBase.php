@@ -9,6 +9,8 @@ use Drupal\ancora_academic\AcademicEntityTypes;
 use Drupal\ancora_academic\Entity\Plan;
 use Drupal\ancora_academic\Fixture\SyntheticFixture;
 use Drupal\Tests\ancora\Kernel\AncoraKernelTestBase;
+use Drupal\Tests\user\Traits\UserCreationTrait;
+use Drupal\user\UserInterface;
 
 /**
  * Base class of the academic Kernel tests.
@@ -17,6 +19,13 @@ use Drupal\Tests\ancora\Kernel\AncoraKernelTestBase;
  * disposable cluster's Unix socket when ANCORA_TEST_DB_SOCKET_DIR is set.
  */
 abstract class AcademicKernelTestBase extends AncoraKernelTestBase {
+
+  use UserCreationTrait;
+
+  /**
+   * The planner who owns the fixture, and the current user.
+   */
+  protected UserInterface $owner;
 
   /**
    * {@inheritdoc}
@@ -39,21 +48,29 @@ abstract class AcademicKernelTestBase extends AncoraKernelTestBase {
       $this->installEntitySchema($entity_type_id);
     }
     $this->installConfig(['ancora_academic']);
+    $this->installSchema('user', ['users_data']);
+    // User 1 first, so that the planners are not superusers.
+    $this->createUser([], 'site-admin');
+    $this->owner = $this->createUser(['view academic data', 'edit academic data'], 'planner');
+    $this->setCurrentUser($this->owner);
   }
 
   /**
-   * Loads the synthetic fixture and returns its plan.
+   * Loads the synthetic fixture, owned by $this->owner, and returns its plan.
    */
   protected function loadFixture(bool $complete = TRUE): Plan {
-    return $this->container->get(SyntheticFixture::class)->load($complete);
+    return $this->container->get(SyntheticFixture::class)->load($complete, $this->owner);
   }
 
   /**
-   * Loads the record of a type with a code in a plan.
+   * Loads the record of a type with a code: in a plan, or of the owner.
    */
-  protected function byCode(string $entity_type_id, string $code, ?Plan $plan = NULL): AcademicEntityInterface {
+  protected function byCode(string $entity_type_id, string $code, ?Plan $plan = NULL, ?UserInterface $owner = NULL): AcademicEntityInterface {
     $properties = ['code' => $code];
-    if ($entity_type_id !== 'ancora_plan' && $plan !== NULL) {
+    if (AcademicEntityTypes::isOwned($entity_type_id)) {
+      $properties['uid'] = ($owner ?? $this->owner)->id();
+    }
+    elseif ($plan !== NULL) {
       $properties['plan'] = $plan->id();
     }
     $entities = $this->container->get('entity_type.manager')->getStorage($entity_type_id)->loadByProperties($properties);

@@ -27,10 +27,10 @@ use Psr\Log\LoggerInterface;
  * soft-cancelled run they are a draft. A rolled-back run changed nothing, so
  * it does not hide the final timetable before it.
  *
- * Engine ids are mapped back to the plan's records through the same legacy
- * ids LegacyRows gives them (prefix + code; template: subject code and
- * sequence). An id that no longer maps (the record was renamed or deleted
- * after the run) is shown as its raw code.
+ * Engine ids are mapped back to the plan's records through the same numbered
+ * ids LegacyRows gives them (LegacyRows::engineId()). An id that no longer
+ * maps (the record was deleted after the run) is shown as its code, the part
+ * after the separator.
  */
 final class TimetableReader {
 
@@ -56,10 +56,9 @@ final class TimetableReader {
    *     "error" (NULL, or a message without details).
    */
   public function read(Plan $plan, Period $period): array {
-    $prefix = ScopeMapper::prefix($plan);
     $export = $this->export->export($plan);
     $hash = ScopeMapper::hash($export);
-    $index = $this->index($export, $this->legacyRows->build($export, ScopeMapper::creator($plan), $prefix));
+    $index = $this->index($export, $this->legacyRows->build($export, ScopeMapper::creator($plan), TRUE));
 
     $by_scope = [];
     foreach ($this->jobs->forSource((int) $plan->id(), (int) $period->id()) as $job) {
@@ -79,8 +78,8 @@ final class TimetableReader {
       }
       $scope_job = $shown ?? $jobs[array_key_first($jobs)];
       $scope = [
-        'specialty' => $this->label($index['specialties'], $scope_job->scope->specialty, $prefix),
-        'level' => $this->label($index['levels'], $scope_job->scope->level, $prefix),
+        'specialty' => $this->label($index['specialties'], $scope_job->scope->specialty),
+        'level' => $this->label($index['levels'], $scope_job->scope->level),
         'job' => $shown,
         'final' => $shown !== NULL && $shown->state === JobState::Succeeded,
         'stale' => $shown !== NULL && ($shown->result['input_hash'] ?? NULL) !== $hash,
@@ -90,7 +89,7 @@ final class TimetableReader {
       ];
       if ($shown !== NULL) {
         try {
-          $scope['placements'] = $this->placements($shown, $index, $prefix);
+          $scope['placements'] = $this->placements($shown, $index);
         }
         catch (\RuntimeException $e) {
           $this->logger->error('Timetable of plan @plan: the engine database could not be read: @message', [
@@ -116,7 +115,7 @@ final class TimetableReader {
   /**
    * The engine placements of a job's scope, mapped to the plan's records.
    */
-  private function placements(Job $job, array $index, string $prefix): array {
+  private function placements(Job $job, array $index): array {
     if (!$this->settings->isConfigured()) {
       throw new \RuntimeException('The engine database of this site is not configured.');
     }
@@ -127,14 +126,14 @@ final class TimetableReader {
         'day' => $row['dia'],
         'slot' => $row['turno'],
         'slots' => $row['duracion'],
-        'activity' => $template['label'] ?? self::strip($row['plantilla'], $prefix),
+        'activity' => $template['label'] ?? self::strip($row['plantilla']),
         'subject' => $template['subject'] ?? '',
-        'group' => $index['groups'][$row['grupo']] ?? self::strip($row['grupo'], $prefix),
-        'group_code' => self::strip($row['grupo'], $prefix),
-        'teacher' => $row['profesor'] === NULL ? '' : ($index['teachers'][$row['profesor']] ?? self::strip($row['profesor'], $prefix)),
-        'teacher_code' => $row['profesor'] === NULL ? '' : self::strip($row['profesor'], $prefix),
-        'room' => $row['lugar'] === NULL ? '' : ($index['rooms'][$row['lugar']] ?? self::strip($row['lugar'], $prefix)),
-        'room_code' => $row['lugar'] === NULL ? '' : self::strip($row['lugar'], $prefix),
+        'group' => $index['groups'][$row['grupo']] ?? self::strip($row['grupo']),
+        'group_code' => self::strip($row['grupo']),
+        'teacher' => $row['profesor'] === NULL ? '' : ($index['teachers'][$row['profesor']] ?? self::strip($row['profesor'])),
+        'teacher_code' => $row['profesor'] === NULL ? '' : self::strip($row['profesor']),
+        'room' => $row['lugar'] === NULL ? '' : ($index['rooms'][$row['lugar']] ?? self::strip($row['lugar'])),
+        'room_code' => $row['lugar'] === NULL ? '' : self::strip($row['lugar']),
       ];
     }
     return $placements;
@@ -175,15 +174,16 @@ final class TimetableReader {
   /**
    * A label by engine id, or the code when it no longer maps.
    */
-  private function label(array $labels, string $id, string $prefix): string {
-    return $labels[$id] ?? self::strip($id, $prefix);
+  private function label(array $labels, string $id): string {
+    return $labels[$id] ?? self::strip($id);
   }
 
   /**
-   * An engine id without the plan's prefix: the record's code.
+   * The code of a numbered engine id: the part after the separator.
    */
-  private static function strip(string $id, string $prefix): string {
-    return str_starts_with($id, $prefix) ? substr($id, strlen($prefix)) : $id;
+  private static function strip(string $id): string {
+    $at = strpos($id, LegacyRows::ID_SEPARATOR);
+    return $at === FALSE ? $id : substr($id, $at + strlen(LegacyRows::ID_SEPARATOR));
   }
 
 }

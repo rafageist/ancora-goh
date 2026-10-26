@@ -64,35 +64,34 @@ GET  /ancora/planning/{plan}/timetable
 
 ## Scope mapping: from the records a user picks to engine ids
 
-One engine database serves one site. A site can hold several plans, and codes are unique only within a plan. So every engine id of a plan is its `LegacyRows` id with a **fixed prefix built from the plan's entity id**:
+Updated by #70 (D1–D3, D15; see [legacy-parity-harness.md](legacy-parity-harness.md)). One engine database serves one site and holds **every user's data**, as one legacy database held every user's rows. Engine ids are **numbered with the entity id** (`LegacyRows::engineId()`):
 
 ```
-prefix   = "p" . <plan entity id> . ":"        e.g. "p1:"
-specialty = prefix . <specialty code>          "p1:E"
-level     = prefix . <level code>              "p1:N"
-period    = prefix . <period code>             "p1:PER"
-owner     = prefix . "owner"                   "p1:owner" (legacy "creador")
+id        = sprintf('%010d', <entity id>) . ":" . <code>     e.g. "0000000012:E"
+specialty = id of the specialty (the plan creator's)           "0000000003:E"
+level     = id of the level (the plan creator's)               "0000000004:N"
+period    = id of the period (of the plan)                     "0000000001:PER"
+owner     = "u" . <Drupal user id>                             "u2" (legacy "creador")
 ```
 
-- **Why the entity id, not the code.** The plan id never changes; a plan code can be edited. The colon cannot appear in a code (`[A-Za-z0-9._-]+`), so two plans never share an engine id.
-- **The job records both.** The engine scope (prefixed ids, as before), and its **source**: new nullable columns `plan_id`, `period_id`, `specialty_id`, `level_id` and `id_prefix` of `ancora_engine_job`, added by `ancora_engine_update_11001()`. A job without a source (CLI, `engine-integration.sh`) runs on data already in the engine database, as before.
-- **Checked again at run time.** The sync loads the four records by id and computes the scope again. If a record was deleted, moved, or its code changed after the job was queued, the job **fails** ("queue it again") instead of running on a scope that no longer matches the data.
-- **A legacy owner per plan.** Each plan gets its own legacy user, created by the sync with an unusable password. The legacy triggers that work per owner then never touch another plan:
-  - a breakdown row for every subject and period of the owner;
-  - the compaction of activity type priorities after a delete.
+- **Why numbered ids.** Legacy ids are generated replicas that sort in entry order, and `generar()` reads some tables in id order: the result depends on it (harness, scenario s04). Entity ids grow in creation order and are unique per type on the site, so the ids keep the legacy order, never collide between users or plans, and do not change when a code is edited. The code after `:` keeps them readable.
+- **Owner.** The legacy owner of a record is the legacy user of the Drupal user who created it (`ScopeMapper::creatorOf()`), created by the sync with no personal data and an unusable password. The per-owner triggers then act across that user's plans, as in legacy: a breakdown row for every subject and every period of the user's plans; the activity type priorities of the user.
+- **Scope rule.** The period must be the plan's, and the specialty and level the plan creator's (the legacy generator window offers only the user's own).
+- **The job records both.** The engine scope, and its **source**: nullable columns `plan_id`, `period_id`, `specialty_id`, `level_id` and `id_prefix` of `ancora_engine_job` (`ancora_engine_update_11001()`). For synced jobs `id_prefix` holds the id marker `:` (see "Digest"). A job without a source (CLI, `engine-integration.sh`) runs on data already in the engine database, as before.
+- **Checked again at run time.** The sync loads the four records by id and computes the scope again. If a record was deleted, moved to another plan or user, or the job was queued with the earlier id scheme, the job **fails** ("queue it again").
+- Until #70 every plan had its own prefix `p<plan id>:` and its own legacy owner `p<plan id>:owner`, because catalogues were copied per plan. That owner is gone: it split one person's rows over several legacy users, so the per-owner triggers never saw a user's other plans.
 
 ## Sync semantics (Drupal → engine, inside the run)
 
 `EngineSync` (service `ancora_engine.job_input`, the optional input hook of the worker, `JobInputInterface`) does the following:
 
-1. Exports the **whole plan**: `AcademicExport::export($plan)`, every period. The export of one period would give templates of different periods the same legacy id (`A1`), and would make the ids depend on which period runs.
-2. Computes the **input snapshot hash** (see below).
-3. Builds the rows with `LegacyRows::build($export, $owner, $prefix)`.
-4. Writes them with `LegacyTableSync`.
+1. Computes the **input snapshot hash** of the job's plan (see below).
+2. Builds the rows of the **whole site** with `LegacyRows::build($export, $owner, TRUE)`: every plan (`AcademicExport::export()`, every period, with its owner's catalogues) and the catalogues of users without a plan (`AcademicExport::catalogue()`). A user's catalogue rows appear in each of their plans' exports and are written once. The whole site, because the legacy engine reads data across plans and users: the breakdown triggers pair a subject with every plan of its creator, `dame_grupos` takes the groups of every plan (quirk Q-02), and the activity type order is global (Q-03).
+3. Writes them with `LegacyTableSync`.
 
 ### Replace semantics
 
-After the sync, the plan's rows in the engine database are exactly the exported rows. A plan's rows are the rows whose id, or owning column, starts with its prefix:
+After the sync, the synced rows in the engine database are exactly the built rows. Synced rows are the rows whose id, or owning column, is a numbered id, or an id of the earlier `p<plan id>:` scheme (`LegacyTableSync::SYNCED_ID`), which the first sync after the update replaces. Rows of any other origin are never read or written:
 
 | Table | Owning column |
 | --- | --- |
@@ -102,20 +101,20 @@ After the sync, the plan's rows in the engine database are exactly the exported 
 | `profesor_para_grupo` | `grupo` |
 | `lugar_para_actividad` | `plantilla` |
 
-`SchedulingTest::testEveryRowCarriesThePrefix` proves that every row of the fixture is covered.
+`SchedulingTest::testEveryRowIsNumbered` proves that every row of the fixture is covered.
 
 The sync is a **difference**, not a delete and reinsert:
 
 1. **Deletes, children first.** The plan's rows whose key is no longer exported are deleted. The legacy cascades remove what depended on them, including placements of deleted templates, groups, teachers or rooms.
 2. **Inserts and updates, parents first.** Each table is read again, because triggers and cascades may have changed it. Missing rows are inserted, and rows that differ are updated. Unchanged rows are not touched. The retry in the journey reports `0 0 0` (inserted, updated, deleted).
 
-Why a difference: the placements of the plan's **other** scopes reference these rows. A delete and reinsert would cascade them away, together with the legacy restriction rows that reference placements.
+Why a difference: the placements of the other scopes and plans reference these rows. A delete and reinsert would cascade them away, together with the legacy restriction rows that reference placements.
 
 ### The legacy triggers stay enabled
 
 The runtime role does not own the tables and cannot disable triggers (`session_replication_role` needs a superuser). They are respected instead:
 
-- **Breakdown rows (`desglose`)** are created by `nuevo_desglose_si_nueva_asignatura` / `_nuevo_periodo`, for every subject and period of the same owner.
+- **Breakdown rows (`desglose`)** are created by `nuevo_desglose_si_nueva_asignatura` / `_nuevo_periodo`, for every subject and every period of the same owner's plans.
   - The sync **reuses** them. It matches a breakdown by `(asignatura, periodo)` and keeps the trigger's id.
   - It updates the breakdown rules only if they differ (they are the legacy defaults today).
   - It points the templates at that id.
@@ -138,7 +137,7 @@ Every statement uses bound parameters (`EngineClient::rows()` / `affected()`). T
 
 The hash is `sha256` of the canonical JSON of the plan's export (`ScopeMapper::hash()`: `json_encode` with unescaped slashes and Unicode, and zero fractions preserved, so floats stay floats). The export is deterministic: sorted lists, UUID keys and typed numbers.
 
-- **Equal data, equal hash.** Any change of a record of the plan changes it, a label included.
+- **Equal data, equal hash.** Any change of a record of the plan or of its owner's catalogues changes it, a label included.
 - **Stored in the job result** as:
   - `input_hash`;
   - `input`: the schema version, the number of export issues, the number of rows, the inserted, updated and deleted counts per table, and `committed`.
@@ -146,11 +145,11 @@ The hash is `sha256` of the canonical JSON of the plan's export (`ScopeMapper::h
 
 ### Digest
 
-The E2E placement digest (`dev/e2e/expected-placements.md5`) is computed over template, group, teacher name, room, day and slot. For a synced job it is computed **without the plan prefix** (`EngineClient::PLACEMENTS` strips `$4`; `''` for other jobs), so it compares with the legacy digest. The prefix is the same for every id of the plan, and the cluster collation is `C.UTF-8`, so the engine's ordering is unchanged. The fixture synced from Drupal gives `4199818b55d4f1c44f2cba24f0367e29`, the legacy value.
+The E2E placement digest (`dev/e2e/expected-placements.md5`) is computed over template, group, teacher name, room, day and slot. For a synced job each id is listed **from after the job's id marker** (`EngineClient::PLACEMENTS`, `$4` = `:`; `''` for other jobs), so the digest uses the codes and compares with the legacy digest. The list is ordered by the engine ids, that is, in creation order, as legacy orders by its replica ids. The fixture synced from Drupal gives `4199818b55d4f1c44f2cba24f0367e29`, the legacy value.
 
 ## Timetable read model
 
-`/ancora/planning/{plan}/timetable?period=<id>`, `TimetableReader` and `SchedulingController::timetable()`. It needs `view academic data` and view access to the plan.
+`/ancora/planning/{plan}/timetable?period=<id>`, `TimetableReader` and `SchedulingController::timetable()`. It needs `view academic data` and view access to the plan: the plan's creator (or an administrator).
 
 1. **Which runs.** The page takes the jobs of the plan and period (`JobRepository::forSource()`) and groups them by specialty and level. For each scope, it takes the **latest job that changed the placements** (`JobRepository::changedPlacements()`): `succeeded`, `partial`, or `cancelled` with `kept = partial`. A rolled-back run (failed, timed out, hard-cancelled) changed nothing, so it does not hide the timetable before it.
 2. **Final or draft.**
@@ -158,21 +157,21 @@ The E2E placement digest (`dev/e2e/expected-placements.md5`) is computed over te
    - After a `partial` or a soft-cancelled run, the engine holds a draft: replace semantics removed the earlier final placements. The page then says "No final timetable" and shows the placements under a "DRAFT: not a final timetable" label, in a hatched grid with `data-timetable="draft"`.
    - A queued or running job is mentioned ("Job 4 is queued.").
 3. **Reading the engine.** Explicit read-only SQL on the site's engine connection: `EngineClient::placements($scope)`, which returns template, group, teacher, room, day, slot and duration. The session uses `default_transaction_read_only=on` and `statement_timeout=5s`, with `application_name=ancora_engine_read`.
-4. **Mapping back.** `LegacyRows` builds the rows of the current export with the plan's prefix. The same ids then map back to labels:
+4. **Mapping back.** `LegacyRows` builds the rows of the current export with numbered ids. The same ids then map back to labels:
 
    | Engine id | Label |
    | --- | --- |
    | template id | "Subject #sequence" |
    | group, teacher, room | the record's label |
 
-   An id that no longer maps (renamed or deleted since the run) is shown as its code.
+   An id that no longer maps (deleted since the run) is shown as its code.
 5. **Grid.** Day × slot (days of the period × slots per day, with start times from `start_hour` and `slot_duration`). An activity of several slots fills each slot it covers. Filters `?group=`, `?teacher=` and `?room=` take codes of the plan.
 6. **Escaping and caching.**
    - Every value is rendered by Twig (`ancora-scheduling-timetable.html.twig`, autoescape).
-   - Cache contexts: `user.permissions` and `url.query_args:{period,group,teacher,room}`.
+   - Cache contexts: `user.permissions` and `url.query_args:{period,group,teacher,room}`, plus `user` from the plan access check (#70).
    - Cache tags: the plan, the list tags of the 13 academic types, and `ancora_engine_job_list`.
    - `JobRepository` invalidates `ancora_engine_job_list` on every state change: enqueue, claim, finish, cancel, recover.
-   - The journey checks that the page is a dynamic page cache HIT on a repeat, and that it switches to the draft as soon as the cancelled job ends, without a cache clear.
+   - Since #70 the page varies by user: only the plan's creator may see it (the access result has the `user` cache context). Dynamic Page Cache does not cache per-user responses, so the journey checks `UNCACHEABLE` instead of the earlier HIT. It also checks that the page switches to the draft as soon as the cancelled job ends, without a cache clear.
    - If the engine cannot be read, the page says so without details and is not cached.
 
 ## Permissions
@@ -230,7 +229,7 @@ What the journey proves, in order:
    - The engine roles have no elevated attribute.
    - `engine-db.sh check-isolation` passes both ways.
    - A re-run of `provision` is idempotent.
-2. **Data entry.** On alpha, `drush ancora-academic:load-fixture` creates the E2E organization through the Entity API, with the teacher the legacy harness enters over HTTP. A `planner` role (view and edit academic data, view and request engine jobs) is created on both sites.
+2. **Data entry.** A `planner` role (view and edit academic data, view and request engine jobs) and a planner account are created on both sites. On alpha, `drush ancora-academic:load-fixture --owner=planner-alpha` creates the E2E organization through the Entity API, with the teacher the legacy harness enters over HTTP, **owned by alpha's planner**: since #70 each user sees and schedules only their own plans (legacy `creador`), so the fixture must belong to the planner who requests the timetable.
 3. **Request and run.**
    - Alpha's planner logs in over HTTP and submits the request form with its form token.
    - The job is queued and the engine has no data of the plan: nothing ran in the request.
@@ -243,7 +242,7 @@ What the journey proves, in order:
 4. **Timetable page.**
    - The page lists the 8 placements, each in its day/slot cell with its group, teacher and room names. It is compared field by field with the engine rows.
    - The group, teacher and room filters work.
-   - A repeat is a dynamic page cache HIT.
+   - The page is not cached by Dynamic Page Cache: it varies by user (#70).
 5. **Isolation.**
    - Beta's planner gets 403 on alpha's timetable, status page, request form and job list.
    - Beta's cookie replayed on alpha gets 403.
@@ -267,14 +266,14 @@ What the journey proves, in order:
 Kernel and Functional tests (in `install-disposable.sh`):
 
 - `SchedulingTest` (Kernel):
-  - scope mapping, and refusal of another plan's records;
-  - the prefix covers every legacy row;
+  - scope mapping (numbered ids, the owner's legacy user), and refusal of another plan's period or another user's specialty;
+  - every synced row has a numbered id and the owner's legacy user;
   - the hash is stable and changes with the data;
   - source round trip, `activeForScope` and `forSource`;
   - the final and draft rules, including that rolled-back runs never hide or replace what is shown.
 - `SchedulingPagesTest` (Functional):
-  - access for anonymous users, viewers and planners;
-  - the form queues without running and refuses a record of another plan and a duplicate request;
+  - access for anonymous users, another viewer (403 on the planner's timetable) and the planner who owns the plan;
+  - the form queues without running and refuses a period of another plan and a duplicate request;
   - the timetable page shows a queued job, then the final state as soon as the job ends (cache tag), and fails closed without an engine database.
 
 ## Not covered yet

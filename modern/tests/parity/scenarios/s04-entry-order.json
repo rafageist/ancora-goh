@@ -1,0 +1,323 @@
+{
+  "schema": "ancora.parity.scenario.v1",
+  "id": "s04-entry-order",
+  "title": "The E2E organization with codes that do not sort in entry order",
+  "notes": [
+    "Same data and order as s01, but group G1 has the code Z1 and group G2 the code A2, and the teachers TA and TB have the codes TZ and TB0.",
+    "generar() reads the groups in id order. Legacy ids sort in entry order (replica ids, PAR-110), so the legacy result is the E2E one. The engine ids of the sync are numbered with the entity id (creation order), so Drupal gives the same result; ids made of the codes alone would put group A2 (G2) first and give another timetable."
+  ],
+  "users": [
+    {
+      "key": "admin",
+      "name": "Administrator",
+      "legacy": "seeded-admin"
+    }
+  ],
+  "records": [
+    {
+      "type": "plan",
+      "key": "P",
+      "as": "admin",
+      "label": "Plan",
+      "starts_on": "2026-09-07",
+      "duration_days": 30
+    },
+    {
+      "type": "period",
+      "key": "PER",
+      "as": "admin",
+      "plan": "P",
+      "label": "Week",
+      "days": 5,
+      "slots_per_day": 4,
+      "start_hour": 8,
+      "slot_duration": 1,
+      "plan_days": [
+        1
+      ]
+    },
+    {
+      "type": "activity_type",
+      "key": "C1",
+      "as": "admin",
+      "label": "Lecture",
+      "duration_slots": 1,
+      "priority": 1,
+      "cost": 1
+    },
+    {
+      "type": "specialty",
+      "key": "E",
+      "as": "admin",
+      "label": "Program"
+    },
+    {
+      "type": "level",
+      "key": "N",
+      "as": "admin",
+      "label": "Year 1"
+    },
+    {
+      "type": "cohort",
+      "key": "cohort-B1",
+      "code": "B1",
+      "as": "admin",
+      "label": "Cohort 1",
+      "specialty": "E",
+      "level": "N",
+      "enrollment": 20
+    },
+    {
+      "type": "cohort",
+      "key": "cohort-B2",
+      "code": "B2",
+      "as": "admin",
+      "label": "Cohort 2",
+      "specialty": "E",
+      "level": "N",
+      "enrollment": 20
+    },
+    {
+      "type": "student_group",
+      "key": "G1",
+      "as": "admin",
+      "plan": "P",
+      "label": "Group 1",
+      "activity_type": "C1",
+      "specialty": "E",
+      "level": "N",
+      "cohorts": [
+        "cohort-B1"
+      ],
+      "code": "Z1"
+    },
+    {
+      "type": "student_group",
+      "key": "G2",
+      "as": "admin",
+      "plan": "P",
+      "label": "Group 2",
+      "activity_type": "C1",
+      "specialty": "E",
+      "level": "N",
+      "cohorts": [
+        "cohort-B2"
+      ],
+      "code": "A2"
+    },
+    {
+      "type": "subject",
+      "key": "A",
+      "as": "admin",
+      "label": "Subject Alpha",
+      "specialty": "E",
+      "level": "N"
+    },
+    {
+      "type": "subject",
+      "key": "B",
+      "as": "admin",
+      "label": "Subject Beta",
+      "specialty": "E",
+      "level": "N"
+    },
+    {
+      "type": "activity_template",
+      "key": "A1",
+      "as": "admin",
+      "subject": "A",
+      "period": "PER",
+      "sequence": 1,
+      "activity_type": "C1"
+    },
+    {
+      "type": "activity_template",
+      "key": "A2",
+      "as": "admin",
+      "subject": "A",
+      "period": "PER",
+      "sequence": 2,
+      "activity_type": "C1"
+    },
+    {
+      "type": "activity_template",
+      "key": "B1",
+      "as": "admin",
+      "subject": "B",
+      "period": "PER",
+      "sequence": 1,
+      "activity_type": "C1"
+    },
+    {
+      "type": "activity_template",
+      "key": "B2",
+      "as": "admin",
+      "subject": "B",
+      "period": "PER",
+      "sequence": 2,
+      "activity_type": "C1"
+    },
+    {
+      "type": "teacher",
+      "key": "TA",
+      "as": "admin",
+      "label": "Teacher Alpha",
+      "code": "TZ"
+    },
+    {
+      "type": "teacher_assignment",
+      "key": "A1@TA",
+      "as": "admin",
+      "template": "A1",
+      "teacher": "TA",
+      "priority": 1,
+      "groups": [
+        "G1",
+        "G2"
+      ]
+    },
+    {
+      "type": "teacher_assignment",
+      "key": "A2@TA",
+      "as": "admin",
+      "template": "A2",
+      "teacher": "TA",
+      "priority": 1,
+      "groups": [
+        "G1",
+        "G2"
+      ]
+    },
+    {
+      "type": "room",
+      "key": "L1",
+      "as": "admin",
+      "label": "Room 1",
+      "capacity": 50
+    },
+    {
+      "type": "room",
+      "key": "L2",
+      "as": "admin",
+      "label": "Room 2",
+      "capacity": 50
+    },
+    {
+      "type": "room_assignment",
+      "key": "A1@L1",
+      "as": "admin",
+      "template": "A1",
+      "room": "L1",
+      "priority": 1
+    },
+    {
+      "type": "room_assignment",
+      "key": "A1@L2",
+      "as": "admin",
+      "template": "A1",
+      "room": "L2",
+      "priority": 2
+    },
+    {
+      "type": "room_assignment",
+      "key": "A2@L1",
+      "as": "admin",
+      "template": "A2",
+      "room": "L1",
+      "priority": 1
+    },
+    {
+      "type": "room_assignment",
+      "key": "A2@L2",
+      "as": "admin",
+      "template": "A2",
+      "room": "L2",
+      "priority": 2
+    },
+    {
+      "type": "room_assignment",
+      "key": "B1@L1",
+      "as": "admin",
+      "template": "B1",
+      "room": "L1",
+      "priority": 1
+    },
+    {
+      "type": "room_assignment",
+      "key": "B1@L2",
+      "as": "admin",
+      "template": "B1",
+      "room": "L2",
+      "priority": 2
+    },
+    {
+      "type": "room_assignment",
+      "key": "B2@L1",
+      "as": "admin",
+      "template": "B2",
+      "room": "L1",
+      "priority": 1
+    },
+    {
+      "type": "room_assignment",
+      "key": "B2@L2",
+      "as": "admin",
+      "template": "B2",
+      "room": "L2",
+      "priority": 2
+    },
+    {
+      "type": "teacher",
+      "key": "TB",
+      "as": "admin",
+      "label": "Teacher Beta",
+      "code": "TB0"
+    },
+    {
+      "type": "teacher_assignment",
+      "key": "B1@TB",
+      "as": "admin",
+      "template": "B1",
+      "teacher": "TB",
+      "priority": 1,
+      "groups": [
+        "G1",
+        "G2"
+      ]
+    },
+    {
+      "type": "teacher_assignment",
+      "key": "B2@TB",
+      "as": "admin",
+      "template": "B2",
+      "teacher": "TB",
+      "priority": 1,
+      "groups": [
+        "G1",
+        "G2"
+      ]
+    }
+  ],
+  "runs": [
+    {
+      "key": "E2E",
+      "as": "admin",
+      "plan": "P",
+      "period": "PER",
+      "specialty": "E",
+      "level": "N",
+      "options": {
+        "forma": 1,
+        "parche": false,
+        "compactar": 0,
+        "parche1": false,
+        "buscalugar": false
+      },
+      "expect": {
+        "metrics": "demands=8 placed=8 unplaced=0 collisions=0 overflow=0",
+        "e2e_digest": "4199818b55d4f1c44f2cba24f0367e29"
+      }
+    }
+  ],
+  "visibility": []
+}

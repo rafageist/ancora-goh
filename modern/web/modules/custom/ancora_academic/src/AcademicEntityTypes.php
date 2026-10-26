@@ -34,6 +34,33 @@ final class AcademicEntityTypes {
   ];
 
   /**
+   * The types owned by the user who creates them (legacy column "creador").
+   *
+   * Legacy: planificacion, clasificacion_de_actividad, especialidad, nivel,
+   * brigada, asignatura, profesor and lugar carry "creador" and no plan
+   * (docs/modernization/legacy-parity-inventory.md PAR-001, PAR-003). A
+   * user's catalogue records serve every plan of that user. The other types
+   * belong to a plan, and their creator is the plan's.
+   */
+  public const OWNED = [
+    'ancora_plan',
+    'ancora_activity_type',
+    'ancora_specialty',
+    'ancora_level',
+    'ancora_cohort',
+    'ancora_subject',
+    'ancora_room',
+    'ancora_teacher',
+  ];
+
+  /**
+   * Whether records of a type are owned by their creator (not by a plan).
+   */
+  public static function isOwned(string $entity_type_id): bool {
+    return in_array($entity_type_id, self::OWNED, TRUE);
+  }
+
+  /**
    * Returns the entity type IDs in planning order.
    *
    * @return list<string>
@@ -51,7 +78,7 @@ final class AcademicEntityTypes {
    */
   public static function descriptions(): array {
     return [
-      'ancora_plan' => new TranslatableMarkup('A planning cycle, for example one semester. Every other record belongs to a plan.'),
+      'ancora_plan' => new TranslatableMarkup('A planning cycle, for example one semester. Periods, groups, templates and assignments belong to a plan; your catalogues serve all your plans.'),
       'ancora_period' => new TranslatableMarkup('The weekly grid of a plan: days, time slots per day, first hour and slot length.'),
       'ancora_activity_type' => new TranslatableMarkup('Kinds of activity (lecture, lab...) with their length in slots, priority and cost.'),
       'ancora_specialty' => new TranslatableMarkup('Degree programmes or specialties.'),

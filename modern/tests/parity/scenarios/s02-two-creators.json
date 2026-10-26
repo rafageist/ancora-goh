@@ -1,0 +1,85 @@
+{
+  "schema": "ancora.parity.scenario.v1",
+  "id": "s02-two-creators",
+  "title": "Two creators in one organization, with overlapping plans and catalogues",
+  "notes": [
+    "Alice and Bob each enter a plan with the code P, for the same dates, and catalogues with the same codes (C1, E, N, B1, G1, A, L1) and partly the same names.",
+    "Legacy: every record belongs to its creador (control/data/fdms/fdm_*_creador.php), the breakdown trigger pairs a subject only with the periods of its creador's plans, and each data entry list shows only the user's own records.",
+    "Visibility checks use names that only one of them has; a name both have (Teacher Alpha, Room 1) cannot tell the lists apart.",
+    "The characterization steps (legacy only) record quirks Q-11, Q-12 and Q-23 of the inventory: a set handler updates a record of another creador by id and gives it to the editing user, a del handler deletes it, and the timetable explorer lists every user's teachers and rooms."
+  ],
+  "users": [
+    {"key": "admin", "name": "Administrator", "legacy": "seeded-admin"},
+    {"key": "alice", "name": "Alice Planner"},
+    {"key": "bob", "name": "Bob Planner"}
+  ],
+  "records": [
+    {"type": "plan", "key": "a.P", "code": "P", "as": "alice", "label": "Alice plan", "starts_on": "2026-09-07", "duration_days": 30},
+    {"type": "period", "key": "a.PER", "code": "PER", "as": "alice", "plan": "a.P", "label": "Week", "days": 5, "slots_per_day": 4, "start_hour": 8, "slot_duration": 1, "plan_days": [1]},
+    {"type": "activity_type", "key": "a.C1", "code": "C1", "as": "alice", "label": "Lecture", "duration_slots": 1, "priority": 1, "cost": 1},
+    {"type": "specialty", "key": "a.E", "code": "E", "as": "alice", "label": "Program"},
+    {"type": "level", "key": "a.N", "code": "N", "as": "alice", "label": "Year 1"},
+    {"type": "cohort", "key": "a.B1", "code": "B1", "as": "alice", "label": "Cohort 1", "specialty": "a.E", "level": "a.N", "enrollment": 20},
+    {"type": "student_group", "key": "a.G1", "code": "G1", "as": "alice", "plan": "a.P", "label": "Group 1", "activity_type": "a.C1", "specialty": "a.E", "level": "a.N", "cohorts": ["a.B1"]},
+
+    {"type": "plan", "key": "b.P", "code": "P", "as": "bob", "label": "Bob plan", "starts_on": "2026-09-07", "duration_days": 30},
+    {"type": "period", "key": "b.PER", "code": "PER", "as": "bob", "plan": "b.P", "label": "Week", "days": 5, "slots_per_day": 3, "start_hour": 8, "slot_duration": 1, "plan_days": [1]},
+    {"type": "activity_type", "key": "b.C1", "code": "C1", "as": "bob", "label": "Lecture", "duration_slots": 1, "priority": 1, "cost": 1},
+    {"type": "specialty", "key": "b.E", "code": "E", "as": "bob", "label": "Engineering"},
+    {"type": "level", "key": "b.N", "code": "N", "as": "bob", "label": "Year 1"},
+    {"type": "cohort", "key": "b.B1", "code": "B1", "as": "bob", "label": "Cohort 1", "specialty": "b.E", "level": "b.N", "enrollment": 30},
+    {"type": "student_group", "key": "b.G1", "code": "G1", "as": "bob", "plan": "b.P", "label": "Group 1", "activity_type": "b.C1", "specialty": "b.E", "level": "b.N", "cohorts": ["b.B1"]},
+
+    {"type": "subject", "key": "a.A", "code": "A", "as": "alice", "label": "Subject Alpha", "specialty": "a.E", "level": "a.N"},
+    {"type": "subject", "key": "b.A", "code": "A", "as": "bob", "label": "Subject Alpha", "specialty": "b.E", "level": "b.N"},
+    {"type": "activity_template", "key": "a.A1", "as": "alice", "subject": "a.A", "period": "a.PER", "sequence": 1, "activity_type": "a.C1"},
+    {"type": "activity_template", "key": "a.A2", "as": "alice", "subject": "a.A", "period": "a.PER", "sequence": 2, "activity_type": "a.C1"},
+    {"type": "activity_template", "key": "b.A1", "as": "bob", "subject": "b.A", "period": "b.PER", "sequence": 1, "activity_type": "b.C1"},
+    {"type": "activity_template", "key": "b.A2", "as": "bob", "subject": "b.A", "period": "b.PER", "sequence": 2, "activity_type": "b.C1"},
+    {"type": "activity_template", "key": "b.A3", "as": "bob", "subject": "b.A", "period": "b.PER", "sequence": 3, "activity_type": "b.C1"},
+
+    {"type": "teacher", "key": "a.T1", "code": "T1", "as": "alice", "label": "Teacher Alpha"},
+    {"type": "teacher", "key": "a.T2", "code": "T2", "as": "alice", "label": "Ana Teacher"},
+    {"type": "teacher", "key": "b.T1", "code": "T1", "as": "bob", "label": "Teacher Alpha"},
+    {"type": "teacher", "key": "b.T2", "code": "T2", "as": "bob", "label": "Bruno Teacher"},
+    {"type": "teacher_assignment", "key": "a.A1@T1", "as": "alice", "template": "a.A1", "teacher": "a.T1", "priority": 1, "groups": ["a.G1"]},
+    {"type": "teacher_assignment", "key": "a.A2@T2", "as": "alice", "template": "a.A2", "teacher": "a.T2", "priority": 1, "groups": ["a.G1"]},
+    {"type": "teacher_assignment", "key": "b.A1@T1", "as": "bob", "template": "b.A1", "teacher": "b.T1", "priority": 1, "groups": ["b.G1"]},
+    {"type": "teacher_assignment", "key": "b.A2@T1", "as": "bob", "template": "b.A2", "teacher": "b.T1", "priority": 1, "groups": ["b.G1"]},
+    {"type": "teacher_assignment", "key": "b.A3@T2", "as": "bob", "template": "b.A3", "teacher": "b.T2", "priority": 1, "groups": ["b.G1"]},
+
+    {"type": "room", "key": "a.L1", "code": "L1", "as": "alice", "label": "Room 1", "capacity": 50},
+    {"type": "room", "key": "b.L1", "code": "L1", "as": "bob", "label": "Room 1", "capacity": 50},
+    {"type": "room", "key": "b.L2", "code": "L2", "as": "bob", "label": "Lab B", "capacity": 40},
+    {"type": "room_assignment", "key": "a.A1@L1", "as": "alice", "template": "a.A1", "room": "a.L1", "priority": 1},
+    {"type": "room_assignment", "key": "a.A2@L1", "as": "alice", "template": "a.A2", "room": "a.L1", "priority": 1},
+    {"type": "room_assignment", "key": "b.A1@L1", "as": "bob", "template": "b.A1", "room": "b.L1", "priority": 1},
+    {"type": "room_assignment", "key": "b.A2@L1", "as": "bob", "template": "b.A2", "room": "b.L1", "priority": 1},
+    {"type": "room_assignment", "key": "b.A3@L2", "as": "bob", "template": "b.A3", "room": "b.L2", "priority": 1},
+    {"type": "room_assignment", "key": "b.A3@L1", "as": "bob", "template": "b.A3", "room": "b.L1", "priority": 2}
+  ],
+  "runs": [
+    {"key": "alice", "as": "alice", "plan": "a.P", "period": "a.PER", "specialty": "a.E", "level": "a.N",
+     "options": {"forma": 1, "parche": false, "compactar": 0, "parche1": false, "buscalugar": false},
+     "expect": {"metrics": "demands=2 placed=2 unplaced=0 collisions=0 overflow=0"}},
+    {"key": "bob", "as": "bob", "plan": "b.P", "period": "b.PER", "specialty": "b.E", "level": "b.N",
+     "options": {"forma": 1, "parche": false, "compactar": 0, "parche1": false, "buscalugar": false},
+     "expect": {"metrics": "demands=3 placed=3 unplaced=0 collisions=0 overflow=0"}}
+  ],
+  "visibility": [
+    {"as": "alice", "type": "plan", "visible": ["a.P"], "hidden": ["b.P"]},
+    {"as": "bob", "type": "plan", "visible": ["b.P"], "hidden": ["a.P"]},
+    {"as": "alice", "type": "teacher", "visible": ["a.T1", "a.T2"], "hidden": ["b.T2"]},
+    {"as": "bob", "type": "teacher", "visible": ["b.T1", "b.T2"], "hidden": ["a.T2"]},
+    {"as": "alice", "type": "room", "visible": ["a.L1"], "hidden": ["b.L2"]},
+    {"as": "alice", "type": "specialty", "visible": ["a.E"], "hidden": ["b.E"]},
+    {"as": "bob", "type": "specialty", "visible": ["b.E"], "hidden": ["a.E"]}
+  ],
+  "characterize": [
+    {"kind": "explorer_list", "as": "bob", "event": "custom_getui_ExploradorListProfesores", "shows": ["a.T2"], "ref": "Q-23"},
+    {"kind": "explorer_list", "as": "bob", "event": "custom_getui_ExploradorListLugares", "shows": ["a.L1"], "ref": "Q-23"},
+    {"kind": "foreign_update", "as": "bob", "record": "a.T2", "label": "Ana Teacher (renamed by Bob)",
+     "legacy_expect": {"nombre": "Ana Teacher (renamed by Bob)", "creador": "bob"}, "ref": "Q-11, Q-12"},
+    {"kind": "foreign_delete", "as": "bob", "record": "a.L1", "legacy_expect": {"deleted": true}, "ref": "Q-12"}
+  ]
+}

@@ -26,6 +26,7 @@
 declare(strict_types=1);
 
 use Ancora\Parity\Scenario;
+use Drupal\ancora_academic\AcademicAccessControlHandler;
 use Drupal\ancora_academic\AcademicEntityInterface;
 use Drupal\ancora_engine\Job\JobOptions;
 use Drupal\ancora_scheduling\ScopeMapper;
@@ -147,16 +148,6 @@ foreach ($ancora_scenario->records as $key => $r) {
       unset($values[$field]);
     }
   }
-  if (isset($definitions['plan']) && !isset($values['plan'])) {
-    // Catalogues still belong to one plan here (#70 D1): the acting user's
-    // first plan.
-    foreach ($ancora_scenario->ofType('plan') as $plan_key => $plan_record) {
-      if ($plan_record['as'] === $r['as'] && isset($ancora_entities[$plan_key])) {
-        $values['plan'] = $ancora_entities[$plan_key]->id();
-        break;
-      }
-    }
-  }
   $switcher->switchTo($ancora_accounts[$r['as']]);
   try {
     $entity = $storage->create($values);
@@ -195,7 +186,11 @@ foreach ($ancora_scenario->visibility() as $check) {
         $listed = in_array((string) $entity->id(), array_map('strval', $ids), TRUE);
         $view = $entity->access('view');
         $update = $entity->access('update');
-        $ok = $listed === $expected && $view === $expected && $update === $expected;
+        // Every user may view any teacher or room (the legacy timetable
+        // explorer lists them all, quirk Q-23); the lists and editing are
+        // the owner's.
+        $view_expected = $expected || in_array($entity_type_id, AcademicAccessControlHandler::VISIBLE_TO_ALL, TRUE);
+        $ok = $listed === $expected && $view === $view_expected && $update === $expected;
         printf("VIS   %s %s %s %s, view %s, update %s: %s\n", $check['as'], $check['type'], $record_key, $listed ? 'listed' : 'not listed', $view ? 'allowed' : 'denied', $update ? 'allowed' : 'denied', $ok ? 'as expected' : 'UNEXPECTED');
         if (!$ok) {
           $ancora_failures++;
@@ -238,19 +233,7 @@ foreach ($ancora_scenario->runs() as $run) {
 // Engine user id => scenario user key.
 $map = [];
 foreach ($ancora_accounts as $key => $account) {
-  if (method_exists(ScopeMapper::class, 'creatorOf')) {
-    $map[ScopeMapper::creatorOf((int) $account->id())] = $key;
-  }
-}
-if (!method_exists(ScopeMapper::class, 'creatorOf')) {
-  // Before #70 D3 the engine owner is one artificial user per plan; it is
-  // mapped to the user who created the plan, and the owner count per user
-  // (normalize.php, "owners") shows the difference.
-  foreach ($ancora_scenario->ofType('plan') as $key => $plan_record) {
-    if (isset($ancora_entities[$key])) {
-      $map[ScopeMapper::creator($ancora_entities[$key])] = $plan_record['as'];
-    }
-  }
+  $map[ScopeMapper::creatorOf((int) $account->id())] = $key;
 }
 file_put_contents("$ancora_out/drupal-users.json", json_encode($map, JSON_PRETTY_PRINT));
 if ($ancora_failures > 0) {

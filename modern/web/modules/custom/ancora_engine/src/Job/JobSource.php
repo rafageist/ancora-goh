@@ -13,9 +13,12 @@ namespace Drupal\ancora_engine\Job;
  * A job without a source runs on data already in the engine database.
  *
  * The ids are entity ids of the site's Drupal database (ancora_plan,
- * ancora_period, ancora_specialty, ancora_level). The prefix is put in front
- * of every engine id of the plan, so several plans live apart in one engine
- * database; the placement digest is computed without it.
+ * ancora_period, ancora_specialty, ancora_level). The id prefix ("id
+ * marker") tells how the job's engine ids are built: the placement digest
+ * lists each id from after the marker's first occurrence
+ * (EngineClient::PLACEMENTS). Jobs of the academic sync record ":", the
+ * separator of their numbered ids ("0000000012:G1"); jobs queued before
+ * #70 recorded their plan's prefix ("p3:").
  */
 final class JobSource {
 

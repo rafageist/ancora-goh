@@ -55,6 +55,7 @@ use Drupal\views\EntityViewsData;
     'collection' => '/admin/ancora/groups',
   ],
   admin_permission: 'administer academic data',
+  list_cache_contexts: ['user'],
   collection_permission: 'view academic data',
   base_table: 'ancora_student_group',
   label_count: [
@@ -62,8 +63,8 @@ use Drupal\views\EntityViewsData;
     'plural' => '@count student groups',
   ],
   constraints: [
-    'AncoraUniqueInPlan' => ['fields' => ['code']],
-    'AncoraSamePlan' => [],
+    'AncoraUniqueInScope' => ['fields' => ['code']],
+    'AncoraSameCreator' => [],
     'AncoraGroupCohorts' => [],
   ],
 )]

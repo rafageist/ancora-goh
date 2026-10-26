@@ -88,15 +88,18 @@ final class EngineClient {
    *
    * Template/group/teacher name/place/day/slot, comma-joined in template and
    * group order. Its md5 is the placement digest
-   * (dev/e2e/expected-placements.md5 for the E2E organization). The ids are
-   * listed without the prefix of a synced plan ($4, '' otherwise), so the
-   * digest of a plan synced from Drupal compares with the legacy one.
+   * (dev/e2e/expected-placements.md5 for the E2E organization). For a job
+   * synced from Drupal, $4 is the id marker of its source: every id is
+   * listed from after the first occurrence of the marker, so the digest uses
+   * the codes ("0000000012:G1" gives "G1"; the earlier "p3:G1" gives "G1")
+   * and compares with the legacy one. With '' (a job without a source) the
+   * ids are listed as they are.
    */
   private const PLACEMENTS = "SELECT coalesce(string_agg(
-        CASE WHEN left(a.plantilla, length($4)) = $4 THEN substr(a.plantilla, length($4) + 1) ELSE a.plantilla END
-        || '/' || CASE WHEN left(a.grupo, length($4)) = $4 THEN substr(a.grupo, length($4) + 1) ELSE a.grupo END
+        CASE WHEN $4 <> '' AND strpos(a.plantilla, $4) > 0 THEN substr(a.plantilla, strpos(a.plantilla, $4) + length($4)) ELSE a.plantilla END
+        || '/' || CASE WHEN $4 <> '' AND strpos(a.grupo, $4) > 0 THEN substr(a.grupo, strpos(a.grupo, $4) + length($4)) ELSE a.grupo END
         || '/' || p.nombre
-        || '/' || CASE WHEN left(a.lugar, length($4)) = $4 THEN substr(a.lugar, length($4) + 1) ELSE a.lugar END
+        || '/' || CASE WHEN $4 <> '' AND strpos(a.lugar, $4) > 0 THEN substr(a.lugar, strpos(a.lugar, $4) + length($4)) ELSE a.lugar END
         || '/' || a.dia || '/' || a.turno, ',' ORDER BY a.plantilla, a.grupo), '')
     FROM actividad a
     JOIN profesor p ON p.id = a.profesor

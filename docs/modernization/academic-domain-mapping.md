@@ -39,15 +39,17 @@ The legacy schema is in Spanish. The new code is in English. Each legacy term ma
 | profesor para grupo | groups of a teacher assignment | `ancora_teacher_assignment.groups` |
 | lugar para actividad | room assignment | `ancora_room_assignment` |
 | actividad | activity (a placement) | not here: produced by the engine (#71) |
-| creador | owner | not modelled; see "Ownership" |
+| creador | owner (creator) | `uid` of plans and catalogue records; see "Ownership" |
 
 ## Model decisions
 
 - **Content entities, base fields, no bundles.** Each type is a `#[ContentEntityType]` with base fields only. The schema is code: it is versioned, testable and identical on every site. The field UI is not used, and none of the data lives in configuration.
-- **One plan per record.** Every record except a plan has a required `plan` reference.
-  - Codes are unique within a plan (entity constraint `AncoraUniqueInPlan`). Plan codes are unique on the site.
-  - Every reference must point to a record of the same plan (`AncoraSamePlan`).
-  - In the legacy schema, specialties, levels, subjects, rooms, teachers and activity types belong to a user (`creador`) and are shared by all of that user's plans. Here they are copied per plan. This keeps the export of one plan self-contained, and each plan can change without affecting the others. See open question 1.
+- **Owned catalogues, plan records (#70 D1–D3).** As in the legacy schema (legacy-parity-inventory.md PAR-001, PAR-003):
+  - plans, activity types, specialties, levels, cohorts, subjects, rooms and teachers belong to the user who created them (`uid`, the legacy `creador`). The catalogue records have **no plan**: they serve every plan of their owner;
+  - periods, student groups, templates and the two kinds of assignment belong to a plan (`plan`); their creator is the plan's owner (legacy `dame_creador_de_planificacion`, `dame_creador_de_plantilla`);
+  - codes are unique among the owner's records of a type (catalogues, plans) or in the plan (plan records): entity constraint `AncoraUniqueInScope`. Two users of a site may both have a teacher `T1` or a plan `P`;
+  - references name records of the same creator, and plan records of the same plan (`AncoraSameCreator`), as the legacy choice lists offer only the user's own records;
+  - until #70, catalogues were copied per plan and plan codes were unique on the site. `ancora_academic_update_11001()` converts existing data (see "Update path").
 - **Codes are the human keys; UUIDs are the stable keys.**
   - Every record that has a name has a short code (`[A-Za-z0-9._-]+`, at most 32 characters), for example `G1` or `PER`.
   - The export identifies records by UUID (`key`), which survives renames.
@@ -73,8 +75,8 @@ Columns not listed are not modelled. The "Not modelled" section explains why.
 | `descripcion` | `label` | required |
 | `fecha_inicial` (legacy day number) | `starts_on` (date, optional) | `LegacyRows::legacyDayNumber()` ports `tiempo.date_to_number`, quirks included. Empty gives `0`, like the fixture. |
 | `cant_dias` | `duration_days` | 1 to 3660, default 30 |
-| `activa` | `active` | default true |
-| `creador` | — | see "Ownership" |
+| `activa` | `active` | default true (the legacy UI never posts it, so UI-created rows have NULL: PAR-010) |
+| `creador` | `uid` (owner) | the creating user; see "Ownership" |
 
 ### `periodo` and `periodicidad` → `ancora_period`
 
@@ -94,6 +96,7 @@ Columns not listed are not modelled. The "Not modelled" section explains why.
 | Legacy column | Drupal field | Notes |
 | --- | --- | --- |
 | `id`, `descripcion` | `code`, `label` | |
+| `creador` | `uid` | the owner; no plan |
 | `duracion` | `duration_slots` | 1 to 48, default 1 |
 | `prioridad` | `priority` | ≥ 1, default 1 |
 | `gasto` | `cost` | ≥ 0, default 1 |
@@ -103,6 +106,7 @@ Columns not listed are not modelled. The "Not modelled" section explains why.
 | Legacy column | Drupal field |
 | --- | --- |
 | `id`, `descripcion` | `code`, `label` |
+| `creador` | `uid` (no plan) |
 
 ### `brigada` → `ancora_cohort`
 
@@ -111,6 +115,7 @@ Columns not listed are not modelled. The "Not modelled" section explains why.
 | `id`, `descripcion` | `code`, `label` | |
 | `especialidad`, `nivel` | `specialty`, `level` | required |
 | `matricula` | `enrollment` | ≥ 0, default 0 |
+| `creador` | `uid` | the owner; no plan. A cohort can be in groups of several of its owner's plans |
 
 ### `grupo` and `brigada_de_grupo` → `ancora_student_group`
 
@@ -129,6 +134,7 @@ Columns not listed are not modelled. The "Not modelled" section explains why.
 | `id`, `descripcion` | `code`, `label` | |
 | `especialidad` (nullable) | `specialty` (required) | The generator selects subjects by specialty and level, so a subject without one is never scheduled. |
 | `nivel` | `level` | required |
+| `creador` | `uid` | the owner; no plan |
 
 ### `desglose` and `plantilla_de_actividad` → `ancora_activity_template`
 
@@ -150,6 +156,7 @@ The template has no name or code of its own. Its label is "Subject #sequence (pe
 | `profesor.id`, `nombre` | `code`, `label` | |
 | `lugar.id`, `nombre` | `code`, `label` | |
 | `lugar.capacidad` | `capacity` | ≥ 0, default 0 |
+| `profesor.creador`, `lugar.creador` | `uid` | the owner; no plan |
 
 ### `profesor_para_actividad` and `profesor_para_grupo` → `ancora_teacher_assignment`
 
@@ -183,15 +190,27 @@ The legacy UI flow in `dev/e2e/lib.sh` has three steps: `add_Profesor`, `add_Pro
 
 ## Ownership and permissions
 
-The legacy `creador` column and the `seguridad` schema are replaced by Drupal accounts and three permissions:
+The legacy rule (legacy-parity-inventory.md PAR-001 to PAR-005), characterized by the parity harness ([legacy-parity-harness.md](legacy-parity-harness.md), scenarios s02 and s03):
 
-| Permission | Grants |
+- every add handler sets `creador` to the session user (`control/data/fdms/fdm_<Class>_creador.php`);
+- every data entry list loads `creador = $_SESSION['user']` (`get_minibrowser_*`, `get_browser_*`, `get_data_*`): a user sees only their own plans and catalogues, and the records of their plans. No role sees other users' records there, not even the seeded superuser;
+- the breakdown triggers pair a subject with the periods of every plan of its creator, and the placements belong to the subject's creator (PAR-008, PAR-031);
+- the timetable explorer lists **every** user's teachers and rooms (`custom_getui_ExploradorListProfesores.php`, `..Lugares.php` use `getAll()`; quirk Q-23, A-5);
+- the handlers update and delete by id without checking `creador` (Q-12), and an update rewrites `creador` to the editing user (Q-11). The harness records both; they are not reproduced (Q-12 is a security behaviour; Q-11 only happens through crafted requests, since the screens show a user only their own records).
+
+Drupal:
+
+| Operation | Rule (`AcademicAccessControlHandler`) |
 | --- | --- |
-| `view academic data` | The planning overview `/ancora/planning`, every list under `/admin/ancora/*`, every record, and the Views page `/ancora/planning/activities`. |
-| `edit academic data` | Create, edit and delete every record except plans; edit plans. Grant it together with the view permission. |
-| `administer academic data` (restricted) | Everything, including creating and deleting plans. |
+| view | `view academic data` and being the record's creator. Teachers and rooms: `view academic data` only (Q-23). |
+| update, delete | `edit academic data` and being the record's creator. |
+| create | `edit academic data`, for every type, plans included: each user creates their own plans. |
+| everything | `administer academic data` (restricted): the operator's access to every record. No legacy screen has it. |
+| owner field | edited only with `administer academic data`. |
 
-`AcademicAccessControlHandler` enforces these on every entity operation, and the routes check them as well (collection permission, `_entity_access`, `_entity_create_access`). Organizations are separated by site (#72), so no plan-level ownership is modelled. The export identifies no user. The legacy row builder takes the legacy `creador` ID as an argument.
+`AcademicQueryAccess` applies the same filter to every access-checked query (tag `<entity type>_access`): the lists, the overview counts, the options of every reference widget (so the `ValidReference` constraint refuses another user's record), and Views. Teachers and rooms are filtered there too: the data entry lists and the assignment choices are the creator's, as in legacy. The entity types declare the `user` list cache context, so cached lists and Views results are per user. The tenant boundary stays the site (#72).
+
+`drush ancora-academic:reassign-owner <from> <to>` gives every record of one user to another (an operator tool; nothing is changed if a code would collide).
 
 ## User interface (Drupal core only)
 
@@ -203,46 +222,49 @@ The legacy `creador` column and the `seguridad` schema are replaced by Drupal ac
 
 ## Synthetic fixture
 
-`SyntheticFixture::load()` creates the dataset of `dev/e2e/fixture.sql` through the Entity API, validating every record and in one transaction. It is also available as `drush ancora-academic:load-fixture`.
+`SyntheticFixture::load()` creates the dataset of `dev/e2e/fixture.sql` through the Entity API, validating every record and in one transaction, as one user (the fixture rows belong to `admin-superuser`; here to the given owner, by default the site's first account). It is also available as `drush ancora-academic:load-fixture [--owner=<account>]`.
 
 - By default it also applies the HTTP data entry steps of `dev/e2e/lib.sh`: Teacher Beta (`TB`) is assigned to B1 and B2 for G1 and G2. That is the state in which the legacy engine places 8 of 8 activities.
 - `--fixture-only` stops at the exact content of `fixture.sql`. The export then reports that B1 and B2 have no teacher.
-- It refuses to run when plan `P` already exists, so repeated runs never mix data.
+- It refuses to run when the owner already has a plan `P`, so repeated runs never mix data.
 
 `install-disposable.sh` loads the fixture into the freshly installed site, exports it and checks that it has 8 demands (4 templates × 2 groups) and 8 teacher–group links. The HTTP smoke test then reads the fixture through the overview, the teacher list and the Views page.
 
-## Export contract (`AcademicExport`, schema `ancora_academic.export.v1`)
+## Export contract (`AcademicExport`, schema `ancora_academic.export.v2`)
 
-`AcademicExport::export(Plan $plan, ?Period $period = NULL): array` returns plain PHP data (scalars and lists, JSON-serializable). It reads with access checks disabled; the caller decides who may export. The command `drush ancora-academic:export <plan code> [--period=<code>] [--legacy]` prints the export, or its legacy rows, as JSON.
+`AcademicExport::export(Plan $plan, ?Period $period = NULL): array` returns plain PHP data (scalars and lists, JSON-serializable): the plan's own records and **all the catalogue records of the plan's owner** (they serve every plan of that owner). `AcademicExport::catalogue(int $owner)` returns the catalogues of a user who may have no plan (`plan` NULL, no plan records). Both read with access checks disabled; the caller decides who may export. The command `drush ancora-academic:export <plan code> [--owner=<account>] [--period=<code>] [--legacy]` prints the export, or its legacy rows, as JSON.
 
 ```text
-schema               "ancora_academic.export.v1"
-plan                 {key, code, label, starts_on (Y-m-d|null), duration_days, active}
-periods[]            {key, code, label, days, slots_per_day, start_hour, slot_duration, plan_days[]}
-activity_types[]     {key, code, label, duration_slots, priority, cost}
-specialties[]        {key, code, label}
-levels[]             {key, code, label}
-cohorts[]            {key, code, label, specialty, level, enrollment}
-student_groups[]     {key, code, label, activity_type, specialty, level, cohorts[]}
-subjects[]           {key, code, label, specialty, level}
-activity_templates[] {key, subject, subject_code, period, period_code, sequence, activity_type,
+schema               "ancora_academic.export.v2"
+owner                user ID of the plan's creator
+plan                 {key, id, code, label, starts_on (Y-m-d|null), duration_days, active}
+periods[]            {key, id, code, label, days, slots_per_day, start_hour, slot_duration, plan_days[]}
+student_groups[]     {key, id, code, label, activity_type, specialty, level, cohorts[]}
+activity_templates[] {key, id, subject, subject_code, period, period_code, sequence, activity_type,
                       requires_teacher, requires_room}
-rooms[]              {key, code, label, capacity}
-teachers[]           {key, code, label}
-teacher_assignments[] {key, template, teacher, teacher_code, priority, groups[]}
-room_assignments[]   {key, template, room, room_code, priority}
+activity_types[]     {key, id, code, label, duration_slots, priority, cost}      (owner's)
+specialties[]        {key, id, code, label}                                      (owner's)
+levels[]             {key, id, code, label}                                      (owner's)
+cohorts[]            {key, id, code, label, specialty, level, enrollment}        (owner's)
+subjects[]           {key, id, code, label, specialty, level}                    (owner's)
+rooms[]              {key, id, code, label, capacity}                            (owner's)
+teachers[]           {key, id, code, label}                                      (owner's)
+teacher_assignments[] {key, id, template, teacher, teacher_code, priority, groups[]}
+room_assignments[]   {key, id, template, room, room_code, priority}
 issues[]             {type, key, message}
 ```
+
+v2 (#70) adds `owner` and the entity `id` of every record, and the catalogue lists are the owner's instead of the plan's.
 
 Rules:
 
 - **Keys.**
-  - Every `key` is the entity UUID: stable across edits, unique across plans and sites.
+  - Every `key` is the entity UUID: stable across edits, unique across plans and sites. `id` is the entity ID, which grows in creation order; the engine ids are numbered with it.
   - Every reference (`specialty`, `groups[]`, `template`, ...) is the key of the referenced record.
-  - Codes are unique in the plan, but they can be edited, so they are not stable keys.
+  - Codes are unique per owner or plan, but they can be edited, so they are not stable keys.
 - **Scope.**
   - With a period, `periods` holds only that period, and templates and their assignments are only those of that period.
-  - Everything else is plan-wide.
+  - Groups and the owner's catalogues are not narrowed.
   - A period of another plan throws `InvalidArgumentException`.
 - **Order.**
   - Lists are sorted by code.
@@ -257,7 +279,7 @@ Rules:
   - `group_without_teacher`: an eligible group is not covered by any teacher assignment of the template.
 - **Versioning.** A breaking change of the contract changes `schema`. Consumers must check it.
 
-### Legacy rows (`LegacyRows::build($export, $creator = 'admin-superuser', $prefix = '')`)
+### Legacy rows (`LegacyRows::build($export, $creator = 'admin-superuser', $numbered = FALSE)`)
 
 This is a pure translation of an export into rows of the 17 legacy engine tables, in foreign key order:
 
@@ -268,14 +290,15 @@ This is a pure translation of an export into rows of the 17 legacy engine tables
 5. `profesor`, `profesor_para_actividad`, `profesor_para_grupo`
 6. `lugar`, `lugar_para_actividad`
 
-The engine sync (#71) decides how to write them.
+`$creator` is the legacy `creador` of every owned row. The engine sync writes the rows of the whole site: every plan with its owner's catalogues, and the catalogues of users without a plan (see [r1-scheduling-journey.md](r1-scheduling-journey.md), "Engine ids and owners").
 
-- **IDs.** `$prefix` is prepended to every legacy ID, to keep several plans apart in one engine database. Legacy IDs are:
-  - the codes, for coded records;
-  - `<subject><sequence>` for templates, with `@<period>` appended when there are several periods;
-  - `<subject>@<period>` for desglose rows;
-  - `<period>@<day>` for periodicidad rows;
-  - `<template>@<teacher>` for teacher assignments.
+- **IDs.** The base id of a record is:
+  - its code, for coded records;
+  - `<subject code><sequence>` for templates, with `@<period code>` appended when the plan has several periods;
+  - `<template>@<teacher code>` for teacher assignments;
+  - `<period id>@<day>` for periodicidad rows, `<subject id>@<period id>` for desglose rows.
+- **Numbered ids.** With `$numbered` (the engine sync), the id of every record is `LegacyRows::engineId()`: the entity id zero-padded to ten digits, `:`, and the base id, for example `0000000012:G1`. Legacy ids are generated replicas (inventory PAR-110) that are unique in the database and **sort in entry order**, and `generar()` reads some tables in id order: its result changes with that order (characterized in [legacy-parity-harness.md](legacy-parity-harness.md), scenario s04). Entity ids grow in creation order and are unique per type on the site, so numbered ids keep the legacy order, never collide between users or plans, and stay stable when a code is edited. The per-plan prefix `p<plan id>:` of R1 (#89) is gone: it sorted ids in code order and was needed only while catalogues were copied per plan.
+- Without `$numbered` the ids are the base ids, which reproduces `dev/e2e/fixture.sql` exactly (`FixtureExportTest`).
 - **Triggers.** The legacy triggers `nuevo_desglose_cuando_nueva_asignatura` and `nuevo_desglose_cuando_nuevo_periodo` insert desglose rows by themselves. A loader that keeps them enabled must reuse those rows (by subject and period) instead of inserting the desglose rows given here.
 - **Equivalence.** `FixtureExportTest` reads `dev/e2e/fixture.sql` and compares it with the rows built from the Entity API fixture:
   - the 11 tables that the fixture lists literally match row for row, IDs included;
@@ -286,10 +309,10 @@ The engine sync (#71) decides how to write them.
 
 | Test | Kind | What it proves |
 | --- | --- | --- |
-| `AcademicEntityTest` (5) | Kernel | CRUD of the 13 types through the fixture. Required fields and ranges (days, slots, slot length, start hour, plan days, duration, priority, cost, capacity, code pattern). Codes unique per plan but not across plans, plan codes unique on the site, unique template numbers and assignments. References within the plan. Group cohorts and assignment groups eligible. Deletion refused while referenced. |
-| `AcademicAccessTest` (1) | Kernel | For every type, the view, update, delete and create matrix of no permission, viewer, editor and administrator. Plans are created and deleted by administrators only. |
-| `FixtureExportTest` (6) | Kernel | Shape, counts, references and determinism of the export. Issues of the fixture-only dataset. Legacy rows equal to `dev/e2e/fixture.sql`. Teacher Beta as in `dev/e2e/lib.sh`. Port of the legacy day number. Plan scope and refusal to load the fixture twice. |
-| `PlanningUiTest` (3) | Functional (HTTP) | Anonymous users get 403 on the overview, lists, forms, records and Views page. Viewers read but cannot add. Editors create through validated forms (range and duplicate code errors), edit and delete, and cannot create or delete plans. A plan with records shows its dependents and no Delete button. The `?plan=` filter. |
+| `AcademicEntityTest` (6) | Kernel | CRUD of the 13 types through the fixture. Catalogue records have an owner and no plan. A second plan of the same owner uses the owner's catalogues (groups, templates, assignments). Required fields and ranges. Codes unique per owner or plan, not across users (plans too). References to another user's records or another plan refused. Group cohorts and assignment groups eligible. Deletion refused while referenced. |
+| `AcademicAccessTest` (3) | Kernel | For every type: the owner may view, edit and delete; another editor or viewer may not (teachers and rooms: view only, Q-23); no permission nothing; the administrator everything; every editor creates, plans included. Access-checked queries return only the current user's records. The owner field is editable by administrators only. |
+| `FixtureExportTest` (6) | Kernel | Shape, owner, counts, references and determinism of the export. Issues of the fixture-only dataset. Legacy rows equal to `dev/e2e/fixture.sql`. Teacher Beta as in `dev/e2e/lib.sh`; numbered ids in creation order. Port of the legacy day number. A second plan shares the owner's catalogues; another user's catalogue is empty; refusal to load the fixture twice. |
+| `PlanningUiTest` (3) | Functional (HTTP) | Anonymous users get 403 everywhere. The owner reads their lists and the Views page; another viewer sees none of them (a teacher page itself: 200, Q-23; its edit form: 403). An editor creates their own plan with a code another user has, then periods and teachers through validated forms (range and duplicate code errors), edits and deletes, and cannot edit or delete another user's plan. A plan with records shows its dependents and no Delete button. The `?plan=` filter. |
 
 Results on the workstation (PHP 8.4.27, PostgreSQL 16, `dev/sql/tools/with-ephemeral-pg.sh modern/scripts/install-disposable.sh --skip-composer`):
 
@@ -301,18 +324,29 @@ Results on the workstation (PHP 8.4.27, PostgreSQL 16, `dev/sql/tools/with-ephem
 
 ## LBR impact
 
-**0 bytes retired.** This is new target code. It replaces no legacy responsibility yet:
+**0 bytes retired.** This is target code; the legacy data entry screens (`control/data/add/*`, `custom_*`) are not retired. Retirement credit needs an accepted comparison (#77).
 
-- the legacy data entry screens (`control/data/add/*`, `custom_*`) and tables are still the ones the engine runs on;
-- retirement credit needs the engine to run on the exported data (#71) and an accepted comparison (#77).
+Since #70 (ownership slice) the parity harness ([legacy-parity-harness.md](legacy-parity-harness.md)) verifies against the legacy application over HTTP, at table and outcome level: the creator of plans, catalogues and placements, the visibility of the data entry lists, the sharing of catalogues across a creator's plans, the breakdown rows per creator, and the id order. Everything else in the inventory is not verified yet.
 
 The module adds no file to the frozen LBR baseline, and it modifies no legacy file.
 
+## Update path (#70)
+
+`ancora_academic_update_11001()` converts a site installed before #70 (for example the private demo site, which has the fixture loaded):
+
+1. it adds the owner field to the eight owned types; existing records get the site's first account (uid 1), because the earlier schema recorded no creator;
+2. it merges catalogue records that were copies in several plans (same type, owner and code, same values) into the oldest one and moves every reference to it; copies with the same code and different values stop the update with a message, and nothing changes;
+3. it removes the plan field of the seven catalogue types.
+
+`ancora_academic_update_11002()` re-saves the activities view, so its results are cached per user. Then give the records to their planner, for example `drush ancora-academic:reassign-owner admin planner`. The first engine run afterwards replaces the engine rows of the earlier `p<plan>:` scheme (and, through the legacy cascades, their placements); request each timetable again. Re-provisioning the site is the alternative.
+
 ## Open questions
 
-1. **Shared catalogues across plans.** Should specialties, levels, subjects, rooms and teachers be shared by all the plans of a site, as with legacy `creador` ownership, or copied per plan as now? A "copy plan" action would make per-plan copies cheap.
+The earlier open questions are withdrawn (#70, maintainer decision): the legacy implementation answers them.
+
+1. **Shared catalogues across plans.** *Answered by the legacy schema:* catalogues belong to their creator and serve all the creator's plans (PAR-003). Implemented in #70 (D1).
 2. **Breakdown rules.** Should `min_dias`, `max_dias`, `respetar_orden` and `mismo_dia` be edited per subject and period? The legacy `max_dias` default (5) ignores the period's `cant_dias`.
 3. **Restrictions.** How should the time restrictions be modelled: entities per target type, or one entity with a target reference? Should the legacy "real restriction" materialization stay in the engine?
 4. **Cohort membership.** Legacy `mueve_o_crea_brigada_de_grupo` moves a cohort between groups. Should a cohort be in at most one group per activity type? This is not enforced yet.
 5. **Capacity.** Rooms smaller than the enrolment of a group's cohorts are filtered by the engine (`quita_segun_capacidad`). Should the UI warn about this as an export issue?
-6. **Engine IDs.** Is a per-plan `$prefix` on legacy IDs enough for #71, or should the engine tables carry the UUID keys? *Answered by the R1 journey:* the prefix `p<plan id>:` is used, with a legacy owner per plan; see [r1-scheduling-journey.md](r1-scheduling-journey.md).
+6. **Engine IDs.** *Answered in #70 (D3, D15):* numbered ids (`0000000012:code`) in creation order, owned by the creating user's legacy user; the per-plan prefix and the per-plan owner `p<id>:owner` are gone.

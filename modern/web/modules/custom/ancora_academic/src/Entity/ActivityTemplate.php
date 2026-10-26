@@ -55,6 +55,7 @@ use Drupal\views\EntityViewsData;
     'collection' => '/admin/ancora/templates',
   ],
   admin_permission: 'administer academic data',
+  list_cache_contexts: ['user'],
   collection_permission: 'view academic data',
   base_table: 'ancora_activity_template',
   label_count: [
@@ -62,11 +63,11 @@ use Drupal\views\EntityViewsData;
     'plural' => '@count activity templates',
   ],
   constraints: [
-    'AncoraUniqueInPlan' => [
+    'AncoraUniqueInScope' => [
       'fields' => ['subject', 'period', 'sequence'],
       'message' => 'The subject already has an activity template with this number in this period.',
     ],
-    'AncoraSamePlan' => [],
+    'AncoraSameCreator' => [],
   ],
 )]
 final class ActivityTemplate extends AcademicEntityBase {

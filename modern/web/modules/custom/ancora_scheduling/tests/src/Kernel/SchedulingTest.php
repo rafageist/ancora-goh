@@ -44,26 +44,41 @@ final class SchedulingTest extends AcademicKernelTestBase {
   }
 
   /**
-   * The scope is the plan's prefix and the codes; other plans are refused.
+   * The scope is numbered engine ids; other plans and users are refused.
    */
   public function testScopeMapping(): void {
     $plan = $this->loadFixture();
     $period = $this->byCode('ancora_period', 'PER', $plan);
-    $specialty = $this->byCode('ancora_specialty', 'E', $plan);
-    $level = $this->byCode('ancora_level', 'N', $plan);
-    $prefix = 'p' . $plan->id() . ':';
-    $this->assertSame($prefix, ScopeMapper::prefix($plan));
-    $this->assertSame($prefix . 'owner', ScopeMapper::creator($plan));
+    $specialty = $this->byCode('ancora_specialty', 'E');
+    $level = $this->byCode('ancora_level', 'N');
+    $this->assertSame('u' . $this->owner->id(), ScopeMapper::creator($plan));
+    $this->assertSame(ScopeMapper::creatorOf((int) $this->owner->id()), ScopeMapper::creator($plan));
     $scope = ScopeMapper::scope($plan, $period, $specialty, $level);
-    $this->assertSame([$prefix . 'E', $prefix . 'N', $prefix . 'PER'], $scope->toParameters());
+    $this->assertSame([
+      sprintf('%010d:E', $specialty->id()),
+      sprintf('%010d:N', $level->id()),
+      sprintf('%010d:PER', $period->id()),
+    ], $scope->toParameters());
     $source = ScopeMapper::source($plan, $period, $specialty, $level);
-    $this->assertSame([(int) $plan->id(), (int) $period->id(), (int) $specialty->id(), (int) $level->id(), $prefix], [
+    $this->assertSame([(int) $plan->id(), (int) $period->id(), (int) $specialty->id(), (int) $level->id(), ':'], [
       $source->planId,
       $source->periodId,
       $source->specialtyId,
       $source->levelId,
       $source->idPrefix,
     ]);
+
+    // A specialty of another user does not make a scope with this plan.
+    $other_user = $this->createUser(['view academic data', 'edit academic data']);
+    $foreign = $this->newRecord('ancora_specialty', ['uid' => $other_user->id(), 'label' => 'Program', 'code' => 'E']);
+    $foreign->save();
+    try {
+      ScopeMapper::scope($plan, $period, $foreign, $level);
+      $this->fail('A specialty of another user was accepted.');
+    }
+    catch (\InvalidArgumentException $e) {
+      $this->assertStringContainsString('does not belong to the creator', $e->getMessage());
+    }
 
     $other = $this->container->get('entity_type.manager')->getStorage('ancora_plan')->create([
       'label' => 'Other',
@@ -75,23 +90,25 @@ final class SchedulingTest extends AcademicKernelTestBase {
   }
 
   /**
-   * Every legacy row of a plan is selected by the plan's prefix.
+   * Every synced row is selected by its numbered id.
    *
-   * LegacyTableSync reads and deletes a plan's rows by the owner column of
-   * each table; a row outside the prefix would never be replaced.
+   * LegacyTableSync reads and deletes the synced rows by the owner column of
+   * each table; a row with another id would never be replaced.
    */
-  public function testEveryRowCarriesThePrefix(): void {
+  public function testEveryRowIsNumbered(): void {
     $plan = $this->loadFixture();
-    $prefix = ScopeMapper::prefix($plan);
     $export = $this->container->get(AcademicExport::class)->export($plan);
-    $rows = $this->container->get(LegacyRows::class)->build($export, ScopeMapper::creator($plan), $prefix);
+    $rows = $this->container->get(LegacyRows::class)->build($export, ScopeMapper::creator($plan), TRUE);
     $this->assertSame([], array_diff_key(LegacyTableSync::TABLES, $rows));
     foreach (LegacyTableSync::TABLES as $table => [$key, $owner]) {
       $this->assertNotEmpty($rows[$table], $table);
       foreach ($rows[$table] as $row) {
-        $this->assertStringStartsWith($prefix, (string) $row[$owner], "$table.$owner");
+        $this->assertMatchesRegularExpression('/' . LegacyTableSync::SYNCED_ID . '/', (string) $row[$owner], "$table.$owner");
         foreach ($key as $column) {
           $this->assertArrayHasKey($column, $row, "$table.$column");
+        }
+        if (isset($row['creador'])) {
+          $this->assertSame(ScopeMapper::creatorOf((int) $this->owner->id()), $row['creador'], "$table.creador");
         }
       }
     }
@@ -106,7 +123,7 @@ final class SchedulingTest extends AcademicKernelTestBase {
     $hash = ScopeMapper::hash($export->export($plan));
     $this->assertMatchesRegularExpression('/^[0-9a-f]{64}$/', $hash);
     $this->assertSame($hash, ScopeMapper::hash($export->export($plan)));
-    $room = $this->byCode('ancora_room', 'L1', $plan);
+    $room = $this->byCode('ancora_room', 'L1');
     $room->set('capacity', 60)->save();
     $this->assertNotSame($hash, ScopeMapper::hash($export->export($plan)));
   }
@@ -117,8 +134,8 @@ final class SchedulingTest extends AcademicKernelTestBase {
   public function testSyncedJobsAndTimetableRules(): void {
     $plan = $this->loadFixture();
     $period = $this->byCode('ancora_period', 'PER', $plan);
-    $specialty = $this->byCode('ancora_specialty', 'E', $plan);
-    $level = $this->byCode('ancora_level', 'N', $plan);
+    $specialty = $this->byCode('ancora_specialty', 'E');
+    $level = $this->byCode('ancora_level', 'N');
     $jobs = $this->container->get('ancora_engine.job_repository');
     $scope = ScopeMapper::scope($plan, $period, $specialty, $level);
     $source = ScopeMapper::source($plan, $period, $specialty, $level);

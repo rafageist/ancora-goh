@@ -13,7 +13,9 @@
 #    and engine role.
 # 2. On alpha, the synthetic organization of the legacy E2E harness is
 #    entered through the Entity API (drush ancora-academic:load-fixture,
-#    including the teacher the harness enters over HTTP).
+#    including the teacher the harness enters over HTTP), owned by alpha's
+#    planner: as in legacy, each user sees and schedules their own plans
+#    (#70, legacy creador).
 # 3. A planner of alpha logs in over HTTP and requests a timetable with the
 #    request form (Drupal form token); nothing runs in the request. The
 #    worker runs once: the job syncs the plan into tt_alpha_engine in the
@@ -133,16 +135,7 @@ check "check-isolation: tt_alpha_engine refuses beta's engine role" "$project/sc
 check "check-isolation: tt_beta_engine refuses alpha's engine role" "$project/scripts/engine-db.sh" check-isolation tt_beta_engine tt_beta_engine_app tt_alpha_engine_app
 check "re-running provision alpha keeps the engine database (idempotent)" bash -c "PGUSER=$operator '$site' provision alpha --name 'Alpha School' --admin-mail admin@alpha.example.invalid >'$work/log/rerun.log' 2>&1"
 
-step "2. Alpha's planning data through the Entity API; planners of alpha and beta"
-alpha_drush ancora-academic:load-fixture
-ids=$(alpha_drush php:eval '
-  $m = \Drupal::entityTypeManager();
-  $one = fn ($type, $props) => (int) array_key_first($m->getStorage($type)->loadByProperties($props));
-  $plan = $one("ancora_plan", ["code" => "P"]);
-  print implode(" ", [$plan, $one("ancora_period", ["plan" => $plan, "code" => "PER"]), $one("ancora_specialty", ["plan" => $plan, "code" => "E"]), $one("ancora_level", ["plan" => $plan, "code" => "N"])]);')
-read -r plan period specialty level <<<"$ids"
-prefix="p$plan:"
-echo "plan $plan, period $period, specialty $specialty, level $level (engine prefix $prefix)"
+step "2. Planners of alpha and beta; alpha's planning data through the Entity API, owned by alpha's planner"
 random_hex() { od -An -N"$1" -tx1 /dev/urandom | tr -d ' \n'; }
 alpha_pass=$(random_hex 12) beta_pass=$(random_hex 12)
 for s in alpha beta; do
@@ -152,6 +145,17 @@ for s in alpha beta; do
   $d user:create "planner-$s" --mail="planner@$s.example.invalid" --password="${!pass_var}" >/dev/null
   $d user:role:add planner "planner-$s" >/dev/null
 done
+alpha_drush ancora-academic:load-fixture --owner=planner-alpha
+ids=$(alpha_drush php:eval '
+  $m = \Drupal::entityTypeManager();
+  $one = fn ($type, $props) => (int) array_key_first($m->getStorage($type)->loadByProperties($props));
+  $uid = $one("user", ["name" => "planner-alpha"]);
+  $plan = $one("ancora_plan", ["code" => "P", "uid" => $uid]);
+  print implode(" ", [$plan, $one("ancora_period", ["plan" => $plan, "code" => "PER"]), $one("ancora_specialty", ["uid" => $uid, "code" => "E"]), $one("ancora_level", ["uid" => $uid, "code" => "N"]), $one("ancora_room", ["uid" => $uid, "code" => "L1"]), $uid]);')
+read -r plan period specialty level room planner_uid <<<"$ids"
+# Engine ids: the entity id, zero-padded, ":" and the code (LegacyRows::engineId()).
+eid() { printf '%010d:%s' "$1" "$2"; }
+echo "plan $plan, period $period, specialty $specialty, level $level, room L1 $room, owner uid $planner_uid"
 
 stack_start
 stack_wait "$base/user/login" "$base/o/alpha/user/login"
@@ -174,16 +178,19 @@ request_run() { # jar: submits the request form for alpha's plan; prints the job
   sed -n 's#^[Ll]ocation: .*/o/alpha/ancora/scheduling/jobs/\([0-9]*\).*#\1#p' "$work/r.headers" | tr -d '\r'
 }
 timetable_cells() { php "$project/scripts/lib/timetable-cells.php" "$work/r.body" "$1" | LC_ALL=C sort; }
+# The code of a numbered engine id: what follows the separator.
+code_of() { echo "regexp_replace($1, '^[0-9]{10}:', '')"; }
+in_period="a.plantilla IN (SELECT pa.id FROM plantilla_de_actividad pa JOIN desglose d ON d.id = pa.desglose WHERE d.periodo = '$(eid "$period" PER)')"
 engine_cells() { # the scope's placements in the engine database, as the page should list them
-  engine "SELECT a.dia || '/' || a.turno || '/' || substr(a.grupo, length('$prefix') + 1) || '/' || substr(a.profesor, length('$prefix') + 1)
-                 || '/' || substr(a.lugar, length('$prefix') + 1) || '/' || g.descripcion || '/' || p.nombre || '/' || l.nombre
+  engine "SELECT a.dia || '/' || a.turno || '/' || $(code_of a.grupo) || '/' || $(code_of a.profesor)
+                 || '/' || $(code_of a.lugar) || '/' || g.descripcion || '/' || p.nombre || '/' || l.nombre
             FROM actividad a JOIN grupo g ON g.id = a.grupo JOIN profesor p ON p.id = a.profesor JOIN lugar l ON l.id = a.lugar
-           WHERE starts_with(a.plantilla, '$prefix')" | LC_ALL=C sort
+           WHERE $in_period" | LC_ALL=C sort
 }
-digest_now() { # the E2E placement digest of the engine database, prefix stripped
-  engine "SELECT md5(coalesce(string_agg(substr(a.plantilla, length('$prefix') + 1) || '/' || substr(a.grupo, length('$prefix') + 1) || '/' || p.nombre
-                 || '/' || substr(a.lugar, length('$prefix') + 1) || '/' || a.dia || '/' || a.turno, ',' ORDER BY a.plantilla, a.grupo), ''))
-            FROM actividad a JOIN profesor p ON p.id = a.profesor WHERE starts_with(a.plantilla, '$prefix')"
+digest_now() { # the E2E placement digest of the engine database, with the codes
+  engine "SELECT md5(coalesce(string_agg($(code_of a.plantilla) || '/' || $(code_of a.grupo) || '/' || p.nombre
+                 || '/' || $(code_of a.lugar) || '/' || a.dia || '/' || a.turno, ',' ORDER BY a.plantilla, a.grupo), ''))
+            FROM actividad a JOIN profesor p ON p.id = a.profesor WHERE $in_period"
 }
 timetable() { req "$1" "/o/alpha/ancora/planning/$plan/timetable?period=$period${2:-}"; }
 
@@ -194,8 +201,8 @@ req alpha /o/alpha/ancora/scheduling/request
 check "the request form answers 200 with a form token" bash -c "[ \"\$(cat '$work/r.status')\" = 200 ] && grep -q 'name=\"form_token\"' '$work/r.body'"
 job1=$(request_run alpha)
 check "submitting the form queues a job and redirects to its status page" test -n "$job1"
-check "nothing ran in the request: job $job1 is queued, the engine has no data of the plan" eq "$(field "$job1" .state)/$(engine "SELECT count(*) FROM planificacion WHERE starts_with(id, '$prefix')")" "queued/0"
-check "the job's scope is the prefixed engine ids, with its Drupal source" eq "$(field "$job1" '[.scope.specialty, .scope.level, .scope.period, (.source.plan|tostring), .source.id_prefix] | join(" ")')" "${prefix}E ${prefix}N ${prefix}PER $plan $prefix"
+check "nothing ran in the request: job $job1 is queued, the engine has no data of the plan" eq "$(field "$job1" .state)/$(engine "SELECT count(*) FROM planificacion WHERE id = '$(eid "$plan" P)'")" "queued/0"
+check "the job's scope is the numbered engine ids, with its Drupal source" eq "$(field "$job1" '[.scope.specialty, .scope.level, .scope.period, (.source.plan|tostring), .source.id_prefix] | join(" ")')" "$(eid "$specialty" E) $(eid "$level" N) $(eid "$period" PER) $plan :"
 req alpha "/o/alpha/ancora/scheduling/jobs/$job1"
 check "the status page shows the queued job" bash -c "[ \"\$(cat '$work/r.status')\" = 200 ] && grep -q 'Queued' '$work/r.body'"
 
@@ -206,10 +213,10 @@ check "job $job1 succeeded (final timetable)" eq "$(jq -r '.state + "/" + (.fina
 check "metrics demands=8 placed=8 unplaced=0 collisions=0 overflow=0" eq "$(jq -r '[.result.demands, .result.placed, .result.unplaced, .result.collisions, .result.overflow] | map(tostring) | join(" ")' <<<"$j")" "8 8 0 0 0"
 check "placement digest = E2E digest $expected" eq "$(jq -r .result.digest <<<"$j")" "$expected"
 check "the engine database agrees (digest recomputed with SQL)" eq "$(digest_now)" "$expected"
-export_hash=$(alpha_drush php:eval '$p = current(\Drupal::entityTypeManager()->getStorage("ancora_plan")->loadByProperties(["code" => "P"])); print \Drupal\ancora_scheduling\ScopeMapper::hash(\Drupal::service("Drupal\ancora_academic\Export\AcademicExport")->export($p));')
+export_hash=$(alpha_drush php:eval '$p = \Drupal::entityTypeManager()->getStorage("ancora_plan")->load('"$plan"'); print \Drupal\ancora_scheduling\ScopeMapper::hash(\Drupal::service("Drupal\ancora_academic\Export\AcademicExport")->export($p));')
 check "the job records the input snapshot: sha256 of the canonical export" eq "$(jq -r .result.input_hash <<<"$j")/$(jq -r .result.input.committed <<<"$j")" "$export_hash/true"
-check "the sync wrote the plan's rows and reused the trigger's breakdown rows" eq "$(jq -r '.result.input.tables.desglose.inserted // 0' <<<"$j")/$(engine "SELECT count(*) FROM desglose d WHERE starts_with(d.asignatura, '$prefix')")" "0/2"
-check "the plan's rows have the plan's own legacy owner" eq "$(engine "SELECT string_agg(DISTINCT creador, ',') FROM asignatura WHERE starts_with(id, '$prefix')")" "${prefix}owner"
+check "the sync wrote the plan's rows and reused the trigger's breakdown rows" eq "$(jq -r '.result.input.tables.desglose.inserted // 0' <<<"$j")/$(engine "SELECT count(*) FROM desglose d WHERE d.asignatura ~ '^[0-9]{10}:'")" "0/2"
+check "the rows' legacy owner is the planner who created them (creador), not a per-plan user" eq "$(engine "SELECT string_agg(DISTINCT creador, ',') FROM (SELECT creador FROM asignatura UNION SELECT creador FROM planificacion UNION SELECT creador FROM profesor UNION SELECT creador FROM lugar) c")" "u$planner_uid"
 
 section "Timetable page"
 req alpha "/o/alpha/ancora/scheduling/jobs/$job1"
@@ -229,7 +236,10 @@ check "filter by teacher TB: 4 placements, all of Teacher Beta" eq "$(timetable_
 timetable alpha "&room=L1"
 check "filter by room L1: only Room 1" eq "$(timetable_cells final | cut -d/ -f8 | sort -u)" "Room 1"
 timetable alpha
-check "the timetable page is served from Drupal's dynamic page cache on a repeat" header_has '^x-drupal-dynamic-cache: HIT'
+# Since #70 the plan is visible to its creator only (legacy creador), so
+# the page varies by user; Dynamic Page Cache does not cache per-user
+# responses (core: the "user" context is an auto-placeholder condition).
+check "the timetable page varies by user (creator rule): not cached by Dynamic Page Cache" header_has '^x-drupal-dynamic-cache: UNCACHEABLE'
 
 step "4. Isolation: beta and anonymous users"
 section "Isolation"
@@ -320,19 +330,19 @@ BEGIN
 END $$;
 CREATE TRIGGER tst_r1_refuse BEFORE UPDATE ON lugar FOR EACH ROW EXECUTE FUNCTION tst_r1.refuse();
 SQL
-alpha_drush php:eval '$r = current(\Drupal::entityTypeManager()->getStorage("ancora_room")->loadByProperties(["code" => "L1"])); $r->set("capacity", 60)->save();' >/dev/null
+alpha_drush php:eval '$r = \Drupal::entityTypeManager()->getStorage("ancora_room")->load('"$room"'); $r->set("capacity", 60)->save();' >/dev/null
 job4=$(request_run alpha)
 site_op work alpha --once >"$work/log/work4.log" 2>&1
 j=$(job_json "$job4")
 check "job $job4 failed in the sync" bash -c "[ '$(jq -r .state <<<"$j")' = failed ] && grep -q 'input sync failed' <<<'$(jq -r .error <<<"$j")'"
-check "the engine kept the previous data (room capacity 50) and placements (digest)" eq "$(engine "SELECT capacidad FROM lugar WHERE id = '${prefix}L1'")/$(digest_now)" "50/$expected"
+check "the engine kept the previous data (room capacity 50) and placements (digest)" eq "$(engine "SELECT capacidad FROM lugar WHERE id = '$(eid "$room" L1)'")/$(digest_now)" "50/$expected"
 timetable alpha
 check "the timetable is still the final one of job $job3, marked as out of date" bash -c "grep -q 'data-timetable=\"final\"' '$work/r.body' && grep -q 'generated by job $job3' '$work/r.body' && grep -q 'planning data changed after this run' '$work/r.body'"
 engine "DROP TRIGGER tst_r1_refuse ON lugar" >/dev/null
 job5=$(request_run alpha)
 site_op work alpha --once >"$work/log/work5.log" 2>&1
 j=$(job_json "$job5")
-check "after the fix, job $job5 syncs the change (one room updated) and succeeds" eq "$(jq -r '.state + "/" + (.result.input.tables.lugar.updated|tostring)' <<<"$j")/$(engine "SELECT capacidad FROM lugar WHERE id = '${prefix}L1'")" "succeeded/1/60"
+check "after the fix, job $job5 syncs the change (one room updated) and succeeds" eq "$(jq -r '.state + "/" + (.result.input.tables.lugar.updated|tostring)' <<<"$j")/$(engine "SELECT capacidad FROM lugar WHERE id = '$(eid "$room" L1)'")" "succeeded/1/60"
 
 section "Logs"
 check "PostgreSQL logged no permission error other than the refused cross-site connections" bash -c "! grep 'permission denied' '$pg_log' | grep -v 'permission denied for database' | grep -q ."

@@ -26,8 +26,17 @@ use Drupal\Core\Entity\EntityTypeManagerInterface;
  *
  * - "schema" is the contract version (SCHEMA).
  * - Every record has a "key", the entity UUID: stable across edits, unique
- *   across plans and sites. References between records use keys.
- * - Every record with a code has its "code", unique in the plan.
+ *   across plans and sites. References between records use keys. Every
+ *   record also has its "id", the entity ID, which grows in creation order
+ *   (LegacyRows numbers the engine ids with it).
+ * - Every record with a code has its "code", unique among the creator's
+ *   records of the type (catalogues) or in the plan.
+ * - "owner" is the user ID of the plan's creator. The catalogues (activity
+ *   types, specialties, levels, cohorts, subjects, rooms, teachers) are all
+ *   the records of that user: legacy catalogues belong to their creador and
+ *   serve every plan of that creador (legacy-parity-inventory.md PAR-003).
+ *   The plan's own records are its periods, groups, templates and
+ *   assignments.
  * - Lists are sorted deterministically, so equal data gives equal output.
  * - With a period, "periods" holds only that period, and templates and their
  *   assignments are only those of that period. Everything else is plan-wide.
@@ -42,7 +51,20 @@ final class AcademicExport {
   /**
    * The version of the export contract.
    */
-  public const SCHEMA = 'ancora_academic.export.v1';
+  public const SCHEMA = 'ancora_academic.export.v2';
+
+  /**
+   * The catalogue lists: export key => entity type ID.
+   */
+  public const CATALOGUES = [
+    'activity_types' => 'ancora_activity_type',
+    'specialties' => 'ancora_specialty',
+    'levels' => 'ancora_level',
+    'cohorts' => 'ancora_cohort',
+    'subjects' => 'ancora_subject',
+    'rooms' => 'ancora_room',
+    'teachers' => 'ancora_teacher',
+  ];
 
   public function __construct(
     private readonly EntityTypeManagerInterface $entityTypeManager,
@@ -74,10 +96,13 @@ final class AcademicExport {
     $room_assignments = array_filter($this->load('ancora_room_assignment', $plan), $in_scope);
     $groups = $this->load('ancora_student_group', $plan);
 
+    $owner = (int) $plan->getCreatorId();
     $export = [
       'schema' => self::SCHEMA,
+      'owner' => $owner,
       'plan' => [
         'key' => $plan->uuid(),
+        'id' => (int) $plan->id(),
         'code' => $plan->getCode(),
         'label' => (string) $plan->label(),
         'starts_on' => $plan->getStartDate(),
@@ -86,6 +111,7 @@ final class AcademicExport {
       ],
       'periods' => $this->sortByCode(array_map(static fn (Period $p): array => [
         'key' => $p->uuid(),
+        'id' => (int) $p->id(),
         'code' => $p->getCode(),
         'label' => (string) $p->label(),
         'days' => $p->getDays(),
@@ -94,33 +120,15 @@ final class AcademicExport {
         'slot_duration' => $p->getSlotDuration(),
         'plan_days' => $p->getPlanDays(),
       ], $periods)),
-      'activity_types' => $this->sortByCode(array_map(static fn (ActivityType $t): array => [
-        'key' => $t->uuid(),
-        'code' => $t->getCode(),
-        'label' => (string) $t->label(),
-        'duration_slots' => $t->getDurationSlots(),
-        'priority' => $t->getPriority(),
-        'cost' => $t->getCost(),
-      ], $this->load('ancora_activity_type', $plan))),
-      'specialties' => $this->sortByCode(array_map($this->basic(...), $this->load('ancora_specialty', $plan))),
-      'levels' => $this->sortByCode(array_map($this->basic(...), $this->load('ancora_level', $plan))),
-      'cohorts' => $this->sortByCode(array_map(fn (Cohort $c): array => $this->basic($c) + [
-        'specialty' => $this->key($c, 'specialty'),
-        'level' => $this->key($c, 'level'),
-        'enrollment' => $c->getEnrollment(),
-      ], $this->load('ancora_cohort', $plan))),
       'student_groups' => $this->sortByCode(array_map(fn (StudentGroup $g): array => $this->basic($g) + [
         'activity_type' => $this->key($g, 'activity_type'),
         'specialty' => $this->key($g, 'specialty'),
         'level' => $this->key($g, 'level'),
         'cohorts' => $this->keys($g, 'cohorts'),
       ], $groups)),
-      'subjects' => $this->sortByCode(array_map(fn (Subject $s): array => $this->basic($s) + [
-        'specialty' => $this->key($s, 'specialty'),
-        'level' => $this->key($s, 'level'),
-      ], $this->load('ancora_subject', $plan))),
       'activity_templates' => $this->sortTemplates(array_map(fn (ActivityTemplate $t): array => [
         'key' => $t->uuid(),
+        'id' => (int) $t->id(),
         'subject' => $this->key($t, 'subject'),
         'subject_code' => (string) $t->getSubject()?->getCode(),
         'period' => $this->key($t, 'period'),
@@ -130,15 +138,12 @@ final class AcademicExport {
         'requires_teacher' => $t->requiresTeacher(),
         'requires_room' => $t->requiresRoom(),
       ], $templates)),
-      'rooms' => $this->sortByCode(array_map(fn (Room $r): array => $this->basic($r) + [
-        'capacity' => $r->getCapacity(),
-      ], $this->load('ancora_room', $plan))),
-      'teachers' => $this->sortByCode(array_map($this->basic(...), $this->load('ancora_teacher', $plan))),
-    ];
+    ] + $this->catalogueLists($owner);
 
     $template_order = array_flip(array_column($export['activity_templates'], 'key'));
     $export['teacher_assignments'] = $this->sortAssignments(array_map(fn (TeacherAssignment $a): array => [
       'key' => $a->uuid(),
+      'id' => (int) $a->id(),
       'template' => $this->key($a, 'template'),
       'teacher' => $this->key($a, 'teacher'),
       'teacher_code' => (string) $a->getTeacher()?->getCode(),
@@ -147,6 +152,7 @@ final class AcademicExport {
     ], $teacher_assignments), $template_order, 'teacher_code');
     $export['room_assignments'] = $this->sortAssignments(array_map(fn (RoomAssignment $a): array => [
       'key' => $a->uuid(),
+      'id' => (int) $a->id(),
       'template' => $this->key($a, 'template'),
       'room' => $this->key($a, 'room'),
       'room_code' => (string) $a->getRoom()?->getCode(),
@@ -158,7 +164,80 @@ final class AcademicExport {
   }
 
   /**
-   * Loads every record of a type in a plan.
+   * Exports the catalogues of a user who may have no plan.
+   *
+   * The legacy database holds every user's catalogue rows, whether or not
+   * the user has a plan; the engine sync mirrors that. The result has the
+   * shape of export(), with "plan" NULL and no plan records.
+   *
+   * @return array<string, mixed>
+   *   The export.
+   */
+  public function catalogue(int $owner): array {
+    return [
+      'schema' => self::SCHEMA,
+      'owner' => $owner,
+      'plan' => NULL,
+      'periods' => [],
+      'student_groups' => [],
+      'activity_templates' => [],
+    ] + $this->catalogueLists($owner) + [
+      'teacher_assignments' => [],
+      'room_assignments' => [],
+      'issues' => [],
+    ];
+  }
+
+  /**
+   * The catalogue lists of a user, sorted by code.
+   *
+   * @return array<string, list<array<string, mixed>>>
+   *   The lists, by export key.
+   */
+  private function catalogueLists(int $owner): array {
+    $load = fn (string $entity_type_id): array => $this->loadOwned($entity_type_id, $owner);
+    return [
+      'activity_types' => $this->sortByCode(array_map(fn (ActivityType $t): array => $this->basic($t) + [
+        'duration_slots' => $t->getDurationSlots(),
+        'priority' => $t->getPriority(),
+        'cost' => $t->getCost(),
+      ], $load('ancora_activity_type'))),
+      'specialties' => $this->sortByCode(array_map($this->basic(...), $load('ancora_specialty'))),
+      'levels' => $this->sortByCode(array_map($this->basic(...), $load('ancora_level'))),
+      'cohorts' => $this->sortByCode(array_map(fn (Cohort $c): array => $this->basic($c) + [
+        'specialty' => $this->key($c, 'specialty'),
+        'level' => $this->key($c, 'level'),
+        'enrollment' => $c->getEnrollment(),
+      ], $load('ancora_cohort'))),
+      'subjects' => $this->sortByCode(array_map(fn (Subject $s): array => $this->basic($s) + [
+        'specialty' => $this->key($s, 'specialty'),
+        'level' => $this->key($s, 'level'),
+      ], $load('ancora_subject'))),
+      'rooms' => $this->sortByCode(array_map(fn (Room $r): array => $this->basic($r) + [
+        'capacity' => $r->getCapacity(),
+      ], $load('ancora_room'))),
+      'teachers' => $this->sortByCode(array_map($this->basic(...), $load('ancora_teacher'))),
+    ];
+  }
+
+  /**
+   * Loads every record of a type owned by a user.
+   *
+   * @return list<\Drupal\ancora_academic\AcademicEntityInterface>
+   *   The records, by ID.
+   */
+  private function loadOwned(string $entity_type_id, int $owner): array {
+    $storage = $this->entityTypeManager->getStorage($entity_type_id);
+    $ids = $storage->getQuery()
+      ->accessCheck(FALSE)
+      ->condition('uid', $owner)
+      ->sort($storage->getEntityType()->getKey('id'))
+      ->execute();
+    return array_values($storage->loadMultiple($ids));
+  }
+
+  /**
+   * Loads every record of a type in a plan: periods, groups, templates...
    *
    * @return list<\Drupal\ancora_academic\AcademicEntityInterface>
    *   The records, by ID.
@@ -174,14 +253,15 @@ final class AcademicExport {
   }
 
   /**
-   * Returns the key, code and label of a record.
+   * Returns the key, ID, code and label of a record.
    *
-   * @return array{key: string, code: string, label: string}
+   * @return array{key: string, id: int, code: string, label: string}
    *   The basic values.
    */
   private function basic(AcademicEntityInterface $entity): array {
     return [
       'key' => (string) $entity->uuid(),
+      'id' => (int) $entity->id(),
       'code' => $entity->getCode(),
       'label' => (string) $entity->label(),
     ];
