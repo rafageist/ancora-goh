@@ -59,6 +59,8 @@ After #23 (35 cases): **23 PASS, 12 XFAIL, 0 FAIL / XPASS / XWRONG**. Cases 023,
 
 After #24 (36 cases): **26 PASS, 10 XFAIL, 0 FAIL / XPASS / XWRONG**. Cases 081 and 082 now pass, case 083 was added and case 080 records the repaired booking (`sql-other-resource-occupancy.md`). Every other result and every METRIC line is unchanged.
 
+After #70 (46 cases): **36 PASS, 10 XFAIL, 0 FAIL / XPASS / XWRONG**. Cases 110–114 and 120–124 were added by the legacy parity inventory (`legacy-parity-inventory.md`). They record current behaviour only (`expect: pass`, `HISTORICAL:` where the behaviour looks defective). Every earlier result and METRIC line is unchanged.
+
 A negative run confirmed that the runner exits non-zero. It used a temporary copy of the suite with three cases modified to give one FAIL, one XPASS and one XWRONG.
 
 ### Coverage against the issue
