@@ -187,6 +187,7 @@ Numbered after D15 of the inventory.
 | D18 | the sync inserts each table's rows in code order (export order); entity ids keep the id order, but not the physical (heap) order of rows the generator reads without `ORDER BY` | rows are stored in entry order. No scenario shows a difference yet | PAR-110 |
 | — | an edit never changes the owner; only an administrator changes it (owner field) | `set_*` handlers rewrite `creador` to the editor (Q-11) | Q-11 |
 | — | codes are a Drupal handle, unique per owner or plan | legacy has no codes; ids are generated | D6 |
+| — | every list and choice is filtered by owner, including the drill-down lists | the drill-down and timetable handlers filter only by the ids the client posts, with no `creador` check (`get_browser_Brigadas_filtradas.php`, `get_browser_DesgloseDetalles.php`, `get_browser_GruposXClasifFiltrados.php`, `get_minibrowser_horarios.php`, `get_minibrowser_publico.php`). The screens only post ids from the user's own lists, so this matters only for crafted requests. Like Q-12, it is an access defect: recorded, not reproduced | PAR-002, D14 |
 
 Legacy defects found by the harness (no Drupal counterpart to change): `add_RolDeUsuario.php` fails with a fatal error; `add_Planificacion.php` reads an undefined `field_Planificacion_activa`.
 

@@ -69,6 +69,9 @@ final class AcademicQueryAccess {
       }
       $alias = $this->baseAlias($query, (string) $this->entityTypeManager->getDefinition($entity_type_id)->getBaseTable());
       if ($alias === NULL) {
+        // Fail closed: a tagged query whose base table cannot be found
+        // cannot be filtered by owner, so it returns nothing.
+        $query->where('1 = 0');
         continue;
       }
       if (!$this->currentUser->hasPermission(AcademicAccessControlHandler::VIEW)) {
