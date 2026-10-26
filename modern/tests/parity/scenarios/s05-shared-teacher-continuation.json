@@ -1,0 +1,53 @@
+{
+  "schema": "ancora.parity.scenario.v1",
+  "id": "s05-shared-teacher-continuation",
+  "title": "Two specialties of one plan share a teacher in one period; the legacy window's default options; the same scope requested twice",
+  "notes": [
+    "Characterization for #95 (D7, D11). Run F places the other specialty's activity with the shared teacher T first. Run E1 then cannot use T's cell: legacy reads the teacher's occupancy in the same period (valor_restriccion_profesor, the teacher load at generar.sql:869).",
+    "Runs F and E1 use the options the legacy generator window posts by default (ancoragoh_client_wins_generador.js: forma 1, compactar 1, parche and parche1 false, buscalugar true; D11). Run E2 repeats the E scope with the options Drupal sends by default (compactar 0, buscalugar false).",
+    "Legacy continuation (PAR-085): run E2 finds every E demand placed and adds nothing. The Drupal worker deletes the scope's placements first (D7) and places them again; with these records the cells come out the same, so the end state is identical on both sides.",
+    "The metrics count every placement of the period (tst.metrics: placed = distinct template and group in the period), so E1 and E2 report placed=2 for one demand."
+  ],
+  "users": [
+    {"key": "admin", "name": "Administrator", "legacy": "seeded-admin"},
+    {"key": "alice", "name": "Alice Planner"}
+  ],
+  "records": [
+    {"type": "plan", "key": "P", "as": "alice", "label": "Semester", "starts_on": "2026-09-07", "duration_days": 30},
+    {"type": "period", "key": "W", "as": "alice", "plan": "P", "label": "Week", "days": 5, "slots_per_day": 2, "start_hour": 8, "slot_duration": 1, "plan_days": [1]},
+    {"type": "activity_type", "key": "C1", "as": "alice", "label": "Lecture", "duration_slots": 1, "priority": 1, "cost": 1},
+    {"type": "specialty", "key": "E", "as": "alice", "label": "Program E"},
+    {"type": "specialty", "key": "F", "as": "alice", "label": "Program F"},
+    {"type": "level", "key": "N", "as": "alice", "label": "Year 1"},
+    {"type": "cohort", "key": "B1", "as": "alice", "label": "Cohort E", "specialty": "E", "level": "N", "enrollment": 20},
+    {"type": "cohort", "key": "B3", "as": "alice", "label": "Cohort F", "specialty": "F", "level": "N", "enrollment": 20},
+    {"type": "student_group", "key": "G1", "as": "alice", "plan": "P", "label": "Group E", "activity_type": "C1", "specialty": "E", "level": "N", "cohorts": ["B1"]},
+    {"type": "student_group", "key": "H1", "as": "alice", "plan": "P", "label": "Group F", "activity_type": "C1", "specialty": "F", "level": "N", "cohorts": ["B3"]},
+    {"type": "subject", "key": "A", "as": "alice", "label": "Subject E", "specialty": "E", "level": "N"},
+    {"type": "subject", "key": "S", "as": "alice", "label": "Subject F", "specialty": "F", "level": "N"},
+    {"type": "activity_template", "key": "A1", "as": "alice", "subject": "A", "period": "W", "sequence": 1, "activity_type": "C1"},
+    {"type": "activity_template", "key": "S1", "as": "alice", "subject": "S", "period": "W", "sequence": 1, "activity_type": "C1"},
+    {"type": "teacher", "key": "T", "as": "alice", "label": "Shared teacher"},
+    {"type": "room", "key": "L1", "as": "alice", "label": "Room 1", "capacity": 50},
+    {"type": "room", "key": "L2", "as": "alice", "label": "Room 2", "capacity": 50},
+    {"type": "teacher_assignment", "key": "A1@T", "as": "alice", "template": "A1", "teacher": "T", "priority": 1, "groups": ["G1"]},
+    {"type": "teacher_assignment", "key": "S1@T", "as": "alice", "template": "S1", "teacher": "T", "priority": 1, "groups": ["H1"]},
+    {"type": "room_assignment", "key": "A1@L1", "as": "alice", "template": "A1", "room": "L1", "priority": 1},
+    {"type": "room_assignment", "key": "A1@L2", "as": "alice", "template": "A1", "room": "L2", "priority": 1},
+    {"type": "room_assignment", "key": "S1@L2", "as": "alice", "template": "S1", "room": "L2", "priority": 1}
+  ],
+  "runs": [
+    {"key": "F", "as": "alice", "plan": "P", "period": "W", "specialty": "F", "level": "N",
+     "options": {"forma": 1, "parche": false, "compactar": 1, "parche1": false, "buscalugar": true}},
+    {"key": "E1", "as": "alice", "plan": "P", "period": "W", "specialty": "E", "level": "N",
+     "options": {"forma": 1, "parche": false, "compactar": 1, "parche1": false, "buscalugar": true},
+     "expect": {"metrics": "demands=1 placed=2 unplaced=0 collisions=0 overflow=0"}},
+    {"key": "E2", "as": "alice", "plan": "P", "period": "W", "specialty": "E", "level": "N",
+     "options": {"forma": 1, "parche": false, "compactar": 0, "parche1": false, "buscalugar": false},
+     "expect": {"metrics": "demands=1 placed=2 unplaced=0 collisions=0 overflow=0"}}
+  ],
+  "visibility": [
+    {"as": "alice", "type": "teacher", "visible": ["T"]},
+    {"as": "alice", "type": "specialty", "visible": ["E", "F"]}
+  ]
+}

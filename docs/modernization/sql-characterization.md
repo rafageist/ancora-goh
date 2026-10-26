@@ -63,6 +63,14 @@ After #70 (46 cases): **36 PASS, 10 XFAIL, 0 FAIL / XPASS / XWRONG**. Cases 110â
 
 After #92 (53 cases): **43 PASS, 10 XFAIL, 0 FAIL / XPASS / XWRONG**. Cases 125â€“131 were added by the dependency-closure audit (`engine-dependency-closure.md`): the input closure of `generar()` for one request and for two requests in sequence (positive and negative), continuation, the inert real-date branch, the NULL start hour with periodicity, and the heap order of room ties. They record current behaviour only (`expect: pass`). Every earlier result and METRIC line is unchanged.
 
+After #95 characterization (56 cases): **46 PASS, 10 XFAIL, 0 FAIL / XPASS / XWRONG**. Three cases characterize the run semantics that the Drupal promotion must keep (D7, D8, D11, D12):
+
+| Case | What it shows |
+| --- | --- |
+| 132 | A cancellation that arrives mid-run keeps the placements made so far. The next run keeps them, with the same ids and cells, and places the rest. The continued timetable differs from a single uncancelled run (B1/G2 at day 1 slot 1, not slot 3). A request for another scope does not stop the run. |
+| 133 | A request left over after its run stops the next run of that scope at its first check. That run places nothing and consumes the row (D12 quirk). A row of another scope does not stop the run. |
+| 134 | The legacy window's default options give the E2E digest. A second run with Drupal's options keeps every placement and adds nothing (D7). |
+
 A negative run confirmed that the runner exits non-zero. It used a temporary copy of the suite with three cases modified to give one FAIL, one XPASS and one XWRONG.
 
 ### Coverage against the issue
