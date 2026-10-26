@@ -6,7 +6,7 @@ services:
 
   ancora_engine.job_repository:
     class: Drupal\ancora_engine\JobRepository
-    arguments: ['@database', '@datetime.time', '@uuid']
+    arguments: ['@database', '@datetime.time', '@uuid', '@cache_tags.invalidator']
   Drupal\ancora_engine\JobRepository: '@ancora_engine.job_repository'
 
   ancora_engine.engine_client:
@@ -16,7 +16,7 @@ services:
 
   ancora_engine.worker:
     class: Drupal\ancora_engine\Worker
-    arguments: ['@ancora_engine.job_repository', '@ancora_engine.engine_client', '@ancora_engine.settings', '@datetime.time', '@logger.channel.ancora_engine']
+    arguments: ['@ancora_engine.job_repository', '@ancora_engine.engine_client', '@ancora_engine.settings', '@datetime.time', '@logger.channel.ancora_engine', '@?ancora_engine.job_input']
   Drupal\ancora_engine\Worker: '@ancora_engine.worker'
 
   logger.channel.ancora_engine:

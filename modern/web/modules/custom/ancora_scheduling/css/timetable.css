@@ -1,0 +1,47 @@
+.ancora-timetable__filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  align-items: end;
+  margin-block: 1rem;
+}
+.ancora-timetable__filters label {
+  display: flex;
+  flex-direction: column;
+}
+.ancora-timetable__grid {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+.ancora-timetable__grid th,
+.ancora-timetable__grid td {
+  border: 1px solid #c8c8c8;
+  padding: 0.25rem;
+  vertical-align: top;
+}
+.ancora-timetable__time {
+  display: block;
+  font-weight: normal;
+}
+.ancora-placement {
+  margin-block-end: 0.25rem;
+  padding: 0.25rem;
+  background: #eef4fb;
+}
+.ancora-placement span {
+  display: block;
+}
+.ancora-placement__activity {
+  font-weight: bold;
+}
+.is-draft .ancora-placement {
+  background: repeating-linear-gradient(45deg, #fff6e0, #fff6e0 6px, #fdebc4 6px, #fdebc4 12px);
+}
+.ancora-timetable__draft-label,
+.ancora-timetable__stale,
+.ancora-timetable__error {
+  padding: 0.5rem;
+  border-inline-start: 4px solid #c47f00;
+  background: #fff6e0;
+}

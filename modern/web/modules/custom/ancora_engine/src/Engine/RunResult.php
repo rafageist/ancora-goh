@@ -54,6 +54,10 @@ final class RunResult {
    *   generar() returned (it was not consumed: the run had finished).
    * @param int $replaced
    *   Placements of the scope deleted before the run (replace semantics).
+   * @param array $input
+   *   What the job input service loaded before the run (synced jobs): the
+   *   input snapshot hash and the row changes. Empty for other jobs, and
+   *   when the run rolled back before the input was loaded.
    */
   public function __construct(
     public readonly string $status,
@@ -64,6 +68,7 @@ final class RunResult {
     public readonly ?string $stoppedBy = NULL,
     public readonly bool $cancelRowLeft = FALSE,
     public readonly int $replaced = 0,
+    public readonly array $input = [],
   ) {}
 
   /**

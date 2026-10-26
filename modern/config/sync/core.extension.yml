@@ -4,6 +4,7 @@ module:
   ancora: 0
   ancora_academic: 0
   ancora_engine: 0
+  ancora_scheduling: 0
   block: 0
   datetime: 0
   dblog: 0
