@@ -137,12 +137,13 @@ final class LegacyDriver {
   /**
    * Checks that the generated ids of every table sort in entry order.
    *
-   * The generator, generar(), reads several tables in id order (for example the groups of a
-   * template), so the legacy result depends on the lexical order of the
-   * generated ids. A replica id is the table name, the time as d/m/y h:i:s
-   * and time(), then random characters (lib/basic/string/StringUtils.php,
-   * getReplica()), so rows entered in different seconds sort in entry order,
-   * and rows entered in the same second in random order. The driver enters
+   * The generator, generar(), reads several tables in id order (for example
+   * the groups of a template), so the legacy result depends on the lexical
+   * order of the generated ids. A replica id is the table name, the time as
+   * d/m/y h:i:s and time(), then random characters
+   * (lib/basic/string/StringUtils.php, getReplica()), so rows entered in
+   * different seconds sort in entry order, and rows entered in the same
+   * second in random order. The driver enters
    * the rows of one table in different seconds (see add()); this check
    * catches the clock wrapping (12-hour "h", day of month first) during a
    * run, which would reorder them.
