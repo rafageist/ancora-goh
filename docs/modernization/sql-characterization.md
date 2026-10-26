@@ -61,6 +61,8 @@ After #24 (36 cases): **26 PASS, 10 XFAIL, 0 FAIL / XPASS / XWRONG**. Cases 081 
 
 After #70 (46 cases): **36 PASS, 10 XFAIL, 0 FAIL / XPASS / XWRONG**. Cases 110–114 and 120–124 were added by the legacy parity inventory (`legacy-parity-inventory.md`). They record current behaviour only (`expect: pass`, `HISTORICAL:` where the behaviour looks defective). Every earlier result and METRIC line is unchanged.
 
+After #92 (53 cases): **43 PASS, 10 XFAIL, 0 FAIL / XPASS / XWRONG**. Cases 125–131 were added by the dependency-closure audit (`engine-dependency-closure.md`): the input closure of `generar()` for one request and for two requests in sequence (positive and negative), continuation, the inert real-date branch, the NULL start hour with periodicity, and the heap order of room ties. They record current behaviour only (`expect: pass`). Every earlier result and METRIC line is unchanged.
+
 A negative run confirmed that the runner exits non-zero. It used a temporary copy of the suite with three cases modified to give one FAIL, one XPASS and one XWRONG.
 
 ### Coverage against the issue
@@ -121,7 +123,7 @@ This keeps every behavior change explicit in review. Exact placement cells (060)
 
 ## Not covered (stated limits)
 
-- Real-date restrictions (6.10, 6.11). These are hypotheses that need the date/slot mapping of `restriccion_real_*` to be characterized first.
+- Real-date restrictions (6.10, 6.11): case 129 shows that the branch has no effect (6.11: the period lookup by object id finds nothing), so 6.10 cannot happen except for an object whose id equals the period id. The intended behaviour is not characterized.
 - `zpriori` zones, `parche` / `parche1` / `compactar` / `buscalugar` options (6.15, 6.16), workload hygiene (6.21) and the teacher-load heuristic (6.14).
 - Performance and scale. The fixtures are tiny on purpose. Generation time on realistic datasets is unknown (historically 7 activities took 212 s).
 - Concurrency between two sessions generating at the same time (assessment §7).
