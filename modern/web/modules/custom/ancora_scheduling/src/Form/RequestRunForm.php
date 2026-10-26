@@ -79,12 +79,21 @@ final class RequestRunForm extends FormBase {
       'level' => $this->t('Level'),
     ];
     foreach (self::TYPES as $key => $entity_type_id) {
-      // Grouped by plan; the validation refuses a record of another plan.
+      // Periods are grouped by plan; specialties and levels are the user's
+      // own (an administrator sees every user's, grouped by owner). The
+      // validation refuses a period of another plan, or a specialty or
+      // level of another user than the plan's creator.
       $options = [];
       foreach ($this->viewable($entity_type_id) as $id => $record) {
-        $plan = $plans[$record->getPlanId()] ?? NULL;
-        if ($plan !== NULL) {
-          $options[(string) $plan->label()][$id] = $record->label() . ' (' . $record->getCode() . ')';
+        if ($key === 'period') {
+          $plan = $plans[$record->getPlanId()] ?? NULL;
+          $group = $plan === NULL ? NULL : (string) $plan->label();
+        }
+        else {
+          $group = (string) ($record->getOwner()?->getDisplayName() ?? '');
+        }
+        if ($group !== NULL) {
+          $options[$group][$id] = $record->label() . ' (' . $record->getCode() . ')';
         }
       }
       $form[$key] = [
@@ -111,9 +120,16 @@ final class RequestRunForm extends FormBase {
       return;
     }
     [$plan, $period, $specialty, $level] = $records;
-    foreach (['period' => $period, 'specialty' => $specialty, 'level' => $level] as $key => $record) {
-      if ($record->getPlanId() !== (int) $plan->id()) {
-        $form_state->setErrorByName($key, $this->t('%record is not part of plan %plan.', [
+    if ($period->getPlanId() !== (int) $plan->id()) {
+      $form_state->setErrorByName('period', $this->t('%record is not part of plan %plan.', [
+        '%record' => $period->label(),
+        '%plan' => $plan->label(),
+      ]));
+      return;
+    }
+    foreach (['specialty' => $specialty, 'level' => $level] as $key => $record) {
+      if ($record->getCreatorId() !== $plan->getCreatorId()) {
+        $form_state->setErrorByName($key, $this->t('%record does not belong to the creator of plan %plan.', [
           '%record' => $record->label(),
           '%plan' => $plan->label(),
         ]));

@@ -9,7 +9,7 @@ use Drupal\Tests\ancora\Functional\AncoraBrowserTestBase;
 use PHPUnit\Framework\Attributes\Group;
 
 /**
- * The planning UI through HTTP: overview, lists, forms and permissions.
+ * The planning UI through HTTP: overview, lists, forms and the creator rule.
  */
 #[Group('ancora')]
 final class PlanningUiTest extends AncoraBrowserTestBase {
@@ -29,10 +29,11 @@ final class PlanningUiTest extends AncoraBrowserTestBase {
   }
 
   /**
-   * Anonymous users are denied everything; viewers only read.
+   * Anonymous users are denied everything; each viewer reads their own data.
    */
-  public function testAnonymousAndViewer(): void {
-    \Drupal::service(SyntheticFixture::class)->load();
+  public function testAnonymousAndViewers(): void {
+    $owner = $this->drupalCreateUser(['view academic data']);
+    \Drupal::service(SyntheticFixture::class)->load(TRUE, $owner);
     $paths = [
       '/ancora/planning',
       '/ancora/planning/activities',
@@ -45,7 +46,7 @@ final class PlanningUiTest extends AncoraBrowserTestBase {
       $this->assertSession()->statusCodeEquals(403);
     }
 
-    $this->drupalLogin($this->drupalCreateUser(['view academic data']));
+    $this->drupalLogin($owner);
     $this->drupalGet('/ancora/planning');
     $this->assertSession()->statusCodeEquals(200);
     $this->assertSession()->elementsCount('css', 'li.ancora-planning__step', 13);
@@ -65,10 +66,29 @@ final class PlanningUiTest extends AncoraBrowserTestBase {
     $this->assertSession()->statusCodeEquals(200);
     $this->assertSession()->elementsCount('css', 'table tbody tr', 4);
     $this->assertSession()->elementTextContains('css', 'table', 'Subject Beta');
+
+    // Another viewer of the site sees none of these records in the lists.
+    // A teacher or a room itself is visible to every viewer: the legacy
+    // timetable explorer lists every user's teachers and rooms (Q-23).
+    $this->drupalLogin($this->drupalCreateUser(['view academic data']));
+    $this->drupalGet('/admin/ancora/teachers');
+    $this->assertSession()->statusCodeEquals(200);
+    $this->assertSession()->pageTextContains('There are no teachers yet.');
+    $this->drupalGet('/ancora/planning/activities');
+    $this->assertSession()->pageTextNotContains('Subject Beta');
+    $this->drupalGet('/admin/ancora/plans/1');
+    $this->assertSession()->statusCodeEquals(403);
+    $this->drupalGet('/admin/ancora/subjects/1');
+    $this->assertSession()->statusCodeEquals(403);
+    $this->drupalGet('/admin/ancora/teachers/1');
+    $this->assertSession()->statusCodeEquals(200);
+    $this->assertSession()->pageTextContains('Teacher Alpha');
+    $this->drupalGet('/admin/ancora/teachers/1/edit');
+    $this->assertSession()->statusCodeEquals(403);
   }
 
   /**
-   * Editors enter data through validated forms; plans are for administrators.
+   * Editors enter their own data through validated forms, plans included.
    */
   public function testEditorForms(): void {
     $this->drupalLogin($this->drupalCreateUser(['administer academic data']));
@@ -82,14 +102,24 @@ final class PlanningUiTest extends AncoraBrowserTestBase {
     $this->submitForm(['duration_days[0][value]' => 120], 'Save');
     $this->assertSession()->pageTextContains('Created the plan Autumn 2026.');
 
+    // An editor creates a plan of their own, with the same code.
     $this->drupalLogin($this->drupalCreateUser(['view academic data', 'edit academic data']));
+    $this->drupalGet('/admin/ancora/plans');
+    $this->assertSession()->pageTextNotContains('Autumn 2026');
     $this->drupalGet('/admin/ancora/plans/add');
-    $this->assertSession()->statusCodeEquals(403);
+    $this->assertSession()->statusCodeEquals(200);
+    $this->assertSession()->fieldNotExists('uid[0][target_id]');
+    $this->submitForm([
+      'label[0][value]' => 'My autumn',
+      'code[0][value]' => 'AUT26',
+      'duration_days[0][value]' => 120,
+    ], 'Save');
+    $this->assertSession()->pageTextContains('Created the plan My autumn.');
 
     $this->drupalGet('/admin/ancora/periods');
     $this->clickLink('Add period');
-    // The only plan is preselected.
-    $this->assertSession()->fieldValueEquals('plan', '1');
+    // The editor's only plan is preselected.
+    $this->assertSession()->fieldValueEquals('plan', '2');
     $this->submitForm([
       'label[0][value]' => 'Week',
       'code[0][value]' => 'W',
@@ -109,7 +139,7 @@ final class PlanningUiTest extends AncoraBrowserTestBase {
     $this->assertSession()->pageTextContains('Created the teacher Ada Teacher.');
     $this->drupalGet('/admin/ancora/teachers/add');
     $this->submitForm(['label[0][value]' => 'Another Teacher', 'code[0][value]' => 'T1'], 'Save');
-    $this->assertSession()->pageTextContains('The code T1 is already used by another record of this plan.');
+    $this->assertSession()->pageTextContains('The code T1 is already used by another record of this plan or of the same creator.');
 
     // Edit, then delete a teacher nobody references.
     $this->drupalGet('/admin/ancora/teachers');
@@ -123,8 +153,10 @@ final class PlanningUiTest extends AncoraBrowserTestBase {
     $this->assertSession()->pageTextContains('has been deleted');
     $this->assertSession()->elementTextContains('css', 'table', 'There are no teachers yet.');
 
-    // Editors cannot delete plans.
+    // The administrator's plan is not the editor's to delete or edit.
     $this->drupalGet('/admin/ancora/plans/1/delete');
+    $this->assertSession()->statusCodeEquals(403);
+    $this->drupalGet('/admin/ancora/plans/1/edit');
     $this->assertSession()->statusCodeEquals(403);
   }
 

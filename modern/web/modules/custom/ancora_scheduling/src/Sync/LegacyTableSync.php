@@ -8,12 +8,15 @@ use Drupal\ancora_engine\Engine\EngineClient;
 use PgSql\Connection as PgConnection;
 
 /**
- * Writes the legacy rows of one plan into an engine database.
+ * Writes the legacy rows of a site into its engine database.
  *
- * Replace semantics: after a sync, the plan's rows in the engine database are
- * exactly the rows built by LegacyRows from the current export. The plan's
- * rows are the ones whose id (or owning column) starts with the plan's
- * prefix (ScopeMapper). Rows of other plans are never read or written.
+ * Replace semantics: after a sync, the synced rows in the engine database are
+ * exactly the rows built by LegacyRows from the current data of the site
+ * (EngineSync). Synced rows are the ones whose id (or owning column) is a
+ * numbered engine id (LegacyRows::engineId(), "0000000012:code"), or an id
+ * of the earlier per-plan scheme ("p<plan id>:code"), which the first sync
+ * after the update replaces. Rows of any other origin (for example a fixture
+ * loaded with SQL) are never read or written.
  *
  * The sync is a difference, not a delete and reinsert: unchanged rows are not
  * touched, so the placements of the plan's other scopes, which reference
@@ -47,7 +50,7 @@ final class LegacyTableSync {
   /**
    * The legacy tables in foreign key order: key columns and owner column.
    *
-   * The owner column holds a prefixed id of the plan, and selects its rows.
+   * The owner column holds a synced id, and selects the synced rows.
    */
   public const TABLES = [
     'planificacion' => [['id'], 'id'],
@@ -68,6 +71,11 @@ final class LegacyTableSync {
     'lugar' => [['id'], 'id'],
     'lugar_para_actividad' => [['plantilla', 'lugar'], 'plantilla'],
   ];
+
+  /**
+   * The ids of synced rows: numbered engine ids, and the earlier per-plan ids.
+   */
+  public const SYNCED_ID = '^([0-9]{10}:|p[0-9]+:)';
 
   /**
    * Columns that are never compared (generated or internal).
@@ -100,27 +108,27 @@ final class LegacyTableSync {
   ) {}
 
   /**
-   * Syncs the rows of one plan.
+   * Syncs the rows of the site.
    *
    * @param array<string, list<array<string, scalar|null>>> $rows
-   *   The result of LegacyRows::build() for the plan, with its prefix.
-   * @param string $prefix
-   *   The plan's engine id prefix.
-   * @param string $creator
-   *   The plan's legacy owner, as used in $rows.
+   *   The rows of every legacy table, with numbered ids (EngineSync).
+   * @param list<string> $creators
+   *   The legacy users who own the rows (ScopeMapper::creatorOf()).
    *
    * @return array
    *   inserted, updated and deleted row counts, and the changes per table.
    *
    * @throws \Drupal\ancora_engine\Engine\EngineException
    */
-  public function sync(array $rows, string $prefix, string $creator): array {
-    if ($prefix === '' || array_diff_key(self::TABLES, $rows) !== []) {
-      throw new \InvalidArgumentException('A plan sync needs a prefix and the rows of every legacy table.');
+  public function sync(array $rows, array $creators): array {
+    if (array_diff_key(self::TABLES, $rows) !== []) {
+      throw new \InvalidArgumentException('A sync needs the rows of every legacy table.');
     }
     $this->changes = array_fill_keys(array_keys(self::TABLES), [0, 0, 0]);
     $this->flagged = [];
-    $this->ensureCreator($creator);
+    foreach ($creators as $creator) {
+      $this->ensureCreator($creator);
+    }
 
     // 1. Deletes, children first.
     foreach (array_reverse(self::TABLES, TRUE) as $table => [$key, $owner]) {
@@ -128,7 +136,7 @@ final class LegacyTableSync {
       foreach ($rows[$table] as $row) {
         $wanted[self::keyOf($row, $key)] = TRUE;
       }
-      foreach ($this->current($table, $key, $owner, $prefix) as $id => $row) {
+      foreach ($this->current($table, $key, $owner) as $id => $row) {
         if (!isset($wanted[$id])) {
           $this->changes[$table][2] += $this->delete($table, $key, $row);
         }
@@ -148,16 +156,16 @@ final class LegacyTableSync {
           return $row;
         }, $desired);
       }
-      $this->upsert($table, $key, $owner, $prefix, $desired);
+      $this->upsert($table, $key, $owner, $desired);
       if ($table === 'desglose') {
         // Exported breakdown id => the id of the row in the engine.
-        $actual = $this->current($table, $key, $owner, $prefix);
+        $actual = $this->current($table, $key, $owner);
         foreach ($rows['desglose'] as $row) {
           $breakdowns[$row['id']] = $actual[self::keyOf($row, $key)]['id'];
         }
       }
       if ($table === 'plantilla_de_actividad') {
-        $this->fixOrder($desired, $prefix);
+        $this->fixOrder($desired);
       }
     }
     $this->resetFlags();
@@ -181,25 +189,27 @@ final class LegacyTableSync {
   }
 
   /**
-   * Creates the plan's legacy owner when it does not exist.
+   * Creates the legacy user of a Drupal user when it does not exist.
    *
-   * It has no usable password: nobody logs in to the legacy application with
-   * it. It only owns the plan's rows.
+   * The legacy "creador" of a row is the user who created it
+   * (control/data/fdms/fdm_<Class>_creador.php). The engine row of a Drupal
+   * user carries no personal data and has no usable password: nobody logs
+   * in to the legacy application with it.
    */
   private function ensureCreator(string $creator): void {
-    $this->engine->affected($this->connection, "INSERT INTO seguridad.usuario (id, nombre, info, correo, nick, contrasena) VALUES ($1, $1, 'Owner of a plan synced from Drupal', 'noreply@example.invalid', $1, '!unusable: synced plan owner') ON CONFLICT DO NOTHING", [$creator]);
+    $this->engine->affected($this->connection, "INSERT INTO seguridad.usuario (id, nombre, info, correo, nick, contrasena) VALUES ($1, $1, 'Drupal user synced to the engine', 'noreply@example.invalid', $1, '!unusable: synced Drupal user') ON CONFLICT DO NOTHING", [$creator]);
   }
 
   /**
-   * The plan's current rows of a table, keyed by their key.
+   * The current synced rows of a table, keyed by their key.
    *
    * @return array<string, array<string, string|null>>
    *   Rows as text values.
    */
-  private function current(string $table, array $key, string $owner, string $prefix): array {
+  private function current(string $table, array $key, string $owner): array {
     $rows = [];
-    $sql = sprintf('SELECT * FROM %s WHERE starts_with(%s, $1)', self::ident($table), self::ident($owner));
-    foreach ($this->engine->rows($this->connection, $sql, [$prefix]) as $row) {
+    $sql = sprintf('SELECT * FROM %s WHERE %s ~ $1', self::ident($table), self::ident($owner));
+    foreach ($this->engine->rows($this->connection, $sql, [self::SYNCED_ID]) as $row) {
       $rows[self::keyOf($row, $key)] = $row;
     }
     return $rows;
@@ -208,8 +218,8 @@ final class LegacyTableSync {
   /**
    * Inserts the missing rows and updates the differing ones.
    */
-  private function upsert(string $table, array $key, string $owner, string $prefix, array $desired): void {
-    $current = $this->current($table, $key, $owner, $prefix);
+  private function upsert(string $table, array $key, string $owner, array $desired): void {
+    $current = $this->current($table, $key, $owner);
     $skip = self::NOT_COMPARED[$table] ?? [];
     foreach ($desired as $row) {
       $id = self::keyOf($row, $key);
@@ -244,14 +254,14 @@ final class LegacyTableSync {
   }
 
   /**
-   * Sets the exported order of the plan's templates.
+   * Sets the exported order of the templates.
    *
    * The order triggers may have renumbered templates during the inserts and
    * deletes. Moving through negative values keeps UNIQUE (desglose, orden)
    * satisfied at every step; the internal flag keeps the triggers out.
    */
-  private function fixOrder(array $desired, string $prefix): void {
-    $current = $this->current('plantilla_de_actividad', ['id'], 'id', $prefix);
+  private function fixOrder(array $desired): void {
+    $current = $this->current('plantilla_de_actividad', ['id'], 'id');
     $wrong = array_filter($desired, static fn (array $row): bool => (int) $current[$row['id']]['orden'] !== (int) $row['orden']);
     foreach ([-1, 1] as $sign) {
       foreach ($wrong as $row) {
@@ -315,7 +325,7 @@ final class LegacyTableSync {
   /**
    * The key of a row, as one string.
    */
-  private static function keyOf(array $row, array $key): string {
+  public static function keyOf(array $row, array $key): string {
     return implode("\x1F", array_map(static fn (string $column): string => (string) self::text($row[$column] ?? NULL), $key));
   }
 

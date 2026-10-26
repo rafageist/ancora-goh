@@ -78,7 +78,7 @@ Renaming the brigades, teachers or teacher assignments did not change the result
 
 A legacy replica id (`getReplica()`, `lib/basic/string/StringUtils.php`, PAR-110) is the table name, the time as `d/m/y h:i:s`, `time()`, then random characters. So rows entered in different seconds sort in entry order, and rows entered in the **same** second sort randomly. The first harness run entered G1 and G2 in the same second and got the swapped result. The driver therefore enters the rows of one table in different seconds, as a person does, and fails the scenario if the generated ids of any table do not sort in entry order (the 12-hour clock or the day of month wrapping during a run). With this, the legacy side is deterministic.
 
-The Drupal side must give the same order. Its engine ids today are `p<plan>:` + code, so the order is the code order. In the scenarios the codes sort in entry order, so both agree. That this is not true in general is the D15 finding below.
+The Drupal side must give the same order. Before #70 its engine ids were `p<plan>:` + code, which sort in code order: scenario s04 (codes that do not sort in entry order) fails there. Since the ownership slice they are numbered with the entity id (`0000000012:G1`, `LegacyRows::engineId()`), which sorts in creation order, and s04 passes.
 
 ### Drupal
 
@@ -161,8 +161,49 @@ Result on `master` (`0e4cf55`), PHP 8.4, PostgreSQL 16: **22 PASS, 2 KNOWN, 0 FA
 4. With one creator and two plans (`s03`, on `master`), the legacy application accepts the second plan's group and templates on the first plan's subjects, cohort and activity type. Drupal refuses them: "belongs to another plan" (D1).
 5. The legacy characterization (`s02`) confirms quirks Q-11 and Q-12 (Bob renames Alice's teacher with `set_Profesor`, and becomes its `creador`; Bob deletes Alice's room with `del_Lugar`), and Q-23 (Bob sees Alice's teacher and room in the timetable explorer lists).
 
-Scenarios 2 and 3 are added with the slice that corrects D1–D3 (they fail on `master` by design).
+## Scenarios of the ownership slice (D1–D3, D15)
+
+| Scenario | What it enters | On `master` (`0e4cf55`) | After the slice |
+| --- | --- | --- | --- |
+| `s02-two-creators` | Alice and Bob, each with a plan `P` for the same dates and catalogues with the same codes and partly the same names; 7 visibility checks per side; 4 characterization steps | Drupal refuses Bob's plan (`A plan with Code P already exists`), so all of Bob's records fail; Bob sees, views and may edit Alice's records (D2) | **23 PASS, 2 KNOWN, 0 FAIL**; both runs PASS; 16/16 visibility checks as expected on both sides |
+| `s03-one-creator-two-plans` | Alice with two plans on the same dates sharing subjects, teacher, room, cohort, activity type, specialty and level | Drupal refuses the second plan's group, templates and assignments: `… belongs to another plan` (D1) | **21 PASS, 2 KNOWN, 0 FAIL**; both runs PASS; the breakdown table has the 4 rows the triggers make for the creator's two periods |
+| `s04-entry-order` | s01 with codes that do not sort in entry order (groups `Z1`, `A2`; teachers `TZ`, `TB0`) | outcome FAIL: Drupal swaps the two groups' slots (E2E digest `32ecd3da…` instead of `4199818b…`) | **22 PASS, 2 KNOWN, 0 FAIL**; both sides give `4199818b…` |
+
+Observations recorded by these scenarios:
+
+- **Owners.** Each person's rows have exactly one legacy owner on both sides (`owners: {"alice":1,"bob":1}`); before the slice the Drupal side had one artificial owner per plan (`p<plan>:owner`).
+- **Breakdowns per creator.** The legacy triggers pair each subject with the periods of every plan of its creator and of no other user (PAR-031). The sync now produces the same rows.
+- **Shared resources across a creator's plans (s03).** Both plans cover the same days and share the teacher and the room. On both sides the second run places them in the same day and slots as the first run: the first plan's placements do not make them busy for the second.
+- **Characterization (legacy only, s02).** `CHAR` lines confirm Q-11 and Q-12 (`set_Profesor` by Bob on Alice's teacher renames it and makes Bob its `creador`; `del_Lugar` by Bob deletes Alice's room) and Q-23 (Bob sees Alice's teacher and room in the timetable explorer). Drupal denies Bob the update and the delete (Q-12 is a security behaviour, not reproduced) and lets him view the teacher and the room (Q-23, reproduced).
+
+## Further deviations noticed (not fixed by the ownership slice)
+
+Numbered after D15 of the inventory.
+
+| # | Drupal | Legacy | Reference |
+| --- | --- | --- | --- |
+| D16 | `administer academic data` sees and edits every user's records | no screen shows another user's records, not even to the seeded superuser | PAR-002, PAR-006 |
+| D17 | deleting a Drupal user does not touch their academic records | `creador … REFERENCES seguridad.usuario ON DELETE CASCADE`: deleting a user deletes all their records | PAR-001 |
+| D18 | the sync inserts each table's rows in code order (export order); entity ids keep the id order, but not the physical (heap) order of rows the generator reads without `ORDER BY` | rows are stored in entry order. No scenario shows a difference yet | PAR-110 |
+| — | an edit never changes the owner; only an administrator changes it (owner field) | `set_*` handlers rewrite `creador` to the editor (Q-11) | Q-11 |
+| — | codes are a Drupal handle, unique per owner or plan | legacy has no codes; ids are generated | D6 |
+| — | every list and choice is filtered by owner, including the drill-down lists | the drill-down and timetable handlers filter only by the ids the client posts, with no `creador` check (`get_browser_Brigadas_filtradas.php`, `get_browser_DesgloseDetalles.php`, `get_browser_GruposXClasifFiltrados.php`, `get_minibrowser_horarios.php`, `get_minibrowser_publico.php`). The screens only post ids from the user's own lists, so this matters only for crafted requests. Like Q-12, it is an access defect: recorded, not reproduced | PAR-002, D14 |
+
+Legacy defects found by the harness (no Drupal counterpart to change): `add_RolDeUsuario.php` fails with a fatal error; `add_Planificacion.php` reads an undefined `field_Planificacion_activa`.
 
 ## LBR impact
 
-**0 bytes retired.** The harness is test code. It retires no legacy responsibility by itself; it is the instrument that verifies replacements (#70 method, step 4).
+**0 bytes retired.** The harness is test code; the slice changes target code only.
+
+Parity-verified now (legacy over HTTP = Drupal, table-level and outcome-level, scenarios s01–s04):
+
+- PAR-001 owner of catalogue records and plans (`creador` from the session user);
+- PAR-002 visibility of the data entry lists (plans, teachers, rooms, specialties), positive and negative;
+- PAR-003 catalogues shared across the creator's plans;
+- PAR-008 owner of placed activities (the subject's creator);
+- PAR-014, PAR-015, PAR-019, PAR-030, PAR-050, PAR-054 as rows (owned, no plan);
+- PAR-031 breakdown rows per subject and period of the creator's plans;
+- PAR-110 id order (entry order), through numbered engine ids;
+- Q-23 recorded on the legacy side and reproduced as view access.
+
+Not parity-verified (no retirement credit): Q-11 and Q-12 (recorded, deliberately not reproduced), the cross-user timetable explorer itself (D14), every other row of the inventory, and every legacy screen: the harness compares data and outcomes, not the UI.

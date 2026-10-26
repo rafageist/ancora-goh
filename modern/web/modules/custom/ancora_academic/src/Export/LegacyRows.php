@@ -14,14 +14,29 @@ namespace Drupal\ancora_academic\Export;
  * them to an engine database is the engine sync's job (#71), not this
  * module's.
  *
- * Legacy identifiers are derived from the codes, optionally prefixed:
+ * Legacy identifiers are derived from the codes:
  * - plan, period, activity type, specialty, level, cohort, group, subject,
  *   room, teacher: the code;
  * - activity template: subject code + sequence ("A1"), with "@" + period code
  *   appended when the export has more than one period;
- * - subject breakdown (desglose): subject code + "@" + period code;
- * - period day (periodicidad): period code + "@" + day;
- * - teacher assignment: template ID + "@" + teacher code.
+ * - subject breakdown (desglose): subject id + "@" + period id;
+ * - period day (periodicidad): period id + "@" + day;
+ * - teacher assignment: template code + "@" + teacher code.
+ *
+ * With $numbered (the engine sync), every id that is not derived from
+ * other ids is prefixed with the record's entity id, zero-padded to ten
+ * digits, and ":" (engineId()): "0000000012:G1". Legacy ids are generated
+ * replicas (getReplica(): table, time, random characters; inventory
+ * PAR-110). They are opaque, unique in the database, and sort in entry
+ * order, and generar() reads some tables in id order: its result depends on
+ * that order (docs/modernization/legacy-parity-harness.md). Entity ids grow
+ * in creation order and are unique per type on the site, so numbered ids
+ * keep the legacy order and never collide between users or plans; the code
+ * after ":" keeps them readable. Without $numbered the ids are the codes,
+ * which reproduces dev/e2e/fixture.sql exactly (FixtureExportTest).
+ *
+ * An export without a plan (AcademicExport::catalogue()) gives only the
+ * catalogue rows of its owner.
  *
  * The legacy schema creates a desglose row for every subject and period by
  * trigger (nuevo_desglose_cuando_nueva_asignatura / _nuevo_periodo). The rows
@@ -41,57 +56,78 @@ final class LegacyRows {
   ];
 
   /**
+   * The separator between the entity id and the code of a numbered id.
+   */
+  public const ID_SEPARATOR = ':';
+
+  /**
+   * The engine id of a record: its entity id, zero-padded, ":" and its code.
+   */
+  public static function engineId(int $entity_id, string $code): string {
+    return sprintf('%010d', $entity_id) . self::ID_SEPARATOR . $code;
+  }
+
+  /**
+   * The legacy tables, in foreign key order.
+   */
+  public const TABLES = [
+    'planificacion', 'periodo', 'periodicidad', 'clasificacion_de_actividad',
+    'especialidad', 'nivel', 'brigada', 'grupo', 'brigada_de_grupo',
+    'asignatura', 'desglose', 'plantilla_de_actividad', 'profesor',
+    'profesor_para_actividad', 'profesor_para_grupo', 'lugar',
+    'lugar_para_actividad',
+  ];
+
+  /**
    * Builds the legacy rows of an export.
    *
    * @param array<string, mixed> $export
-   *   The result of AcademicExport::export().
+   *   The result of AcademicExport::export() or ::catalogue().
    * @param string $creator
-   *   The legacy user ID that owns the records ("creador").
-   * @param string $prefix
-   *   A prefix for every legacy ID, to keep several plans apart.
+   *   The legacy user ID of the export's owner ("creador").
+   * @param bool $numbered
+   *   Number the ids with the entity ids (engineId()), as the engine sync
+   *   does; otherwise the ids are the codes.
    *
    * @return array<string, list<array<string, scalar|null>>>
    *   Rows keyed by legacy table name, in foreign key order.
    */
-  public function build(array $export, string $creator = 'admin-superuser', string $prefix = ''): array {
+  public function build(array $export, string $creator = 'admin-superuser', bool $numbered = FALSE): array {
     if (($export['schema'] ?? NULL) !== AcademicExport::SCHEMA) {
       throw new \InvalidArgumentException('Unsupported export schema.');
     }
-    $id = static fn (?string $code): ?string => $code === NULL ? NULL : $prefix . $code;
-    $codes = [];
+    $make = static fn (array $record, string $code): string => $numbered ? self::engineId($record['id'], $code) : $code;
+    $ids = [];
     $coded = [
       'periods', 'activity_types', 'specialties', 'levels', 'cohorts',
       'student_groups', 'subjects', 'rooms', 'teachers',
     ];
     foreach ($coded as $list) {
       foreach ($export[$list] as $record) {
-        $codes[$record['key']] = $record['code'];
+        $ids[$record['key']] = $make($record, $record['code']);
       }
     }
-    $code = static fn (?string $key): ?string => $key === NULL ? NULL : $id($codes[$key] ?? NULL);
+    $code = static fn (?string $key): ?string => $key === NULL ? NULL : ($ids[$key] ?? NULL);
     $plan = $export['plan'];
-    $plan_id = $id($plan['code']);
     $several_periods = count($export['periods']) > 1;
 
-    $rows = array_fill_keys([
-      'planificacion', 'periodo', 'periodicidad', 'clasificacion_de_actividad',
-      'especialidad', 'nivel', 'brigada', 'grupo', 'brigada_de_grupo',
-      'asignatura', 'desglose', 'plantilla_de_actividad', 'profesor',
-      'profesor_para_actividad', 'profesor_para_grupo', 'lugar',
-      'lugar_para_actividad',
-    ], []);
+    $rows = array_fill_keys(self::TABLES, []);
 
-    $rows['planificacion'][] = [
-      'id' => $plan_id,
-      'descripcion' => $plan['label'],
-      'fecha_inicial' => $plan['starts_on'] === NULL ? 0 : self::legacyDayNumber($plan['starts_on']),
-      'cant_dias' => $plan['duration_days'],
-      'activa' => $plan['active'],
-      'creador' => $creator,
-    ];
+    $plan_id = NULL;
+    if ($plan !== NULL) {
+      $plan_id = $make($plan, $plan['code']);
+      $rows['planificacion'][] = [
+        'id' => $plan_id,
+        'descripcion' => $plan['label'],
+        'fecha_inicial' => $plan['starts_on'] === NULL ? 0 : self::legacyDayNumber($plan['starts_on']),
+        'cant_dias' => $plan['duration_days'],
+        'activa' => $plan['active'],
+        'creador' => $creator,
+      ];
+    }
     foreach ($export['periods'] as $period) {
       $rows['periodo'][] = [
-        'id' => $id($period['code']),
+        'id' => $code($period['key']),
         'descripcion' => $period['label'],
         'cant_dias' => $period['days'],
         'cant_turnos' => $period['slots_per_day'],
@@ -101,15 +137,15 @@ final class LegacyRows {
       ];
       foreach ($period['plan_days'] as $day) {
         $rows['periodicidad'][] = [
-          'id' => $id($period['code'] . '@' . $day),
-          'periodo' => $id($period['code']),
+          'id' => $code($period['key']) . '@' . $day,
+          'periodo' => $code($period['key']),
           'dia' => $day,
         ];
       }
     }
     foreach ($export['activity_types'] as $type) {
       $rows['clasificacion_de_actividad'][] = [
-        'id' => $id($type['code']),
+        'id' => $code($type['key']),
         'descripcion' => $type['label'],
         'duracion' => $type['duration_slots'],
         'creador' => $creator,
@@ -119,12 +155,12 @@ final class LegacyRows {
     }
     foreach (['specialties' => 'especialidad', 'levels' => 'nivel'] as $list => $table) {
       foreach ($export[$list] as $record) {
-        $rows[$table][] = ['id' => $id($record['code']), 'descripcion' => $record['label'], 'creador' => $creator];
+        $rows[$table][] = ['id' => $code($record['key']), 'descripcion' => $record['label'], 'creador' => $creator];
       }
     }
     foreach ($export['cohorts'] as $cohort) {
       $rows['brigada'][] = [
-        'id' => $id($cohort['code']),
+        'id' => $code($cohort['key']),
         'descripcion' => $cohort['label'],
         'especialidad' => $code($cohort['specialty']),
         'nivel' => $code($cohort['level']),
@@ -134,7 +170,7 @@ final class LegacyRows {
     }
     foreach ($export['student_groups'] as $group) {
       $rows['grupo'][] = [
-        'id' => $id($group['code']),
+        'id' => $code($group['key']),
         'descripcion' => $group['label'],
         'clasificacion' => $code($group['activity_type']),
         'especialidad' => $code($group['specialty']),
@@ -142,12 +178,12 @@ final class LegacyRows {
         'nivel' => $code($group['level']),
       ];
       foreach ($group['cohorts'] as $cohort_key) {
-        $rows['brigada_de_grupo'][] = ['brigada' => $code($cohort_key), 'grupo' => $id($group['code'])];
+        $rows['brigada_de_grupo'][] = ['brigada' => $code($cohort_key), 'grupo' => $code($group['key'])];
       }
     }
     foreach ($export['subjects'] as $subject) {
       $rows['asignatura'][] = [
-        'id' => $id($subject['code']),
+        'id' => $code($subject['key']),
         'descripcion' => $subject['label'],
         'especialidad' => $code($subject['specialty']),
         'nivel' => $code($subject['level']),
@@ -155,20 +191,22 @@ final class LegacyRows {
       ];
       foreach ($export['periods'] as $period) {
         $rows['desglose'][] = [
-          'id' => $id($subject['code'] . '@' . $period['code']),
-          'asignatura' => $id($subject['code']),
-          'periodo' => $id($period['code']),
+          'id' => $code($subject['key']) . '@' . $code($period['key']),
+          'asignatura' => $code($subject['key']),
+          'periodo' => $code($period['key']),
         ] + self::BREAKDOWN_DEFAULTS;
       }
     }
 
     $template_ids = [];
+    $template_codes = [];
     foreach ($export['activity_templates'] as $template) {
-      $template_id = $id($template['subject_code'] . $template['sequence'] . ($several_periods ? '@' . $template['period_code'] : ''));
-      $template_ids[$template['key']] = $template_id;
+      $template_code = $template['subject_code'] . $template['sequence'] . ($several_periods ? '@' . $template['period_code'] : '');
+      $template_codes[$template['key']] = $template_code;
+      $template_ids[$template['key']] = $make($template, $template_code);
       $rows['plantilla_de_actividad'][] = [
-        'id' => $template_id,
-        'desglose' => $id($template['subject_code'] . '@' . $template['period_code']),
+        'id' => $template_ids[$template['key']],
+        'desglose' => $code($template['subject']) . '@' . $code($template['period']),
         'orden' => $template['sequence'],
         'clasificacion' => $code($template['activity_type']),
         'exige_profesor' => $template['requires_teacher'],
@@ -176,10 +214,10 @@ final class LegacyRows {
       ];
     }
     foreach ($export['teachers'] as $teacher) {
-      $rows['profesor'][] = ['id' => $id($teacher['code']), 'nombre' => $teacher['label'], 'creador' => $creator];
+      $rows['profesor'][] = ['id' => $code($teacher['key']), 'nombre' => $teacher['label'], 'creador' => $creator];
     }
     foreach ($export['teacher_assignments'] as $assignment) {
-      $assignment_id = $template_ids[$assignment['template']] . '@' . $assignment['teacher_code'];
+      $assignment_id = $make($assignment, $template_codes[$assignment['template']] . '@' . $assignment['teacher_code']);
       $rows['profesor_para_actividad'][] = [
         'id' => $assignment_id,
         'plantilla' => $template_ids[$assignment['template']],
@@ -192,7 +230,7 @@ final class LegacyRows {
     }
     foreach ($export['rooms'] as $room) {
       $rows['lugar'][] = [
-        'id' => $id($room['code']),
+        'id' => $code($room['key']),
         'nombre' => $room['label'],
         'capacidad' => $room['capacity'],
         'creador' => $creator,

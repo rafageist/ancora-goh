@@ -1,0 +1,145 @@
+<?php
+
+/**
+ * @file
+ * Update functions of the Áncora academic module.
+ */
+
+declare(strict_types=1);
+
+use Drupal\ancora_academic\AcademicEntityTypes;
+use Drupal\Core\Utility\UpdateException;
+
+/**
+ * Plans and catalogues belong to their creator; catalogues no longer to a plan.
+ *
+ * Issue #70, deviations D1 to D3 (legacy-parity-inventory.md PAR-001,
+ * PAR-003): legacy plans, activity types, specialties, levels, cohorts,
+ * subjects, rooms and teachers belong to the user who created them, and the
+ * catalogues serve every plan of that user. This update:
+ * 1. adds the owner field to those eight types. Existing records get the
+ *    site's first account (uid 1) as owner, because the earlier schema
+ *    recorded no creator. Give them to their real creator afterwards with
+ *    "drush ancora-academic:reassign-owner <from> <to>";
+ * 2. merges catalogue records that were copies in several plans: records of
+ *    one type with the same code and the same values become one record
+ *    (the oldest), and every reference moves to it. Copies with the same
+ *    code and different values stop the update, and nothing is changed:
+ *    rename one of them first;
+ * 3. removes the plan field of the seven catalogue types.
+ */
+function ancora_academic_update_11001(): string {
+  $manager = \Drupal::entityDefinitionUpdateManager();
+  $entity_type_manager = \Drupal::entityTypeManager();
+  $field_manager = \Drupal::service('entity_field.manager');
+  $database = \Drupal::database();
+  $entity_type_manager->clearCachedDefinitions();
+  $field_manager->clearCachedFieldDefinitions();
+
+  // 1. The owner field, with uid 1 for the existing records.
+  foreach (AcademicEntityTypes::OWNED as $entity_type_id) {
+    if ($manager->getFieldStorageDefinition('uid', $entity_type_id) === NULL) {
+      $definition = $field_manager->getFieldStorageDefinitions($entity_type_id)['uid'];
+      // The initial value fills the existing rows; the installed definition
+      // must then equal the code's, which has none.
+      $initial = clone $definition;
+      $initial->setInitialValue(1);
+      $manager->installFieldStorageDefinition('uid', $entity_type_id, 'ancora_academic', $initial);
+      // "uid" is now the owner key, which makes the column NOT NULL.
+      $manager->updateEntityType($entity_type_manager->getDefinition($entity_type_id));
+      $manager->updateFieldStorageDefinition($definition);
+    }
+  }
+
+  // 2. Merge the per-plan copies of each catalogue record.
+  $catalogues = array_diff(AcademicEntityTypes::OWNED, ['ancora_plan']);
+  $merged = 0;
+  $transaction = $database->startTransaction();
+  try {
+    foreach ($catalogues as $entity_type_id) {
+      if ($manager->getFieldStorageDefinition('plan', $entity_type_id) === NULL) {
+        continue;
+      }
+      $table = $entity_type_manager->getDefinition($entity_type_id)->getBaseTable();
+      $rows = $database->select($table, 't')->fields('t')->orderBy('id')->execute()->fetchAll(\PDO::FETCH_ASSOC);
+      $kept = [];
+      foreach ($rows as $row) {
+        $group = $row['uid'] . "\x1F" . $row['code'];
+        $values = array_diff_key($row, array_flip(['id', 'uuid', 'plan', 'created', 'changed']));
+        if (!isset($kept[$group])) {
+          $kept[$group] = [$row['id'], $values];
+          continue;
+        }
+        if ($kept[$group][1] != $values) {
+          throw new UpdateException(sprintf('Two %s records with code "%s" differ (IDs %s and %s). Catalogues are no longer copied per plan: give one of them another code, then run the update again.', $entity_type_id, $row['code'], $kept[$group][0], $row['id']));
+        }
+        _ancora_academic_repoint($entity_type_id, (int) $row['id'], (int) $kept[$group][0]);
+        $database->delete($table)->condition('id', $row['id'])->execute();
+        $merged++;
+      }
+    }
+  }
+  catch (\Throwable $e) {
+    $transaction->rollBack();
+    throw $e;
+  }
+  unset($transaction);
+
+  // 3. Catalogues have no plan any more.
+  foreach ($catalogues as $entity_type_id) {
+    $plan = $manager->getFieldStorageDefinition('plan', $entity_type_id);
+    if ($plan !== NULL) {
+      $manager->uninstallFieldStorageDefinition($plan);
+    }
+  }
+  foreach (AcademicEntityTypes::ids() as $entity_type_id) {
+    $manager->updateEntityType($entity_type_manager->getDefinition($entity_type_id));
+  }
+  $entity_type_manager->clearCachedDefinitions();
+  return (string) t('Plans and catalogues now belong to their creator (uid 1 for existing records); @count per-plan copies were merged.', ['@count' => $merged]);
+}
+
+/**
+ * Moves every academic reference from one record to another.
+ *
+ * @param string $entity_type_id
+ *   The type of the records.
+ * @param int $from
+ *   The ID of the copy that is removed.
+ * @param int $to
+ *   The ID of the record that is kept.
+ */
+function _ancora_academic_repoint(string $entity_type_id, int $from, int $to): void {
+  $entity_type_manager = \Drupal::entityTypeManager();
+  $database = \Drupal::database();
+  $installed = \Drupal::service('entity.last_installed_schema.repository');
+  foreach (AcademicEntityTypes::ids() as $referencing) {
+    $storage = $entity_type_manager->getStorage($referencing);
+    $mapping = $storage->getTableMapping($installed->getLastInstalledFieldStorageDefinitions($referencing));
+    foreach ($installed->getLastInstalledFieldStorageDefinitions($referencing) as $name => $definition) {
+      if ($definition->getType() !== 'entity_reference' || $definition->getSetting('target_type') !== $entity_type_id) {
+        continue;
+      }
+      $table = $mapping->getFieldTableName($name);
+      $column = $mapping->getFieldColumnName($definition, 'target_id');
+      if ($definition->isMultiple()) {
+        // A record that referenced both keeps one reference.
+        $both = $database->select($table, 'r')->fields('r', ['entity_id'])->condition($column, $to)->execute()->fetchCol();
+        if ($both) {
+          $database->delete($table)->condition($column, $from)->condition('entity_id', $both, 'IN')->execute();
+        }
+      }
+      $database->update($table)->fields([$column => $to])->condition($column, $from)->execute();
+    }
+  }
+}
+
+/**
+ * Recomputes the cache metadata of the academic Views (per-user results).
+ */
+function ancora_academic_update_11002(): void {
+  $view = \Drupal::entityTypeManager()->getStorage('view')->load('ancora_academic_templates');
+  if ($view !== NULL) {
+    $view->save();
+  }
+}

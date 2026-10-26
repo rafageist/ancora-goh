@@ -69,6 +69,72 @@ final class AcademicEntityTest extends AcademicKernelTestBase {
     $teacher->set('label', 'Teacher Alpha Prime')->save();
     $this->assertSame('Teacher Alpha Prime', $this->byCode('ancora_teacher', 'TA', $plan)->label());
     $this->assertGreaterThan(0, $teacher->getChangedTime());
+
+    // Catalogue records have an owner and no plan; plan records a plan.
+    $this->assertFalse($teacher->hasField('plan'));
+    $this->assertNull($teacher->getPlanId());
+    $this->assertSame((int) $this->owner->id(), $teacher->getCreatorId());
+    $this->assertSame((int) $this->owner->id(), $plan->getCreatorId());
+    $this->assertSame((int) $this->owner->id(), $period->getCreatorId());
+  }
+
+  /**
+   * One user's catalogues serve every plan of that user (legacy PAR-003).
+   */
+  public function testCataloguesAreSharedAcrossTheCreatorsPlans(): void {
+    $plan = $this->loadFixture();
+    $second = $this->newRecord('ancora_plan', ['label' => 'Second plan', 'code' => 'Q']);
+    $this->assertSame([], $this->violationFields($second));
+    $second->save();
+    $period = $this->newRecord('ancora_period', [
+      'plan' => $second->id(),
+      'label' => 'Week',
+      'code' => 'PER',
+      'days' => 5,
+      'slots_per_day' => 4,
+      'start_hour' => 8,
+      'slot_duration' => 1,
+    ]);
+    $this->assertSame([], $this->violationFields($period));
+    $period->save();
+    $group = $this->newRecord('ancora_student_group', [
+      'plan' => $second->id(),
+      'label' => 'Group 1',
+      'code' => 'G1',
+      'activity_type' => $this->byCode('ancora_activity_type', 'C1')->id(),
+      'specialty' => $this->byCode('ancora_specialty', 'E')->id(),
+      'level' => $this->byCode('ancora_level', 'N')->id(),
+      'cohorts' => [$this->byCode('ancora_cohort', 'B1')->id()],
+    ]);
+    $this->assertSame([], $this->violationFields($group));
+    $group->save();
+    $template = $this->newRecord('ancora_activity_template', [
+      'plan' => $second->id(),
+      'subject' => $this->byCode('ancora_subject', 'A')->id(),
+      'period' => $period->id(),
+      'sequence' => 1,
+      'activity_type' => $this->byCode('ancora_activity_type', 'C1')->id(),
+    ]);
+    $this->assertSame([], $this->violationFields($template));
+    $template->save();
+    $assignment = $this->newRecord('ancora_teacher_assignment', [
+      'plan' => $second->id(),
+      'template' => $template->id(),
+      'teacher' => $this->byCode('ancora_teacher', 'TA')->id(),
+      'groups' => [$group->id()],
+    ]);
+    $this->assertSame([], $this->violationFields($assignment));
+    $assignment->save();
+    // The template of the first plan cannot be used in the second plan.
+    $first_templates = $this->container->get('entity_type.manager')->getStorage('ancora_activity_template')->loadByProperties(['plan' => $plan->id()]);
+    $foreign = $this->newRecord('ancora_room_assignment', [
+      'plan' => $second->id(),
+      'template' => reset($first_templates)->id(),
+      'room' => $this->byCode('ancora_room', 'L1')->id(),
+    ]);
+    $this->assertContains('template', $this->violationFields($foreign));
+    // The teacher is used by assignments of both plans.
+    $this->assertSame(['ancora_teacher_assignment' => 3], $this->container->get(ReferenceGuard::class)->dependents($this->byCode('ancora_teacher', 'TA')));
   }
 
   /**
@@ -76,7 +142,7 @@ final class AcademicEntityTest extends AcademicKernelTestBase {
    */
   public function testRequiredFieldsAndRanges(): void {
     $plan = $this->loadFixture();
-    $this->assertSame(['code', 'label', 'plan'], $this->violationFields($this->newRecord('ancora_teacher', [])));
+    $this->assertSame(['code', 'label'], $this->violationFields($this->newRecord('ancora_teacher', [])));
     $this->assertSame(['activity_type', 'period', 'plan', 'subject'], $this->violationFields($this->newRecord('ancora_activity_template', [])));
 
     $period = fn (array $values) => $this->newRecord('ancora_period', $values + [
@@ -96,7 +162,6 @@ final class AcademicEntityTest extends AcademicKernelTestBase {
     $this->assertSame(['plan_days'], $this->violationFields($period(['plan_days' => [0]])));
 
     $type = fn (array $values) => $this->newRecord('ancora_activity_type', $values + [
-      'plan' => $plan->id(),
       'label' => 'Lab',
       'code' => 'C2',
     ]);
@@ -106,37 +171,40 @@ final class AcademicEntityTest extends AcademicKernelTestBase {
     $this->assertSame(['cost'], $this->violationFields($type(['cost' => -1])));
 
     $this->assertSame(['capacity'], $this->violationFields($this->newRecord('ancora_room', [
-      'plan' => $plan->id(),
       'label' => 'Broken room',
       'code' => 'L9',
       'capacity' => -1,
     ])));
     $this->assertSame(['code'], $this->violationFields($this->newRecord('ancora_teacher', [
-      'plan' => $plan->id(),
       'label' => 'Spaced code',
       'code' => 'T 1',
     ])));
   }
 
   /**
-   * Codes are unique in a plan, not across plans; templates are unique too.
+   * Codes are unique per creator (catalogues, plans) or plan, not per site.
+   *
+   * Templates and assignments are unique too.
    */
   public function testUniqueness(): void {
     $plan = $this->loadFixture();
-    $duplicate = $this->newRecord('ancora_teacher', ['plan' => $plan->id(), 'label' => 'Another', 'code' => 'TA']);
+    $duplicate = $this->newRecord('ancora_teacher', ['label' => 'Another', 'code' => 'TA']);
     $violations = $duplicate->validate();
     $this->assertCount(1, $violations);
     $this->assertSame('code', $violations[0]->getPropertyPath());
     $this->assertStringContainsString('TA', (string) $violations[0]->getMessage());
-
-    // The same code in another plan is fine; plan codes are unique globally.
-    $other = $this->newRecord('ancora_plan', ['label' => 'Other plan', 'code' => 'Q']);
-    $this->assertSame([], $this->violationFields($other));
-    $other->save();
-    $same_code = $this->newRecord('ancora_teacher', ['plan' => $other->id(), 'label' => 'TA', 'code' => 'TA']);
-    $this->assertSame([], $this->violationFields($same_code));
     $plan_again = $this->newRecord('ancora_plan', ['label' => 'Again', 'code' => 'P']);
     $this->assertSame(['code'], $this->violationFields($plan_again));
+
+    // Another user may use the same codes, for plans too (two legacy users
+    // each had their own rows).
+    $other = $this->createUser(['view academic data', 'edit academic data']);
+    $this->setCurrentUser($other);
+    $other_plan = $this->newRecord('ancora_plan', ['label' => 'Plan', 'code' => 'P']);
+    $this->assertSame([], $this->violationFields($other_plan));
+    $same_code = $this->newRecord('ancora_teacher', ['label' => 'Teacher Alpha', 'code' => 'TA']);
+    $this->assertSame([], $this->violationFields($same_code));
+    $this->setCurrentUser($this->owner);
 
     // An existing record does not collide with itself.
     $this->assertSame([], $this->violationFields($this->byCode('ancora_teacher', 'TA', $plan)));
@@ -164,14 +232,13 @@ final class AcademicEntityTest extends AcademicKernelTestBase {
   }
 
   /**
-   * References stay within the plan and match specialty, level and type.
+   * References name the creator's records and match specialty, level, type.
    */
   public function testRelationsAreValidated(): void {
     $plan = $this->loadFixture();
-    $other = $this->newRecord('ancora_plan', ['label' => 'Other plan', 'code' => 'Q']);
-    $other->save();
+    $other = $this->createUser(['view academic data', 'edit academic data']);
     $foreign_specialty = $this->newRecord('ancora_specialty', [
-      'plan' => $other->id(),
+      'uid' => $other->id(),
       'label' => 'Foreign',
       'code' => 'E',
     ]);
@@ -184,13 +251,11 @@ final class AcademicEntityTest extends AcademicKernelTestBase {
 
     // A cohort of another specialty cannot join a group.
     $specialty_two = $this->newRecord('ancora_specialty', [
-      'plan' => $plan->id(),
       'label' => 'Second programme',
       'code' => 'E2',
     ]);
     $specialty_two->save();
     $cohort = $this->newRecord('ancora_cohort', [
-      'plan' => $plan->id(),
       'label' => 'Cohort 3',
       'code' => 'B3',
       'specialty' => $specialty_two->id(),
@@ -203,7 +268,7 @@ final class AcademicEntityTest extends AcademicKernelTestBase {
     $this->assertSame(['cohorts'], $this->violationFields($group));
 
     // A teacher may only be given groups that attend the template.
-    $lab = $this->newRecord('ancora_activity_type', ['plan' => $plan->id(), 'label' => 'Lab', 'code' => 'C2']);
+    $lab = $this->newRecord('ancora_activity_type', ['label' => 'Lab', 'code' => 'C2']);
     $lab->save();
     $lab_group = $this->newRecord('ancora_student_group', [
       'plan' => $plan->id(),
@@ -233,7 +298,14 @@ final class AcademicEntityTest extends AcademicKernelTestBase {
     $dependents = $guard->dependents($plan);
     $this->assertSame(4, $dependents['ancora_activity_template']);
     $this->assertSame(8, $dependents['ancora_room_assignment']);
-    $this->assertCount(12, $dependents);
+    // Only the plan's own records reference it; catalogues have no plan.
+    $this->assertSame([
+      'ancora_period',
+      'ancora_student_group',
+      'ancora_activity_template',
+      'ancora_teacher_assignment',
+      'ancora_room_assignment',
+    ], array_keys($dependents));
 
     try {
       $plan->delete();

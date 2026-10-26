@@ -28,6 +28,7 @@ use Drupal\views\EntityViewsData;
     'id' => 'id',
     'uuid' => 'uuid',
     'label' => 'label',
+    'owner' => 'uid',
   ],
   handlers: [
     'access' => AcademicAccessControlHandler::class,
@@ -52,6 +53,7 @@ use Drupal\views\EntityViewsData;
     'collection' => '/admin/ancora/rooms',
   ],
   admin_permission: 'administer academic data',
+  list_cache_contexts: ['user'],
   collection_permission: 'view academic data',
   base_table: 'ancora_room',
   label_count: [
@@ -59,11 +61,11 @@ use Drupal\views\EntityViewsData;
     'plural' => '@count rooms',
   ],
   constraints: [
-    'AncoraUniqueInPlan' => ['fields' => ['code']],
-    'AncoraSamePlan' => [],
+    'AncoraUniqueInScope' => ['fields' => ['code']],
+    'AncoraSameCreator' => [],
   ],
 )]
-final class Room extends AcademicEntityBase {
+final class Room extends OwnedAcademicEntityBase {
 
   /**
    * {@inheritdoc}
@@ -93,7 +95,7 @@ final class Room extends AcademicEntityBase {
    * {@inheritdoc}
    */
   public static function listColumns(): array {
-    return ['label', 'code', 'plan', 'capacity'];
+    return ['label', 'code', 'uid', 'capacity'];
   }
 
   /**

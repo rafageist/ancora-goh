@@ -30,6 +30,7 @@ use Drupal\views\EntityViewsData;
     'id' => 'id',
     'uuid' => 'uuid',
     'label' => 'label',
+    'owner' => 'uid',
   ],
   handlers: [
     'access' => AcademicAccessControlHandler::class,
@@ -54,14 +55,18 @@ use Drupal\views\EntityViewsData;
     'collection' => '/admin/ancora/plans',
   ],
   admin_permission: 'administer academic data',
+  list_cache_contexts: ['user'],
   collection_permission: 'view academic data',
   base_table: 'ancora_plan',
   label_count: [
     'singular' => '@count plan',
     'plural' => '@count plans',
   ],
+  constraints: [
+    'AncoraUniqueInScope' => ['fields' => ['code']],
+  ],
 )]
-final class Plan extends AcademicEntityBase {
+final class Plan extends OwnedAcademicEntityBase {
 
   /**
    * {@inheritdoc}
@@ -73,9 +78,7 @@ final class Plan extends AcademicEntityBase {
       new TranslatableMarkup('Name'),
       new TranslatableMarkup('For example "First semester 2026".'),
     );
-    $fields['code'] = static::codeField()
-      ->setDescription(new TranslatableMarkup('A short code, unique on the site. Letters, digits, ".", "_" and "-".'))
-      ->addConstraint('UniqueField');
+    $fields['code'] = static::codeField();
 
     $fields['starts_on'] = BaseFieldDefinition::create('datetime')
       ->setLabel(new TranslatableMarkup('First day'))
@@ -114,7 +117,7 @@ final class Plan extends AcademicEntityBase {
    * {@inheritdoc}
    */
   public static function listColumns(): array {
-    return ['label', 'code', 'starts_on', 'duration_days', 'active'];
+    return ['label', 'code', 'uid', 'starts_on', 'duration_days', 'active'];
   }
 
   /**

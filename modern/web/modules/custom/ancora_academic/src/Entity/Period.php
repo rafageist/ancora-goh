@@ -56,6 +56,7 @@ use Drupal\views\EntityViewsData;
     'collection' => '/admin/ancora/periods',
   ],
   admin_permission: 'administer academic data',
+  list_cache_contexts: ['user'],
   collection_permission: 'view academic data',
   base_table: 'ancora_period',
   label_count: [
@@ -63,8 +64,8 @@ use Drupal\views\EntityViewsData;
     'plural' => '@count periods',
   ],
   constraints: [
-    'AncoraUniqueInPlan' => ['fields' => ['code']],
-    'AncoraSamePlan' => [],
+    'AncoraUniqueInScope' => ['fields' => ['code']],
+    'AncoraSameCreator' => [],
   ],
 )]
 final class Period extends AcademicEntityBase {

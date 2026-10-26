@@ -1,0 +1,56 @@
+{
+  "schema": "ancora.parity.scenario.v1",
+  "id": "s03-one-creator-two-plans",
+  "title": "One creator with two plans that share the catalogues (subjects, teacher, room, cohort)",
+  "notes": [
+    "Legacy: subjects, teachers, rooms, cohorts, activity types, specialties and levels belong to their creador and serve every plan of that creador. The second plan's period gets breakdown rows for the creador's existing subjects from the trigger nuevo_desglose_si_nuevo_periodo.",
+    "Both plans cover the same days and share the teacher and the room. Observed on both sides: the second run places them in the same day and slots as the first run (P1: A1 day 1 slot 1, B1 slot 2; P2: B1 slot 1, A1 slot 2); the first plan's placements do not make them busy for the second.",
+    "The cohort is in a group of each plan (mueve_o_crea_brigada_de_grupo only moves it between groups of the same plan)."
+  ],
+  "users": [
+    {"key": "admin", "name": "Administrator", "legacy": "seeded-admin"},
+    {"key": "alice", "name": "Alice Planner"}
+  ],
+  "records": [
+    {"type": "plan", "key": "P1", "as": "alice", "label": "Semester 1", "starts_on": "2026-09-07", "duration_days": 30},
+    {"type": "period", "key": "W1", "as": "alice", "plan": "P1", "label": "Week", "days": 5, "slots_per_day": 2, "start_hour": 8, "slot_duration": 1, "plan_days": [1]},
+    {"type": "activity_type", "key": "C1", "as": "alice", "label": "Lecture", "duration_slots": 1, "priority": 1, "cost": 1},
+    {"type": "specialty", "key": "E", "as": "alice", "label": "Program"},
+    {"type": "level", "key": "N", "as": "alice", "label": "Year 1"},
+    {"type": "cohort", "key": "B1", "as": "alice", "label": "Cohort 1", "specialty": "E", "level": "N", "enrollment": 20},
+    {"type": "student_group", "key": "P1.G1", "code": "G1", "as": "alice", "plan": "P1", "label": "Group 1", "activity_type": "C1", "specialty": "E", "level": "N", "cohorts": ["B1"]},
+    {"type": "subject", "key": "A", "as": "alice", "label": "Subject Alpha", "specialty": "E", "level": "N"},
+    {"type": "subject", "key": "B", "as": "alice", "label": "Subject Beta", "specialty": "E", "level": "N"},
+    {"type": "activity_template", "key": "P1.A1", "as": "alice", "subject": "A", "period": "W1", "sequence": 1, "activity_type": "C1"},
+    {"type": "activity_template", "key": "P1.B1", "as": "alice", "subject": "B", "period": "W1", "sequence": 1, "activity_type": "C1"},
+    {"type": "teacher", "key": "T", "as": "alice", "label": "Teacher Alpha"},
+    {"type": "room", "key": "L1", "as": "alice", "label": "Room 1", "capacity": 50},
+    {"type": "teacher_assignment", "key": "P1.A1@T", "as": "alice", "template": "P1.A1", "teacher": "T", "priority": 1, "groups": ["P1.G1"]},
+    {"type": "teacher_assignment", "key": "P1.B1@T", "as": "alice", "template": "P1.B1", "teacher": "T", "priority": 1, "groups": ["P1.G1"]},
+    {"type": "room_assignment", "key": "P1.A1@L1", "as": "alice", "template": "P1.A1", "room": "L1", "priority": 1},
+    {"type": "room_assignment", "key": "P1.B1@L1", "as": "alice", "template": "P1.B1", "room": "L1", "priority": 1},
+
+    {"type": "plan", "key": "P2", "as": "alice", "label": "Semester 1, evening", "starts_on": "2026-09-07", "duration_days": 30},
+    {"type": "period", "key": "W2", "as": "alice", "plan": "P2", "label": "Week", "days": 5, "slots_per_day": 2, "start_hour": 8, "slot_duration": 1, "plan_days": [1]},
+    {"type": "student_group", "key": "P2.G1", "code": "G1", "as": "alice", "plan": "P2", "label": "Group 1", "activity_type": "C1", "specialty": "E", "level": "N", "cohorts": ["B1"]},
+    {"type": "activity_template", "key": "P2.A1", "as": "alice", "subject": "A", "period": "W2", "sequence": 1, "activity_type": "C1"},
+    {"type": "activity_template", "key": "P2.B1", "as": "alice", "subject": "B", "period": "W2", "sequence": 1, "activity_type": "C1"},
+    {"type": "teacher_assignment", "key": "P2.A1@T", "as": "alice", "template": "P2.A1", "teacher": "T", "priority": 1, "groups": ["P2.G1"]},
+    {"type": "teacher_assignment", "key": "P2.B1@T", "as": "alice", "template": "P2.B1", "teacher": "T", "priority": 1, "groups": ["P2.G1"]},
+    {"type": "room_assignment", "key": "P2.A1@L1", "as": "alice", "template": "P2.A1", "room": "L1", "priority": 1},
+    {"type": "room_assignment", "key": "P2.B1@L1", "as": "alice", "template": "P2.B1", "room": "L1", "priority": 1}
+  ],
+  "runs": [
+    {"key": "P1", "as": "alice", "plan": "P1", "period": "W1", "specialty": "E", "level": "N",
+     "options": {"forma": 1, "parche": false, "compactar": 0, "parche1": false, "buscalugar": false},
+     "expect": {"metrics": "demands=2 placed=2 unplaced=0 collisions=0 overflow=0"}},
+    {"key": "P2", "as": "alice", "plan": "P2", "period": "W2", "specialty": "E", "level": "N",
+     "options": {"forma": 1, "parche": false, "compactar": 0, "parche1": false, "buscalugar": false}}
+  ],
+  "visibility": [
+    {"as": "alice", "type": "plan", "visible": ["P1", "P2"]},
+    {"as": "alice", "type": "subject", "visible": ["A", "B"]},
+    {"as": "alice", "type": "teacher", "visible": ["T"]},
+    {"as": "alice", "type": "room", "visible": ["L1"]}
+  ]
+}

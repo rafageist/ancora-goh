@@ -24,17 +24,20 @@ final class SchedulingPagesTest extends AncoraBrowserTestBase {
    * Access, queueing without running, validation, and the timetable states.
    */
   public function testRequestAndTimetable(): void {
-    $plan = \Drupal::service(SyntheticFixture::class)->load();
+    // The planner owns the plan (legacy creador): only the planner sees it.
+    $planner = $this->drupalCreateUser([
+      'view academic data',
+      'view ancora engine jobs',
+      'request ancora engine jobs',
+    ]);
+    $plan = \Drupal::service(SyntheticFixture::class)->load(TRUE, $planner);
     $storage = fn (string $type) => \Drupal::entityTypeManager()->getStorage($type);
-    $one = fn (string $type, string $code) => current($storage($type)->loadByProperties([
-      'plan' => $plan->id(),
-      'code' => $code,
-    ]));
-    $period = $one('ancora_period', 'PER');
-    $specialty = $one('ancora_specialty', 'E');
-    $level = $one('ancora_level', 'N');
-    // A second plan with a period of its own.
-    $other = $storage('ancora_plan')->create(['label' => 'Other plan', 'code' => 'Q']);
+    $one = fn (string $type, array $properties) => current($storage($type)->loadByProperties($properties));
+    $period = $one('ancora_period', ['plan' => $plan->id(), 'code' => 'PER']);
+    $specialty = $one('ancora_specialty', ['uid' => $planner->id(), 'code' => 'E']);
+    $level = $one('ancora_level', ['uid' => $planner->id(), 'code' => 'N']);
+    // A second plan of the planner, with a period of its own.
+    $other = $storage('ancora_plan')->create(['label' => 'Other plan', 'code' => 'Q', 'uid' => $planner->id()]);
     $other->save();
     $other_period = $storage('ancora_period')->create([
       'plan' => $other->id(),
@@ -50,23 +53,20 @@ final class SchedulingPagesTest extends AncoraBrowserTestBase {
       $this->assertSession()->statusCodeEquals(403);
     }
 
+    // Another user of the site does not see the planner's plan.
     $viewer = $this->drupalCreateUser(['view academic data']);
     $this->drupalLogin($viewer);
     $this->drupalGet('/ancora/scheduling/request');
     $this->assertSession()->statusCodeEquals(403);
     $this->drupalGet($timetable);
-    $this->assertSession()->statusCodeEquals(200);
-    $this->assertSession()->pageTextContains('No timetable has been requested for Week yet.');
-    $this->assertSession()->linkNotExists('Request a timetable');
+    $this->assertSession()->statusCodeEquals(403);
     $this->drupalGet('/ancora/planning/999/timetable');
     $this->assertSession()->statusCodeEquals(404);
 
-    $planner = $this->drupalCreateUser([
-      'view academic data',
-      'view ancora engine jobs',
-      'request ancora engine jobs',
-    ]);
     $this->drupalLogin($planner);
+    $this->drupalGet($timetable);
+    $this->assertSession()->statusCodeEquals(200);
+    $this->assertSession()->pageTextContains('No timetable has been requested for Week yet.');
     $values = [
       'plan' => $plan->id(),
       'period' => $other_period->id(),
@@ -87,8 +87,11 @@ final class SchedulingPagesTest extends AncoraBrowserTestBase {
     $job = $jobs->load(1);
     $this->assertSame(JobState::Queued, $job->state, 'nothing runs in the request');
     $this->assertSame((int) $plan->id(), $job->source->planId);
-    $prefix = 'p' . $plan->id() . ':';
-    $this->assertSame([$prefix . 'E', $prefix . 'N', $prefix . 'PER'], $job->scope->toParameters());
+    $this->assertSame([
+      sprintf('%010d:E', $specialty->id()),
+      sprintf('%010d:N', $level->id()),
+      sprintf('%010d:PER', $period->id()),
+    ], $job->scope->toParameters());
 
     $this->drupalGet('/ancora/scheduling/request');
     $this->submitForm($values, 'Request the timetable');

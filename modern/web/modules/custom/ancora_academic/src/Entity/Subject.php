@@ -29,6 +29,7 @@ use Drupal\views\EntityViewsData;
     'id' => 'id',
     'uuid' => 'uuid',
     'label' => 'label',
+    'owner' => 'uid',
   ],
   handlers: [
     'access' => AcademicAccessControlHandler::class,
@@ -53,6 +54,7 @@ use Drupal\views\EntityViewsData;
     'collection' => '/admin/ancora/subjects',
   ],
   admin_permission: 'administer academic data',
+  list_cache_contexts: ['user'],
   collection_permission: 'view academic data',
   base_table: 'ancora_subject',
   label_count: [
@@ -60,11 +62,11 @@ use Drupal\views\EntityViewsData;
     'plural' => '@count subjects',
   ],
   constraints: [
-    'AncoraUniqueInPlan' => ['fields' => ['code']],
-    'AncoraSamePlan' => [],
+    'AncoraUniqueInScope' => ['fields' => ['code']],
+    'AncoraSameCreator' => [],
   ],
 )]
-final class Subject extends AcademicEntityBase {
+final class Subject extends OwnedAcademicEntityBase {
 
   /**
    * {@inheritdoc}
@@ -99,7 +101,7 @@ final class Subject extends AcademicEntityBase {
    * {@inheritdoc}
    */
   public static function listColumns(): array {
-    return ['label', 'code', 'plan', 'specialty', 'level'];
+    return ['label', 'code', 'uid', 'specialty', 'level'];
   }
 
   /**

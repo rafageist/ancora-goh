@@ -19,7 +19,8 @@ final class PlanningController extends ControllerBase {
    */
   public function overview(): array {
     $descriptions = AcademicEntityTypes::descriptions();
-    $cache = (new CacheableMetadata())->addCacheContexts(['user.permissions']);
+    // The counts are the user's own records (AcademicQueryAccess).
+    $cache = (new CacheableMetadata())->addCacheContexts(['user.permissions', 'user']);
     $steps = [];
     foreach (AcademicEntityTypes::ids() as $entity_type_id) {
       $entity_type = $this->entityTypeManager()->getDefinition($entity_type_id);

@@ -51,6 +51,7 @@ use Drupal\views\EntityViewsData;
     'collection' => '/admin/ancora/room-assignments',
   ],
   admin_permission: 'administer academic data',
+  list_cache_contexts: ['user'],
   collection_permission: 'view academic data',
   base_table: 'ancora_room_assignment',
   label_count: [
@@ -58,11 +59,11 @@ use Drupal\views\EntityViewsData;
     'plural' => '@count room assignments',
   ],
   constraints: [
-    'AncoraUniqueInPlan' => [
+    'AncoraUniqueInScope' => [
       'fields' => ['template', 'room'],
       'message' => 'This room is already assigned to this activity template.',
     ],
-    'AncoraSamePlan' => [],
+    'AncoraSameCreator' => [],
   ],
 )]
 final class RoomAssignment extends AcademicEntityBase {

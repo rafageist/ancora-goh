@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Drupal\ancora_academic\Entity;
 
 use Drupal\ancora_academic\AcademicEntityInterface;
+use Drupal\ancora_academic\AcademicEntityTypes;
 use Drupal\ancora_academic\ReferenceGuard;
 use Drupal\Core\Entity\ContentEntityBase;
 use Drupal\Core\Entity\EntityChangedTrait;
@@ -18,10 +19,12 @@ use Drupal\Core\StringTranslation\TranslatableMarkup;
 /**
  * Base class of the academic entities.
  *
- * Provides the plan reference (every record but a plan belongs to one plan),
- * the created and changed timestamps, field definition helpers and the
- * deletion guard: a record that other academic records still reference
- * cannot be deleted, through any API (see ReferenceGuard).
+ * Provides the plan reference of the plan records (periods, groups,
+ * templates, assignments), the created and changed timestamps, field
+ * definition helpers and the deletion guard: a record that other academic
+ * records still reference cannot be deleted, through any API (see
+ * ReferenceGuard). Plans and catalogue records have an owner instead of a
+ * plan (OwnedAcademicEntityBase).
  */
 abstract class AcademicEntityBase extends ContentEntityBase implements AcademicEntityInterface {
 
@@ -33,7 +36,7 @@ abstract class AcademicEntityBase extends ContentEntityBase implements AcademicE
   public static function baseFieldDefinitions(EntityTypeInterface $entity_type): array {
     $fields = parent::baseFieldDefinitions($entity_type);
 
-    if ($entity_type->id() !== 'ancora_plan') {
+    if (!AcademicEntityTypes::isOwned($entity_type->id())) {
       $fields['plan'] = static::referenceField(
         'ancora_plan',
         new TranslatableMarkup('Plan'),
@@ -54,11 +57,22 @@ abstract class AcademicEntityBase extends ContentEntityBase implements AcademicE
    * {@inheritdoc}
    */
   public function getPlanId(): ?int {
-    if (!$this->hasField('plan')) {
+    if ($this->getEntityTypeId() === 'ancora_plan') {
       return $this->isNew() ? NULL : (int) $this->id();
+    }
+    if (!$this->hasField('plan')) {
+      return NULL;
     }
     $target = $this->get('plan')->target_id;
     return $target === NULL ? NULL : (int) $target;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getCreatorId(): ?int {
+    $plan = $this->hasField('plan') ? $this->get('plan')->entity : NULL;
+    return $plan instanceof AcademicEntityInterface ? $plan->getCreatorId() : NULL;
   }
 
   /**
@@ -115,15 +129,16 @@ abstract class AcademicEntityBase extends ContentEntityBase implements AcademicE
   }
 
   /**
-   * Defines the code field: short, required, unique in the plan.
+   * Defines the code field: short and required.
    *
-   * The uniqueness is checked by the entity constraint AncoraUniqueInPlan,
-   * which each entity type declares.
+   * The uniqueness (among the creator's records of the type, or in the plan)
+   * is checked by the entity constraint AncoraUniqueInScope, which each
+   * entity type declares.
    */
   protected static function codeField(): BaseFieldDefinition {
     return BaseFieldDefinition::create('string')
       ->setLabel(new TranslatableMarkup('Code'))
-      ->setDescription(new TranslatableMarkup('A short code, unique in the plan. Letters, digits, ".", "_" and "-".'))
+      ->setDescription(new TranslatableMarkup('A short code. Letters, digits, ".", "_" and "-".'))
       ->setRequired(TRUE)
       ->setSetting('max_length', 32)
       ->addPropertyConstraints('value', [
