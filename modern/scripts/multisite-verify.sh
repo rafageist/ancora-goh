@@ -106,6 +106,10 @@ export ANCORA_DB_OWNER_PASSWORD_FILE=$work/etc/control/owner-password
 export ANCORA_HASH_SALT_FILE=$work/etc/control/hash-salt
 export ANCORA_PRIVATE_PATH=$work/var/control/private ANCORA_TMP_PATH=$work/var/control/tmp
 site=$project/scripts/ancora-site.sh
+# The operator tool runs as a non-superuser role with CREATEDB and CREATEROLE,
+# as on the real host (PostgreSQL 16+ rules for CREATEROLE apply); only this
+# script's own checks use the cluster superuser.
+site_op() { PGUSER=ancora_verify_operator "$site" "$@"; }
 drush=("$project/vendor/bin/drush" --root="$web" --yes)
 
 cd "$project"
@@ -114,17 +118,20 @@ if [ "$skip_composer" -eq 0 ]; then
   composer install --no-interaction --no-progress
 fi
 
+psql -X -q -d postgres -c "CREATE ROLE ancora_verify_operator LOGIN CREATEDB CREATEROLE" \
+  -c "ALTER ROLE ancora_verify_operator SET createrole_self_grant = 'set, inherit'" >/dev/null
+
 # Every connection is logged: the checks read which role used which database.
 psql -X -q -d postgres -c "ALTER SYSTEM SET log_connections = on" -c "SELECT pg_reload_conf()" >/dev/null
 pg_log=$(dirname "$AGOH_DISPOSABLE_DATA")/server.log
 
 step "Provisioning: control site, alpha, beta ($(psql -X -At -d postgres -c 'SHOW server_version'))"
-"$site" control-install --admin-mail operator@example.invalid
+site_op control-install --admin-mail operator@example.invalid
 t0=$SECONDS
-"$site" provision alpha --name "Alpha School" --admin-mail admin@alpha.example.invalid
+site_op provision alpha --name "Alpha School" --admin-mail admin@alpha.example.invalid
 echo "provisioning alpha took $((SECONDS - t0)) s"
-"$site" provision beta --name "Beta Institute" --admin-mail admin@beta.example.invalid
-"$site" list
+site_op provision beta --name "Beta Institute" --admin-mail admin@beta.example.invalid
+site_op list
 
 # Markers: one academic term, one public and one private file per site.
 mark() { # site uri marker
@@ -209,7 +216,7 @@ session_cookie() { # jar: "name=value" of the Drupal session cookie
 }
 login_with_link() { # jar site: the operator's one-time link, used once
   local link
-  link=$("$site" admin-link "$2" | tail -1)
+  link=$(site_op admin-link "$2" | tail -1)
   echo "$link" >"$work/link-$2"
   [[ $link == "$base/o/$2/user/reset/"* ]] || return 1
   req "$1" "${link#"$base"}"
@@ -405,37 +412,37 @@ check "no secret is in the web root" bash -c "! grep -rqsF \"\$(cat '$ANCORA_SIT
 
 section "Provisioning: idempotent re-run, failure and recovery, suspend, retire"
 before=$(sql tt_alpha "SELECT count(*) FROM ancora_academic_term")
-check "re-running provision alpha succeeds" bash -c "'$site' provision alpha --name 'Alpha School' --admin-mail admin@alpha.example.invalid >'$work/log/rerun.log' 2>&1"
+check "re-running provision alpha succeeds" bash -c "PGUSER=ancora_verify_operator PGUSER=ancora_verify_operator '$site' provision alpha --name 'Alpha School' --admin-mail admin@alpha.example.invalid >'$work/log/rerun.log' 2>&1"
 check "the re-run did not reinstall (markers kept)" test "$(sql tt_alpha "SELECT count(*) FROM ancora_academic_term")" = "$before"
 check "the re-run reported 'already installed'" grep -q 'already installed' "$work/log/rerun.log"
 req alpha /o/alpha/admin/people
 check "alpha's administrator session survives the re-run (200)" status_is 200
 check "the re-run left the administrator active (not re-blocked)" test "$(sql tt_alpha 'SELECT status FROM users_field_data WHERE uid = 1')" = 1
-check "an invalid slug is refused" bash -c "! '$site' provision Bad_Slug --name x --admin-mail x@example.invalid >/dev/null 2>&1"
-check "a reserved-looking slug with a dot is refused" bash -c "! '$site' provision 'a.b' --name x --admin-mail x@example.invalid >/dev/null 2>&1"
+check "an invalid slug is refused" bash -c "! PGUSER=ancora_verify_operator PGUSER=ancora_verify_operator '$site' provision Bad_Slug --name x --admin-mail x@example.invalid >/dev/null 2>&1"
+check "a reserved-looking slug with a dot is refused" bash -c "! PGUSER=ancora_verify_operator PGUSER=ancora_verify_operator '$site' provision 'a.b' --name x --admin-mail x@example.invalid >/dev/null 2>&1"
 
-check "provision gamma, failing after the install step (test hook), exits non-zero" bash -c "! ANCORA_PROVISION_TEST_FAIL_AFTER=install '$site' provision gamma --name 'Gamma College' --admin-mail admin@gamma.example.invalid >'$work/log/gamma-fail.log' 2>&1"
+check "provision gamma, failing after the install step (test hook), exits non-zero" bash -c "! ANCORA_PROVISION_TEST_FAIL_AFTER=install PGUSER=ancora_verify_operator PGUSER=ancora_verify_operator '$site' provision gamma --name 'Gamma College' --admin-mail admin@gamma.example.invalid >'$work/log/gamma-fail.log' 2>&1"
 req - /o/gamma/
 check "the half-provisioned gamma is not published (404)" status_is 404
 check "gamma's status is still provisioning" grep -q '^STATUS = "provisioning"' "$ANCORA_SITES_DIR/gamma/site.ini"
-check "re-running provision gamma recovers" bash -c "'$site' provision gamma --name 'Gamma College' --admin-mail admin@gamma.example.invalid >'$work/log/gamma.log' 2>&1"
+check "re-running provision gamma recovers" bash -c "PGUSER=ancora_verify_operator PGUSER=ancora_verify_operator '$site' provision gamma --name 'Gamma College' --admin-mail admin@gamma.example.invalid >'$work/log/gamma.log' 2>&1"
 req - /o/gamma/
 check "gamma is published after the recovery (200, Gamma College)" bash -c "[ \"\$(cat '$work/r.status')\" = 200 ] && grep -q '<title>[^<]*Gamma College' '$work/r.body'"
-check "provision delta, failing during the database step, exits non-zero" bash -c "! ANCORA_PROVISION_TEST_FAIL_AFTER=database '$site' provision delta --name 'Delta' --admin-mail admin@delta.example.invalid >/dev/null 2>&1"
-check "an aborted site that never went live can be deprovisioned" bash -c "'$site' deprovision delta --backup-dir '$work/backup' --confirm delta >/dev/null 2>&1"
+check "provision delta, failing during the database step, exits non-zero" bash -c "! ANCORA_PROVISION_TEST_FAIL_AFTER=database PGUSER=ancora_verify_operator PGUSER=ancora_verify_operator '$site' provision delta --name 'Delta' --admin-mail admin@delta.example.invalid >/dev/null 2>&1"
+check "an aborted site that never went live can be deprovisioned" bash -c "PGUSER=ancora_verify_operator PGUSER=ancora_verify_operator '$site' deprovision delta --backup-dir '$work/backup' --confirm delta >/dev/null 2>&1"
 check "delta's database and roles are gone" test "$(sql postgres "SELECT count(*) FROM pg_database WHERE datname = 'tt_delta'")/$(sql postgres "SELECT count(*) FROM pg_roles WHERE rolname LIKE 'tt\_delta%'")" = "0/0"
 
-check "suspend gamma" bash -c "'$site' suspend gamma >/dev/null 2>&1"
+check "suspend gamma" bash -c "PGUSER=ancora_verify_operator PGUSER=ancora_verify_operator '$site' suspend gamma >/dev/null 2>&1"
 req - /o/gamma/
 check "a suspended site answers 503" status_is 503
 req - /o/gamma/user/login
 check "a suspended site has no login form (503)" bash -c "[ \"\$(cat '$work/r.status')\" = 503 ] && ! grep -q 'user_login_form' '$work/r.body'"
-check "an active site cannot be deprovisioned" bash -c "! '$site' deprovision alpha --backup-dir '$work/backup' --confirm alpha >/dev/null 2>&1"
-check "resume gamma" bash -c "'$site' resume gamma >/dev/null 2>&1"
+check "an active site cannot be deprovisioned" bash -c "! PGUSER=ancora_verify_operator PGUSER=ancora_verify_operator '$site' deprovision alpha --backup-dir '$work/backup' --confirm alpha >/dev/null 2>&1"
+check "resume gamma" bash -c "PGUSER=ancora_verify_operator PGUSER=ancora_verify_operator '$site' resume gamma >/dev/null 2>&1"
 req - /o/gamma/
 check "a resumed site answers 200" status_is 200
-"$site" suspend gamma >/dev/null 2>&1
-check "deprovision gamma (suspended) with a final backup" bash -c "'$site' deprovision gamma --backup-dir '$work/backup' --confirm gamma >/dev/null 2>&1"
+site_op suspend gamma >/dev/null 2>&1
+check "deprovision gamma (suspended) with a final backup" bash -c "PGUSER=ancora_verify_operator PGUSER=ancora_verify_operator '$site' deprovision gamma --backup-dir '$work/backup' --confirm gamma >/dev/null 2>&1"
 check "gamma's final backup exists" bash -c "ls '$work/backup'/tt_gamma-*.dump >/dev/null 2>&1"
 req - /o/gamma/
 check "a retired site answers 404" status_is 404
@@ -443,13 +450,13 @@ check "gamma's database, roles and files are gone" bash -c "[ \"\$(psql -X -At -
 check "the audit log records the operations" bash -c "grep -q 'provision	alpha	ok' '$ANCORA_SITES_DIR/audit.log' && grep -q 'deprovision	gamma	ok' '$ANCORA_SITES_DIR/audit.log'"
 
 section "Update loop over all sites"
-check "update-all succeeds on control, alpha and beta" bash -c "'$site' update-all --backup-dir '$work/backup' >'$work/log/update.log' 2>&1 && grep -q 'updated 3 sites: control alpha beta' '$work/log/update.log'"
+check "update-all succeeds on control, alpha and beta" bash -c "PGUSER=ancora_verify_operator PGUSER=ancora_verify_operator '$site' update-all --backup-dir '$work/backup' >'$work/log/update.log' 2>&1 && grep -q 'updated 3 sites: control alpha beta' '$work/log/update.log'"
 check "update-all took a backup of every site first" bash -c "ls '$work/backup'/tt_control-*.dump '$work/backup'/tt_alpha-*.dump '$work/backup'/tt_beta-*.dump >/dev/null 2>&1"
 req - /o/beta/
 check "the sites serve after the update (not in maintenance mode)" bash -c "[ \"\$(cat '$work/r.status')\" = 200 ] && grep -q 'Beta Institute' '$work/r.body'"
 # A real failure in the middle of the loop: alpha's owner role cannot log in.
 psql -X -q -d postgres -c 'ALTER ROLE tt_alpha_owner NOLOGIN'
-check "update-all stops at the first failing site" bash -c "! '$site' update-all >'$work/log/update-fail.log' 2>&1 && grep -q 'update FAILED on alpha' '$work/log/update-fail.log' && grep -q 'updated: control; not attempted: beta' '$work/log/update-fail.log'"
+check "update-all stops at the first failing site" bash -c "! PGUSER=ancora_verify_operator PGUSER=ancora_verify_operator '$site' update-all >'$work/log/update-fail.log' 2>&1 && grep -q 'update FAILED on alpha' '$work/log/update-fail.log' && grep -q 'updated: control; not attempted: beta' '$work/log/update-fail.log'"
 # (The front page is the login form, which Drupal keeps reachable in
 # maintenance mode; the listing is not.)
 req - /o/alpha/ancora/terms
@@ -457,7 +464,7 @@ check "the failed site stays in maintenance mode ($(cat "$work/r.status"))" stat
 req - /o/beta/
 check "the site after it was not touched (200)" status_is 200
 psql -X -q -d postgres -c 'ALTER ROLE tt_alpha_owner LOGIN'
-check "update-all succeeds again after the cause is fixed" bash -c "'$site' update-all >'$work/log/update2.log' 2>&1"
+check "update-all succeeds again after the cause is fixed" bash -c "PGUSER=ancora_verify_operator PGUSER=ancora_verify_operator '$site' update-all >'$work/log/update2.log' 2>&1"
 req - /o/alpha/
 check "alpha serves after the recovered update" title_has 'Alpha School'
 
