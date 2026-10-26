@@ -1,7 +1,7 @@
 -- Job-scoped SQL generation workspace inside a tenant database (issue #93).
 -- Prototype, test code only: docs/modernization/single-db-workspace.md.
 --
--- Loaded by modern/scripts/lib/workspace/install.sh as a superuser, after the
+-- Loaded by dev/workspace/install.sh as a superuser, after the
 -- unchanged legacy bundle (dev/sql/compilasql.php) was loaded with
 -- search_path = scheduler. The legacy functions, types, views, RULEs and
 -- triggers then live in schema "scheduler" (plus the fixed legacy schemas

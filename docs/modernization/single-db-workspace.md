@@ -29,11 +29,11 @@ dev/sql/tools/with-ephemeral-pg.sh modern/scripts/workspace-proof.sh
 dev/sql/tools/with-ephemeral-pg.sh modern/scripts/parity-diff.sh --skip-composer --workspace [scenario...]
 ```
 
-| Path | Role |
+| Path (the SQL sources are under `dev/`: the production build refuses `.sql` files under `modern/`) | Role |
 | --- | --- |
-| `modern/scripts/lib/workspace/install.sh` | Installs the unchanged legacy bundle (`dev/sql/compilasql.php`, 268 entries) into a tenant database with `search_path = scheduler`, then `workspace.sql` and `measure.sql`. |
-| `modern/scripts/lib/workspace/workspace.sql` | Control schema `scheduler_control`; per-job cancellation view; workspace generator `create_workspace`; the #92 closure (`closure_keep`, `prune`); lifecycle (`drop_workspace`, `cleanup`); the placement store; privileges. |
-| `modern/scripts/lib/workspace/measure.sql` | `wsproof.run()`: one measured `generar()` that returns the placements, normalized inserted rows, DML counters and metrics. It resolves through the `search_path`, so it measures a full legacy database and a workspace with the same code. Test code. |
+| `dev/workspace/install.sh` | Installs the unchanged legacy bundle (`dev/sql/compilasql.php`, 268 entries) into a tenant database with `search_path = scheduler`, then `workspace.sql` and `measure.sql`. |
+| `dev/workspace/workspace.sql` | Control schema `scheduler_control`; per-job cancellation view; workspace generator `create_workspace`; the #92 closure (`closure_keep`, `prune`); lifecycle (`drop_workspace`, `cleanup`); the placement store; privileges. |
+| `dev/workspace/measure.sql` | `wsproof.run()`: one measured `generar()` that returns the placements, normalized inserted rows, DML counters and metrics. It resolves through the `search_path`, so it measures a full legacy database and a workspace with the same code. Test code. |
 | `modern/scripts/workspace-proof.sh` | SQL-level proof: resolution model, E2E and #92 world scenarios against full legacy databases, concurrency, cancellation, timeout, killed backend, cleanup, privileges, TEMP alternative, measurements. **91 checks.** |
 | `modern/scripts/lib/parity/workspace-driver.php`, `workspace-oracle.php`, `workspace-compare.php` | The `--workspace` mode of the differential harness: the Drupal-sourced path (section 5). |
 

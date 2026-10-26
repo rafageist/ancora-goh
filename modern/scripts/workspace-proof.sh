@@ -9,7 +9,7 @@
 #
 # One tenant database ("tenant") holds a stand-in of Drupal's canonical tables
 # (schema public, owned by the site role), the unchanged legacy engine
-# (schema scheduler and the legacy schemas, modern/scripts/lib/workspace/install.sh)
+# (schema scheduler and the legacy schemas, dev/workspace/install.sh)
 # and one workspace schema per job, owned by that job's login role.
 # Legacy oracles are full legacy databases installed with dev/sql/install.sh.
 #
@@ -32,7 +32,7 @@ here=$(cd "$(dirname "$0")" && pwd)
 repo=$(cd "$here/../.." && pwd)
 . "$repo/dev/sql/tools/disposable-guard.sh"
 agoh_require_disposable || exit 3
-lib=$here/lib/workspace
+lib=$repo/dev/workspace
 work=$(mktemp -d "${TMPDIR:-/tmp}/agoh-ws.XXXXXX")
 trap '[ "${WS_PROOF_KEEP:-0}" = 1 ] && echo "kept $work" || rm -rf "$work"' EXIT
 DELAY=${WS_PROOF_DELAY:-0.3}

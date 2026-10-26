@@ -2,7 +2,7 @@
 # Installs the unchanged legacy engine and the job workspace layer into an
 # existing tenant database (issue #93). Prototype, disposable clusters only.
 #
-#   modern/scripts/lib/workspace/install.sh <tenant database>
+#   dev/workspace/install.sh <tenant database>
 #
 # 1. The legacy bundle (dev/sql/compilasql.php, the same 268 entries as
 #    dev/sql/install.sh) is loaded in one transaction with
@@ -14,7 +14,7 @@
 # 3. measure.sql: run measurement (test code).
 set -euo pipefail
 here=$(cd "$(dirname "$0")" && pwd)
-repo=$(cd "$here/../../../.." && pwd)
+repo=$(cd "$here/../.." && pwd)
 . "$repo/dev/sql/tools/disposable-guard.sh"
 agoh_require_disposable || exit 3
 db=${1:?usage: install.sh <tenant database>}

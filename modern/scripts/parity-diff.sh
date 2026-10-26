@@ -30,7 +30,7 @@
 #    PHP warnings and SQL errors of both sides are reported.
 #
 # 4. With --workspace (issue #93), additionally: the unchanged legacy engine
-#    is installed INTO the site database (scripts/lib/workspace/install.sh)
+#    is installed INTO the site database (dev/workspace/install.sh)
 #    and every run is executed again in a job-scoped workspace schema there,
 #    from one REPEATABLE READ snapshot of the Drupal entities, reduced to the
 #    #92 closure (scripts/lib/parity/workspace-driver.php). Its placements,
@@ -230,10 +230,10 @@ EOF
   if [ "$workspace" -eq 1 ]; then
     echo "--- workspace: the engine inside the site database ancora_parity_${n}, no engine database"
     local t_ws=$SECONDS
-    "$project/scripts/lib/workspace/install.sh" "ancora_parity_${n}" >"$out/workspace-install.log" 2>&1 \
+    "$repo/dev/workspace/install.sh" "ancora_parity_${n}" >"$out/workspace-install.log" 2>&1 \
       || { cat "$out/workspace-install.log"; return 1; }
     for d in "$db" "$edb"; do
-      PGOPTIONS="-c client_min_messages=warning" psql_q -d "$d" -f "$project/scripts/lib/workspace/measure.sql" >/dev/null
+      PGOPTIONS="-c client_min_messages=warning" psql_q -d "$d" -f "$repo/dev/workspace/measure.sql" >/dev/null
     done
     drush php:script "$lib/workspace-driver.php" -- "$file" "$out" >"$out/workspace-driver.log" 2>&1 \
       || { echo "FAIL  workspace driver"; tail -20 "$out/workspace-driver.log"; return 1; }

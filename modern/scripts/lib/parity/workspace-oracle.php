@@ -8,7 +8,7 @@
  * characterization cases do: inside one transaction that is rolled back, the
  * placements the runs made are removed (their occupancy rows cascade), then
  * every run is executed again in scenario order with wsproof.run()
- * (modern/scripts/lib/workspace/measure.sql): placements, inserted rows and
+ * (dev/workspace/measure.sql): placements, inserted rows and
  * DML counters per run. For the legacy application's database the final
  * placements are also compared with the ones the HTTP runs left, so the
  * measured rerun is shown to reproduce the HTTP oracle.
