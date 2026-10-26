@@ -203,7 +203,7 @@ The existing repository checks keep their scope:
 | --- | --- |
 | Tenancy: multisite with a database per organization (first slice done: [`drupal-multisite.md`](drupal-multisite.md)) | #72 |
 | R0 access requests and human approval (Drupal forms, entities, e-mail) | #73 |
-| The real academic entities and the data mapping; `ancora_academic_term` is only a proof | #70 |
+| The real academic entities and the data mapping; `ancora_academic_term` is only a proof. First slice: module `ancora_academic`, see `academic-domain-mapping.md` | #70 |
 | The PostgreSQL MPI/Prioriza scheduling engine as a bounded service | #71 |
 | The scheduling UI (Views, forms, SDC) | #74 |
 | Deployment to any host, PHP-FPM pool, Caddy block, backups, capacity decision | #76 (production is untouched) |

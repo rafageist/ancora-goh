@@ -1,0 +1,7 @@
+name: 'Áncora scheduling engine'
+type: module
+description: 'Bounded background jobs that run the MPI/Prioriza scheduling engine (PostgreSQL) of the site, outside web requests.'
+package: Áncora
+core_version_requirement: ^11.4
+dependencies:
+  - drupal:user
