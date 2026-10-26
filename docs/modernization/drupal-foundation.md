@@ -71,7 +71,7 @@ Development relaxations go in `web/sites/default/settings.local.php`. That file 
 
 **Under PHP-FPM**, pass the variables with `env[ANCORA_...] = ...` entries in the pool, or keep `clear_env = no` with a systemd `EnvironmentFile`. Keep secret files outside the code tree: mode `0640`, owned by root, group the pool user (see `docs/saas/host-assessment.md`, section 3).
 
-**Multisite compatibility (#72).** The shared settings file is site-neutral. An additional site `web/sites/<name>/settings.php` would set its own prefix, for example `ANCORA_ORG1_`, include the same file and get its own database, salt, files and private path. `web/sites/sites.php` would map host names to site directories. Nothing of this is created now. #72 decides between multisite and a single site with an entity tenant boundary.
+**Multisite (#72).** The shared settings file is site-neutral. Organization sites (`web/sites/org-<slug>`, served at `/o/<slug>/`) include it through `settings/ancora.org.settings.php` and read their database, salt and files from a per-site file outside the web root. See [`drupal-multisite.md`](drupal-multisite.md).
 
 ## Configuration management
 
@@ -201,7 +201,7 @@ The existing repository checks keep their scope:
 
 | Topic | Issue |
 | --- | --- |
-| Tenancy: multisite with a database per organization, or one site with an entity tenant boundary | #72 |
+| Tenancy: multisite with a database per organization (first slice done: [`drupal-multisite.md`](drupal-multisite.md)) | #72 |
 | R0 access requests and human approval (Drupal forms, entities, e-mail) | #73 |
 | The real academic entities and the data mapping; `ancora_academic_term` is only a proof. First slice: module `ancora_academic`, see `academic-domain-mapping.md` | #70 |
 | The PostgreSQL MPI/Prioriza scheduling engine as a bounded service | #71 |

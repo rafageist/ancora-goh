@@ -1,0 +1,102 @@
+# Caddy site for the Áncora Drupal sites (issue #72): the control site at /
+# and one organization site per /o/<slug>/. A template: nothing is deployed
+# from this repository. The values come from Caddy's environment
+# placeholders, resolved when the Caddyfile is loaded:
+#
+#   ANCORA_CADDY_SITE   site address, e.g. timetables.example.org
+#   ANCORA_WEB_ROOT     the Drupal web root, e.g. /srv/ancora/modern/web
+#   ANCORA_FPM          the PHP-FPM pool, e.g. unix//run/php/php8.5-fpm-ancora.sock
+#
+# The organization verification (modern/scripts/multisite-verify.sh) runs this
+# exact file with Caddy and PHP-FPM on 127.0.0.1. See
+# docs/modernization/drupal-multisite.md.
+#
+# Routing:
+# - /o/<slug>/... runs web/o/<slug>/index.php, which Drupal resolves to
+#   sites/org-<slug> (web/o/<slug> is a link to the web root, created by the
+#   provisioning tool when the site is ready). No link, no site: 404. It never
+#   falls back to the control site's front controller.
+# - Any other /o or /o/... path: 404.
+# - Everything else is the control site (sites/default).
+# - Only index.php executes. Caddy does not read Drupal's .htaccess, so its
+#   protections are repeated here; a site serves only its own public files.
+# - Every rule sits inside the handle blocks: Caddy orders a site-level
+#   "error" after "handle", where it would never run.
+{$ANCORA_CADDY_SITE} {
+	encode zstd gzip
+
+	request_body {
+		max_size 16MB
+	}
+
+	header {
+		X-Content-Type-Options nosniff
+		Referrer-Policy strict-origin-when-cross-origin
+		-Server
+		-X-Powered-By
+	}
+
+	root * {$ANCORA_WEB_ROOT}
+
+	# Drupal's .htaccess FilesMatch: code, templates, configuration, dumps,
+	# editor backups and hidden files are never served.
+	@protected {
+		path_regexp protected (?i)(\.(engine|inc|install|make|module|profile|po|sh|.*sql|theme|twig|tpl(\.php)?|xtmpl|yml)(~|\.sw[op]|\.bak|\.orig|\.save)?$|/(Entries.*|Repository|Root|Tag|Template|composer\.(json|lock)|web\.config)$|/#.*#$|\.php(~|\.sw[op]|\.bak|\.orig|\.save)$|/\.)
+		not path /.well-known/*
+	}
+
+	@org path_regexp org ^/o/([a-z][a-z0-9-]{1,30})(/.*)?$
+	handle @org {
+		@nosite not file /o/{re.org.1}/index.php
+		error @nosite 404
+		error @protected 404
+
+		# Through the link, the whole web root is visible under /o/<slug>/:
+		# allow only this site's public files below sites/, no nested /o/,
+		# and no PHP file but the site's front controller.
+		@foreign {
+			path /o/{re.org.1}/sites/* /o/{re.org.1}/o/* /o/{re.org.1}/o
+			not path /o/{re.org.1}/sites/org-{re.org.1}/files/*
+		}
+		error @foreign 404
+		@php_other {
+			path *.php
+			not path /o/{re.org.1}/index.php
+		}
+		error @php_other 404
+
+		php_fastcgi {$ANCORA_FPM} {
+			try_files {path} {path}/index.php /o/{re.org.1}/index.php
+		}
+		file_server
+	}
+
+	@orgspace path /o /o/*
+	handle @orgspace {
+		error 404
+	}
+
+	handle {
+		error @protected 404
+		@foreign {
+			path /sites/*
+			not path /sites/default/files/*
+		}
+		error @foreign 404
+		@php_other {
+			path *.php
+			not path /index.php
+		}
+		error @php_other 404
+
+		php_fastcgi {$ANCORA_FPM} {
+			try_files {path} {path}/index.php /index.php
+		}
+		file_server
+	}
+
+	handle_errors {
+		header Content-Type "text/plain; charset=utf-8"
+		respond "{err.status_code} {err.status_text}"
+	}
+}

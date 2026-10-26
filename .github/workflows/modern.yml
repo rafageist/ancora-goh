@@ -3,6 +3,8 @@
 # socket-only PostgreSQL cluster, PHPUnit Kernel and Functional tests and an
 # HTTP smoke test on 127.0.0.1. PHP 8.4 (local development) and 8.5 (the target
 # host) against PostgreSQL 16 (local development) and 18 (the target host).
+# The multisite job (#72) runs the organization sites behind the real stack,
+# Caddy and PHP-FPM, on 127.0.0.1.
 name: Drupal foundation (modern/)
 
 on:
@@ -95,6 +97,93 @@ jobs:
           path: modern/web/sites/simpletest/browser_output
           if-no-files-found: ignore
           retention-days: 7
+
+  multisite:
+    name: Multisite (Caddy + PHP-FPM) PHP ${{ matrix.php }} + PostgreSQL ${{ matrix.postgres }}
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - php: '8.4'
+            postgres: '16'
+          - php: '8.5'
+            postgres: '18'
+    env:
+      PG_BINDIR: /usr/lib/postgresql/${{ matrix.postgres }}/bin
+      CADDY_VERSION: 2.11.7
+      # SHA-512 of caddy_2.11.7_linux_amd64.tar.gz from the release's
+      # caddy_2.11.7_checksums.txt (verified when this pin was set).
+      CADDY_SHA512: a7a433a1b133efc3c8d10eb0b99d52a24b5ef5c322dc77f5282182b1c0402139ab83f3a99f0c52409df77d20123fb0b523edad8a66d8f5e49136197bf61ef0e7
+    defaults:
+      run:
+        working-directory: modern
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          extensions: pdo_pgsql, pgsql, gd, mbstring, xml, curl, zip, opcache
+          coverage: none
+          tools: composer:v2
+
+      - name: PHP-FPM ${{ matrix.php }}
+        working-directory: .
+        run: |
+          if ! command -v "php-fpm${{ matrix.php }}" >/dev/null; then
+            sudo apt-get update -q
+            sudo apt-get install -y -q "php${{ matrix.php }}-fpm"
+          fi
+          # Only the verification's own pool runs; stop any packaged service.
+          sudo systemctl stop "php${{ matrix.php }}-fpm" 2>/dev/null || true
+          "php-fpm${{ matrix.php }}" -v
+          echo "PHP_FPM=php-fpm${{ matrix.php }}" >> "$GITHUB_ENV"
+
+      - name: Caddy ${{ env.CADDY_VERSION }} (official static build, pinned checksum)
+        working-directory: .
+        run: |
+          mkdir -p "$RUNNER_TEMP/caddy"
+          curl -fsSL -o "$RUNNER_TEMP/caddy/caddy.tar.gz" \
+            "https://github.com/caddyserver/caddy/releases/download/v${CADDY_VERSION}/caddy_${CADDY_VERSION}_linux_amd64.tar.gz"
+          echo "${CADDY_SHA512}  $RUNNER_TEMP/caddy/caddy.tar.gz" | sha512sum -c -
+          tar -xzf "$RUNNER_TEMP/caddy/caddy.tar.gz" -C "$RUNNER_TEMP/caddy" caddy
+          "$RUNNER_TEMP/caddy/caddy" version
+          echo "CADDY=$RUNNER_TEMP/caddy/caddy" >> "$GITHUB_ENV"
+
+      - name: PostgreSQL ${{ matrix.postgres }} server binaries (PGDG when missing)
+        working-directory: .
+        run: |
+          if [ ! -x "$PG_BINDIR/initdb" ]; then
+            sudo install -d /usr/share/postgresql-common/pgdg
+            sudo curl -fsSL -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc \
+              https://www.postgresql.org/media/keys/ACCC4CF8.asc
+            . /etc/os-release
+            echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] https://apt.postgresql.org/pub/repos/apt ${VERSION_CODENAME}-pgdg main" \
+              | sudo tee /etc/apt/sources.list.d/pgdg.list >/dev/null
+            sudo apt-get update -q
+            sudo apt-get install -y -q "postgresql-${{ matrix.postgres }}"
+          fi
+          sudo systemctl stop postgresql || true
+          "$PG_BINDIR/postgres" --version
+
+      - name: Composer cache directory
+        id: composer-cache
+        run: echo "dir=$(composer config cache-files-dir)" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/cache@v4
+        with:
+          path: ${{ steps.composer-cache.outputs.dir }}
+          key: composer-${{ runner.os }}-php${{ matrix.php }}-${{ hashFiles('modern/composer.lock') }}
+          restore-keys: composer-${{ runner.os }}-php${{ matrix.php }}-
+
+      - name: composer install (locked)
+        run: composer install --no-interaction --no-progress
+
+      - name: Multisite verification (control site, alpha, beta)
+        working-directory: .
+        timeout-minutes: 20
+        run: dev/sql/tools/with-ephemeral-pg.sh modern/scripts/multisite-verify.sh --skip-composer
 
   artifact:
     name: Production build contents (no dev dependencies, no secrets)

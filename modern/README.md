@@ -14,4 +14,6 @@ Install from scratch into a disposable PostgreSQL cluster and run every check:
 dev/sql/tools/with-ephemeral-pg.sh modern/scripts/install-disposable.sh
 ```
 
-The checks are phpcs, PHPUnit (Kernel and Functional) and an HTTP smoke test. Full documentation: [`docs/modernization/drupal-foundation.md`](../docs/modernization/drupal-foundation.md).
+The checks are phpcs, PHPUnit (Kernel and Functional) and an HTTP smoke test.
+
+Organization sites (#72): the control site serves `/`, and each organization has its own Drupal site and database at `/o/<slug>/`. They are provisioned with `scripts/ancora-site.sh`, and verified behind Caddy and PHP-FPM with `dev/sql/tools/with-ephemeral-pg.sh modern/scripts/multisite-verify.sh`. See [`docs/modernization/drupal-multisite.md`](../docs/modernization/drupal-multisite.md). Full documentation: [`docs/modernization/drupal-foundation.md`](../docs/modernization/drupal-foundation.md).
