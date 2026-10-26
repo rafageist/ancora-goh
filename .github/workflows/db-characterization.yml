@@ -35,3 +35,7 @@ jobs:
       - name: Run suite (fails on FAIL, XPASS or XWRONG)
         timeout-minutes: 15
         run: dev/sql/tools/with-ephemeral-pg.sh dev/sql/tests/run.sh
+
+      - name: Single-database job workspace proof (#93)
+        timeout-minutes: 15
+        run: dev/sql/tools/with-ephemeral-pg.sh modern/scripts/workspace-proof.sh
