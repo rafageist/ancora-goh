@@ -378,6 +378,16 @@ final class EngineClient {
   }
 
   /**
+   * The metrics and the placement digest of a scope, on a given connection.
+   *
+   * Used by the workspace mode (WorkspaceClient), whose connection resolves
+   * the legacy names to the job's workspace.
+   */
+  public function metricsOn(PgConnection $conn, JobScope $scope, string $idPrefix = ''): array {
+    return $this->metrics($conn, $scope, $idPrefix);
+  }
+
+  /**
    * Reads the metrics and the placement digest of a scope.
    */
   private function metrics(PgConnection $conn, JobScope $scope, string $idPrefix = ''): array {

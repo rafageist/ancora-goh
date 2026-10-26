@@ -36,8 +36,12 @@
 #    #92 closure (scripts/lib/parity/workspace-driver.php). Its placements,
 #    inserted rows and DML counters are compared with the full engine
 #    database and with the legacy application's database, both measured by
-#    a rolled-back rerun (workspace-oracle.php, workspace-compare.php). The
-#    comparisons above are unchanged and run first.
+#    a rolled-back rerun (workspace-oracle.php, workspace-compare.php).
+#    Then every request runs again through the REAL worker in workspace mode
+#    (#95): its placements are published as Drupal placement entities, read
+#    back and compared placement by placement with the legacy oracle
+#    (workspace-roundtrip.php). The comparisons above are unchanged and run
+#    first.
 #
 # Exit status 0 only if no scenario has a FAIL.
 set -euo pipefail
@@ -230,7 +234,8 @@ EOF
   if [ "$workspace" -eq 1 ]; then
     echo "--- workspace: the engine inside the site database ancora_parity_${n}, no engine database"
     local t_ws=$SECONDS
-    "$repo/dev/workspace/install.sh" "ancora_parity_${n}" >"$out/workspace-install.log" 2>&1 \
+    psql_q -d postgres -c "CREATE ROLE ancora_parity_${n}_worker LOGIN" >/dev/null
+    "$repo/dev/workspace/install.sh" --worker "ancora_parity_${n}_worker" "ancora_parity_${n}" >"$out/workspace-install.log" 2>&1 \
       || { cat "$out/workspace-install.log"; return 1; }
     for d in "$db" "$edb"; do
       PGOPTIONS="-c client_min_messages=warning" psql_q -d "$d" -f "$repo/dev/workspace/measure.sql" >/dev/null
@@ -240,6 +245,12 @@ EOF
     grep '^ok' "$out/workspace-driver.log" | sed 's/^/      /'
     php "$lib/workspace-oracle.php" "$file" "$db" "$out/legacy-users.json" legacy "$out/workspace.json" >"$out/legacy-oracle.json" || return 1
     php "$lib/workspace-oracle.php" "$file" "$edb" "$out/drupal-users.json" engine "$out/workspace.json" >"$out/engine-oracle.json" || return 1
+    # The real worker in workspace mode, the output published as placement
+    # entities and read back from Drupal (#95).
+    ANCORA_ENGINE_MODE=workspace ANCORA_ENGINE_DB_NAME="ancora_parity_${n}" ANCORA_ENGINE_DB_USER="ancora_parity_${n}_worker" \
+      drush php:script "$lib/workspace-roundtrip.php" -- "$file" "$out" >"$out/workspace-roundtrip.log" 2>&1 \
+      || { echo "FAIL  workspace round trip"; tail -20 "$out/workspace-roundtrip.log"; return 1; }
+    grep '^ok' "$out/workspace-roundtrip.log" | sed 's/^/      /'
     php "$lib/workspace-compare.php" "$file" "$out" || rc=1
     echo "METRIC two-database layout: engine database $edb $(psql -X -At -d postgres -c "SELECT pg_database_size('$edb')") bytes, its sync wrote $(jq '[.runs[] | .site_rows] | max' "$out/workspace.json") rows of the whole site per job; single database: workspace path $((SECONDS - t_ws)) s for $(jq '.runs | length' "$out/workspace.json") jobs"
   fi

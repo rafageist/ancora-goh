@@ -122,6 +122,30 @@ foreach ($scenario['runs'] as $i => $run) {
     $key, $w['ms_snapshot'], $w['ms_create'], $w['ms_input'], $w['ms_run'], $w['workspace_bytes']);
 }
 $report($legacy['http_placements'] === $legacy['rerun_placements'] ? 'PASS' : 'FAIL', 'legacy oracle: the measured rerun reproduces the placements of the HTTP runs');
+
+// The real worker in workspace mode, read back from the placement entities.
+if (is_file("$out/roundtrip.json")) {
+  echo "# real worker in workspace mode: placement entities read back from Drupal against the legacy oracle\n";
+  $roundtrip = $load('roundtrip.json');
+  $expected_total = 0;
+  foreach ($scenario['runs'] as $i => $run) {
+    $key = $run['key'];
+    $r = $roundtrip['runs'][$i] ?? NULL;
+    if ($r === NULL) {
+      $report('FAIL', "run $key: no round trip");
+      continue;
+    }
+    $mine = $norm($r['placements'], 'drupal');
+    $theirs = $norm($legacy['runs'][$key]['placements'] ?? [], 'legacy');
+    $report(in_array($r['state'], ['succeeded', 'partial'], TRUE) ? 'PASS' : 'FAIL', sprintf('run %s: job %d %s, %s stored placements loaded, published %s', $key, $r['job'], $r['state'], $r['placements_loaded'] ?? '?', json_encode($r['publication'])), $r['error'] === NULL ? [] : [$r['error']]);
+    $report($mine === $theirs ? 'PASS' : 'FAIL', sprintf('run %s: Drupal placement entities = legacy oracle, placement by placement (%d)', $key, count($mine)), $mine === $theirs ? [] : $diff($theirs, $mine));
+    $expected_total = max($expected_total, 0) + (int) ($r['publication']['published'] ?? 0);
+    if (isset($run['expect']['e2e_digest'])) {
+      $report($r['digest'] === $run['expect']['e2e_digest'] ? 'PASS' : 'FAIL', sprintf('run %s: E2E digest read back from the placement entities = %s', $key, $r['digest'] ?? '(none)'));
+    }
+  }
+  $report($roundtrip['total_placements'] === $expected_total ? 'PASS' : 'FAIL', sprintf('every published placement is one entity, none duplicated (%d)', $roundtrip['total_placements']));
+}
 $report($ws['drupal']['checksum_before'] === $ws['drupal']['checksum_after'] ? 'PASS' : 'FAIL',
   sprintf('Drupal canonical tables unchanged by the workspace path (%d tables, md5 %s)', count(explode(',', $ws['drupal']['tables'])), $ws['drupal']['checksum_after']));
 printf("# %s workspace: %d PASS, %d KNOWN, %d FAIL\n", $scenario['id'], $summary['PASS'], $summary['KNOWN'], $summary['FAIL']);

@@ -3,12 +3,29 @@ services:
   # syncs a job's plan into the engine database inside the run.
   ancora_engine.job_input:
     class: Drupal\ancora_scheduling\Sync\EngineSync
-    arguments: ['@entity_type.manager', '@Drupal\ancora_academic\Export\AcademicExport', '@Drupal\ancora_academic\Export\LegacyRows', '@entity.memory_cache']
+    arguments: ['@entity_type.manager', '@Drupal\ancora_academic\Export\AcademicExport', '@entity.memory_cache', '@ancora_scheduling.site_rows']
   Drupal\ancora_scheduling\Sync\EngineSync: '@ancora_engine.job_input'
+
+  ancora_scheduling.site_rows:
+    class: Drupal\ancora_scheduling\Sync\SiteRows
+    arguments: ['@entity_type.manager', '@Drupal\ancora_academic\Export\AcademicExport', '@Drupal\ancora_academic\Export\LegacyRows']
+  Drupal\ancora_scheduling\Sync\SiteRows: '@ancora_scheduling.site_rows'
+
+  # Workspace mode (#95): the input of a job workspace (records and stored
+  # placements) and the publication of its output as placement entities.
+  ancora_engine.workspace_input:
+    class: Drupal\ancora_scheduling\Sync\WorkspaceSync
+    arguments: ['@entity_type.manager', '@Drupal\ancora_academic\Export\AcademicExport', '@entity.memory_cache', '@ancora_scheduling.site_rows', '@database']
+  Drupal\ancora_scheduling\Sync\WorkspaceSync: '@ancora_engine.workspace_input'
+
+  ancora_engine.job_output:
+    class: Drupal\ancora_scheduling\Timetable\PlacementPublisher
+    arguments: ['@entity_type.manager', '@database', '@ancora_engine.job_repository', '@ancora_engine.workspace_input', '@logger.channel.ancora_scheduling', '@account_switcher']
+  Drupal\ancora_scheduling\Timetable\PlacementPublisher: '@ancora_engine.job_output'
 
   ancora_scheduling.timetable:
     class: Drupal\ancora_scheduling\Timetable\TimetableReader
-    arguments: ['@ancora_engine.job_repository', '@ancora_engine.engine_client', '@ancora_engine.settings', '@Drupal\ancora_academic\Export\AcademicExport', '@Drupal\ancora_academic\Export\LegacyRows', '@logger.channel.ancora_scheduling']
+    arguments: ['@ancora_engine.job_repository', '@ancora_engine.engine_client', '@ancora_engine.settings', '@Drupal\ancora_academic\Export\AcademicExport', '@Drupal\ancora_academic\Export\LegacyRows', '@logger.channel.ancora_scheduling', '@entity_type.manager']
   Drupal\ancora_scheduling\Timetable\TimetableReader: '@ancora_scheduling.timetable'
 
   logger.channel.ancora_scheduling:

@@ -85,3 +85,7 @@ jobs:
       - name: Engine worker integration
         timeout-minutes: 15
         run: dev/sql/tools/with-ephemeral-pg.sh modern/scripts/engine-integration.sh
+
+      - name: Engine worker in workspace mode (single database, placements as Drupal entities, #95)
+        timeout-minutes: 15
+        run: dev/sql/tools/with-ephemeral-pg.sh modern/scripts/workspace-journey.sh

@@ -28,8 +28,20 @@ use Drupal\Core\Site\Settings;
  *   'stale_after' => 60,         // seconds without heartbeat
  *   'max_attempts' => 2,         // claims of a job (one requeue)
  *   'cancel_grace' => 15,        // seconds from soft to hard cancellation
+ *   'mode' => 'two_database',    // or 'workspace' (#95)
+ *   'workspace_retention' => 0,  // seconds a closed job workspace is kept
  * ];
  * @endcode
+ *
+ * Modes:
+ * - two_database (the default, the deployed release): "database" is the
+ *   site's own engine database; the run syncs the site into it and the
+ *   placements stay there (EngineClient).
+ * - workspace (#93, #95): "database" is the SITE's own database, where the
+ *   unchanged engine is installed (dev/workspace/install.sh), and the role is
+ *   the site's engine worker. Every run gets a job-scoped workspace schema;
+ *   its output is published as Drupal entities (WorkspaceClient,
+ *   JobOutputInterface). No engine database exists.
  *
  * When $settings['ancora_engine'] is not set, the same values are read from
  * the environment: ANCORA_ENGINE_DB_HOST, ANCORA_ENGINE_DB_PORT,
@@ -37,7 +49,9 @@ use Drupal\Core\Site\Settings;
  * ANCORA_ENGINE_DB_SSLMODE, ANCORA_ENGINE_TIME_LIMIT,
  * ANCORA_ENGINE_MAX_TIME_LIMIT, ANCORA_ENGINE_HEARTBEAT_INTERVAL,
  * ANCORA_ENGINE_STALE_AFTER, ANCORA_ENGINE_MAX_ATTEMPTS and
- * ANCORA_ENGINE_CANCEL_GRACE (prefix: $settings['ancora_engine_env_prefix'],
+ * ANCORA_ENGINE_CANCEL_GRACE, ANCORA_ENGINE_MODE and
+ * ANCORA_ENGINE_WORKSPACE_RETENTION
+ * (prefix: $settings['ancora_engine_env_prefix'],
  * default ANCORA_, the convention of settings/ancora.settings.php).
  */
 final class EngineSettings {
@@ -144,6 +158,28 @@ final class EngineSettings {
   }
 
   /**
+   * The run mode: 'two_database' (default) or 'workspace'.
+   */
+  public function mode(): string {
+    $all = $this->all();
+    return ($all['mode'] ?? 'two_database') === 'workspace' ? 'workspace' : 'two_database';
+  }
+
+  /**
+   * Whether runs use a job-scoped workspace in the site database.
+   */
+  public function isWorkspace(): bool {
+    return $this->mode() === 'workspace';
+  }
+
+  /**
+   * Seconds a closed job workspace is kept for diagnosis (0: dropped).
+   */
+  public function workspaceRetention(): int {
+    return max(0, (int) ($this->all()['workspace_retention'] ?? 0));
+  }
+
+  /**
    * A positive integer setting.
    */
   private function int(string $key): int {
@@ -181,6 +217,8 @@ final class EngineSettings {
     foreach (array_keys(self::DEFAULTS) as $key) {
       $values[$key] = $env(strtoupper($key)) ?? self::DEFAULTS[$key];
     }
+    $values['mode'] = $env('MODE') ?? 'two_database';
+    $values['workspace_retention'] = $env('WORKSPACE_RETENTION') ?? 0;
     return $this->values = $values;
   }
 

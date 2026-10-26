@@ -6,7 +6,10 @@ namespace Drupal\ancora_engine;
 
 use Drupal\ancora_engine\Engine\EngineClient;
 use Drupal\ancora_engine\Engine\JobInputInterface;
+use Drupal\ancora_engine\Engine\JobOutputInterface;
+use Drupal\ancora_engine\Engine\PublicationException;
 use Drupal\ancora_engine\Engine\RunResult;
+use Drupal\ancora_engine\Engine\WorkspaceClient;
 use Drupal\ancora_engine\Job\Job;
 use Drupal\ancora_engine\Job\JobState;
 use Drupal\Component\Datetime\TimeInterface;
@@ -40,6 +43,17 @@ use Psr\Log\LoggerInterface;
  * A job with a source (Drupal academic records) is synced first, in that same
  * transaction, by the job input service (JobInputInterface): a failed sync
  * fails the job and leaves the engine database untouched.
+ *
+ * Workspace mode (EngineSettings::isWorkspace(), #95): the run happens in a
+ * job-scoped workspace of the site database (WorkspaceClient), loaded with
+ * the site's records AND its stored placements; nothing is deleted first
+ * (legacy continuation, no D7). When generar() returned (complete, partial
+ * or soft-cancelled), its new placements are published as Drupal records
+ * (JobOutputInterface) in one transaction BEFORE the outcome is recorded;
+ * if nothing could be published (stale input, invalid output, fenced run,
+ * save failure) the job fails and nothing of the run is kept. The workspace
+ * is closed after every attempt (dropped, or kept for diagnosis), and the
+ * workspaces of lost attempts are dropped at the start of every cycle.
  */
 final class Worker {
 
@@ -50,6 +64,9 @@ final class Worker {
     private readonly TimeInterface $time,
     private readonly LoggerInterface $logger,
     private readonly ?JobInputInterface $input = NULL,
+    private readonly ?WorkspaceClient $workspace = NULL,
+    private readonly ?JobInputInterface $workspaceInput = NULL,
+    private readonly ?JobOutputInterface $output = NULL,
   ) {}
 
   /**
@@ -67,6 +84,16 @@ final class Worker {
    */
   public function runOnce(string $workerId): ?Job {
     $this->recoverStale();
+    if ($this->settings->isWorkspace() && $this->workspace !== NULL) {
+      try {
+        foreach ($this->workspace->cleanup() as $key) {
+          $this->logger->warning('Workspace @key of a lost or failed attempt was dropped.', ['@key' => $key]);
+        }
+      }
+      catch (\RuntimeException $e) {
+        $this->logger->warning('Workspace cleanup failed: @message', ['@message' => $e->getMessage()]);
+      }
+    }
     $job = $this->jobs->claim($workerId);
     if ($job === NULL) {
       return NULL;
@@ -113,7 +140,7 @@ final class Worker {
         if ($signalled_at === NULL) {
           $signalled_at = microtime(TRUE);
           try {
-            $this->engine->signalSoftCancel($job->scope);
+            $this->softCancel($job);
           }
           catch (\RuntimeException $e) {
             $this->logger->warning('Job @id: the soft cancellation could not be forwarded: @message', [
@@ -129,15 +156,20 @@ final class Worker {
       return NULL;
     };
 
-    try {
-      $run = $this->engine->run($job, $tick, $this->input);
+    if ($this->settings->isWorkspace()) {
+      $run = $this->runWorkspace($job, $tick);
     }
-    catch (\RuntimeException $e) {
-      $run = new RunResult(RunResult::ERROR, message: $e->getMessage());
+    else {
+      try {
+        $run = $this->engine->run($job, $tick, $this->input);
+      }
+      catch (\RuntimeException $e) {
+        $run = new RunResult(RunResult::ERROR, message: $e->getMessage());
+      }
     }
 
     [$state, $result, $error] = $this->outcome($job, $run);
-    if ($run->status !== RunResult::RETURNED && $run->stoppedBy !== RunResult::STOP_FENCED) {
+    if (!$this->settings->isWorkspace() && $run->status !== RunResult::RETURNED && $run->stoppedBy !== RunResult::STOP_FENCED) {
       // A consumed cancellation row comes back when its run rolls back. (A
       // fenced run leaves it alone: it may belong to the next attempt.)
       try {
@@ -160,6 +192,62 @@ final class Worker {
   }
 
   /**
+   * Runs a job in a workspace and publishes what it placed.
+   */
+  private function runWorkspace(Job $job, callable $tick): RunResult {
+    if ($this->workspace === NULL || $this->workspaceInput === NULL || $this->output === NULL) {
+      return new RunResult(RunResult::ERROR, message: 'The workspace mode needs the workspace input and output services (ancora_scheduling).');
+    }
+    if ($job->source === NULL) {
+      return new RunResult(RunResult::ERROR, message: 'The workspace mode runs only jobs with a source (Drupal records).');
+    }
+    try {
+      $run = $this->workspace->run($job, $tick, $this->workspaceInput);
+    }
+    catch (\RuntimeException $e) {
+      $run = new RunResult(RunResult::ERROR, message: $e->getMessage(), workspace: WorkspaceClient::key($job));
+    }
+    try {
+      if ($run->status === RunResult::RETURNED) {
+        try {
+          $published = $this->output->publish($job, $run);
+          $run = new RunResult($run->status, $run->metrics, $run->durationMs, $run->sqlstate, $run->message, $run->stoppedBy, $run->cancelRowLeft, 0,
+            $run->input + ['publication' => $published + ['output' => count($run->output)]], $run->output, $run->workspace);
+        }
+        catch (PublicationException $e) {
+          $run = new RunResult(RunResult::ERROR, $run->metrics, $run->durationMs, NULL, $e->getMessage(), $e->reason === PublicationException::FENCED ? RunResult::STOP_FENCED : $run->stoppedBy,
+            FALSE, 0, $run->input + ['publication' => ['failed' => $e->reason, 'output' => count($run->output)]], [], $run->workspace);
+        }
+      }
+    }
+    finally {
+      try {
+        if ($run->workspace !== NULL) {
+          $this->workspace->close($run->workspace);
+        }
+      }
+      catch (\RuntimeException $e) {
+        $this->logger->warning('Job @id: its workspace could not be closed (the next cycle drops it): @message', [
+          '@id' => $job->id,
+          '@message' => $e->getMessage(),
+        ]);
+      }
+    }
+    return $run;
+  }
+
+  /**
+   * Forwards a soft cancellation to the engine of the site's mode.
+   */
+  private function softCancel(Job $job): void {
+    if ($this->settings->isWorkspace() && $this->workspace !== NULL) {
+      $this->workspace->signalSoftCancel($job);
+      return;
+    }
+    $this->engine->signalSoftCancel($job->scope);
+  }
+
+  /**
    * Maps a run to the job state, the result metrics and the error summary.
    *
    * @return array
@@ -170,6 +258,7 @@ final class Worker {
       'duration_ms' => $run->durationMs,
       'replaced' => $run->replaced,
       'attempt' => $job->attempts,
+      'mode' => $this->settings->mode(),
     ];
     if ($run->input !== []) {
       // The versioned input snapshot of a synced job.
@@ -226,7 +315,11 @@ final class Worker {
       }
       if ($stopped) {
         try {
-          $this->engine->clearCancelRequest($job->scope);
+          // Workspace mode: the attempt's cancellation rows go with its
+          // workspace (cleanup()).
+          if (!$this->settings->isWorkspace()) {
+            $this->engine->clearCancelRequest($job->scope);
+          }
         }
         catch (\RuntimeException) {
           // The next run deletes it before it starts.
@@ -259,7 +352,7 @@ final class Worker {
         $this->engine->cancelJob($job);
       }
       else {
-        $this->engine->signalSoftCancel($job->scope);
+        $this->softCancel($job);
       }
     }
     return $state;

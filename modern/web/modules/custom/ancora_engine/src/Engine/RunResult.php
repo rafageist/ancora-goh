@@ -58,6 +58,11 @@ final class RunResult {
    *   What the job input service loaded before the run (synced jobs): the
    *   input snapshot hash and the row changes. Empty for other jobs, and
    *   when the run rolled back before the input was loaded.
+   * @param array $output
+   *   Workspace mode: the placements the run made (rows of "actividad" that
+   *   were not input), in insertion order. Empty otherwise.
+   * @param string|null $workspace
+   *   Workspace mode: the job key of the workspace ("<job>_<attempt>").
    */
   public function __construct(
     public readonly string $status,
@@ -69,6 +74,8 @@ final class RunResult {
     public readonly bool $cancelRowLeft = FALSE,
     public readonly int $replaced = 0,
     public readonly array $input = [],
+    public readonly array $output = [],
+    public readonly ?string $workspace = NULL,
   ) {}
 
   /**
