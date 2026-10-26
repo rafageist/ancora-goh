@@ -2,14 +2,16 @@
 /**
  * @file
  * The timetable of a plan and period: one day by slot grid per specialty and
- * level.
+ * level, and the same placements as a list per day for narrow screens.
  *
  * Available variables:
  * - period: The period label.
  * - period_id: The period entity id (kept by the filter form).
  * - periods: Links to the other periods (label, url, current).
- * - filters: group, teacher and room, each with options (code => label) and
- *   the selected code (value, '' for all).
+ * - filters: group, teacher and room, each with label, options
+ *   (code => label) and the selected code (value, '' for all).
+ * - filtered: TRUE when a filter is applied.
+ * - reset_url: The timetable of the period without filters.
  * - scopes: Each with:
  *   - title: Specialty and level.
  *   - final: TRUE when the placements are the final timetable.
@@ -20,48 +22,64 @@
  *   - error: A message when the engine could not be read, or NULL.
  *   - job_url: The run's status page.
  *   - count: The number of placements (before the filters).
+ *   - shown: The number of placements the filters keep.
  *   - grid: NULL, or days (list of day numbers) and slots, each with number,
- *     time and cells (day => list of placements: activity, group, teacher,
- *     room and their codes, day, slot, slots).
+ *     time, end and cells (day => list of placements: activity, group,
+ *     teacher, room and their codes, day, slot, slots).
+ *   - days: The same placements by day (day, placements with time and end).
  * - request_url: The request form, or NULL without access.
+ * - plan_url: The plan page.
+ *
+ * The grid cells (td[data-day]) are the only place where a placement is
+ * counted by scripts/lib/timetable-cells.php; the narrow-screen list has no
+ * such cells.
  */
 #}
 <section class="ancora-timetable">
+  <p class="ancora-timetable__links">
+    <a href="{{ plan_url }}">{{ 'Plan page'|t }}</a>
+    {% if request_url %}
+      <a class="button button--primary" href="{{ request_url }}">{{ 'Request a timetable'|t }}</a>
+    {% endif %}
+  </p>
+
   {% if periods %}
-    <nav class="ancora-timetable__periods">
+    <nav class="ancora-timetable__periods" aria-label="{{ 'Periods'|t }}">
       {% for link in periods %}
         <a href="{{ link.url }}"{% if link.current %} aria-current="page"{% endif %}>{{ link.label }}</a>
       {% endfor %}
     </nav>
   {% endif %}
 
-  <form class="ancora-timetable__filters" method="get">
+  <form class="ancora-timetable__filters" method="get" role="search" aria-label="{{ 'Filter the timetable'|t }}">
     <input type="hidden" name="period" value="{{ period_id }}">
     {% for key, filter in filters %}
-      <label>
-        {{ key == 'group' ? 'Group'|t : (key == 'teacher' ? 'Teacher'|t : 'Room'|t) }}
-        <select name="{{ key }}">
+      <div class="ancora-timetable__filter">
+        <label for="ancora-timetable-filter-{{ key }}">{{ filter.label }}</label>
+        <select id="ancora-timetable-filter-{{ key }}" name="{{ key }}">
           <option value="">{{ '- All -'|t }}</option>
           {% for code, label in filter.options %}
             <option value="{{ code }}"{% if code == filter.value %} selected{% endif %}>{{ label }}</option>
           {% endfor %}
         </select>
-      </label>
+      </div>
     {% endfor %}
     <button type="submit" class="button">{{ 'Filter'|t }}</button>
+    {% if filtered %}
+      <a class="ancora-timetable__reset" href="{{ reset_url }}">{{ 'Show all placements'|t }}</a>
+    {% endif %}
   </form>
 
   {% if not scopes %}
     <p class="ancora-timetable__empty">{{ 'No timetable has been requested for @period yet.'|t({'@period': period}) }}</p>
   {% endif %}
-  {% if request_url %}
-    <p><a class="button button--primary" href="{{ request_url }}">{{ 'Request a timetable'|t }}</a></p>
-  {% endif %}
 
   {% for scope in scopes %}
     <article class="ancora-timetable__scope{{ scope.final ? ' is-final' : '' }}{{ scope.draft ? ' is-draft' : '' }}" data-timetable="{{ scope.final ? 'final' : (scope.draft ? 'draft' : 'none') }}">
       <h2>{{ scope.title }}</h2>
-      {% if scope.draft %}
+      {% if scope.final %}
+        <p class="ancora-badge ancora-badge--final">{{ 'Final timetable'|t }}</p>
+      {% elseif scope.draft %}
         <p class="ancora-timetable__draft-label"><strong>{{ 'DRAFT: not a final timetable'|t }}</strong></p>
       {% endif %}
       <p class="ancora-timetable__status">
@@ -77,36 +95,66 @@
       {% if scope.error %}
         <p class="ancora-timetable__error">{{ scope.error }}</p>
       {% elseif scope.grid %}
-        <table class="ancora-timetable__grid">
-          <caption>{{ scope.final ? 'Final timetable'|t : 'Draft'|t }} ({{ '@count placements'|t({'@count': scope.count}) }})</caption>
-          <thead>
-            <tr>
-              <th scope="col">{{ 'Slot'|t }}</th>
-              {% for day in scope.grid.days %}
-                <th scope="col">{{ 'Day @day'|t({'@day': day}) }}</th>
-              {% endfor %}
-            </tr>
-          </thead>
-          <tbody>
-            {% for slot in scope.grid.slots %}
+        {% if filtered %}
+          <p class="ancora-timetable__count">{{ '@shown of @count placements match the filters.'|t({'@shown': scope.shown, '@count': scope.count}) }}</p>
+        {% endif %}
+        {% if scope.shown == 0 %}
+          <p class="ancora-timetable__empty">{{ filtered ? 'No placement matches the filters.'|t : 'This run placed no activity.'|t }}</p>
+        {% endif %}
+        <div class="ancora-timetable__grid-wrapper">
+          <table class="ancora-timetable__grid">
+            <caption>{{ scope.final ? 'Final timetable'|t : 'Draft'|t }} ({{ '@count placements'|t({'@count': scope.count}) }})</caption>
+            <thead>
               <tr>
-                <th scope="row">{{ slot.number }} <span class="ancora-timetable__time">{{ slot.time }}</span></th>
-                {% for day, placements in slot.cells %}
-                  <td data-day="{{ day }}" data-slot="{{ slot.number }}">
-                    {% for p in placements %}
-                      <div class="ancora-placement" data-group="{{ p.group_code }}" data-teacher="{{ p.teacher_code }}" data-room="{{ p.room_code }}">
-                        <span class="ancora-placement__activity">{{ p.activity }}</span>
-                        <span class="ancora-placement__group">{{ p.group }}</span>
-                        <span class="ancora-placement__teacher">{{ p.teacher }}</span>
-                        <span class="ancora-placement__room">{{ p.room }}</span>
-                      </div>
-                    {% endfor %}
-                  </td>
+                <th scope="col">{{ 'Time'|t }}</th>
+                {% for day in scope.grid.days %}
+                  <th scope="col">{{ 'Day @day'|t({'@day': day}) }}</th>
                 {% endfor %}
               </tr>
-            {% endfor %}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {% for slot in scope.grid.slots %}
+                <tr>
+                  <th scope="row">
+                    <span class="ancora-timetable__time">{{ slot.time }}–{{ slot.end }}</span>
+                    <span class="ancora-timetable__slot">{{ 'Slot @slot'|t({'@slot': slot.number}) }}</span>
+                  </th>
+                  {% for day, placements in slot.cells %}
+                    <td data-day="{{ day }}" data-slot="{{ slot.number }}">
+                      {% for p in placements %}
+                        <div class="ancora-placement" data-group="{{ p.group_code }}" data-teacher="{{ p.teacher_code }}" data-room="{{ p.room_code }}">
+                          <span class="ancora-placement__activity">{{ p.activity }}</span>
+                          <span class="ancora-placement__group">{{ p.group }}</span>
+                          <span class="ancora-placement__teacher">{{ p.teacher }}</span>
+                          <span class="ancora-placement__room">{{ p.room }}</span>
+                        </div>
+                      {% endfor %}
+                    </td>
+                  {% endfor %}
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+
+        <div class="ancora-timetable__list">
+          {% for day in scope.days %}
+            <section class="ancora-timetable__day">
+              <h3>{{ 'Day @day'|t({'@day': day.day}) }}</h3>
+              <ul>
+                {% for p in day.placements %}
+                  <li class="ancora-timetable__item">
+                    <span class="ancora-timetable__item-time">{{ p.time }}–{{ p.end }}</span>
+                    <span class="ancora-timetable__item-activity">{{ p.activity }}</span>
+                    <span>{{ 'Group'|t }}: {{ p.group }}</span>
+                    {% if p.teacher %}<span>{{ 'Teacher'|t }}: {{ p.teacher }}</span>{% endif %}
+                    {% if p.room %}<span>{{ 'Room'|t }}: {{ p.room }}</span>{% endif %}
+                  </li>
+                {% endfor %}
+              </ul>
+            </section>
+          {% endfor %}
+        </div>
       {% endif %}
     </article>
   {% endfor %}

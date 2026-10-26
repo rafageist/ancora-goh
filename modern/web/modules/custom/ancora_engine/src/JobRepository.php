@@ -114,6 +114,34 @@ final class JobRepository {
   }
 
   /**
+   * The jobs synced from any of the given plans, newest first.
+   *
+   * @param list<int> $planIds
+   *   Plan entity ids; the caller passes only plans the user may view.
+   * @param int $limit
+   *   The maximum number of jobs.
+   *
+   * @return \Drupal\ancora_engine\Job\Job[]
+   *   Jobs keyed by id.
+   */
+  public function forPlans(array $planIds, int $limit = 50): array {
+    if ($planIds === []) {
+      return [];
+    }
+    $jobs = [];
+    $rows = $this->database->select('ancora_engine_job', 'j')
+      ->fields('j')
+      ->condition('plan_id', array_values(array_map('intval', $planIds)), 'IN')
+      ->orderBy('id', 'DESC')
+      ->range(0, $limit)
+      ->execute();
+    foreach ($rows as $row) {
+      $jobs[(int) $row->id] = Job::fromRow($row);
+    }
+    return $jobs;
+  }
+
+  /**
    * The queued or running job of a scope, if any.
    */
   public function activeForScope(JobScope $scope): ?Job {

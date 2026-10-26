@@ -1,0 +1,66 @@
+{#
+/**
+ * @file
+ * The page of one plan.
+ *
+ * Available variables:
+ * - facts: The plan's fields, each a pair [label, value].
+ * - actions: The plan actions (links render array).
+ * - periods: A table of the plan's periods.
+ * - records: The plan's own record lists, each with label, count, list (a
+ *   link to the list narrowed to the plan) and add (a link to the add form
+ *   pre-filled with the plan, or NULL without permission).
+ * - catalogues: The owner's catalogue lists, the same way (not narrowed:
+ *   catalogue records serve every plan of their owner).
+ * - runs: A table of the plan's recent runs.
+ */
+#}
+<div class="ancora-workspace ancora-workspace--plan">
+  <dl class="ancora-facts">
+    {% for fact in facts %}
+      <div class="ancora-facts__item">
+        <dt>{{ fact[0] }}</dt>
+        <dd>{{ fact[1] }}</dd>
+      </div>
+    {% endfor %}
+  </dl>
+
+  <nav class="ancora-workspace__actions" aria-label="{{ 'Plan actions'|t }}">{{ actions }}</nav>
+
+  <section class="ancora-workspace__section">
+    {{ periods }}
+  </section>
+
+  <section class="ancora-workspace__section" aria-labelledby="ancora-plan-records">
+    <h2 id="ancora-plan-records">{{ 'Records of this plan'|t }}</h2>
+    <ul class="ancora-records">
+      {% for record in records %}
+        <li class="ancora-records__item">
+          <span class="ancora-records__label">{{ record.label }}</span>
+          <span class="ancora-records__count">{{ record.count }}</span>
+          {{ record.list }}
+          {% if record.add %}{{ record.add }}{% endif %}
+        </li>
+      {% endfor %}
+    </ul>
+  </section>
+
+  <section class="ancora-workspace__section" aria-labelledby="ancora-plan-catalogues">
+    <h2 id="ancora-plan-catalogues">{{ 'Your catalogues'|t }}</h2>
+    <p class="description">{{ 'Catalogue records serve all your plans.'|t }}</p>
+    <ul class="ancora-records">
+      {% for record in catalogues %}
+        <li class="ancora-records__item">
+          <span class="ancora-records__label">{{ record.label }}</span>
+          <span class="ancora-records__count">{{ record.count }}</span>
+          {{ record.list }}
+          {% if record.add %}{{ record.add }}{% endif %}
+        </li>
+      {% endfor %}
+    </ul>
+  </section>
+
+  <section class="ancora-workspace__section">
+    {{ runs }}
+  </section>
+</div>

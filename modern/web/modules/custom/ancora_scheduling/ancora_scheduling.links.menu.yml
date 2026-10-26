@@ -4,3 +4,33 @@ ancora_scheduling.request:
   route_name: ancora_scheduling.request
   parent: ancora_academic.planning
   weight: 100
+
+# The planner navigation (#105), in the main menu. The academic sections are
+# defined by ancora_academic (weights -40 to -20).
+ancora_scheduling.main.overview:
+  title: 'Overview'
+  route_name: ancora_scheduling.workspace
+  menu_name: main
+  weight: -50
+ancora_scheduling.main.generate:
+  title: 'Generate'
+  route_name: ancora_scheduling.request
+  menu_name: main
+  weight: -10
+ancora_scheduling.main.generate.request:
+  title: 'Request a timetable'
+  route_name: ancora_scheduling.request
+  menu_name: main
+  parent: ancora_scheduling.main.generate
+  weight: 0
+ancora_scheduling.main.generate.jobs:
+  title: 'Timetable runs'
+  route_name: ancora_scheduling.jobs
+  menu_name: main
+  parent: ancora_scheduling.main.generate
+  weight: 1
+ancora_scheduling.main.timetables:
+  title: 'Timetables'
+  route_name: ancora_scheduling.timetables
+  menu_name: main
+  weight: 0

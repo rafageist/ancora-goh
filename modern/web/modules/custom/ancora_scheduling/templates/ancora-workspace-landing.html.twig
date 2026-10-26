@@ -1,0 +1,61 @@
+{#
+/**
+ * @file
+ * The planner landing page: the user's plans, quick links, catalogue counts
+ * and recent runs; a getting-started path when the user has no plan.
+ *
+ * Available variables:
+ * - plans: A table of the user's plans, or NULL when there is none.
+ * - create: A "Create a plan" link, or NULL without permission.
+ * - getting_started: The ordered first steps (only without plans), or NULL.
+ * - catalogues: The user's catalogue lists, each with label, count and url.
+ * - quick_links: The demo entry links (links render array).
+ * - runs: A table of the recent runs of the user's plans.
+ */
+#}
+<div class="ancora-workspace">
+  <section class="ancora-workspace__section" aria-labelledby="ancora-workspace-plans">
+    <h2 id="ancora-workspace-plans">{{ 'Your plans'|t }}</h2>
+    {% if plans %}
+      {{ plans }}
+      {% if create %}<p>{{ create }}</p>{% endif %}
+    {% else %}
+      <div class="ancora-workspace__empty">
+        <p><strong>{{ 'You have no plan yet.'|t }}</strong></p>
+        <p>{{ 'A plan is one planning cycle, for example a semester. Its periods define the weekly time grid; your catalogues (teachers, rooms, subjects...) serve all your plans.'|t }}</p>
+        {% if create %}
+          <p>{{ create }}</p>
+        {% else %}
+          <p>{{ 'Your account may view planning data but not create it. Ask the site administrator for the planner role.'|t }}</p>
+        {% endif %}
+        {% if getting_started %}
+          <h3>{{ 'Getting started'|t }}</h3>
+          {{ getting_started }}
+        {% endif %}
+      </div>
+    {% endif %}
+  </section>
+
+  <section class="ancora-workspace__section" aria-labelledby="ancora-workspace-links">
+    <h2 id="ancora-workspace-links">{{ 'Go to'|t }}</h2>
+    <nav aria-labelledby="ancora-workspace-links">{{ quick_links }}</nav>
+  </section>
+
+  {% if catalogues %}
+    <section class="ancora-workspace__section" aria-labelledby="ancora-workspace-catalogues">
+      <h2 id="ancora-workspace-catalogues">{{ 'Your catalogues'|t }}</h2>
+      <ul class="ancora-counts">
+        {% for item in catalogues %}
+          <li class="ancora-counts__item">
+            <a href="{{ item.url }}"><span class="ancora-counts__value">{{ item.count }}</span> <span class="ancora-counts__label">{{ item.label }}</span></a>
+          </li>
+        {% endfor %}
+      </ul>
+    </section>
+  {% endif %}
+
+  <section class="ancora-workspace__section" aria-labelledby="ancora-workspace-runs">
+    <h2 id="ancora-workspace-runs">{{ 'Timetable runs'|t }}</h2>
+    {{ runs }}
+  </section>
+</div>

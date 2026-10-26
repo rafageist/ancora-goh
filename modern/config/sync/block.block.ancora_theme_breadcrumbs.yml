@@ -1,0 +1,20 @@
+uuid: bf0f7aa6-3aaa-4ff9-9080-78f8ce658445
+langcode: en
+status: true
+dependencies:
+  module:
+    - system
+  theme:
+    - ancora_theme
+id: ancora_theme_breadcrumbs
+theme: ancora_theme
+region: highlighted
+weight: -10
+provider: null
+plugin: system_breadcrumb_block
+settings:
+  id: system_breadcrumb_block
+  label: Breadcrumbs
+  label_display: '0'
+  provider: system
+visibility: {  }

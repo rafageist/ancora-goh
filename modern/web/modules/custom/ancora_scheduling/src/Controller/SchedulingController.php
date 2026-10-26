@@ -11,10 +11,13 @@ use Drupal\ancora_engine\Job\Job;
 use Drupal\ancora_engine\Job\JobState;
 use Drupal\ancora_engine\JobRepository;
 use Drupal\ancora_scheduling\Timetable\TimetableReader;
+use Drupal\Core\Access\AccessResult;
+use Drupal\Core\Access\AccessResultInterface;
 use Drupal\Core\Cache\CacheableMetadata;
 use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\Datetime\DateFormatterInterface;
 use Drupal\Core\DependencyInjection\AutowireTrait;
+use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\Core\Url;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
@@ -102,7 +105,12 @@ final class SchedulingController extends ControllerBase {
         'title' => $this->t('Timetable of this plan'),
         'url' => Url::fromRoute('ancora_scheduling.timetable', ['ancora_plan' => $plan->id()], ['query' => ['period' => $entry->source->periodId]]),
       ];
+      $links[] = [
+        'title' => $this->t('Plan page'),
+        'url' => Url::fromRoute('ancora_scheduling.plan', ['ancora_plan' => $plan->id()]),
+      ];
     }
+    $links[] = ['title' => $this->t('All timetable runs'), 'url' => Url::fromRoute('ancora_scheduling.jobs')];
     $cancel = Url::fromRoute('ancora_engine.job_cancel', ['job' => $entry->id]);
     if ($cancel->access()) {
       $links[] = ['title' => $this->t('Cancel this run'), 'url' => $cancel];
@@ -110,6 +118,27 @@ final class SchedulingController extends ControllerBase {
     $build['links'] = ['#theme' => 'links', '#links' => $links];
     $build['#cache']['max-age'] = 0;
     return $build;
+  }
+
+  /**
+   * Access to the status page of a run: the user may view the run's plan.
+   *
+   * A run of another user's plan is refused, so its URL reveals nothing of
+   * that plan (#105). A run of a deleted plan stays visible to its requester
+   * only. A run without a source (an operator run on an engine scope) needs
+   * the route permissions alone, as before. A missing job is left to the
+   * controller (404).
+   */
+  public function jobAccess(AccountInterface $account, string|int $job): AccessResultInterface {
+    $entry = $this->jobs->load((int) $job);
+    if ($entry === NULL || $entry->source === NULL) {
+      return AccessResult::allowed()->setCacheMaxAge(0);
+    }
+    $plan = $this->entityTypeManager()->getStorage('ancora_plan')->load($entry->source->planId);
+    if ($plan === NULL) {
+      return AccessResult::allowedIf($entry->requestedBy === (int) $account->id())->setCacheMaxAge(0);
+    }
+    return AccessResult::allowedIf($plan->access('view', $account))->setCacheMaxAge(0);
   }
 
   /**
@@ -134,7 +163,7 @@ final class SchedulingController extends ControllerBase {
       ])
       ->addCacheTags([JobRepository::CACHE_TAG])
       ->addCacheableDependency($plan);
-    foreach (AcademicEntityTypes::ids() as $entity_type_id) {
+    foreach ([...AcademicEntityTypes::ids(), 'ancora_placement'] as $entity_type_id) {
       $cache->addCacheTags($this->entityTypeManager()->getDefinition($entity_type_id)->getListCacheTags());
     }
 
@@ -142,8 +171,16 @@ final class SchedulingController extends ControllerBase {
     uasort($periods, static fn (Period $a, Period $b): int => strcmp($a->getCode(), $b->getCode()));
     $requested = (int) $this->requestStack->getCurrentRequest()->query->get('period');
     $period = $periods[$requested] ?? reset($periods);
+    $plan_url = Url::fromRoute('ancora_scheduling.plan', ['ancora_plan' => $plan->id()])->toString();
     if (!$period instanceof Period) {
-      $build = ['#markup' => '<p>' . $this->t('This plan has no period yet.') . '</p>'];
+      $build = [
+        'empty' => ['#markup' => '<p class="ancora-timetable__empty">' . $this->t('This plan has no period yet.') . '</p>'],
+        'plan' => [
+          '#type' => 'link',
+          '#title' => $this->t('Back to the plan'),
+          '#url' => Url::fromRoute('ancora_scheduling.plan', ['ancora_plan' => $plan->id()]),
+        ],
+      ];
       $cache->applyTo($build);
       return $build;
     }
@@ -151,11 +188,20 @@ final class SchedulingController extends ControllerBase {
     $data = $this->reader->read($plan, $period);
     $filters = [];
     $query = $this->requestStack->getCurrentRequest()->query;
+    $labels = [
+      'group' => $this->t('Group'),
+      'teacher' => $this->t('Teacher'),
+      'room' => $this->t('Room'),
+    ];
+    $filtered = FALSE;
     foreach (self::FILTERS as $key => $list) {
       $value = (string) $query->get($key, '');
+      $value = isset($data[$list][$value]) ? (string) $value : '';
+      $filtered = $filtered || $value !== '';
       $filters[$key] = [
+        'label' => $labels[$key],
         'options' => $data[$list],
-        'value' => isset($data[$list][$value]) ? $value : '',
+        'value' => $value,
       ];
     }
 
@@ -182,7 +228,9 @@ final class SchedulingController extends ControllerBase {
         'error' => $scope['error'] === NULL ? NULL : $this->t('The scheduling engine could not be reached; try again later.'),
         'job_url' => $scope['job'] === NULL ? NULL : Url::fromRoute('ancora_scheduling.job', ['job' => $scope['job']->id])->toString(),
         'count' => count($scope['placements']),
+        'shown' => count($placements),
         'grid' => $scope['job'] === NULL ? NULL : $this->grid($period, $placements),
+        'days' => $scope['job'] === NULL ? [] : $this->byDay($period, $placements),
       ];
     }
 
@@ -202,8 +250,11 @@ final class SchedulingController extends ControllerBase {
       '#period_id' => (int) $period->id(),
       '#periods' => count($period_links) > 1 ? $period_links : [],
       '#filters' => $filters,
+      '#filtered' => $filtered,
+      '#reset_url' => Url::fromRoute('ancora_scheduling.timetable', ['ancora_plan' => $plan->id()], ['query' => ['period' => $period->id()]])->toString(),
       '#scopes' => $scopes,
       '#request_url' => $request_url->access() ? $request_url->toString() : NULL,
+      '#plan_url' => $plan_url,
       '#attached' => ['library' => ['ancora_scheduling/timetable']],
     ];
     $cache->applyTo($build);
@@ -231,11 +282,32 @@ final class SchedulingController extends ControllerBase {
       }
       $slots[] = [
         'number' => $slot,
-        'time' => sprintf('%02d:%02d', (int) floor($start), (int) round(fmod($start, 1) * 60)),
+        'time' => WorkspaceController::hour($start),
+        'end' => WorkspaceController::hour($start + $period->getSlotDuration()),
         'cells' => $cells,
       ];
     }
     return ['days' => $days, 'slots' => $slots];
+  }
+
+  /**
+   * The placements of each day in slot order: the narrow-screen list.
+   *
+   * @return list<array{day: int, placements: list<array>}>
+   *   The days that have placements, each with its placements and their
+   *   start and end times.
+   */
+  private function byDay(Period $period, array $placements): array {
+    usort($placements, static fn (array $a, array $b): int => [$a['day'], $a['slot']] <=> [$b['day'], $b['slot']]);
+    $days = [];
+    foreach ($placements as $placement) {
+      $start = $period->getStartHour() + ($placement['slot'] - 1) * $period->getSlotDuration();
+      $placement['time'] = WorkspaceController::hour($start);
+      $placement['end'] = WorkspaceController::hour($start + $placement['slots'] * $period->getSlotDuration());
+      $days[$placement['day']]['day'] = $placement['day'];
+      $days[$placement['day']]['placements'][] = $placement;
+    }
+    return array_values($days);
   }
 
   /**

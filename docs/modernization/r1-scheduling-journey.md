@@ -55,7 +55,7 @@ GET  /ancora/planning/{plan}/timetable
    2. the deletion of the scope's previous placements;
    3. `generar()`;
    4. the metrics.
-3. **Status page** (`/ancora/scheduling/jobs/{job}`). It needs `view ancora engine jobs` and `view academic data`. It shows:
+3. **Status page** (`/ancora/scheduling/jobs/{job}`). It needs `view ancora engine jobs` and `view academic data`, and view access to the job's plan (#105), so the URL of another user's run reveals nothing of that plan. It shows:
    - the plan, period, specialty and level;
    - the state, labelled so that a draft never reads as final;
    - the metrics, the placement digest and the input snapshot hash;
@@ -165,11 +165,11 @@ The E2E placement digest (`dev/e2e/expected-placements.md5`) is computed over te
    | group, teacher, room | the record's label |
 
    An id that no longer maps (deleted since the run) is shown as its code.
-5. **Grid.** Day × slot (days of the period × slots per day, with start times from `start_hour` and `slot_duration`). An activity of several slots fills each slot it covers. Filters `?group=`, `?teacher=` and `?room=` take codes of the plan.
+5. **Grid.** Day × slot (days of the period × slots per day, with start and end times from `start_hour` and `slot_duration`). An activity of several slots fills each slot it covers. Filters `?group=`, `?teacher=` and `?room=` take codes of the plan; an unknown code is ignored, and the page says how many placements the filters keep. Below 48rem the grid is replaced by the same placements as a list per day (#105); only the grid cells (`td[data-day]`) count as placements for `scripts/lib/timetable-cells.php`.
 6. **Escaping and caching.**
    - Every value is rendered by Twig (`ancora-scheduling-timetable.html.twig`, autoescape).
    - Cache contexts: `user.permissions` and `url.query_args:{period,group,teacher,room}`, plus `user` from the plan access check (#70).
-   - Cache tags: the plan, the list tags of the 13 academic types, and `ancora_engine_job_list`.
+   - Cache tags: the plan, the list tags of the 13 academic types and of the placements, and `ancora_engine_job_list`.
    - `JobRepository` invalidates `ancora_engine_job_list` on every state change: enqueue, claim, finish, cancel, recover.
    - Since #70 the page varies by user: only the plan's creator may see it (the access result has the `user` cache context). Dynamic Page Cache does not cache per-user responses, so the journey checks `UNCACHEABLE` instead of the earlier HIT. It also checks that the page switches to the draft as soon as the cancelled job ends, without a cache clear.
    - If the engine cannot be read, the page says so without details and is not cached.
@@ -179,7 +179,7 @@ The E2E placement digest (`dev/e2e/expected-placements.md5`) is computed over te
 | Action | Permission(s) |
 | --- | --- |
 | Request a timetable | `request ancora engine jobs` + `view academic data` |
-| Status page of a run | `view ancora engine jobs` + `view academic data` |
+| Status page of a run | `view ancora engine jobs` + `view academic data`, and view access to the run's plan |
 | Cancel a run | the requester with `request ancora engine jobs`, or `administer ancora engine` (existing cancel form) |
 | Timetable page | `view academic data` (and view access to the plan) |
 

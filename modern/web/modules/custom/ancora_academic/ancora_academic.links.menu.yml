@@ -6,3 +6,32 @@ ancora_academic.planning:
   weight: -8
 ancora_academic.collection:
   deriver: '\Drupal\ancora_academic\Plugin\Derivative\AcademicMenuLinks'
+
+# The planner navigation (#105), in the main menu: one link per section and
+# one child per list (AcademicEntityTypes::SECTIONS).
+ancora_academic.main.plans:
+  title: 'Plans & periods'
+  route_name: ancora_academic.section.plans
+  # The section is a route default; the active trail matches it too.
+  route_parameters:
+    section: plans
+  menu_name: main
+  weight: -40
+ancora_academic.main.catalogues:
+  title: 'Academic catalogues'
+  route_name: ancora_academic.section.catalogues
+  # The section is a route default; the active trail matches it too.
+  route_parameters:
+    section: catalogues
+  menu_name: main
+  weight: -30
+ancora_academic.main.assignments:
+  title: 'Assignments & templates'
+  route_name: ancora_academic.section.assignments
+  # The section is a route default; the active trail matches it too.
+  route_parameters:
+    section: assignments
+  menu_name: main
+  weight: -20
+ancora_academic.main:
+  deriver: '\Drupal\ancora_academic\Plugin\Derivative\AcademicMainMenuLinks'

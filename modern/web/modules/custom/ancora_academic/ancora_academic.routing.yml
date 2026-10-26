@@ -5,3 +5,31 @@ ancora_academic.planning:
     _title: 'Planning'
   requirements:
     _permission: 'view academic data+administer academic data'
+
+# The section pages of the planner navigation (#105).
+ancora_academic.section.plans:
+  path: '/ancora/planning/plans-periods'
+  defaults:
+    _controller: '\Drupal\ancora_academic\Controller\PlanningController::section'
+    _title_callback: '\Drupal\ancora_academic\Controller\PlanningController::sectionTitle'
+    section: plans
+  requirements:
+    _permission: 'view academic data+administer academic data'
+
+ancora_academic.section.catalogues:
+  path: '/ancora/planning/catalogues'
+  defaults:
+    _controller: '\Drupal\ancora_academic\Controller\PlanningController::section'
+    _title_callback: '\Drupal\ancora_academic\Controller\PlanningController::sectionTitle'
+    section: catalogues
+  requirements:
+    _permission: 'view academic data+administer academic data'
+
+ancora_academic.section.assignments:
+  path: '/ancora/planning/assignments-templates'
+  defaults:
+    _controller: '\Drupal\ancora_academic\Controller\PlanningController::section'
+    _title_callback: '\Drupal\ancora_academic\Controller\PlanningController::sectionTitle'
+    section: assignments
+  requirements:
+    _permission: 'view academic data+administer academic data'
