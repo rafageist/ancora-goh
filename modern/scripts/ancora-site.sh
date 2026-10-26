@@ -148,8 +148,20 @@ db_ensure() {
     -v owner_pw="$(cat "$4")" -v app_pw="$(cat "$5")" <<'SQL'
 SELECT format('CREATE ROLE %I', :'owner') WHERE NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = :'owner') \gexec
 SELECT format('CREATE ROLE %I', :'app') WHERE NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = :'app') \gexec
-ALTER ROLE :"owner" LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS PASSWORD :'owner_pw';
-ALTER ROLE :"app" LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS PASSWORD :'app_pw';
+-- A non-superuser operator (CREATEDB + CREATEROLE) may not even restate the
+-- SUPERUSER, REPLICATION or BYPASSRLS attributes (PostgreSQL 16+). New roles
+-- never have them; the check below fails the run if a site role ever does.
+ALTER ROLE :"owner" LOGIN NOCREATEDB NOCREATEROLE PASSWORD :'owner_pw';
+ALTER ROLE :"app" LOGIN NOCREATEDB NOCREATEROLE PASSWORD :'app_pw';
+SELECT set_config('ancora.site_roles', :'owner' || ',' || :'app', false);
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM pg_roles
+             WHERE rolname = ANY (string_to_array(current_setting('ancora.site_roles'), ','))
+               AND (rolsuper OR rolreplication OR rolbypassrls OR rolcreatedb OR rolcreaterole)) THEN
+    RAISE EXCEPTION 'a site role has SUPERUSER, REPLICATION, BYPASSRLS, CREATEDB or CREATEROLE';
+  END IF;
+END $$;
 SELECT format('CREATE DATABASE %I OWNER %I ENCODING %L TEMPLATE template0', :'db', :'owner', 'UTF8')
   WHERE NOT EXISTS (SELECT 1 FROM pg_database WHERE datname = :'db') \gexec
 REVOKE ALL ON DATABASE :"db" FROM PUBLIC;
