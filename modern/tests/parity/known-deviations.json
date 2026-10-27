@@ -4,22 +4,5 @@
     "Differences the parity harness reports as KNOWN instead of FAIL. Each entry names the deviation, quirk or open question of docs/modernization/legacy-parity-inventory.md that explains it, the table and the only columns allowed to differ, and the scenarios it applies to ('*': all).",
     "An entry is evidence, not a decision: it stays until its deviation is reconciled by a focused slice, or the maintainer rules on it. A difference in any other column, or in row counts, still FAILs."
   ],
-  "deviations": [
-    {
-      "id": "PAR-010/D6",
-      "table": "planificacion",
-      "columns": ["activa"],
-      "scenarios": ["*"],
-      "legacy": "The browser client never sends field_Planificacion_activa (www/js/app/server/ancoragoh_server_planificaciones.js), so control/data/add/add_Planificacion.php reads an undefined key (a PHP warning) and stores activa = NULL, not the column default TRUE.",
-      "drupal": "ancora_plan.active defaults to TRUE and is exported as TRUE. The engine never reads it."
-    },
-    {
-      "id": "Q-20/A-1",
-      "table": "periodo",
-      "columns": ["hora_inicial", "duracion_del_turno"],
-      "scenarios": ["*"],
-      "legacy": "ancoragoh.server.periodos.add and .update post cant_dias as field_Periodo_hora_inicial (www/js/app/server/ancoragoh_server_periodos.js:8,20), and the form posts the slot length in minutes (view/custom/form_periodo.tpl, TimeUtilsCommon::hour_to_number = h*60+m).",
-      "drupal": "ancora_period.start_hour and slot_duration are hours, stored and exported as entered. Open question A-1 of the inventory; they feed only the displayed hours and the real-date restrictions, not the placement of one period."
-    }
-  ]
+  "deviations": []
 }

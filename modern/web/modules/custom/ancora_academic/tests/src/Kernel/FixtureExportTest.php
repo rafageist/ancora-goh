@@ -131,6 +131,14 @@ final class FixtureExportTest extends AcademicKernelTestBase {
       'nivel', 'brigada', 'grupo', 'brigada_de_grupo', 'asignatura',
       'profesor', 'lugar',
     ];
+    // fixture.sql was written with SQL, not with the legacy UI: its period
+    // hours are the meant ones (8, 1) and its plan takes the column default
+    // activa TRUE. The rows carry what the legacy UI stores (PAR-010,
+    // PAR-011, Q-20): the number of days as the start hour, the slot length
+    // in minutes, activa NULL (case 146: the placements do not change).
+    $fixture['periodo'][0]['hora_inicial'] = '5';
+    $fixture['periodo'][0]['duracion_del_turno'] = '60';
+    $this->assertSame([NULL], array_column($rows['planificacion'], 'activa'));
     foreach ($literal as $table) {
       $columns = array_keys($fixture[$table][0]);
       $this->assertSame($this->project($fixture[$table]), $this->project($rows[$table], $columns), $table);
@@ -214,9 +222,13 @@ final class FixtureExportTest extends AcademicKernelTestBase {
   }
 
   /**
-   * The legacy day number is a faithful port of tiempo.date_to_number.
+   * The legacy day number is the plan form's TimeUtilsCommon::date_to_number.
    */
   public function testLegacyDayNumber(): void {
+    // Values of the PHP function (lib/ancora/timeutils/TimeUtilsCommon.php).
+    $this->assertSame(0, LegacyRows::legacyDayNumber('1999-12-31'));
+    $this->assertSame(-669, LegacyRows::legacyDayNumber('1998-03-01'));
+    $this->assertSame(9747, LegacyRows::legacyDayNumber('2026-09-07'));
     $this->assertSame(1, LegacyRows::legacyDayNumber('2000-01-01'));
     $this->assertSame(61, LegacyRows::legacyDayNumber('2000-03-01'));
     $this->assertSame(367, LegacyRows::legacyDayNumber('2001-01-01'));

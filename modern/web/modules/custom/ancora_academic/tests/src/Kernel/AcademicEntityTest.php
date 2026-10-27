@@ -158,7 +158,9 @@ final class AcademicEntityTest extends AcademicKernelTestBase {
     $this->assertSame([], $this->violationFields($period([])));
     $this->assertSame(['days'], $this->violationFields($period(['days' => 0])));
     $this->assertSame(['slots_per_day'], $this->violationFields($period(['slots_per_day' => 0])));
-    $this->assertSame(['slot_duration'], $this->violationFields($period(['slot_duration' => 0])));
+    // The legacy form offers 0:00 as a slot length (PAR-011).
+    $this->assertSame([], $this->violationFields($period(['slot_duration' => 0])));
+    $this->assertSame(['slot_duration'], $this->violationFields($period(['slot_duration' => -1])));
     $this->assertSame(['start_hour'], $this->violationFields($period(['start_hour' => 25])));
     $this->assertSame(['plan_days'], $this->violationFields($period(['plan_days' => [0]])));
 
