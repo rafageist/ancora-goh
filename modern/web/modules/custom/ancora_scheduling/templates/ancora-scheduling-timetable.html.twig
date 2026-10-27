@@ -29,6 +29,7 @@
  *   - days: The same placements by day (day, placements with time and end).
  * - request_url: The request form, or NULL without access.
  * - plan_url: The plan page.
+ * - explorer_url: The timetable explorer of the period (#119).
  *
  * The grid cells (td[data-day]) are the only place where a placement is
  * counted by scripts/lib/timetable-cells.php; the narrow-screen list has no
@@ -38,6 +39,9 @@
 <section class="ancora-timetable">
   <p class="ancora-timetable__links">
     <a href="{{ plan_url }}">{{ 'Plan page'|t }}</a>
+    {% if explorer_url %}
+      <a class="ancora-timetable__explorer" href="{{ explorer_url }}">{{ 'Explore by cohort, teacher, room or other resource'|t }}</a>
+    {% endif %}
     {% if request_url %}
       <a class="button button--primary" href="{{ request_url }}">{{ 'Request a timetable'|t }}</a>
     {% endif %}

@@ -34,3 +34,15 @@ ancora_scheduling.main.timetables:
   route_name: ancora_scheduling.timetables
   menu_name: main
   weight: 0
+ancora_scheduling.main.timetables.list:
+  title: 'Timetables'
+  route_name: ancora_scheduling.timetables
+  menu_name: main
+  parent: ancora_scheduling.main.timetables
+  weight: 0
+ancora_scheduling.main.timetables.explorer:
+  title: 'Timetable explorer'
+  route_name: ancora_scheduling.explorer
+  menu_name: main
+  parent: ancora_scheduling.main.timetables
+  weight: 1

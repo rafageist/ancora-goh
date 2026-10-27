@@ -79,6 +79,8 @@ After the #70 D9a slice (61 cases): **50 PASS, 11 XFAIL, 0 FAIL / XPASS / XWRONG
 
 After the #70 D9b slice (62 cases): **51 PASS, 11 XFAIL, 0 FAIL / XPASS / XWRONG**. Case 140 records that a break changes only the slot hours, that priority zones change the cells only with `parche1`, the effect of teacher and brigade daily load limits, and their keys. Every earlier result is unchanged.
 
+After #119, the timetable explorer (69 cases): **58 PASS, 11 XFAIL, 0 FAIL / XPASS / XWRONG**. Case 147 runs the explorer's activity queries (`get_minibrowser_horarios.php`) on two plans and two users. Every earlier result is unchanged.
+
 After the #70 time-input slice (68 cases): **57 PASS, 11 XFAIL, 0 FAIL / XPASS / XWRONG**. Case 146 records the period hours as the legacy UI stores them (Q-20) and that they never change a placement. Every earlier result is unchanged.
 
 After the #70 D5 slice (67 cases): **56 PASS, 11 XFAIL, 0 FAIL / XPASS / XWRONG**. Case 145 records what every delete removes through the `ON DELETE CASCADE` foreign keys, link tables included. Every earlier result is unchanged.

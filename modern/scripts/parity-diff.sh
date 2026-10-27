@@ -264,6 +264,28 @@ EOF
     legacy_stop
     grep -v '^ok' "$out/legacy-characterize.log" || true
   fi
+
+  # ---------------------------------------------------------------- timetable explorer (#119)
+  # The legacy explorer's grids (characterize steps "explorer_grid") against
+  # the Drupal explorer, in the two-database mode and, with --workspace,
+  # on the placement entities the round trip published.
+  if [ "$(jq '[.characterize // [] | .[] | select(.kind == "explorer_grid")] | length' "$file")" -gt 0 ]; then
+    echo "# timetable explorer: legacy get_minibrowser_horarios against the Drupal explorer"
+    local modes=(two_database)
+    [ "$workspace" -eq 1 ] && modes+=(workspace)
+    local mode
+    for mode in "${modes[@]}"; do
+      if [ "$mode" = workspace ]; then
+        ANCORA_ENGINE_MODE=workspace ANCORA_ENGINE_DB_NAME="ancora_parity_${n}" ANCORA_ENGINE_DB_USER="ancora_parity_${n}_worker" \
+          drush php:script "$lib/explorer-dump.php" -- "$file" "$out" "$mode" >"$out/explorer-$mode.log" 2>&1 \
+          || { echo "FAIL  explorer dump ($mode)"; tail -5 "$out/explorer-$mode.log"; rc=1; }
+      else
+        drush php:script "$lib/explorer-dump.php" -- "$file" "$out" "$mode" >"$out/explorer-$mode.log" 2>&1 \
+          || { echo "FAIL  explorer dump ($mode)"; tail -5 "$out/explorer-$mode.log"; rc=1; }
+      fi
+      php "$lib/explorer-compare.php" "$file" "$out" "$mode" || rc=1
+    done
+  fi
   return "$rc"
 }
 

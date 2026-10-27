@@ -260,6 +260,7 @@ final class SchedulingController extends ControllerBase {
       '#scopes' => $scopes,
       '#request_url' => $request_url->access() ? $request_url->toString() : NULL,
       '#plan_url' => $plan_url,
+      '#explorer_url' => Url::fromRoute('ancora_scheduling.explorer', [], ['query' => ['period' => $period->id()]])->toString(),
       '#attached' => ['library' => ['ancora_scheduling/timetable']],
     ];
     $cache->applyTo($build);

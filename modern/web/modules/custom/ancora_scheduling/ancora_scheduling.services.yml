@@ -40,6 +40,10 @@ services:
     arguments: ['@ancora_engine.job_repository', '@ancora_engine.engine_client', '@ancora_engine.settings', '@Drupal\ancora_academic\Export\AcademicExport', '@Drupal\ancora_academic\Export\LegacyRows', '@logger.channel.ancora_scheduling', '@entity_type.manager']
   Drupal\ancora_scheduling\Timetable\TimetableReader: '@ancora_scheduling.timetable'
 
+  # The legacy timetable explorer (#119, D14).
+  Drupal\ancora_scheduling\Timetable\TimetableExplorer:
+    arguments: ['@entity_type.manager', '@ancora_scheduling.timetable']
+
   logger.channel.ancora_scheduling:
     parent: logger.channel_base
     arguments: ['ancora_scheduling']

@@ -29,6 +29,7 @@ final class SchedulingThemeHooks {
           'scopes' => [],
           'request_url' => NULL,
           'plan_url' => NULL,
+          'explorer_url' => NULL,
         ],
       ],
       'ancora_workspace_welcome' => [

@@ -79,3 +79,13 @@ ancora_scheduling.timetable:
     parameters:
       ancora_plan:
         type: 'entity:ancora_plan'
+
+# The legacy timetable explorer (#119, D14, PAR-091): ?period=<id> and
+# brigade, teacher, room or resource=<id> (TimetableExplorer). Read-only.
+ancora_scheduling.explorer:
+  path: '/ancora/timetables/explorer'
+  defaults:
+    _controller: '\Drupal\ancora_scheduling\Controller\ExplorerController::page'
+    _title: 'Timetable explorer'
+  requirements:
+    _permission: 'view academic data+administer academic data'
