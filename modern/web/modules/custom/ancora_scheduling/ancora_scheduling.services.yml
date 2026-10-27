@@ -20,8 +20,20 @@ services:
 
   ancora_engine.job_output:
     class: Drupal\ancora_scheduling\Timetable\PlacementPublisher
-    arguments: ['@entity_type.manager', '@database', '@ancora_engine.job_repository', '@ancora_engine.workspace_input', '@logger.channel.ancora_scheduling', '@account_switcher']
+    arguments: ['@entity_type.manager', '@database', '@ancora_engine.job_repository', '@ancora_engine.workspace_input', '@logger.channel.ancora_scheduling', '@account_switcher', '@ancora_scheduling.placement_mapper']
   Drupal\ancora_scheduling\Timetable\PlacementPublisher: '@ancora_engine.job_output'
+
+  ancora_scheduling.placement_mapper:
+    class: Drupal\ancora_scheduling\Timetable\PlacementMapper
+    arguments: ['@entity_type.manager', '@account_switcher']
+  Drupal\ancora_scheduling\Timetable\PlacementMapper: '@ancora_scheduling.placement_mapper'
+
+  # Migration of a two-database site to the single-database layout (#96):
+  # the engine database's placements as placement entities.
+  ancora_scheduling.two_database_import:
+    class: Drupal\ancora_scheduling\Migration\TwoDatabaseImport
+    arguments: ['@entity_type.manager', '@database', '@ancora_engine.job_repository', '@ancora_engine.engine_client', '@ancora_engine.settings', '@account_switcher', '@ancora_scheduling.placement_mapper']
+  Drupal\ancora_scheduling\Migration\TwoDatabaseImport: '@ancora_scheduling.two_database_import'
 
   ancora_scheduling.timetable:
     class: Drupal\ancora_scheduling\Timetable\TimetableReader

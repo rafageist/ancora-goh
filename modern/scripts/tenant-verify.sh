@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
-# Tenant provisioning in the single-database layout (issue #96), as on the
-# real host, against a disposable PostgreSQL cluster:
+# Tenant provisioning in the single-database layout and the migration of a
+# two-database site (issue #96), as on the real host, against a disposable
+# PostgreSQL cluster:
 #
 #   dev/sql/tools/with-ephemeral-pg.sh modern/scripts/tenant-verify.sh [--skip-composer]
 #
@@ -32,6 +33,23 @@
 #    after the database step is repaired by running it again; a slug ending
 #    in "-engine" is refused; deprovisioning removes the database and every
 #    role of the tenant, including the job role of a workspace never closed.
+# 6. A two-database site populated like the private demo (#96 part 2): jobs,
+#    and a draft timetable (a run cancelled mid-flight) in its engine
+#    database tt_omega_engine.
+# 7. Migration (ancora-site.sh migrate-single-db): the check report;
+#    refusal of an active site; a failure halfway through the placement
+#    import keeps nothing and the re-run resumes; backups; Drupal checksums
+#    before = after; placements become entities with their engine ids, order,
+#    job and placing moment; the engine database is kept unchanged; the
+#    backup restores; a second run changes nothing.
+# 8. Continuation after the migration: the workspace run loads the migrated
+#    placements and its timetable equals the legacy oracle (the same
+#    continuation in the engine database, rolled back).
+# 9. Rollback (rollback-single-db) refuses to drop newer placements, then
+#    discards them on request: two-database mode, no engine in tt_omega, the
+#    Drupal checksums of before the migration, and the engine database still
+#    unchanged; a two-database run continues there; forward again; a
+#    workspace run after it; isolation from alpha.
 set -euo pipefail
 
 skip_composer=0
@@ -254,6 +272,126 @@ site_op suspend gamma >/dev/null 2>&1
 check "deprovision gamma (suspended) with a final backup" bash -c "PGUSER=$operator '$site' deprovision gamma --backup-dir '$work/backup' --confirm gamma >'$work/log/deprovision.log' 2>&1"
 check "gamma's database and every role of gamma are gone" eq \
   "$(sql postgres "SELECT (SELECT count(*) FROM pg_database WHERE datname LIKE 'tt\_gamma%') || '/' || (SELECT count(*) FROM pg_roles WHERE rolname LIKE 'tt\_gamma\_%')")" "0/0"
+
+step "6. A two-database site populated like the private demo: jobs, and a draft timetable in its engine database"
+site_op provision omega --name "Omega School" --admin-mail admin@omega.example.invalid --engine-layout two-database >"$work/log/provision-omega.log" 2>&1 \
+  || { cat "$work/log/provision-omega.log"; exit 1; }
+{
+  sdrush omega role:create planner Planner
+  sdrush omega role:perm:add planner 'view academic data,edit academic data,view ancora engine jobs,request ancora engine jobs'
+  sdrush omega user:create planner-omega --mail=planner@omega.example.invalid --password="$(random_hex 12)"
+  sdrush omega user:role:add planner planner-omega
+  sdrush omega ancora-academic:load-fixture --owner=planner-omega
+} >"$work/log/setup-omega.log" 2>&1 || { cat "$work/log/setup-omega.log"; exit 1; }
+check "omega has its engine database and the two-database mode" eq \
+  "$(sql postgres "SELECT count(*) FROM pg_database WHERE datname = 'tt_omega_engine'")/$(engine_of omega)" "1/two_database/tt_omega_engine/tt_omega_engine_app"
+engine_o() { sql tt_omega_engine "$1"; }
+# Test-only slow-placement trigger in the engine database (superuser).
+engine_o "CREATE SCHEMA tst; CREATE TABLE tst.delay (seconds float8 NOT NULL); INSERT INTO tst.delay VALUES (0.4); CREATE SEQUENCE tst.started;
+  CREATE FUNCTION tst.slow() RETURNS trigger LANGUAGE plpgsql AS \$\$
+  BEGIN PERFORM nextval('tst.started'); PERFORM pg_sleep((SELECT seconds FROM tst.delay)); RETURN NULL; END \$\$;
+  GRANT USAGE ON SCHEMA tst TO tt_omega_engine_app; GRANT SELECT ON tst.delay TO tt_omega_engine_app; GRANT USAGE, UPDATE ON SEQUENCE tst.started TO tt_omega_engine_app;
+  CREATE TRIGGER tst_slow AFTER INSERT ON actividad FOR EACH ROW EXECUTE FUNCTION tst.slow();" >/dev/null
+o_started() { engine_o "SELECT CASE WHEN is_called THEN last_value ELSE 0 END FROM tst.started"; }
+o_job1=$(enqueue omega)
+"$site" work omega --once >"$work/log/w-omega1.log" 2>&1 & wpid=$!; bg+=("$wpid")
+deadline=$((SECONDS + 90)); while [ "$(o_started)" -lt 3 ] && [ $SECONDS -lt $deadline ]; do sleep 0.1; done
+sdrush omega ancora-engine:cancel "$o_job1" >/dev/null
+wait "$wpid" || true
+engine_o "DROP TRIGGER tst_slow ON actividad; DROP SCHEMA tst CASCADE" >/dev/null
+n=$(engine_o "SELECT count(*) FROM actividad")
+check "job $o_job1 was cancelled mid-flight: a draft of $n placements (3..7) in tt_omega_engine" bash -c \
+  "[ '$(field omega "$o_job1" '.state + "/" + .result.kept')' = cancelled/partial ] && [ '$n' -ge 3 ] && [ '$n' -le 7 ]"
+check "omega has no placement entity (two-database mode)" eq "$(count omega)" 0
+old_rows=$(engine_o "SELECT string_agg(id || ' ' || plantilla || ' ' || grupo || ' ' || coalesce(profesor, '') || ' ' || coalesce(lugar, '') || ' ' || dia || ' ' || turno || ' ' || momento_de_colocacion, ',' ORDER BY ctid) FROM actividad")
+old_sum=$(engine_o "SELECT md5(string_agg(a::text, ',' ORDER BY a::text)) FROM actividad a")
+o_scope=$(field omega "$o_job1" '[.scope.specialty, .scope.level, .scope.period] | join(" ")')
+read -r o_e o_n o_per <<<"$o_scope"
+
+step "7. Migration: check, refusals, a failure halfway, resume"
+check "migrate-single-db --check reports $n placements of job $o_job1 and no problem" bash -c \
+  "PGUSER=$operator '$site' migrate-single-db omega --check >'$work/log/mcheck.json' 2>&1 && jq -e --argjson n '$n' '.rows == \$n and .problems == [] and .jobs == {\"$o_job1\": \$n}' <(sed -n '/^{/,/^}/p' '$work/log/mcheck.json') >/dev/null"
+check "the migration refuses an active site" bash -c "! PGUSER=$operator '$site' migrate-single-db omega --backup-dir '$work/backup' >'$work/log/m-active.log' 2>&1 && grep -q 'suspend it first' '$work/log/m-active.log'"
+site_op suspend omega >/dev/null
+check "a failure halfway through the placement import (test hook) exits non-zero" bash -c \
+  "! ANCORA_MIGRATION_TEST_FAIL_AFTER=2 PGUSER=$operator '$site' migrate-single-db omega --backup-dir '$work/backup' >'$work/log/m-fail.log' 2>&1"
+check "after the failure: no placement entity, the engine installed, the site still on its engine database" eq \
+  "$(count omega)/$(sql tt_omega "SELECT to_regclass('scheduler_control.workspace') IS NOT NULL")/$(grep '^ENGINE_MODE' "$ANCORA_SITES_DIR/omega/site.ini")" '0/t/ENGINE_MODE = "two_database"'
+check "the backups were taken before anything changed" bash -c "ls '$work/backup'/tt_omega-pre-single-db-*.dump '$work/backup'/tt_omega_engine-pre-single-db-*.dump >/dev/null 2>&1"
+check "re-running migrate-single-db resumes and completes" bash -c "PGUSER=$operator '$site' migrate-single-db omega >'$work/log/m-resume.log' 2>&1"
+check "the Drupal records are unchanged (checksums before = after)" cmp -s "$ANCORA_SITES_DIR/omega/migration/before.json" "$ANCORA_SITES_DIR/omega/migration/after.json"
+check "omega is in the workspace mode on its own database" eq "$(engine_of omega)" workspace/tt_omega/tt_omega_engine_app
+check "the engine database is kept, unchanged" eq "$(engine_o "SELECT md5(string_agg(a::text, ',' ORDER BY a::text)) FROM actividad a")" "$old_sum"
+new_rows=$(sdrush omega php:eval '$s = \Drupal::entityTypeManager()->getStorage("ancora_placement"); $out = [];
+  foreach ($s->loadMultiple($s->getQuery()->accessCheck(FALSE)->sort("id")->execute()) as $p) {
+    $m = static fn ($f, $t) => $p->get($f)->target_id === NULL ? "" : \Drupal::entityTypeManager()->getStorage($t)->load($p->get($f)->target_id)->id();
+    $out[] = [$p->get("engine_id")->value, (int) $p->get("job")->value, $p->get("placed_at")->value, $p->get("day")->value, $p->get("slot")->value];
+  } print json_encode($out);')
+check "the $n placements became entities with their engine ids, in their order" eq "$(jq -r '[.[] | .[0]] | join(",")' <<<"$new_rows")" "$(engine_o "SELECT string_agg(id, ',' ORDER BY ctid) FROM actividad")"
+check "every placement is linked to job $o_job1 and keeps its day, slot and placing moment" eq \
+  "$(jq -r '[.[] | "\(.[1]) \(.[3]) \(.[4]) \(.[2] | tonumber)"] | join(",")' <<<"$new_rows")" \
+  "$(engine_o "SELECT string_agg('$o_job1 ' || dia || ' ' || turno || ' ' || momento_de_colocacion::float8, ',' ORDER BY ctid) FROM actividad")"
+restore_ok() {
+  local dump
+  dump=$(ls "$work/backup"/tt_omega-pre-single-db-*.dump | head -1)
+  psql -X -q -d postgres -c "CREATE DATABASE restore_check" && pg_restore -d restore_check --no-owner --no-privileges "$dump" 2>/dev/null
+  [ "$(sql restore_check "SELECT md5(string_agg(j::text, ',' ORDER BY j.id)) FROM ancora_engine_job j")" = "$(sql tt_omega "SELECT md5(string_agg(j::text, ',' ORDER BY j.id)) FROM ancora_engine_job j")" ] \
+    && [ "$(sql restore_check "SELECT to_regnamespace('scheduler') IS NULL")" = t ]
+}
+check "the Drupal backup restores (pg_restore into a scratch database: the same job history, no engine schema)" restore_ok
+check "migrate-single-db again: already migrated, nothing changes" bash -c "PGUSER=$operator '$site' migrate-single-db omega | grep -q 'already migrated'"
+
+step "8. Continuation after the migration = the legacy oracle"
+site_op resume omega >/dev/null
+o_job2=$(enqueue omega)
+work_once omega
+check "job $o_job2 succeeded in the workspace mode, loading the $n migrated placements, publishing $((8 - n))" eq \
+  "$(field omega "$o_job2" '.state + "/" + .result.mode + "/" + (.result.input.placements_loaded | tostring) + "/" + (.result.input.publication.published | tostring)')" \
+  "succeeded/workspace/$n/$((8 - n))"
+check "the migrated placements are unchanged" eq "$(sdrush omega php:eval '$s = \Drupal::entityTypeManager()->getStorage("ancora_placement"); print implode(",", array_map(fn ($p) => $p->get("engine_id")->value, $s->loadMultiple($s->getQuery()->accessCheck(FALSE)->condition("job", '"$o_job1"')->sort("id")->execute())));')" \
+  "$(engine_o "SELECT string_agg(id, ',' ORDER BY ctid) FROM actividad")"
+# Legacy oracle: the same continuation in the two-database engine database,
+# rolled back (generar() on the rows the last two-database run left).
+code() { echo "substr($1, strpos($1, ':') + 1)"; }
+oracle=$(PGOPTIONS="-c client_min_messages=warning" psql -X -q -At -v ON_ERROR_STOP=1 -d tt_omega_engine <<SQL
+BEGIN;
+SELECT generar('$o_e', '$o_n', '$o_per', 1, false, 0, false, false) \g /dev/null
+SELECT string_agg($(code a.plantilla) || '/' || $(code a.grupo) || '/' || coalesce(p.nombre, '') || '/' || coalesce($(code a.lugar), '') || '/' || a.dia || '/' || a.turno, ',' ORDER BY a.plantilla, a.grupo)
+  FROM actividad a LEFT JOIN profesor p ON p.id = a.profesor;
+ROLLBACK;
+SQL
+)
+check "the continued timetable equals the legacy oracle's continuation in the engine database" eq "$(stored omega | jq -r .e2e)" "$oracle"
+# A continuation is not a fresh run: from a draft, legacy places the other
+# demands around the kept placements (case 132, D12), so the digest differs
+# from the E2E digest of one uncancelled run.
+check "every demand of the scope is placed (8 placements, metrics placed=8)" eq "$(count omega)/$(field omega "$o_job2" '.result.placed')" "8/8"
+
+step "9. Rollback, then forward again"
+site_op suspend omega >/dev/null
+check "the rollback refuses to delete the $((8 - n)) placements made after the migration" bash -c \
+  "! PGUSER=$operator '$site' rollback-single-db omega >'$work/log/rb-refused.log' 2>&1 && grep -q 'were made after the migration' '$work/log/rb-refused.log'"
+check "rollback-single-db --discard-new-placements succeeds" bash -c "PGUSER=$operator '$site' rollback-single-db omega --discard-new-placements >'$work/log/rb.log' 2>&1"
+check "after the rollback: the two-database mode, no placement entity, no engine in tt_omega, no engine owner or job role" eq \
+  "$(engine_of omega)/$(count omega)/$(sql tt_omega "SELECT count(*) FROM pg_namespace WHERE nspname LIKE 'scheduler%' OR nspname IN ('generador', 'seguridad', 'tiempo', 'matrix', 'prioriza', 'portal')")/$(sql postgres "SELECT count(*) FROM pg_roles WHERE rolname LIKE 'tt\_omega\_%' AND rolname NOT IN ('tt_omega_owner', 'tt_omega_app', 'tt_omega_engine_app')")" \
+  "two_database/tt_omega_engine/tt_omega_engine_app/0/0/0"
+check "the Drupal records equal the checksums taken before the migration (job history up to then)" cmp -s "$ANCORA_SITES_DIR/omega/migration/before.json" "$ANCORA_SITES_DIR/omega/migration/rollback.json"
+check "the engine database is still unchanged" eq "$(engine_o "SELECT md5(string_agg(a::text, ',' ORDER BY a::text)) FROM actividad a")" "$old_sum"
+site_op resume omega >/dev/null
+o_job3=$(enqueue omega)
+work_once omega
+check "back on the engine database, job $o_job3 runs as the two-database mode does (it replaces the scope's draft, #71): succeeded, 8 placements in tt_omega_engine" eq \
+  "$(field omega "$o_job3" '.state + "/" + .result.mode')/$(engine_o "SELECT count(*) FROM actividad")" "succeeded/two_database/8"
+site_op suspend omega >/dev/null
+check "forward again: migrate-single-db succeeds" bash -c "PGUSER=$operator '$site' migrate-single-db omega --backup-dir '$work/backup' >'$work/log/m-again.log' 2>&1"
+check "the 8 placements are entities of job $o_job3, with the E2E digest" eq "$(count omega)/$(stored omega | jq -r '[.rows[].job] | unique | join(",")')/$(digest omega)" "8/$o_job3/$expected"
+site_op resume omega >/dev/null
+o_job4=$(enqueue omega)
+work_once omega
+check "a workspace run after the second migration continues: nothing new" eq \
+  "$(field omega "$o_job4" '.state + "/" + (.result.input.placements_loaded | tostring) + "/" + (.result.input.publication.published | tostring)')" "succeeded/8/0"
+check "omega's worker role cannot connect to alpha's database; alpha's cannot reach omega's" bash -c \
+  "! psql -X -At -U tt_omega_engine_app -d tt_alpha -c 'SELECT 1' >/dev/null 2>&1 && ! psql -X -At -U tt_alpha_engine_app -d tt_omega -c 'SELECT 1' >/dev/null 2>&1 && ! psql -X -At -U tt_alpha_engine_app -d tt_omega_engine -c 'SELECT 1' >/dev/null 2>&1"
 
 step "tenant verification: $pass passed, $fail failed ($((SECONDS - started)) s)"
 [ "$fail" -eq 0 ]

@@ -14,6 +14,8 @@ use Drupal\ancora_scheduling\ScopeMapper;
 use Drupal\ancora_scheduling\Sync\SiteRows;
 use Drupal\ancora_scheduling\Sync\WorkspaceSync;
 use Drupal\ancora_scheduling\Timetable\PlacementPublisher;
+use Drupal\Core\Cache\Cache;
+use Drupal\Core\DependencyInjection\ContainerBuilder;
 use Drupal\Tests\ancora_academic\Kernel\AcademicKernelTestBase;
 use PHPUnit\Framework\Attributes\Group;
 
@@ -39,6 +41,25 @@ final class PlacementPublisherTest extends AcademicKernelTestBase {
     'user',
     'views',
   ];
+
+  /**
+   * {@inheritdoc}
+   */
+  public function register(ContainerBuilder $container): void {
+    parent::register($container);
+    // Kernel tests keep every cache bin in memory. The cold-cache test needs
+    // the database backend of the sites for the bins the publication writes.
+    if ($this->name() === 'testPublishWithColdCaches') {
+      foreach (['cache.config', 'cache.access_policy', 'cache.entity', 'cache.default', 'cache.discovery', 'cache.data'] as $id) {
+        if ($container->hasDefinition($id)) {
+          $definition = $container->getDefinition($id);
+          $tags = $definition->getTags();
+          $tags['cache.bin'][0]['default_backend'] = 'cache.backend.database';
+          $definition->setTags($tags);
+        }
+      }
+    }
+  }
 
   /**
    * {@inheritdoc}
@@ -196,6 +217,38 @@ final class PlacementPublisherTest extends AcademicKernelTestBase {
     $storage->delete($storage->loadByProperties(['teacher' => $teacher->id()]));
     $teacher->delete();
     $this->assertSame(0, $this->recordCount('ancora_placement'));
+  }
+
+  /**
+   * Published right after a cache rebuild (cold caches), as after a deploy.
+   *
+   * The entity reference checks run entity queries; their access alter
+   * computes the creator's permissions, which loads and caches the roles.
+   * With the pgsql driver a cache write inside a query fails ("a transaction
+   * named mimic_implicit_commit is already in use"), so the caches the
+   * publication needs are warmed before its transaction.
+   */
+  public function testPublishWithColdCaches(): void {
+    [$job, $ids] = $this->runningJob();
+    $templates = array_keys($ids['plantilla_de_actividad']);
+    sort($templates);
+    $this->coldCaches();
+    $output = [$this->row($ids, 'cold-1', $templates[0], 'G1', 'TA', 'L1', 1, 1)];
+    $this->assertSame(['published' => 1, 'already_published' => 0], $this->container->get(PlacementPublisher::class)->publish($job, $this->returned($output)));
+  }
+
+  /**
+   * Empties every cache, persistent and in memory.
+   */
+  private function coldCaches(): void {
+    foreach (Cache::getBins() as $bin) {
+      $bin->set('ancora_test_table', TRUE);
+      $bin->deleteAll();
+    }
+    foreach (['entity.memory_cache', 'cache.access_policy_memory'] as $service) {
+      $this->container->get($service)->deleteAll();
+    }
+    $this->container->get('config.factory')->reset();
   }
 
   /**

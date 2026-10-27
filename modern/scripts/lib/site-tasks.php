@@ -21,10 +21,27 @@
  * - admin-state: prints "<name> <status> <password set: yes|no>" for uid 1.
  * - maintenance-on, maintenance-off: Drupal maintenance mode.
  * - end-sessions: delete every session of the site.
+ *
+ * Migration to the single-database layout (#96, ancora-site.sh
+ * migrate-single-db and rollback-single-db):
+ * - jobs-idle: exit status 1 while a job is queued or running.
+ * - job-max: the highest job id.
+ * - checksums [max job id]: JSON, row count and md5 of every table of every
+ *   content entity type except the placements, of the configuration and of
+ *   the job history up to the given id.
+ * - placements-check, placements-import: the engine database's placements
+ *   as placement entities (TwoDatabaseImport): a report, or the import in
+ *   one transaction. Exit status 1 when a placement cannot be imported.
+ * - placements-foreign: the number of placement entities that are not rows
+ *   of the engine database.
+ * - placements-delete: every placement entity (Entity API, one transaction).
+ * - engine-check: the engine is reachable with the site's settings.
  */
 
 use Drupal\Component\Serialization\Yaml;
 use Drupal\Core\Database\Database;
+use Drupal\Core\Entity\ContentEntityTypeInterface;
+use Drupal\Core\Entity\Sql\SqlContentEntityStorage;
 use Drupal\Core\Queue\DatabaseQueue;
 
 // Set by drush php:script.
@@ -125,6 +142,113 @@ switch ($ancora_task) {
     $connection = Database::getConnection();
     $count = $connection->schema()->tableExists('sessions') ? $connection->delete('sessions')->execute() : 0;
     print "sessions ended: $count\n";
+    break;
+
+  case 'jobs-idle':
+    // Exit status 1 while a job of the site is queued or running.
+    $busy = (int) Database::getConnection()->select('ancora_engine_job', 'j')
+      ->condition('state', ['queued', 'running'], 'IN')
+      ->countQuery()->execute()->fetchField();
+    print "jobs queued or running: $busy\n";
+    if ($busy > 0) {
+      exit(1);
+    }
+    break;
+
+  case 'job-max':
+    print (int) Database::getConnection()->query('SELECT coalesce(max(id), 0) FROM {ancora_engine_job}')->fetchField() . "\n";
+    break;
+
+  case 'checksums':
+    // Row count and md5 of every table of every content entity type except
+    // the placements, of the configuration and of the job history up to the
+    // given job id: the records a migration must leave untouched (#96).
+    $connection = Database::getConnection();
+    $max = (int) ($extra[1] ?? PHP_INT_MAX);
+    $entity_type_manager = \Drupal::entityTypeManager();
+    $tables = ['config', 'users_data'];
+    foreach ($entity_type_manager->getDefinitions() as $definition) {
+      if (!$definition instanceof ContentEntityTypeInterface || $definition->id() === 'ancora_placement') {
+        continue;
+      }
+      $storage = $entity_type_manager->getStorage($definition->id());
+      if ($storage instanceof SqlContentEntityStorage) {
+        $tables = array_merge($tables, $storage->getTableMapping()->getTableNames());
+      }
+    }
+    $tables = array_unique($tables);
+    sort($tables);
+    $sums = [];
+    foreach ($tables as $table) {
+      if ($connection->schema()->tableExists($table)) {
+        $row = $connection->query("SELECT count(*) AS n, md5(coalesce(string_agg(x::text, E'\\n' ORDER BY x::text), '')) AS h FROM {" . $table . '} x')->fetchAssoc();
+        $sums[$table] = $row['n'] . ' ' . $row['h'];
+      }
+    }
+    $row = $connection->query("SELECT count(*) AS n, md5(coalesce(string_agg(x::text, E'\\n' ORDER BY x.id), '')) AS h FROM {ancora_engine_job} x WHERE x.id <= :max", [':max' => $max])->fetchAssoc();
+    $sums["ancora_engine_job (id <= $max)"] = $row['n'] . ' ' . $row['h'];
+    print json_encode($sums, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) . "\n";
+    break;
+
+  case 'placements-check':
+  case 'placements-import':
+    // The two-database placements as placement entities (#96): a report
+    // (check), or the import in one transaction (import).
+    $import = \Drupal::service('ancora_scheduling.two_database_import');
+    $read = $import->read();
+    $plan = $import->plan($read);
+    $report = [
+      'rows' => count($read['rows']),
+      'other_resources' => $read['resources'],
+      'leftover_cancel_requests' => $read['cancel_requests'],
+      'jobs' => array_count_values(array_map('strval', array_column($plan['placements'], 'job'))),
+      'problems' => $plan['problems'],
+    ];
+    if ($ancora_task === 'placements-import' && $plan['problems'] === []) {
+      $fail_after = getenv('ANCORA_MIGRATION_TEST_FAIL_AFTER');
+      $report += $import->import($plan, ctype_digit((string) $fail_after) ? (int) $fail_after : NULL);
+    }
+    print json_encode($report, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) . "\n";
+    if ($plan['problems'] !== []) {
+      exit(1);
+    }
+    break;
+
+  case 'placements-foreign':
+    // Placement entities that are not rows of the engine database: made by a
+    // workspace run after the migration.
+    $import = \Drupal::service('ancora_scheduling.two_database_import');
+    print $import->foreign($import->read()) . "\n";
+    break;
+
+  case 'placements-delete':
+    // Rollback of a migration: every placement entity, through the Entity
+    // API, in one transaction.
+    $storage = \Drupal::entityTypeManager()->getStorage('ancora_placement');
+    $transaction = Database::getConnection()->startTransaction();
+    $ids = $storage->getQuery()->accessCheck(FALSE)->execute();
+    foreach (array_chunk($ids, 100) as $chunk) {
+      $storage->delete($storage->loadMultiple($chunk));
+    }
+    unset($transaction);
+    print 'placements deleted: ' . count($ids) . "\n";
+    break;
+
+  case 'engine-check':
+    // The site's engine is reachable with the site's own settings: the
+    // worker role's cleanup in the workspace mode, a read in the other.
+    $settings = \Drupal::service('ancora_engine.settings');
+    if ($settings->isWorkspace()) {
+      \Drupal::service('ancora_engine.workspace_client')->cleanup();
+    }
+    else {
+      $client = \Drupal::service('ancora_engine.engine_client');
+      $conn = $client->connectReadOnly();
+      $client->rows($conn, 'SELECT count(*) FROM actividad');
+      pg_close($conn);
+    }
+    $database = $settings->database();
+    print 'engine reachable: ' . $settings->mode() . ' ' . $database['database'] . ' as ' . $database['username'] . "\n";
     break;
 
   default:
