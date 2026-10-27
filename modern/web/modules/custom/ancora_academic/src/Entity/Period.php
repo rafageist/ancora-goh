@@ -104,7 +104,7 @@ final class Period extends AcademicEntityBase {
 
     $fields['start_hour'] = BaseFieldDefinition::create('decimal')
       ->setLabel(new TranslatableMarkup('First hour'))
-      ->setDescription(new TranslatableMarkup('Hour at which the first slot starts, for example 8 or 8.5.'))
+      ->setDescription(new TranslatableMarkup('Hour at which the first slot starts, for example 8 or 8.5. It sets the hours the timetable shows; as in the legacy application, the engine receives the number of days instead (quirk Q-20).'))
       ->setRequired(TRUE)
       ->setSetting('precision', 5)
       ->setSetting('scale', 2)
@@ -118,13 +118,14 @@ final class Period extends AcademicEntityBase {
 
     $fields['slot_duration'] = BaseFieldDefinition::create('decimal')
       ->setLabel(new TranslatableMarkup('Slot length in hours'))
-      ->setDescription(new TranslatableMarkup('Length of each time slot in hours, for example 1 or 0.75.'))
+      ->setDescription(new TranslatableMarkup('Length of each time slot in hours, for example 1.5 or 0.75. The engine receives it in minutes, as the legacy form posts it.'))
       ->setRequired(TRUE)
       ->setSetting('precision', 5)
       ->setSetting('scale', 2)
-      ->setSetting('min', 0.01)
+      // The legacy form offers 0:00 to 23:59 (default 1:30).
+      ->setSetting('min', 0)
       ->setSetting('max', 24)
-      ->setDefaultValue(1)
+      ->setDefaultValue(1.5)
       ->setDisplayOptions('form', ['type' => 'number', 'weight' => 4])
       ->setDisplayOptions('view', ['label' => 'inline', 'type' => 'number_decimal', 'weight' => 4])
       ->setDisplayConfigurable('form', TRUE)

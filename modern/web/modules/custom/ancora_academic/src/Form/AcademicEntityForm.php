@@ -6,6 +6,7 @@ namespace Drupal\ancora_academic\Form;
 
 use Drupal\ancora_academic\AcademicEntityInterface;
 use Drupal\ancora_academic\Entity\ActivityTemplate;
+use Drupal\ancora_academic\Entity\Plan;
 use Drupal\Core\Entity\ContentEntityForm;
 use Drupal\Core\Form\FormStateInterface;
 
@@ -42,6 +43,15 @@ final class AcademicEntityForm extends ContentEntityForm {
       foreach (['subject', 'period'] as $field) {
         if (isset($form[$field])) {
           $form[$field]['#disabled'] = TRUE;
+        }
+      }
+    }
+    // The legacy plan form has two date pickers that cannot be left empty
+    // in practice (typing is blocked); the length is derived (Plan, PAR-010).
+    if ($entity instanceof Plan) {
+      foreach (['starts_on', 'ends_on'] as $field) {
+        if (isset($form[$field]['widget'][0]['value'])) {
+          $form[$field]['widget'][0]['value']['#required'] = TRUE;
         }
       }
     }

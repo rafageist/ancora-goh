@@ -344,3 +344,28 @@ function ancora_academic_update_11009(): string {
     '@templates' => $templates,
   ]);
 }
+
+/**
+ * Adds the last day of a plan (#70, PAR-010).
+ *
+ * The legacy plan form enters a first and a last day and derives the
+ * length. Existing plans with a first day get the last day that gives
+ * their current length (first day + length - 1); plans without a first
+ * day keep none. No length, date or other value changes.
+ */
+function ancora_academic_update_11010(): string {
+  $manager = \Drupal::entityDefinitionUpdateManager();
+  if ($manager->getFieldStorageDefinition('ends_on', 'ancora_plan') === NULL) {
+    $definitions = \Drupal::service('entity_field.manager')->getFieldStorageDefinitions('ancora_plan');
+    $manager->installFieldStorageDefinition('ends_on', 'ancora_plan', 'ancora_academic', $definitions['ends_on']);
+  }
+  $database = \Drupal::database();
+  $filled = 0;
+  foreach ($database->query('SELECT id, starts_on, duration_days FROM {ancora_plan} WHERE starts_on IS NOT NULL AND ends_on IS NULL')->fetchAll() as $row) {
+    $end = (new \DateTimeImmutable($row->starts_on))->modify(sprintf('%+d days', (int) $row->duration_days - 1))->format('Y-m-d');
+    $database->update('ancora_plan')->fields(['ends_on' => $end])->condition('id', $row->id)->execute();
+    $filled++;
+  }
+  \Drupal::entityTypeManager()->getStorage('ancora_plan')->resetCache();
+  return (string) t('@count plans got their last day.', ['@count' => $filled]);
+}

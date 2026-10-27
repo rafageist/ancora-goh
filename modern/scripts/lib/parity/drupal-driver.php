@@ -264,7 +264,13 @@ foreach ($ancora_scenario->records as $key => $r) {
     return $out;
   };
   $values += match ($r['type']) {
-    'plan' => ['starts_on' => $r['starts_on'] ?? NULL, 'duration_days' => $r['duration_days'], 'active' => TRUE],
+    // The two days of the legacy form (PAR-010); the length is derived.
+    'plan' => isset($r['starts_on'])
+      ? [
+        'starts_on' => $r['starts_on'],
+        'ends_on' => (new \DateTimeImmutable($r['starts_on']))->modify('+' . ($r['duration_days'] - 1) . ' days')->format('Y-m-d'),
+      ]
+      : ['duration_days' => $r['duration_days']],
     'period' => [
       'days' => $r['days'],
       'slots_per_day' => $r['slots_per_day'],

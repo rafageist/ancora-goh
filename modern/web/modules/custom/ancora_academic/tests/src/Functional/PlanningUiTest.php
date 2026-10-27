@@ -93,14 +93,23 @@ final class PlanningUiTest extends AncoraBrowserTestBase {
   public function testEditorForms(): void {
     $this->drupalLogin($this->drupalCreateUser(['administer academic data']));
     $this->drupalGet('/admin/ancora/plans/add');
+    // The legacy form: a first and a last day, both required; the length
+    // and the active flag are not on the form (PAR-010).
+    $this->assertSession()->fieldNotExists('duration_days[0][value]');
+    $this->assertSession()->fieldNotExists('active[value]');
     $this->submitForm([
       'label[0][value]' => 'Autumn 2026',
       'code[0][value]' => 'AUT26',
-      'duration_days[0][value]' => 0,
     ], 'Save');
-    $this->assertSession()->pageTextContains('Length in days must be higher than or equal to 1.');
-    $this->submitForm(['duration_days[0][value]' => 120], 'Save');
+    $this->assertSession()->pageTextContains('date is required.');
+    $this->assertSession()->pageTextNotContains('Created the plan');
+    $this->submitForm([
+      'starts_on[0][value][date]' => '2026-09-07',
+      'ends_on[0][value][date]' => '2027-01-04',
+    ], 'Save');
     $this->assertSession()->pageTextContains('Created the plan Autumn 2026.');
+    $plans = \Drupal::entityTypeManager()->getStorage('ancora_plan')->loadByProperties(['label' => 'Autumn 2026']);
+    $this->assertSame(120, (int) reset($plans)->get('duration_days')->value, 'last day - first day + 1, as the legacy fdm');
 
     // An editor creates a plan of their own, with the same code.
     $this->drupalLogin($this->drupalCreateUser(['view academic data', 'edit academic data']));
@@ -112,7 +121,8 @@ final class PlanningUiTest extends AncoraBrowserTestBase {
     $this->submitForm([
       'label[0][value]' => 'My autumn',
       'code[0][value]' => 'AUT26',
-      'duration_days[0][value]' => 120,
+      'starts_on[0][value][date]' => '2026-09-07',
+      'ends_on[0][value][date]' => '2027-01-04',
     ], 'Save');
     $this->assertSession()->pageTextContains('Created the plan My autumn.');
 

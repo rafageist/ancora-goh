@@ -150,7 +150,8 @@ final class LegacyRows {
         'descripcion' => $plan['label'],
         'fecha_inicial' => $plan['starts_on'] === NULL ? 0 : self::legacyDayNumber($plan['starts_on']),
         'cant_dias' => $plan['duration_days'],
-        'activa' => $plan['active'],
+        // The legacy form never posts "activa": NULL (PAR-010).
+        'activa' => NULL,
         'creador' => $creator,
       ];
     }
@@ -160,8 +161,11 @@ final class LegacyRows {
         'descripcion' => $period['label'],
         'cant_dias' => $period['days'],
         'cant_turnos' => $period['slots_per_day'],
-        'hora_inicial' => $period['start_hour'],
-        'duracion_del_turno' => $period['slot_duration'],
+        // As the legacy UI stores them (PAR-011, A-1): the client posts the
+        // number of days as the start hour (Q-20), and the form the slot
+        // length in minutes (h * 60 + m).
+        'hora_inicial' => $period['days'],
+        'duracion_del_turno' => (int) round((float) $period['slot_duration'] * 60),
         'planificacion' => $plan_id,
       ];
       foreach ($period['plan_days'] as $day) {
@@ -360,9 +364,13 @@ final class LegacyRows {
   /**
    * Converts a Y-m-d date to the legacy consecutive day number.
    *
-   * A port of tiempo.date_to_number (dev/sql/tiempo/date_to_number.sql),
-   * including its quirks, so that plan start days compare as in the legacy
-   * engine (dias_se_solapan, turnos_se_solapan).
+   * A port of TimeUtilsCommon::date_to_number()
+   * (lib/ancora/timeutils/TimeUtilsCommon.php:82-88), which the legacy plan
+   * form uses (fdm_Planificacion_fecha_inicial.php), with its quirks: the
+   * leap days are (year - 2000) / 4 in floating point, and the sum is
+   * truncated toward zero. From 2000 on it equals tiempo.date_to_number
+   * (dev/sql/tiempo/date_to_number.sql); before 2000 the PHP form gives one
+   * day less (Q-35).
    */
   public static function legacyDayNumber(string $date): int {
     if (!preg_match('/^(\d{4})-(\d{2})-(\d{2})$/', $date, $matches)) {
@@ -372,7 +380,7 @@ final class LegacyRows {
     $leap = ($year % 4 === 0 && $year % 100 !== 0) || $year % 400 === 0;
     $month_starts = [1, 32, 60, 91, 121, 152, 182, 213, 244, 274, 305, 335];
     $day_of_year = $month_starts[$month - 1] + $day - 1 + ($leap && $month > 2 ? 1 : 0);
-    return ($year - 2000) * 365 + $day_of_year + intdiv($year - 2000, 4) + ($leap ? 0 : 1);
+    return (int) (($year - 2000) * 365 + $day_of_year + ($year - 2000) / 4 + ($leap ? 0 : 1));
   }
 
 }
