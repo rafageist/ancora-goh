@@ -5,7 +5,7 @@
 # database, owner role and runtime role.
 #
 #   ancora-site.sh control-install --admin-mail <mail>
-#   ancora-site.sh provision <slug> --name <site name> --admin-mail <mail>
+#   ancora-site.sh provision <slug> --name <site name> --admin-mail <mail> [--engine-layout single|two-database]
 #   ancora-site.sh admin-link <slug|control>
 #   ancora-site.sh suspend <slug>
 #   ancora-site.sh resume <slug>
@@ -28,11 +28,11 @@
 #                                 /var/lib/ancora/sites
 #   ANCORA_PUBLIC_URL             public base URL, e.g. https://timetables.example
 #   ANCORA_DB_HOST, ANCORA_DB_PORT  database server as seen by Drupal
-#   ANCORA_ENGINE_ADMIN_INSTALL   1 (default): engine databases are installed
-#                                 with engine-db.sh --admin-install into the
-#                                 server the PG* variables name (the
-#                                 operator's choice); 0: only into a verified
-#                                 disposable cluster
+#   ANCORA_ENGINE_ADMIN_INSTALL   1 (default): the engine is installed with
+#                                 --admin-install (dev/workspace/install.sh,
+#                                 engine-db.sh) into the server the PG*
+#                                 variables name (the operator's choice); 0:
+#                                 only into a verified disposable cluster
 #   ANCORA_WEB_GROUP              optional: group of the PHP-FPM pool; readable
 #                                 secrets get this group, writable data
 #                                 directories too
@@ -49,6 +49,7 @@ web=$project/web
 drush_bin=$project/vendor/bin/drush
 tasks=$project/scripts/lib/site-tasks.php
 engine_db=$project/scripts/engine-db.sh
+repo=$(dirname "$project")
 
 die() { echo "ancora-site: $*" >&2; exit 1; }
 say() { echo "ancora-site: $*"; }
@@ -64,6 +65,22 @@ chmod 0751 "$sites_dir"
 
 valid_slug() { [[ $1 =~ ^[a-z][a-z0-9-]{1,30}$ ]]; }
 db_id() { echo "tt_${1//-/_}"; }   # slugs have no "_", so this is injective
+
+# The engine layout of a site (#96): "workspace" (one database; the engine in
+# schema "scheduler" of the site's own database, one job workspace per run)
+# or "two_database" (the engine database tt_<slug>_engine of #71). The site
+# file is the source of truth; a site file written before #96 has no
+# ENGINE_MODE and is a two-database site. A new site gets $new_layout.
+new_layout=workspace
+engine_layout() { # slug
+  local mode
+  if [ -f "$sites_dir/$1/site.ini" ]; then
+    mode=$(ini_get "$1" ENGINE_MODE)
+    echo "${mode:-two_database}"
+  else
+    echo "$new_layout"
+  fi
+}
 
 audit() { # action slug result
   printf '%s\t%s\t%s\t%s\t%s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "${SUDO_USER:-${USER:-?}}" "$1" "$2" "$3" >>"$sites_dir/audit.log"
@@ -115,9 +132,15 @@ ini_get() {
   local f="$sites_dir/$1/site.ini"
   if [ -f "$f" ]; then sed -n "s/^$2 = \"\(.*\)\"$/\1/p" "$f" | tail -1; fi
 }
-write_ini() { # slug status name
-  local slug=$1 dir="$sites_dir/$1" id
+write_ini() { # slug status name [engine layout, default: the current one]
+  local slug=$1 dir="$sites_dir/$1" id mode=${4:-} engine_db
   id=$(db_id "$slug")
+  [ -n "$mode" ] || mode=$(engine_layout "$slug")
+  case "$mode" in
+    workspace) engine_db=$id ;;
+    two_database) engine_db=${id}_engine ;;
+    *) die "$slug: unknown engine layout '$mode'" ;;
+  esac
   {
     echo "; Áncora organization site $slug. Written by ancora-site.sh; do not edit."
     printf '%s = "%s"\n' \
@@ -125,7 +148,8 @@ write_ini() { # slug status name
       DB_NAME "$id" DB_USER "${id}_app" DB_PASSWORD_FILE "$dir/db-password" \
       DB_OWNER_USER "${id}_owner" DB_OWNER_PASSWORD_FILE "$dir/owner-password" \
       HASH_SALT_FILE "$dir/hash-salt" \
-      ENGINE_DB_NAME "${id}_engine" ENGINE_DB_USER "${id}_engine_app" ENGINE_DB_PASSWORD_FILE "$dir/engine-db-password" \
+      ENGINE_MODE "$mode" ENGINE_DB_NAME "$engine_db" ENGINE_DB_USER "${id}_engine_app" \
+      ENGINE_DB_PASSWORD_FILE "$dir/engine-db-password" \
       PRIVATE_PATH "$data_dir/$slug/private" TMP_PATH "$data_dir/$slug/tmp"
   } >"$dir/site.ini.tmp"
   chmod 0640 "$dir/site.ini.tmp"
@@ -209,6 +233,80 @@ engine_ensure() {
     || die "$slug: the engine database could not be provisioned"
 }
 
+# workspace_ensure <slug>: the engine inside the site's own database (#96),
+# idempotently, without a superuser:
+# - tt_<slug>_engine_owner: NOLOGIN, CREATEROLE and nothing else. It owns the
+#   engine schemas and the SECURITY DEFINER functions that open and close job
+#   workspaces, and it creates the per-job roles (tt_<slug>_job_<job>_<try>,
+#   members of the group tt_<slug>_jobs, which it also creates). It holds
+#   CREATE on this database and CONNECT, TEMPORARY WITH GRANT OPTION; nothing
+#   on Drupal's schema "public". The operator is a member with SET only, to
+#   install as it.
+# - tt_<slug>_engine_app: the site's engine worker (LOGIN, NOINHERIT): CONNECT
+#   on this database, EXECUTE on the provisioning functions, nothing else.
+# The engine is installed once (dev/workspace/install.sh: one transaction);
+# on re-runs the passwords, attributes and grants are applied again.
+workspace_ensure() {
+  local slug=$1 id eo worker mode=()
+  id=$(db_id "$slug"); eo=${id}_engine_owner; worker=${id}_engine_app
+  psql_admin -d postgres -v db="$id" -v eo="$eo" -v worker="$worker" -v pwfile="$sites_dir/$slug/engine-db-password" <<'SQL'
+SELECT format('CREATE ROLE %I NOLOGIN CREATEROLE', :'eo') WHERE NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = :'eo') \gexec
+SELECT format('CREATE ROLE %I LOGIN NOINHERIT', :'worker') WHERE NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = :'worker') \gexec
+\set pw `cat :'pwfile'`
+ALTER ROLE :"eo" NOLOGIN NOCREATEDB CREATEROLE;
+ALTER ROLE :"worker" LOGIN NOINHERIT NOCREATEDB NOCREATEROLE PASSWORD :'pw';
+\unset pw
+SELECT format('GRANT %I TO %I WITH INHERIT FALSE, SET TRUE', :'eo', current_user)
+ WHERE NOT pg_has_role(current_user, :'eo', 'SET') \gexec
+SELECT NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname IN (:'eo', :'worker') AND (rolsuper OR rolreplication OR rolbypassrls OR rolcreatedb))
+   AND (SELECT NOT rolcanlogin FROM pg_roles WHERE rolname = :'eo')
+   AND (SELECT NOT rolcreaterole FROM pg_roles WHERE rolname = :'worker') AS roles_ok \gset
+\if :roles_ok
+\else
+  \echo 'an engine role has SUPERUSER, REPLICATION, BYPASSRLS or CREATEDB, the engine owner can log in, or the worker has CREATEROLE'
+  SELECT 1/0;
+\endif
+GRANT CREATE ON DATABASE :"db" TO :"eo";
+GRANT CONNECT, TEMPORARY ON DATABASE :"db" TO :"eo" WITH GRANT OPTION;
+SQL
+  if [ "$(psql -X -At -d "$id" -c "SELECT to_regclass('scheduler_control.workspace') IS NOT NULL")" = t ]; then
+    psql_admin -d "$id" -v owner="$eo" -v worker="$worker" -v grants="$repo/dev/workspace/worker.sql" >/dev/null <<'SQL'
+SET client_min_messages = warning;
+SET ROLE :"owner";
+\i :grants
+SQL
+  else
+    if [ "${ANCORA_ENGINE_ADMIN_INSTALL:-1}" = 1 ]; then mode=(--admin-install); fi
+    quiet env AGOH_ADMIN_INSTALL_CONFIRM="$id" "$repo/dev/workspace/install.sh" "${mode[@]}" --no-measure \
+      --owner "$eo" --worker "$worker" "$id" || die "$slug: the engine could not be installed into $id"
+  fi
+  workspace_check "$slug"
+}
+
+# workspace_check <slug>: fails unless the privileges are as designed. No
+# runtime, worker or job role may create anything in "public" or in the
+# engine schemas, or use TEMPORARY except the job roles; the worker and the
+# job roles have nothing on "public".
+workspace_check() {
+  local id
+  id=$(db_id "$1")
+  [ "$(psql -X -At -d "$id" -v id="$id" <<'SQL'
+SELECT bool_and(ok) FROM (
+  SELECT NOT has_schema_privilege(r, s, 'CREATE') AS ok
+    FROM unnest(ARRAY[:'id' || '_app', :'id' || '_engine_app', :'id' || '_jobs']) r,
+         unnest(ARRAY['public', 'scheduler', 'scheduler_control', 'generador', 'seguridad', 'tiempo', 'matrix', 'prioriza', 'portal']) s
+  UNION ALL SELECT NOT has_schema_privilege(r, 'public', 'USAGE') FROM unnest(ARRAY[:'id' || '_engine_app', :'id' || '_jobs']) r
+  UNION ALL SELECT NOT has_schema_privilege(:'id' || '_app', s, 'USAGE')
+    FROM unnest(ARRAY['scheduler', 'scheduler_control', 'generador', 'seguridad', 'tiempo', 'matrix', 'prioriza', 'portal']) s
+  UNION ALL SELECT NOT has_database_privilege(r, current_database(), 'CREATE')
+    FROM unnest(ARRAY[:'id' || '_app', :'id' || '_engine_app', :'id' || '_jobs']) r
+  UNION ALL SELECT NOT has_database_privilege(:'id' || '_engine_app', current_database(), 'TEMPORARY')
+  UNION ALL SELECT (SELECT nspowner::regrole::text FROM pg_namespace WHERE nspname = 'scheduler') = :'id' || '_engine_owner'
+) c
+SQL
+)" = t ] || die "$1: the engine privileges are not as designed"
+}
+
 db_exists() { # db
   [ "$(psql -X -At -d postgres -v db="$1" <<<"SELECT 1 FROM pg_database WHERE datname = :'db'")" = 1 ]
 }
@@ -262,10 +360,16 @@ cmd_provision() {
     case "$1" in
       --name) name=$2; shift 2 ;;
       --admin-mail) mail=$2; shift 2 ;;
+      --engine-layout)
+        case "$2" in single) new_layout=workspace ;; two-database) new_layout=two_database ;; *) die "--engine-layout is single or two-database" ;; esac
+        shift 2 ;;
       *) die "unknown option $1" ;;
     esac
   done
   valid_slug "$slug" || die "invalid slug '$slug' (expected ^[a-z][a-z0-9-]{1,30}\$)"
+  # tt_<a>_engine and tt_<a>_engine_* name the engine database and roles of
+  # site <a>: a new slug "<a>-engine" would share them.
+  [ -f "$sites_dir/$slug/site.ini" ] || [[ $slug != *-engine ]] || die "a slug cannot end in '-engine'"
   [ -n "$name" ] && [ -n "$mail" ] || die "--name and --admin-mail are required"
   [[ $name != *'"'* && $name != *$'\n'* ]] || die "the site name cannot contain quotes or newlines"
   lock
@@ -293,10 +397,16 @@ cmd_provision() {
 
   # 2. Database and roles.
   db_ensure "$id" "${id}_owner" "${id}_app" "$dir/owner-password" "$dir/db-password"
-  # The site's engine database, with its own runtime role (#71). The site
-  # reads its connection settings from site.ini (ENGINE_DB_*), never from job
-  # or request data.
-  engine_ensure "$slug"
+  # The engine, with its own roles. A new site gets the single-database
+  # layout (#96): the engine in schema "scheduler" of the site's database.
+  # A site provisioned before keeps its engine database (#71) until it is
+  # migrated (migrate-single-db). The site reads its connection settings from
+  # site.ini (ENGINE_*), never from job or request data.
+  if [ "$(engine_layout "$slug")" = workspace ]; then
+    workspace_ensure "$slug"
+  else
+    engine_ensure "$slug"
+  fi
   fail_point database
 
   # 3. Files: private and temporary directories outside the web root, the
@@ -345,7 +455,7 @@ cmd_provision() {
   fi
   state_set "$slug" PROVISIONED "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
   audit provision "$slug" "ok:$status"
-  say "$slug: $status at $public_url/o/$slug/ (database $id)"
+  say "$slug: $status at $public_url/o/$slug/ (database $id, engine layout $(engine_layout "$slug"))"
   say "$slug: the first administrator is blocked; run 'ancora-site.sh admin-link $slug' after the organization's administrator is verified"
 }
 
@@ -436,8 +546,14 @@ SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = :'db' AND
 SQL
     psql_admin -d postgres -c "DROP DATABASE IF EXISTS \"$id\""
   fi
+  # Job roles left by a workspace that was never closed, the job group and the
+  # engine owner of the single-database layout (#96), then the site roles.
+  psql_admin -d postgres -v id="$id" <<'SQL'
+SELECT format('DROP ROLE %I', rolname) FROM pg_roles
+ WHERE rolname ~ ('^' || :'id' || '_job_[0-9]+_[0-9]+$') OR rolname = :'id' || '_jobs' \gexec
+SQL
   psql_admin -d postgres -c "DROP ROLE IF EXISTS \"${id}_app\"" -c "DROP ROLE IF EXISTS \"${id}_owner\"" \
-    -c "DROP ROLE IF EXISTS \"${id}_engine_app\""
+    -c "DROP ROLE IF EXISTS \"${id}_engine_app\"" -c "DROP ROLE IF EXISTS \"${id}_engine_owner\""
   # 3. Files and the site record (the audit log keeps the history).
   if [ -d "$web/sites/org-$slug" ]; then chmod -R u+w "$web/sites/org-$slug"; rm -rf "$web/sites/org-$slug"; fi
   rm -rf "$data_dir/$slug" "$sites_dir/$slug"
@@ -465,10 +581,10 @@ cmd_work() {
 
 cmd_list() {
   local slug
-  printf '%-32s %-13s %s\n' SITE STATUS NAME
-  if [ -n "${ANCORA_DB_NAME:-}" ]; then printf '%-32s %-13s %s\n' control - "$ANCORA_DB_NAME"; fi
+  printf '%-32s %-13s %-13s %s\n' SITE STATUS ENGINE NAME
+  if [ -n "${ANCORA_DB_NAME:-}" ]; then printf '%-32s %-13s %-13s %s\n' control - - "$ANCORA_DB_NAME"; fi
   for slug in $(org_sites); do
-    printf '%-32s %-13s %s\n' "$slug" "$(ini_get "$slug" STATUS)" "$(ini_get "$slug" SITE_NAME)"
+    printf '%-32s %-13s %-13s %s\n' "$slug" "$(ini_get "$slug" STATUS)" "$(engine_layout "$slug")" "$(ini_get "$slug" SITE_NAME)"
   done
 }
 

@@ -1,8 +1,9 @@
--- Job-scoped SQL generation workspace inside a tenant database (issue #93).
--- Prototype, test code only: docs/modernization/single-db-workspace.md.
+-- Job-scoped SQL generation workspace inside a tenant database (issues #93,
+-- #95, #96). See docs/modernization/single-db-workspace.md and
+-- docs/modernization/tenant-provisioning.md.
 --
--- Loaded by dev/workspace/install.sh as a superuser, after the
--- unchanged legacy bundle (dev/sql/compilasql.php) was loaded with
+-- Loaded by dev/workspace/install.sh in the same transaction as the
+-- unchanged legacy bundle (dev/sql/compilasql.php), which was loaded with
 -- search_path = scheduler. The legacy functions, types, views, RULEs and
 -- triggers then live in schema "scheduler" (plus the fixed legacy schemas
 -- matrix, prioriza, tiempo, seguridad, generador, portal). The legacy tables
@@ -15,25 +16,41 @@
 -- catalog of "scheduler" (pg_get_*def), so the views, RULE actions and FKs are
 -- bound (by OID) to the workspace tables, and every function they call is the
 -- unchanged legacy function of "scheduler". No legacy function is copied.
+--
+-- No superuser is needed (#96). The installing role (current_user) owns every
+-- object created here and is the owner of the SECURITY DEFINER provisioning
+-- functions: in a tenant database that is the tenant's engine owner
+-- tt_<slug>_engine_owner, a NOLOGIN role with CREATEROLE and nothing else,
+-- holding CREATE on the tenant database and CONNECT, TEMPORARY WITH GRANT
+-- OPTION (modern/scripts/ancora-site.sh). Role names are derived from the
+-- tenant database name, which is unique in the cluster:
+--   <database>_jobs           group of the tenant's job roles
+--   <database>_job_<key>      one NOLOGIN job role per job attempt
 
 -- ---------------------------------------------------------------- roles
--- agoh_engine: the group of every job role (USAGE on the engine code only).
-DO $$ BEGIN
-  IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'agoh_engine') THEN
-    CREATE ROLE agoh_engine NOLOGIN;
-  END IF;
-END $$;
+-- The group role of the tenant's job roles (USAGE on the engine code only).
+-- Created here, so the installing role holds ADMIN OPTION on it and can make
+-- job roles members (PostgreSQL 16+: a CREATEROLE role administers only the
+-- roles it created or holds ADMIN OPTION on).
+SELECT current_database() || '_jobs' AS jobs_group \gset
+SELECT length(:'jobs_group') <= 63 AS jobs_group_ok \gset
+\if :jobs_group_ok
+\else
+  \echo 'the database name is too long for the job role names'
+  SELECT 1/0;
+\endif
+SELECT format('CREATE ROLE %I NOLOGIN', :'jobs_group')
+ WHERE NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = :'jobs_group') \gexec
 
--- Job roles connect and use session TEMP tables (the closure keeps its row
--- set in one); pg_temp is always LAST in their search_path.
-DO $$ BEGIN
-  EXECUTE format('GRANT CONNECT, TEMPORARY ON DATABASE %I TO agoh_engine', current_database());
-END $$;
+-- Job roles use session TEMP tables (the closure keeps its row set in one);
+-- pg_temp is always LAST in their search_path. CONNECT is for the job roles
+-- of the SQL-level proof, which log in; the worker's job roles are NOLOGIN.
+GRANT CONNECT, TEMPORARY ON DATABASE :"DBNAME" TO :"jobs_group";
 
 -- ---------------------------------------------------------------- control schema
 CREATE SCHEMA scheduler_control;
 REVOKE ALL ON SCHEMA scheduler_control FROM PUBLIC;
-GRANT USAGE ON SCHEMA scheduler_control TO agoh_engine;
+GRANT USAGE ON SCHEMA scheduler_control TO :"jobs_group";
 
 -- Per-job cancellation requests. generador.cancelar (schema-qualified in
 -- generar() and generador.fue_cancelado) becomes an updatable view that shows
@@ -51,7 +68,7 @@ DROP TABLE generador.cancelar;
 CREATE VIEW generador.cancelar AS
   SELECT especialidad, nivel, periodo FROM scheduler_control.cancel_request WHERE job_role = current_user
   WITH LOCAL CHECK OPTION;
-GRANT SELECT, INSERT, DELETE ON generador.cancelar TO agoh_engine;
+GRANT SELECT, INSERT, DELETE ON generador.cancelar TO :"jobs_group";
 
 -- Provisional output kept after a job (stand-in for the Drupal promotion of
 -- #95): the placements a later job of the tenant receives as input.
@@ -67,7 +84,7 @@ CREATE TABLE scheduler_control.resource_store (
   job text NOT NULL,
   otro_recurso varchar NOT NULL, actividad varchar NOT NULL, creador varchar NOT NULL
 );
-GRANT SELECT ON scheduler_control.placement_store, scheduler_control.resource_store TO agoh_engine;
+GRANT SELECT ON scheduler_control.placement_store, scheduler_control.resource_store TO :"jobs_group";
 
 -- Job registry and lifecycle: created, loaded, ran, kept, dropped, failed.
 CREATE TABLE scheduler_control.workspace (
@@ -86,13 +103,13 @@ CREATE TABLE scheduler_control.workspace (
 -- ---------------------------------------------------------------- engine code
 -- Code schemas: USAGE for the job roles; the template tables: nothing.
 REVOKE ALL ON SCHEMA scheduler FROM PUBLIC;
-GRANT USAGE ON SCHEMA scheduler, matrix, prioriza, tiempo, generador, seguridad TO agoh_engine;
+GRANT USAGE ON SCHEMA scheduler, matrix, prioriza, tiempo, generador, seguridad TO :"jobs_group";
 REVOKE ALL ON ALL TABLES IN SCHEMA scheduler FROM PUBLIC;
 -- The engine users (creador) are tenant-level: "u<uid>" of every Drupal user
 -- (LegacyTableSync::ensureCreator writes them, schema-qualified). Every
 -- workspace references this one table; a job can add a user, never change
 -- or delete one.
-GRANT SELECT, INSERT, REFERENCES ON seguridad.usuario TO agoh_engine;
+GRANT SELECT, INSERT, REFERENCES ON seguridad.usuario TO :"jobs_group";
 
 -- The legacy tables of the template schema, in creation order.
 CREATE VIEW scheduler_control.template_tables AS
@@ -363,10 +380,13 @@ BEGIN
   RETURN n + m;
 END $$;
 
+-- Nothing of the control schema is executable by PUBLIC: the worker, which
+-- has USAGE on it, can call only the provisioning functions (worker.sql).
+REVOKE EXECUTE ON ALL FUNCTIONS IN SCHEMA scheduler_control FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION scheduler_control.closure_keep(varchar, varchar, varchar, boolean), scheduler_control.cl_add(regclass, text),
   scheduler_control.prune(), scheduler_control.ws_rows(), scheduler_control.ws_analyze(), scheduler_control.load_stored_placements(),
-  scheduler_control.ws_schema(), scheduler_control.ws_tables(), scheduler_control.pk_cols(regclass, text) TO agoh_engine;
-GRANT SELECT ON scheduler_control.template_tables TO agoh_engine;
+  scheduler_control.ws_schema(), scheduler_control.ws_tables(), scheduler_control.pk_cols(regclass, text) TO :"jobs_group";
+GRANT SELECT ON scheduler_control.template_tables TO :"jobs_group";
 
 -- Appends the provisional output of a finished job (rows of its workspace
 -- that were not input) to the store. Run by the orchestrator.
@@ -387,33 +407,60 @@ BEGIN
 END $$;
 REVOKE ALL ON FUNCTION scheduler_control.store_output(text) FROM PUBLIC;
 
--- ---------------------------------------------------------------- worker provisioning (#95)
+-- ---------------------------------------------------------------- worker provisioning (#95, #96)
 -- The engine worker of the site (its login role, granted by worker.sql) opens
 -- one workspace per job attempt. These functions run with the privileges of
--- their owner (the installer: a role with CREATEROLE that owns the workspace
--- layer), so the worker itself needs no CREATEROLE and no CREATE on the
+-- their owner (the installing role: the tenant's engine owner, NOLOGIN with
+-- CREATEROLE), so the worker itself needs no CREATEROLE and no CREATE on the
 -- database. The job role is NOLOGIN; the worker is made a member WITH INHERIT
 -- FALSE and must SET ROLE to it explicitly, so the worker's own identity has
--- no access to any workspace.
+-- no access to any workspace. Every SECURITY DEFINER function pins
+-- search_path = pg_catalog, pg_temp and schema-qualifies every object.
 
--- p_job: "<job id>_<attempt>".
-CREATE FUNCTION scheduler_control.open_job_workspace(p_job text) RETURNS TABLE (schema_name name, job_role name)
-LANGUAGE plpgsql SECURITY DEFINER SET search_path = pg_catalog, pg_temp AS $$
-DECLARE
-  v_schema name := 'scheduler_job_' || p_job;
-  v_role name := left('agoh_' || current_database() || '_j' || p_job, 63);
+-- The job role of a job key: <database>_job_<key>. Never truncated: a name
+-- that does not fit is an error, so two tenants can never share a job role.
+CREATE FUNCTION scheduler_control.job_role(p_job text) RETURNS name
+LANGUAGE plpgsql STABLE SET search_path = pg_catalog, pg_temp AS $$
+DECLARE v text := current_database() || '_job_' || p_job;
 BEGIN
   IF p_job !~ '^[0-9]{1,12}_[0-9]{1,6}$' THEN
     RAISE EXCEPTION 'invalid job key %', p_job USING ERRCODE = '22023';
   END IF;
-  EXECUTE format('CREATE ROLE %I NOLOGIN IN ROLE agoh_engine', v_role);
+  IF length(v) > 63 THEN
+    RAISE EXCEPTION 'job role name % is too long', v USING ERRCODE = '42622';
+  END IF;
+  RETURN v::name;
+END $$;
+REVOKE ALL ON FUNCTION scheduler_control.job_role(text) FROM PUBLIC;
+
+-- p_job: "<job id>_<attempt>". createrole_self_grant makes the owner a member
+-- of the new job role with SET and INHERIT (PostgreSQL 16+): it must SET ROLE
+-- to it to hand it the workspace schema and its tables, and hold its
+-- privileges to drop them. A superuser owner ignores the setting.
+CREATE FUNCTION scheduler_control.open_job_workspace(p_job text) RETURNS TABLE (schema_name name, job_role name)
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = pg_catalog, pg_temp SET createrole_self_grant = 'set, inherit' AS $$
+DECLARE
+  v_schema name := 'scheduler_job_' || p_job;
+  v_role name := scheduler_control.job_role(p_job);
+BEGIN
+  EXECUTE format('CREATE ROLE %I NOLOGIN IN ROLE %I', v_role, current_database() || '_jobs');
   EXECUTE format('GRANT %I TO %I WITH INHERIT FALSE, SET TRUE', v_role, session_user);
-  EXECUTE format('GRANT TEMPORARY ON DATABASE %I TO %I', current_database(), v_role);
   PERFORM scheduler_control.create_workspace(p_job, v_schema, v_role);
   UPDATE scheduler_control.workspace SET provisioned = true, state = 'loaded', updated_at = clock_timestamp() WHERE job = p_job;
   RETURN QUERY SELECT v_schema, v_role;
 END $$;
 REVOKE ALL ON FUNCTION scheduler_control.open_job_workspace(text) FROM PUBLIC;
+
+-- Soft cancellation of a job attempt: a request row for its job role, which
+-- only that attempt sees through generador.cancelar. It may arrive before the
+-- workspace exists (the role name is derived from the key).
+CREATE FUNCTION scheduler_control.request_cancel(p_job text, p_especialidad varchar, p_nivel varchar, p_periodo varchar) RETURNS void
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = pg_catalog, pg_temp AS $$
+BEGIN
+  INSERT INTO scheduler_control.cancel_request (job_role, especialidad, nivel, periodo)
+    VALUES (scheduler_control.job_role(p_job), p_especialidad, p_nivel, p_periodo) ON CONFLICT DO NOTHING;
+END $$;
+REVOKE ALL ON FUNCTION scheduler_control.request_cancel(text, varchar, varchar, varchar) FROM PUBLIC;
 
 -- Records the state of a workspace opened by the worker.
 CREATE FUNCTION scheduler_control.mark_workspace(p_job text, p_state text) RETURNS void
@@ -443,7 +490,6 @@ BEGIN
   END IF;
   PERFORM scheduler_control.drop_workspace(p_job);
   IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = w.job_role) THEN
-    EXECUTE format('REVOKE TEMPORARY ON DATABASE %I FROM %I', current_database(), w.job_role);
     EXECUTE format('DROP ROLE %I', w.job_role);
   END IF;
   RETURN 'dropped';

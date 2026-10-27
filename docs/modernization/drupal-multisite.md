@@ -59,9 +59,9 @@ web/o/<slug> -> ..                       published site (removed = unpublished)
 $ANCORA_SITES_DIR/                       e.g. /etc/ancora/sites, mode 0751
   audit.log                              one line per operation: time, operator, action, site, result
   <slug>/                                0750, group = web server
-    site.ini                             0640: SLUG, STATUS, SITE_NAME, DB_*, HASH_SALT_FILE, PRIVATE_PATH, TMP_PATH, ENGINE_DB_*
+    site.ini                             0640: SLUG, STATUS, SITE_NAME, DB_*, HASH_SALT_FILE, PRIVATE_PATH, TMP_PATH, ENGINE_MODE, ENGINE_DB_*
     db-password                          0640: runtime role
-    engine-db-password                   0640: engine runtime role (tt_<slug>_engine_app)
+    engine-db-password                   0640: engine worker role (tt_<slug>_engine_app)
     hash-salt                            0640
     owner-password                       0600: owner role, operator only; the web server cannot read it
     provision.state                      provisioning progress (INSTALLED, ADMIN, PROVISIONED)
@@ -130,13 +130,13 @@ The control site uses the same scheme. Its names come from `ANCORA_DB_NAME`, `AN
 | Command | What it does |
 | --- | --- |
 | `control-install --admin-mail <mail>` | Creates the control site's secrets (if missing), its database and roles, and installs it from `config/sync` (if not installed). Blocks the first administrator and prepares the runtime tables and grants. |
-| `provision <slug> --name <name> --admin-mail <mail>` | Creates or repairs one organization site (steps below). |
+| `provision <slug> --name <name> --admin-mail <mail> [--engine-layout single\|two-database]` | Creates or repairs one organization site (steps below). A new site gets the single-database layout (#96, [tenant-provisioning.md](tenant-provisioning.md)); an existing site keeps its layout. |
 | `admin-link <slug\|control>` | Unblocks uid 1 and prints a **single-use login link**, valid for 24 hours, to the operator. The administrator sets a password on first use. |
 | `suspend <slug>` | Sets `STATUS=suspended`: 503 at once. Then sets Drupal maintenance mode and ends all sessions, so a resume does not revive old sessions. |
 | `resume <slug>` | Clears maintenance mode and sets `STATUS=active`. |
-| `deprovision <slug> --backup-dir <dir> --confirm <slug>` | Refuses an active site. Unpublishes the site, takes a final `pg_dump -Fc`, then drops the database and both roles and deletes the site's files and record. The audit log keeps the history. |
+| `deprovision <slug> --backup-dir <dir> --confirm <slug>` | Refuses an active site. Unpublishes the site, takes a final `pg_dump -Fc` of each of its databases, then drops them and every role of the site (including the engine owner, job group and leftover job roles of #96) and deletes the site's files and record. The audit log keeps the history. |
 | `update-all [--backup-dir <dir>]` | The update loop (below). |
-| `list` | Sites and status. |
+| `list` | Sites, status and engine layout. |
 | `work <slug> [--once …]` | The engine worker of one active site (`drush ancora-engine:work`), as the site's runtime role. No lock. |
 
 It needs an administrative PostgreSQL connection through the usual `PG*` variables: a superuser, or `CREATEDB` + `CREATEROLE` with membership in the site roles. It also needs `ANCORA_SITES_DIR`, `ANCORA_SITES_DATA_DIR`, `ANCORA_PUBLIC_URL` and the shared `ANCORA_DB_HOST`/`PORT`. `ANCORA_WEB_GROUP` sets the group of the files the pool must read.
@@ -147,7 +147,7 @@ Only one command runs at a time (`flock` on `$ANCORA_SITES_DIR/.lock`).
 
 1. **record**: site directory and secrets. Secrets are created once and kept on re-runs. `site.ini` is written with `STATUS=provisioning`, or the existing status is kept.
 2. **database**: owner and runtime roles (created if missing, passwords set from the secret files). The database is created if missing. Then: `REVOKE ALL ... FROM PUBLIC`, `pg_trgm`, schema privileges and default privileges.
-   Then the site's **engine database** `tt_<slug>_engine` and its runtime role `tt_<slug>_engine_app` (`engine-db.sh create --admin-install --if-missing`; installed once, password and grants applied again on re-runs).
+   Then the site's engine. Single-database layout (new sites, #96): the engine owner and worker roles and the engine in schema `scheduler` of the site's own database (`dev/workspace/install.sh`, one transaction, installed once; see [tenant-provisioning.md](tenant-provisioning.md)). Two-database layout (sites provisioned before #96): the **engine database** `tt_<slug>_engine` and its runtime role `tt_<slug>_engine_app` (`engine-db.sh create --admin-install --if-missing`; installed once, password and grants applied again on re-runs).
 3. **files**: private and temporary directories, `web/sites/org-<slug>/settings.php`.
 4. **install**: `drush site:install --existing-config` as the owner, unless `INSTALLED=1` is recorded and the tables exist. The account is `admin` with the given mail. Drush receives a random throwaway password that is never shown.
 5. **grants**: the runtime tables, then DML grants to the runtime role.
@@ -210,7 +210,7 @@ The verification runs as follows:
 
 The test site address accepts any `Host`, so the Host tricks reach Drupal; a production address names the host. The verification refuses to run if `web/o` or `web/sites/org-*` already exist, and deletes everything on exit.
 
-**Result on the development workstation** (PHP 8.4.27, PHP-FPM 8.4, Caddy 2.11.7, PostgreSQL 16.15): **167 checks, 167 PASS, 0 FAIL**, in about 105 s (159 before the engine databases, plus 8 engine checks: both engine databases exist, `site.ini` and Drupal resolve each site's own engine database and role, `engine-db.sh check-isolation` both ways, the engine password file mode, and the engine database and role of a deprovisioned site are gone after a final backup). Provisioning one organization takes about 7 s.
+**Result on the development workstation** (PHP 8.4.27, PHP-FPM 8.4, Caddy 2.11.7, PostgreSQL 16.15): **167 checks, 167 PASS, 0 FAIL**, in about 105 s (159 before the engine databases, plus 8 engine checks: both engine databases exist, `site.ini` and Drupal resolve each site's own engine database and role, `engine-db.sh check-isolation` both ways, the engine password file mode, and the engine database and role of a deprovisioned site are gone after a final backup). Provisioning one organization takes about 7 s. Since #96 the engine checks expect the single-database layout (no `tt_*_engine` database, the workspace mode in `site.ini` and in Drupal, the engine schema owned by the tenant's engine owner, `check-isolation` on the site databases), and two checks cover the engine owners' attributes: **169 checks, 169 PASS** (PostgreSQL 16.15).
 
 | Area | Checks |
 | --- | --- |

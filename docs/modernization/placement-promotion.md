@@ -198,7 +198,7 @@ Requirement 6 of #95, item by item:
 
 ## 10. Security limitations and unresolved concurrency cases
 
-- **SECURITY DEFINER provisioning.** The provisioning functions are owned by the installer, a superuser in the disposable setups; production needs a dedicated CREATEROLE owner. The worker is trusted to `SET ROLE` only to the job roles it opened: it is a member of each.
+- **SECURITY DEFINER provisioning.** ~~The provisioning functions are owned by the installer, a superuser in the disposable setups; production needs a dedicated CREATEROLE owner.~~ Done in #96: the tenant's engine owner, NOLOGIN with CREATEROLE only ([tenant-provisioning.md](tenant-provisioning.md)). The worker is trusted to `SET ROLE` only to the job roles it opened: it is a member of each.
 - **Cancellation rows after close.** A soft cancellation that arrives after the workspace closed leaves an inert `cancel_request` row. It is never consumed and is not cleaned up.
 - **One job at a time is what is tested.** Concurrency safety rests on one running job per site, plus the stale check. Two workers on two different sites of one cluster are independent, since roles and functions are per database. Overlapping jobs of one site are not run concurrently, so their interleavings are not tested beyond the queue rule.
 - **The stale check is site-wide and conservative.** Any change to any record or placement of the site invalidates a running job's result.

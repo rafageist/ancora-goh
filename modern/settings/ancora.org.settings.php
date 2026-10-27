@@ -91,11 +91,14 @@ if (($ancora_site_values['SITE_NAME'] ?? '') !== '') {
   $config['system.site']['name'] = $ancora_site_values['SITE_NAME'];
 }
 
-// The site's scheduling engine database (#71), provisioned with the site by
-// scripts/ancora-site.sh. Its name, role and password file come only from the
-// site file; the engine module's environment fallback is never used for an
-// organization, so a site can never reach another site's engine database.
-// Only the server address and the limits may be shared (environment).
+// The site's scheduling engine, provisioned with the site by
+// scripts/ancora-site.sh: the engine database tt_<slug>_engine (#71,
+// ENGINE_MODE two_database, the default of a site file written before #96)
+// or the engine schema of the site's own database with job workspaces (#96,
+// ENGINE_MODE workspace). The mode, database name, role and password file
+// come only from the site file; the engine module's environment fallback is
+// never used for an organization, so a site can never reach another site's
+// engine. Only the server address and the limits may be shared (environment).
 $settings['ancora_engine'] = ['database' => []];
 if (($ancora_site_values['ENGINE_DB_NAME'] ?? '') !== '' && ($ancora_site_values['ENGINE_DB_USER'] ?? '') !== '') {
   $ancora_shared = static function (string $name, string $fallback = ''): string {
@@ -113,13 +116,23 @@ if (($ancora_site_values['ENGINE_DB_NAME'] ?? '') !== '' && ($ancora_site_values
     'password_file' => $ancora_site_values['ENGINE_DB_PASSWORD_FILE'] ?? '',
     'sslmode' => (string) getenv('ANCORA_ENGINE_DB_SSLMODE'),
   ];
-  foreach (['time_limit', 'max_time_limit', 'heartbeat_interval', 'stale_after', 'max_attempts', 'cancel_grace'] as $ancora_name) {
+  $settings['ancora_engine']['mode'] = ($ancora_site_values['ENGINE_MODE'] ?? '') === 'workspace' ? 'workspace' : 'two_database';
+  $ancora_limits = [
+    'time_limit',
+    'max_time_limit',
+    'heartbeat_interval',
+    'stale_after',
+    'max_attempts',
+    'cancel_grace',
+    'workspace_retention',
+  ];
+  foreach ($ancora_limits as $ancora_name) {
     $ancora_value = getenv('ANCORA_ENGINE_' . strtoupper($ancora_name));
     if ($ancora_value !== FALSE && ctype_digit($ancora_value)) {
       $settings['ancora_engine'][$ancora_name] = (int) $ancora_value;
     }
   }
-  unset($ancora_shared, $ancora_value);
+  unset($ancora_shared, $ancora_value, $ancora_limits);
 }
 
 unset($ancora_match, $ancora_sites_dir, $ancora_site_file, $ancora_site_values, $ancora_site_only, $ancora_name, $ancora_site_slug);

@@ -353,16 +353,20 @@ check "PUBLIC has no CONNECT on any site database" test "$(sql postgres "SELECT 
 check "tt_alpha_app cannot create a table in tt_alpha" bash -c "! psql -X -U tt_alpha_app -d tt_alpha -c 'CREATE TABLE ancora_probe (id int)' >/dev/null 2>&1"
 check "tt_alpha_app cannot drop a Drupal table" bash -c "! psql -X -U tt_alpha_app -d tt_alpha -c 'DROP TABLE users' >/dev/null 2>&1"
 check "tt_alpha_app can read and write rows (DML)" bash -c "psql -X -U tt_alpha_app -d tt_alpha -v ON_ERROR_STOP=1 -c 'UPDATE key_value SET name = name WHERE false' >/dev/null 2>&1"
-check "the site roles are not superusers and cannot create roles or databases" test "$(sql postgres "SELECT count(*) FROM pg_roles WHERE rolname LIKE 'tt\_%' AND (rolsuper OR rolcreaterole OR rolcreatedb)")" = 0
+check "the site roles are not superusers and cannot create roles or databases (but the engine owners)" test "$(sql postgres "SELECT count(*) FROM pg_roles WHERE rolname LIKE 'tt\_%' AND (rolsuper OR rolcreaterole OR rolcreatedb) AND rolname NOT LIKE 'tt\_%\_engine\_owner'")" = 0
+check "the engine owners (#96) have CREATEROLE only and cannot log in" test "$(sql postgres "SELECT count(*) FROM pg_roles WHERE rolname LIKE 'tt\_%\_engine\_owner' AND rolcreaterole AND NOT (rolcanlogin OR rolsuper OR rolcreatedb OR rolreplication OR rolbypassrls)")" = 2
 check "secrets and site files are mode 0640/0600" bash -c "[ \"\$(stat -c %a '$ANCORA_SITES_DIR/alpha/site.ini' '$ANCORA_SITES_DIR/alpha/db-password' '$ANCORA_SITES_DIR/alpha/hash-salt' '$ANCORA_SITES_DIR/alpha/owner-password' | tr '\n' ' ')\" = '640 640 640 600 ' ]"
 section "Engine databases (one per site, #71)"
-check "tt_alpha_engine and tt_beta_engine exist" test "$(sql postgres "SELECT count(*) FROM pg_database WHERE datname IN ('tt_alpha_engine', 'tt_beta_engine')")" = 2
-check "alpha's site file names its own engine database and role" bash -c "grep -q '^ENGINE_DB_NAME = \"tt_alpha_engine\"' '$ANCORA_SITES_DIR/alpha/site.ini' && grep -q '^ENGINE_DB_USER = \"tt_alpha_engine_app\"' '$ANCORA_SITES_DIR/alpha/site.ini'"
-engine_of() { ANCORA_EXPECT_SITE_PATH=$1 "${drush[@]}" --uri="$2" php:eval '$d = \Drupal::service("ancora_engine.settings")->database(); print $d["database"] . "/" . $d["username"];' 2>/dev/null; }
-check "Drupal on alpha resolves the engine settings to tt_alpha_engine" test "$(engine_of sites/org-alpha "$base/o/alpha")" = tt_alpha_engine/tt_alpha_engine_app
-check "Drupal on beta resolves the engine settings to tt_beta_engine" test "$(engine_of sites/org-beta "$base/o/beta")" = tt_beta_engine/tt_beta_engine_app
-check "check-isolation: tt_alpha_engine admits alpha's engine role, refuses beta's" "$project/scripts/engine-db.sh" check-isolation tt_alpha_engine tt_alpha_engine_app tt_beta_engine_app
-check "check-isolation: tt_beta_engine admits beta's engine role, refuses alpha's" "$project/scripts/engine-db.sh" check-isolation tt_beta_engine tt_beta_engine_app tt_alpha_engine_app
+# New sites get the single-database layout (#96): the engine in schema
+# "scheduler" of the site's own database, no engine database.
+check "no engine database: the cluster has no tt_*_engine database" test "$(sql postgres "SELECT count(*) FROM pg_database WHERE datname LIKE 'tt\_%\_engine'")" = 0
+check "alpha's site file names the workspace mode, its own database and its worker role" bash -c "grep -q '^ENGINE_MODE = \"workspace\"' '$ANCORA_SITES_DIR/alpha/site.ini' && grep -q '^ENGINE_DB_NAME = \"tt_alpha\"' '$ANCORA_SITES_DIR/alpha/site.ini' && grep -q '^ENGINE_DB_USER = \"tt_alpha_engine_app\"' '$ANCORA_SITES_DIR/alpha/site.ini'"
+engine_of() { ANCORA_EXPECT_SITE_PATH=$1 "${drush[@]}" --uri="$2" php:eval '$s = \Drupal::service("ancora_engine.settings"); $d = $s->database(); print $s->mode() . "/" . $d["database"] . "/" . $d["username"];' 2>/dev/null; }
+check "Drupal on alpha resolves the engine settings to the workspace mode in tt_alpha" test "$(engine_of sites/org-alpha "$base/o/alpha")" = workspace/tt_alpha/tt_alpha_engine_app
+check "Drupal on beta resolves the engine settings to the workspace mode in tt_beta" test "$(engine_of sites/org-beta "$base/o/beta")" = workspace/tt_beta/tt_beta_engine_app
+check "the engine of alpha is owned by alpha's engine owner, not by the operator" test "$(sql tt_alpha "SELECT nspowner::regrole FROM pg_namespace WHERE nspname = 'scheduler'")" = tt_alpha_engine_owner
+check "check-isolation: tt_alpha admits alpha's worker role, refuses beta's" "$project/scripts/engine-db.sh" check-isolation tt_alpha tt_alpha_engine_app tt_beta_engine_app
+check "check-isolation: tt_beta admits beta's worker role, refuses alpha's" "$project/scripts/engine-db.sh" check-isolation tt_beta tt_beta_engine_app tt_alpha_engine_app
 check "the engine password file is mode 0640" test "$(stat -c %a "$ANCORA_SITES_DIR/alpha/engine-db-password")" = 640
 check "no secret is in the web root" bash -c "! grep -rqsF \"\$(cat '$ANCORA_SITES_DIR/alpha/db-password')\" '$web/sites'"
 
@@ -402,7 +406,7 @@ check "deprovision gamma (suspended) with a final backup" bash -c "PGUSER=ancora
 check "gamma's final backup exists" bash -c "ls '$work/backup'/tt_gamma-*.dump >/dev/null 2>&1"
 req - /o/gamma/
 check "a retired site answers 404" status_is 404
-check "gamma's engine database and engine role are gone, after a final backup" bash -c "[ \"\$(psql -X -At -d postgres -c \"SELECT count(*) FROM pg_database WHERE datname = 'tt_gamma_engine'\")/\$(psql -X -At -d postgres -c \"SELECT count(*) FROM pg_roles WHERE rolname = 'tt_gamma_engine_app'\")\" = 0/0 ] && ls '$work/backup'/tt_gamma_engine-*.dump >/dev/null 2>&1"
+check "gamma's engine roles (worker, engine owner, job group) are gone" test "$(sql postgres "SELECT count(*) FROM pg_roles WHERE rolname LIKE 'tt\_gamma\_%'")" = 0
 check "gamma's database, roles and files are gone" bash -c "[ \"\$(psql -X -At -d postgres -c \"SELECT count(*) FROM pg_database WHERE datname = 'tt_gamma'\")\" = 0 ] && [ ! -e '$web/sites/org-gamma' ] && [ ! -e '$ANCORA_SITES_DATA_DIR/gamma' ] && [ ! -e '$ANCORA_SITES_DIR/gamma' ]"
 check "the audit log records the operations" bash -c "grep -q 'provision	alpha	ok' '$ANCORA_SITES_DIR/audit.log' && grep -q 'deprovision	gamma	ok' '$ANCORA_SITES_DIR/audit.log'"
 
