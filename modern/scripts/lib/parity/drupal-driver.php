@@ -29,6 +29,7 @@ use Ancora\Parity\Scenario;
 use Drupal\ancora_academic\AcademicAccessControlHandler;
 use Drupal\ancora_academic\AcademicEntityInterface;
 use Drupal\ancora_academic\BreakdownMaintainer;
+use Drupal\ancora_academic\PeriodInputs;
 use Drupal\ancora_academic\TimeRestrictionGrid;
 use Drupal\ancora_engine\Job\JobOptions;
 use Drupal\ancora_scheduling\ScopeMapper;
@@ -115,6 +116,36 @@ foreach ($ancora_scenario->records as $key => $r) {
       }
       $ancora_entities[$key] = $target ?? $period;
       echo "ok    restrict $key (" . count($r['cells']) . " cells)\n";
+    }
+    finally {
+      $switcher->switchBack();
+    }
+    continue;
+  }
+  if (in_array($r['type'], ['break', 'priority_zones', 'load_limit'], TRUE)) {
+    // The editors of the period inputs, saved as their form saves them
+    // (PeriodInputs). Each record replaces that editor's records, so a
+    // scenario gives each period's breaks, each activity type's zones and
+    // each kind's limits in one record, except breaks and limits, which are
+    // added to the ones entered before.
+    $switcher->switchTo($ancora_accounts[$r['as']]);
+    try {
+      $inputs = \Drupal::service(PeriodInputs::class);
+      $period = $ancora_entities[$r['period']];
+      $messages = match ($r['type']) {
+        'break' => $inputs->saveBreaks($period, [$r['after_slot'] => (float) $r['length']] + array_map(static fn ($b) => $b->getLength(), $inputs->breaks($period->id()))),
+        'priority_zones' => $inputs->saveZones($ancora_entities[$r['activity_type']]->id(), $period, array_combine(
+          array_map(static fn (array $c): string => $c[0] . ':' . $c[1], $r['cells']),
+          array_map(static fn (array $c): int => (int) $c[2], $r['cells']),
+        )),
+        default => $inputs->saveLimits($period, $r['kind'], [(int) $ancora_entities[$r['target']]->id() => (int) $r['max_daily_load']] + $inputs->limits($period->id(), $r['kind'])),
+      };
+      if ($messages !== []) {
+        $ancora_fail("{$r['type']} $key: " . implode('; ', $messages));
+        continue;
+      }
+      $ancora_entities[$key] = $period;
+      echo "ok    {$r['type']} $key\n";
     }
     finally {
       $switcher->switchBack();

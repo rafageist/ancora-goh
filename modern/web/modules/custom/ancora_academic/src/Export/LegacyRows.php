@@ -80,7 +80,8 @@ final class LegacyRows {
     'lugar_para_actividad', 'restriccion_de_periodo',
     'restriccion_de_clasif_act', 'restriccion_de_asignatura',
     'restriccion_de_brigada', 'restriccion_de_profesor',
-    'restriccion_de_lugar',
+    'restriccion_de_lugar', 'receso', 'zpriori', 'higiene_para_profesor',
+    'higiene_para_brigada',
   ];
 
   /**
@@ -287,6 +288,32 @@ final class LegacyRows {
         $row += ['por_actividad' => FALSE, 'actividad' => NULL];
       }
       $rows[$table][] = $row;
+    }
+    // D9b: breaks, priority zones (only zones other than 1 exist), daily
+    // load limits.
+    foreach ($export['breaks'] as $break) {
+      $rows['receso'][] = [
+        'periodo' => $code($break['period']),
+        'despues_del_turno' => $break['after_slot'],
+        'duracion' => $break['length'],
+      ];
+    }
+    foreach ($export['priority_zones'] as $zone) {
+      $rows['zpriori'][] = [
+        'clasificacion' => $code($zone['activity_type']),
+        'periodo' => $code($zone['period']),
+        'dia' => $zone['day'],
+        'turno' => $zone['slot'],
+        'valor' => $zone['zone'],
+      ];
+    }
+    foreach ($export['load_limits'] as $limit) {
+      $teacher = $limit['kind'] === 'teacher';
+      $rows[$teacher ? 'higiene_para_profesor' : 'higiene_para_brigada'][] = [
+        'periodo' => $code($limit['period']),
+        ($teacher ? 'profesor' : 'brigada') => $code($limit['target']),
+        'gasto_maximo_diario' => $limit['max_daily_load'],
+      ];
     }
     return $rows;
   }

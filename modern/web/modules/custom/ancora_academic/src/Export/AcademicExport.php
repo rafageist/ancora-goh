@@ -48,6 +48,8 @@ use Drupal\Core\Entity\EntityTypeManagerInterface;
  * - "time_restrictions" holds the restricted cells of the periods (legacy
  *   restriccion_de_*, D9a): kind, the restricted object's key (NULL for
  *   the period itself), day and slot.
+ * - "breaks", "priority_zones" and "load_limits" hold the other inputs of
+ *   the periods (legacy receso, zpriori, higiene_para_*, D9b).
  * - "issues" lists data the engine cannot use as is (for example a template
  *   that requires a teacher and has none); the export never fails for them.
  *
@@ -59,7 +61,7 @@ final class AcademicExport {
   /**
    * The version of the export contract.
    */
-  public const SCHEMA = 'ancora_academic.export.v4';
+  public const SCHEMA = 'ancora_academic.export.v5';
 
   /**
    * The catalogue lists: export key => entity type ID.
@@ -169,6 +171,7 @@ final class AcademicExport {
 
     $export['breakdowns'] = $this->breakdowns($period_ids);
     $export['time_restrictions'] = $this->timeRestrictions($period_ids);
+    $export += $this->periodInputs($period_ids);
     $export['issues'] = $this->issues($export);
     return $export;
   }
@@ -196,6 +199,9 @@ final class AcademicExport {
       'room_assignments' => [],
       'breakdowns' => [],
       'time_restrictions' => [],
+      'breaks' => [],
+      'priority_zones' => [],
+      'load_limits' => [],
       'issues' => [],
     ];
   }
@@ -262,6 +268,58 @@ final class AcademicExport {
     $order = static fn (array $b): array => [$b['subject_code'], $b['period_code'], $b['id']];
     usort($records, static fn (array $a, array $b): int => $order($a) <=> $order($b));
     return $records;
+  }
+
+  /**
+   * The breaks, priority zones and daily load limits of some periods.
+   *
+   * @param list<int> $period_ids
+   *   The periods.
+   *
+   * @return array{breaks: list<array>, priority_zones: list<array>, load_limits: list<array>}
+   *   The records, in entity id order, with keys for the references.
+   */
+  private function periodInputs(array $period_ids): array {
+    $out = ['breaks' => [], 'priority_zones' => [], 'load_limits' => []];
+    if ($period_ids === []) {
+      return $out;
+    }
+    $load = function (string $entity_type_id) use ($period_ids): array {
+      $storage = $this->entityTypeManager->getStorage($entity_type_id);
+      return $storage->loadMultiple($storage->getQuery()->accessCheck(FALSE)->condition('period', $period_ids, 'IN')->sort('id')->execute());
+    };
+    foreach ($load('ancora_break') as $break) {
+      $out['breaks'][] = [
+        'key' => (string) $break->uuid(),
+        'id' => (int) $break->id(),
+        'period' => $this->key($break, 'period'),
+        'after_slot' => (int) $break->get('after_slot')->value,
+        'length' => (float) $break->get('length')->value,
+      ];
+    }
+    foreach ($load('ancora_priority_zone') as $zone) {
+      $out['priority_zones'][] = [
+        'key' => (string) $zone->uuid(),
+        'id' => (int) $zone->id(),
+        'period' => $this->key($zone, 'period'),
+        'activity_type' => $this->key($zone, 'activity_type'),
+        'day' => (int) $zone->get('day')->value,
+        'slot' => (int) $zone->get('slot')->value,
+        'zone' => (int) $zone->get('zone')->value,
+      ];
+    }
+    foreach ($load('ancora_load_limit') as $limit) {
+      $kind = (string) $limit->get('kind')->value;
+      $out['load_limits'][] = [
+        'key' => (string) $limit->uuid(),
+        'id' => (int) $limit->id(),
+        'period' => $this->key($limit, 'period'),
+        'kind' => $kind,
+        'target' => $this->key($limit, $kind),
+        'max_daily_load' => (int) $limit->get('max_daily_load')->value,
+      ];
+    }
+    return $out;
   }
 
   /**

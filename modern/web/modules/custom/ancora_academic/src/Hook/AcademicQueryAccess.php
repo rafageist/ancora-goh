@@ -61,6 +61,9 @@ final class AcademicQueryAccess {
   #[Hook('query_ancora_room_assignment_access_alter')]
   #[Hook('query_ancora_breakdown_access_alter')]
   #[Hook('query_ancora_time_restriction_access_alter')]
+  #[Hook('query_ancora_break_access_alter')]
+  #[Hook('query_ancora_priority_zone_access_alter')]
+  #[Hook('query_ancora_load_limit_access_alter')]
   public function alter(AlterableInterface $query): void {
     if (!$query instanceof SelectInterface || $this->currentUser->hasPermission(AcademicAccessControlHandler::ADMINISTER)) {
       return;

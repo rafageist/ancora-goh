@@ -251,3 +251,24 @@ function ancora_academic_update_11005(): string {
   $manager->installEntityType($entity_type_manager->getDefinition('ancora_time_restriction'));
   return (string) t('The time restrictions are installed.');
 }
+
+/**
+ * Adds breaks, priority zones and daily load limits (#70, D9b).
+ *
+ * Installs the three entity types, empty: the engine received none of
+ * these rows before, so timetables do not change until a planner enters
+ * one.
+ */
+function ancora_academic_update_11006(): string {
+  $manager = \Drupal::entityDefinitionUpdateManager();
+  $entity_type_manager = \Drupal::entityTypeManager();
+  $entity_type_manager->clearCachedDefinitions();
+  $installed = [];
+  foreach (['ancora_break', 'ancora_priority_zone', 'ancora_load_limit'] as $entity_type_id) {
+    if ($manager->getEntityType($entity_type_id) === NULL) {
+      $manager->installEntityType($entity_type_manager->getDefinition($entity_type_id));
+      $installed[] = $entity_type_id;
+    }
+  }
+  return (string) t('Installed: @types.', ['@types' => $installed === [] ? 'none' : implode(', ', $installed)]);
+}
