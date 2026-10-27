@@ -7,7 +7,6 @@ namespace Drupal\ancora_scheduling\Hook;
 use Drupal\ancora_academic\Entity\StudentGroup;
 use Drupal\ancora_academic\Export\LegacyRows;
 use Drupal\ancora_engine\Engine\EngineClient;
-use Drupal\ancora_engine\Engine\EngineException;
 use Drupal\ancora_engine\EngineSettings;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Hook\Attribute\Hook;
@@ -23,9 +22,10 @@ use Symfony\Component\DependencyInjection\Attribute\Autowire;
  * - two-database mode: the "actividad" rows of the group's engine id in the
  *   engine database (numbered ids, LegacyRows::engineId(); the code part
  *   may have changed since the last sync, so only the number is matched).
- *   If the engine database cannot be read, the group counts as having no
- *   activity and a warning is logged: there, the next run deletes and
- *   replaces the scope's placements anyway (D7).
+ *   If the engine database cannot be read, the answer is NULL (unknown) and
+ *   the change is refused: the guard never fails open;
+ * - two-database mode with no engine database configured: no run can have
+ *   placed anything, so FALSE.
  */
 final class GroupActivities {
 
@@ -43,7 +43,7 @@ final class GroupActivities {
    * Implements hook_ancora_academic_group_has_activities().
    */
   #[Hook('ancora_academic_group_has_activities')]
-  public function hasActivities(StudentGroup $group): bool {
+  public function hasActivities(StudentGroup $group): ?bool {
     if ($this->settings->isWorkspace()) {
       return (int) $this->entityTypeManager->getStorage('ancora_placement')->getQuery()
         ->accessCheck(FALSE)
@@ -65,12 +65,12 @@ final class GroupActivities {
         pg_close($connection);
       }
     }
-    catch (EngineException $e) {
-      $this->logger->warning('The placed activities of group @id could not be read from the engine database: @message', [
+    catch (\RuntimeException $e) {
+      $this->logger->warning('The placed activities of group @id could not be read from the engine database; the membership change is refused: @message', [
         '@id' => $group->id(),
         '@message' => $e->getMessage(),
       ]);
-      return FALSE;
+      return NULL;
     }
   }
 

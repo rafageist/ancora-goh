@@ -81,12 +81,15 @@ final class ActivityType extends OwnedAcademicEntityBase {
     );
     $fields['code'] = static::codeField();
 
+    // At least 1: a zero duration, which the legacy form accepts, makes
+    // generar() loop until the timeout (case 137). An availability defect,
+    // not reproduced (quirk Q-27); the upper bound 48 was invented (D6).
     $fields['duration_slots'] = static::integerField(
       new TranslatableMarkup('Length in slots'),
       new TranslatableMarkup('How many consecutive time slots one activity of this type takes.'),
       1,
       1,
-      48,
+      self::INT_MAX,
       1,
     );
 
@@ -103,8 +106,10 @@ final class ActivityType extends OwnedAcademicEntityBase {
       new TranslatableMarkup('Cost'),
       new TranslatableMarkup('Relative effort of one activity, used to balance teachers and days.'),
       3,
-      0,
-      NULL,
+      // Any integer, as the legacy column and its free-text input (case 138;
+      // the bound >= 0 was invented, D6).
+      self::INT_MIN,
+      self::INT_MAX,
       1,
     );
 

@@ -19,9 +19,11 @@ use Drupal\ancora_academic\Entity\StudentGroup;
  * @param \Drupal\ancora_academic\Entity\StudentGroup $group
  *   A saved group.
  *
- * @return bool
- *   TRUE when the group has at least one placed activity.
+ * @return bool|null
+ *   TRUE when the group has at least one placed activity, FALSE when it has
+ *   none, NULL when it cannot be known right now (the change is then
+ *   refused).
  */
-function hook_ancora_academic_group_has_activities(StudentGroup $group): bool {
+function hook_ancora_academic_group_has_activities(StudentGroup $group): ?bool {
   return FALSE;
 }

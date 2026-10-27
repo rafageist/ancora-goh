@@ -84,17 +84,26 @@ final class GroupMembership {
 
   /**
    * Whether a group has placed activities (legacy "actividad" rows).
+   *
+   * @return bool|null
+   *   TRUE or FALSE; NULL when a module that stores placements cannot tell
+   *   right now (for example, its engine database is unreachable). The
+   *   guard then refuses the change: it never fails open.
    */
-  public function hasActivities(StudentGroup $group): bool {
+  public function hasActivities(StudentGroup $group): ?bool {
     if ($group->isNew()) {
       return FALSE;
     }
-    foreach ($this->moduleHandler->invokeAll('ancora_academic_group_has_activities', [$group]) as $answer) {
-      if ($answer === TRUE) {
-        return TRUE;
-      }
+    // invokeAll() drops NULL answers, so every implementation is called
+    // directly: NULL means "cannot tell".
+    $answers = [];
+    $this->moduleHandler->invokeAllWith('ancora_academic_group_has_activities', static function (callable $hook) use ($group, &$answers): void {
+      $answers[] = $hook($group);
+    });
+    if (in_array(TRUE, $answers, TRUE)) {
+      return TRUE;
     }
-    return FALSE;
+    return in_array(NULL, $answers, TRUE) ? NULL : FALSE;
   }
 
   /**

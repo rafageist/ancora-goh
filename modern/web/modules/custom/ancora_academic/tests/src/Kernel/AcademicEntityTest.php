@@ -166,9 +166,12 @@ final class AcademicEntityTest extends AcademicKernelTestBase {
       'code' => 'C2',
     ]);
     $this->assertSame([], $this->violationFields($type([])));
+    // A zero duration hangs generar() (case 137, Q-27): refused.
     $this->assertSame(['duration_slots'], $this->violationFields($type(['duration_slots' => 0])));
+    $this->assertSame([], $this->violationFields($type(['duration_slots' => 60])));
     $this->assertSame(['priority'], $this->violationFields($type(['priority' => 0])));
-    $this->assertSame(['cost'], $this->violationFields($type(['cost' => -1])));
+    // Any cost, as legacy (case 138, D6).
+    $this->assertSame([], $this->violationFields($type(['cost' => -1])));
 
     $this->assertSame(['capacity'], $this->violationFields($this->newRecord('ancora_room', [
       'label' => 'Broken room',

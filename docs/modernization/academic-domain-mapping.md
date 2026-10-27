@@ -125,7 +125,7 @@ Columns not listed are not modelled. The "Not modelled" section explains why.
 | `clasificacion` | `activity_type` | the kind of activity the group attends together |
 | `especialidad`, `nivel` | `specialty`, `level` | required |
 | `planificacion` | `plan` | |
-| `brigada_de_grupo(brigada, grupo)` | `cohorts` (multi-value) | Legacy membership (#70, D10; `GroupMembership`): a cohort is in one group per plan, activity type, specialty and level, and adding it to another group of that slot moves it; adding is refused when the group or the group it leaves has placed activities (`AncoraGroupMembership`); removing is never refused. No check that a cohort shares the group's specialty and level (legacy has none, `dame_grupos` goes by the cohorts); the form offers the group's specialty and level |
+| `brigada_de_grupo(brigada, grupo)` | `cohorts` (multi-value) | Legacy membership (#70, D10; `GroupMembership`): a cohort is in one group per plan, activity type, specialty and level, and adding it to another group of that slot moves it; adding is refused when the group or the group it leaves has placed activities (`AncoraGroupMembership`), or when they cannot be read right now (fail closed); removing is never refused. No check that a cohort shares the group's specialty and level (legacy has none, `dame_grupos` goes by the cohorts); the form offers the group's specialty and level |
 
 ### `asignatura` → `ancora_subject`
 

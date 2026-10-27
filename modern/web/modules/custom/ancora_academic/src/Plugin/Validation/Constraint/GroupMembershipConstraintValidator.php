@@ -51,9 +51,10 @@ final class GroupMembershipConstraintValidator extends ConstraintValidator imple
     }
     $cohorts = $this->entityTypeManager->getStorage('ancora_cohort')->loadMultiple($added);
     $label = static fn (int $id): string => isset($cohorts[$id]) ? (string) $cohorts[$id]->label() : (string) $id;
-    if ($this->membership->hasActivities($value)) {
+    $target = $this->membership->hasActivities($value);
+    if ($target !== FALSE) {
       foreach ($added as $id) {
-        $this->context->buildViolation($constraint->targetMessage)
+        $this->context->buildViolation($target === NULL ? $constraint->unknownMessage : $constraint->targetMessage)
           ->setParameter('%cohort', $label($id))
           ->setParameter('%group', (string) $value->label())
           ->atPath('cohorts')
@@ -64,7 +65,15 @@ final class GroupMembershipConstraintValidator extends ConstraintValidator imple
     foreach ($added as $id) {
       foreach ($this->membership->sources($value, $id) as $source) {
         assert($source instanceof StudentGroup);
-        if ($this->membership->hasActivities($source)) {
+        $placed = $this->membership->hasActivities($source);
+        if ($placed === NULL) {
+          $this->context->buildViolation($constraint->unknownMessage)
+            ->setParameter('%cohort', $label($id))
+            ->setParameter('%group', (string) $source->label())
+            ->atPath('cohorts')
+            ->addViolation();
+        }
+        elseif ($placed) {
           $this->context->buildViolation($constraint->sourceMessage)
             ->setParameter('%cohort', $label($id))
             ->setParameter('%source', (string) $source->label())

@@ -29,6 +29,8 @@ final class GroupMembershipConstraint extends SymfonyConstraint {
    *   Unused; options are named arguments.
    * @param string $targetMessage
    *   The message when the group itself has placed activities.
+   * @param string $unknownMessage
+   *   The message when the placed activities cannot be verified.
    * @param string $sourceMessage
    *   The message when the group the cohort would leave has them.
    * @param array|null $groups
@@ -40,6 +42,7 @@ final class GroupMembershipConstraint extends SymfonyConstraint {
   public function __construct(
     mixed $options = NULL,
     public string $targetMessage = 'The cohort %cohort cannot join the group %group: the group already has placed activities. Delete its placements first (the legacy application refuses this move).',
+    public string $unknownMessage = 'The cohort %cohort cannot be added now: the placed activities of the group %group cannot be verified right now. Try again later.',
     public string $sourceMessage = 'The cohort %cohort cannot move to this group: it would leave the group %source, which already has placed activities. Delete its placements first (the legacy application refuses this move).',
     ?array $groups = NULL,
     mixed $payload = NULL,
