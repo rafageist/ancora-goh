@@ -10,7 +10,9 @@
 # 1. The operator tool (scripts/ancora-site.sh), run as a NON-superuser role
 #    with CREATEDB and CREATEROLE as on the real host, installs the control
 #    site and provisions alpha and beta, each with its own engine database
-#    and engine role.
+#    and engine role (the two-database layout of #71, which existing sites
+#    keep until they are migrated: --engine-layout two-database; new sites
+#    get the single-database layout of #96, scripts/tenant-verify.sh).
 # 2. On alpha, the synthetic organization of the legacy E2E harness is
 #    entered through the Entity API (drush ancora-academic:load-fixture,
 #    including the teacher the harness enters over HTTP), owned by alpha's
@@ -124,8 +126,8 @@ psql -X -q -d postgres -c "CREATE ROLE $operator LOGIN CREATEDB CREATEROLE" \
 
 step "1. Provisioning as a non-superuser operator: control site, alpha, beta ($(psql -X -At -d postgres -c 'SHOW server_version'))"
 site_op control-install --admin-mail operator@example.invalid
-site_op provision alpha --name "Alpha School" --admin-mail admin@alpha.example.invalid
-site_op provision beta --name "Beta Institute" --admin-mail admin@beta.example.invalid
+site_op provision alpha --name "Alpha School" --admin-mail admin@alpha.example.invalid --engine-layout two-database
+site_op provision beta --name "Beta Institute" --admin-mail admin@beta.example.invalid --engine-layout two-database
 
 section "Provisioning"
 check "the operator role is not a superuser" test "$(sql postgres "SELECT rolsuper FROM pg_roles WHERE rolname = '$operator'")" = f

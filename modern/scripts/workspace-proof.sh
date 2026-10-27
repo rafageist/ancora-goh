@@ -64,7 +64,7 @@ sqlstate_of() { sed -nE 's/.*(ERROR|FATAL): +([0-9A-Z]{5}):.*/\2/p' "$1" | head 
 state_of() { q tenant "SELECT state FROM scheduler_control.workspace WHERE job = '$1'"; }
 set_state() { q tenant "UPDATE scheduler_control.workspace SET state = '$2', updated_at = clock_timestamp() WHERE job = '$1'" >/dev/null; }
 new_job() { # job
-  q tenant "CREATE ROLE agoh_job_$1 LOGIN IN ROLE agoh_engine; GRANT CONNECT ON DATABASE tenant TO agoh_job_$1" >/dev/null
+  q tenant "CREATE ROLE agoh_job_$1 LOGIN IN ROLE tenant_jobs; GRANT CONNECT ON DATABASE tenant TO agoh_job_$1" >/dev/null
   q tenant "SELECT scheduler_control.create_workspace('$1', 'scheduler_job_$1', 'agoh_job_$1')" >/dev/null
 }
 GEN_E2E="'E', 'N', 'PER', 1, false, 0, false, false"
@@ -132,7 +132,7 @@ check "the job's search_path is workspace, engine code, pg_temp (pg_temp last)" 
 check "PUBLIC has CREATE on no schema of the path, nor on public" test \
   "$(q tenant "SELECT count(*) FROM unnest(ARRAY['scheduler_job_1', 'scheduler', 'public', 'matrix', 'prioriza', 'tiempo', 'generador', 'seguridad']) s WHERE has_schema_privilege('public', s, 'CREATE')")" = 0
 check "only the job role (and superusers) can create in its workspace" test \
-  "$(q tenant "SELECT has_schema_privilege('agoh_job_1', 'scheduler_job_1', 'CREATE') AND NOT has_schema_privilege('agoh_engine', 'scheduler_job_1', 'USAGE') AND NOT has_schema_privilege('agoh_job_1', 'scheduler', 'CREATE') AND (SELECT nspowner::regrole::text FROM pg_namespace WHERE nspname = 'scheduler_job_1') = 'agoh_job_1'")" = t
+  "$(q tenant "SELECT has_schema_privilege('agoh_job_1', 'scheduler_job_1', 'CREATE') AND NOT has_schema_privilege('tenant_jobs', 'scheduler_job_1', 'USAGE') AND NOT has_schema_privilege('agoh_job_1', 'scheduler', 'CREATE') AND (SELECT nspowner::regrole::text FROM pg_namespace WHERE nspname = 'scheduler_job_1') = 'agoh_job_1'")" = t
 check "the job role has no privilege on any table of the template schema" test \
   "$(q tenant "SELECT count(*) FROM pg_tables WHERE schemaname = 'scheduler' AND (has_table_privilege('agoh_job_1', schemaname || '.' || tablename, 'SELECT') OR has_table_privilege('agoh_job_1', schemaname || '.' || tablename, 'INSERT,UPDATE,DELETE,TRUNCATE'))")" = 0
 qj 1 "SELECT count(*) FROM scheduler.actividad" >/dev/null 2>"$work/guard.err"
@@ -268,7 +268,7 @@ for j in 10 11 12 13 14 20 21; do set_state "$j" ran; done
 
 # ============================================================ 4. concurrency
 echo "# 4. concurrency: two jobs at once (slow-placement trigger, ${DELAY}s per placement, test only)"
-q tenant "CREATE SCHEMA wsproof_cc; GRANT USAGE ON SCHEMA wsproof_cc TO agoh_engine;
+q tenant "CREATE SCHEMA wsproof_cc; GRANT USAGE ON SCHEMA wsproof_cc TO tenant_jobs;
   CREATE FUNCTION wsproof_cc.slow() RETURNS trigger LANGUAGE plpgsql AS \$\$
   BEGIN PERFORM nextval(TG_ARGV[0]); PERFORM pg_sleep(TG_ARGV[1]::float); RETURN NULL; END \$\$;" >/dev/null
 q tenant "TRUNCATE scheduler_control.placement_store, scheduler_control.resource_store" >/dev/null
@@ -385,7 +385,7 @@ echo "# 7. the TEMP alternative"
 # TEMP tables exist only in the session that creates them, so the job's own
 # session must create them: it needs to read the template shapes (LIKE), which
 # the workspace model never grants. Role agoh_job_40 gets that grant.
-q tenant "CREATE ROLE agoh_job_40 LOGIN IN ROLE agoh_engine" >/dev/null
+q tenant "CREATE ROLE agoh_job_40 LOGIN IN ROLE tenant_jobs" >/dev/null
 qt() { PGOPTIONS="-c search_path=$1 -c client_min_messages=warning" psql -X -q -At -v ON_ERROR_STOP=1 -v VERBOSITY=verbose -U agoh_job_40 -d tenant; }
 echo "CREATE TEMP TABLE zpriori (LIKE scheduler.zpriori);" | qt "pg_temp,scheduler" >/dev/null 2>"$work/t0.err"
 check "TEMP: the job role cannot even copy the shapes without a read grant on the templates (42501)" eq "$(sqlstate_of "$work/t0.err")" 42501

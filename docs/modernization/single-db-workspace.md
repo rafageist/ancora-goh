@@ -199,7 +199,7 @@ created → loaded → running → ran → kept (keep_until) → dropped
 - A workspace is dropped after its output is accepted: today it is copied to the store, later it is promoted (#95).
 - It can instead be kept for diagnosis until `keep_until`. `cleanup()` drops it after that time and keeps it before (both verified).
 - Dropping a workspace removes its schema and its job's cancellation requests.
-- The job's login role is created per job and can be dropped with the workspace. Roles are cluster-wide, so the harness names them `agoh_<tenant db>_j<job>`. In production the group role `agoh_engine` must also be per tenant.
+- The job's login role is created per job and can be dropped with the workspace. Roles are cluster-wide, so the harness names them `agoh_<tenant db>_j<job>`. The group role is per tenant since #96: `<tenant db>_jobs`, and the worker's job roles are `<tenant db>_job_<job>_<attempt>` ([tenant-provisioning.md](tenant-provisioning.md)).
 
 **Measurements** on one laptop, PostgreSQL 16.15, synthetic data. No speed claim beyond these numbers.
 
@@ -219,7 +219,7 @@ created → loaded → running → ran → kept (keep_until) → dropped
 2. **Cancellation.** Replace `generador.cancelar` with the per-job view over `scheduler_control.cancel_request`, and point the worker's soft cancel at it (keyed by job role).
 3. **Engine users.** Keep `seguridad.usuario` as the tenant-level engine user table: SELECT, INSERT and REFERENCES only.
 4. **Closure before loading.** Compute the #92 closure from the Drupal snapshot before writing the workspace. The prototype loads everything and then prunes, which is correct but not minimal in I/O.
-5. **Roles.** Provision roles per tenant and per job, owned by a non-superuser provisioning role. Run `cleanup()` from the worker loop.
+5. **Roles.** Provision roles per tenant and per job, owned by a non-superuser provisioning role. Run `cleanup()` from the worker loop. Done in #95 and #96 ([tenant-provisioning.md](tenant-provisioning.md)).
 6. **Placements as input.** Promote placements through #95. The placement store is only a stand-in for "accepted placements as input".
 
 TEMP tables: **no-go** as the primary model. They need `pg_temp` first in the path and a read grant on the templates, a TEMP copy of the user table and TEMP views. Their output is invisible to the promotion connection and lost with the session (section 6).
@@ -231,7 +231,7 @@ TEMP tables: **no-go** as the primary model. They need `pg_temp` first in the pa
 - The workspace generator copies whatever the template schema holds. An English schema `scheduler` with English tables, views, RULEs and triggers needs no change to the generator. The legacy oracle stays the byte-identical legacy install.
 - The fixed legacy schemas (`matrix`, `prioriza`, `tiempo`, `seguridad`, `generador`, `portal`) are global per tenant database. `tiempo.*` and the `seguridad.usuario` defaults call unqualified engine functions, so callers need the code schema in their path: rename them together with qualified calls.
 - The names `generador.fue_cancelado`/`generador.cancelar` (schema-qualified in `generar()`), `seguridad.usuario` (schema-qualified in `LegacyTableSync::ensureCreator` and in 12 FKs), and the measurement and closure functions all use legacy names.
-- The role naming per tenant: `agoh_engine` is cluster-wide.
+- ~~The role naming per tenant: `agoh_engine` is cluster-wide.~~ Done in #96: `<tenant db>_jobs`, owned and administered by the tenant's engine owner, without a superuser ([tenant-provisioning.md](tenant-provisioning.md)).
 
 **#95 (promotion).**
 

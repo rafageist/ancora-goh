@@ -133,14 +133,14 @@ site "CREATE SCHEMA tst_ws;
   CREATE SEQUENCE tst_ws.started; CREATE TABLE tst_ws.delay (seconds float8 NOT NULL); INSERT INTO tst_ws.delay VALUES (0);
   CREATE FUNCTION tst_ws.slow() RETURNS trigger LANGUAGE plpgsql AS \$\$
   BEGIN PERFORM nextval('tst_ws.started'); PERFORM pg_sleep((SELECT seconds FROM tst_ws.delay)); RETURN NULL; END \$\$;
-  GRANT USAGE ON SCHEMA tst_ws TO agoh_engine; GRANT USAGE, SELECT, UPDATE ON SEQUENCE tst_ws.started TO agoh_engine;
-  GRANT SELECT ON tst_ws.delay TO agoh_engine;
+  GRANT USAGE ON SCHEMA tst_ws TO ancora_ws_jobs; GRANT USAGE, SELECT, UPDATE ON SEQUENCE tst_ws.started TO ancora_ws_jobs;
+  GRANT SELECT ON tst_ws.delay TO ancora_ws_jobs;
   CREATE TRIGGER tst_ws_slow AFTER INSERT ON scheduler.actividad FOR EACH ROW EXECUTE FUNCTION tst_ws.slow();" >/dev/null
 delay() { site "UPDATE tst_ws.delay SET seconds = $1" >/dev/null; }
 started_count() { site "SELECT CASE WHEN is_called THEN last_value ELSE 0 END FROM tst_ws.started"; }
 wait_started() { local target=$(( $1 + mark )) deadline=$((SECONDS + 60)); while [ "$(started_count)" -lt "$target" ]; do [ $SECONDS -lt $deadline ] || return 1; sleep 0.05; done; }
 workspaces() { site "SELECT count(*) FROM pg_namespace WHERE nspname LIKE 'scheduler_job_%'"; }
-job_roles() { site "SELECT count(*) FROM pg_roles WHERE rolname LIKE 'agoh_ancora_ws_j%'"; }
+job_roles() { site "SELECT count(*) FROM pg_roles WHERE rolname ~ '^ancora_ws_job_[0-9]'"; }
 
 step "1. a request: 8/8, the E2E digest read back from the entities"
 id1=$(enqueue)

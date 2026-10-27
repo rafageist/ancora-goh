@@ -11,12 +11,14 @@ on:
     paths:
       - 'modern/**'
       - 'dev/sql/**'
+      - 'dev/workspace/**'
       - 'dev/e2e/**'
       - '.github/workflows/engine.yml'
   pull_request:
     paths:
       - 'modern/**'
       - 'dev/sql/**'
+      - 'dev/workspace/**'
       - 'dev/e2e/**'
       - '.github/workflows/engine.yml'
 

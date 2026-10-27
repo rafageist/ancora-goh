@@ -33,7 +33,7 @@ use Drupal\ancora_engine\Job\Job;
  * Nothing is deleted before the run (no D7: legacy continuation). The worker
  * publishes the output (JobOutputInterface) and then closes the workspace.
  * A soft cancellation is a row of scheduler_control.cancel_request for the
- * job role: only this attempt sees it.
+ * job role (scheduler_control.request_cancel()): only this attempt sees it.
  */
 final class WorkspaceClient {
 
@@ -127,13 +127,12 @@ final class WorkspaceClient {
     $conn = $this->engine->connect('ancora_engine_control');
     try {
       [$e, $l, $p] = $job->scope->toParameters();
-      $this->engine->affected($conn, "INSERT INTO scheduler_control.cancel_request (job_role, especialidad, nivel, periodo)
-        VALUES (left('agoh_' || current_database() || '_j' || \$1, 63), \$2, \$3, \$4) ON CONFLICT DO NOTHING", [
-          self::key($job),
-          $e,
-          $l,
-          $p,
-        ]);
+      $this->engine->rows($conn, 'SELECT scheduler_control.request_cancel($1, $2, $3, $4)', [
+        self::key($job),
+        $e,
+        $l,
+        $p,
+      ]);
       return TRUE;
     }
     catch (EngineException) {

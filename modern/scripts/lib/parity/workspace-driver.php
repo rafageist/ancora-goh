@@ -142,7 +142,7 @@ foreach ($jobs as [$jid]) {
   $schema = "scheduler_job_$n";
   $m = ['job' => (int) $jid, 'scope' => $job->scope->toParameters(), 'options' => $job->options->toParameters()];
   $t = $ws_now();
-  $ws_v($admin, sprintf('CREATE ROLE %s LOGIN IN ROLE agoh_engine', $role));
+  $ws_v($admin, sprintf('CREATE ROLE %s LOGIN IN ROLE %s', $role, $ws_site_db . '_jobs'));
   $ws_v($admin, 'SELECT scheduler_control.create_workspace($1, $2, $3)', [$n, $schema, $role]);
   $m['ms_create'] = (int) round(($ws_now() - $t) * 1000);
 
