@@ -7,6 +7,7 @@ namespace Drupal\ancora_academic\Form;
 use Drupal\ancora_academic\AcademicEntityInterface;
 use Drupal\ancora_academic\Entity\Period;
 use Drupal\ancora_academic\Entity\TimeRestriction;
+use Drupal\ancora_academic\PeriodInputs;
 use Drupal\ancora_academic\TimeRestrictionGrid;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Form\FormBase;
@@ -31,13 +32,14 @@ final class RestrictionGridForm extends FormBase {
   public function __construct(
     private readonly EntityTypeManagerInterface $entityTypeManager,
     private readonly TimeRestrictionGrid $grid,
+    private readonly PeriodInputs $inputs,
   ) {}
 
   /**
    * {@inheritdoc}
    */
   public static function create(ContainerInterface $container): static {
-    return new static($container->get('entity_type.manager'), $container->get(TimeRestrictionGrid::class));
+    return new static($container->get('entity_type.manager'), $container->get(TimeRestrictionGrid::class), $container->get(PeriodInputs::class));
   }
 
   /**
@@ -133,11 +135,11 @@ final class RestrictionGridForm extends FormBase {
       '#header' => $header,
       '#attributes' => ['class' => ['ancora-restriction-grid']],
     ];
-    $start = $period->getStartHour();
     $length = $period->getSlotDuration();
     for ($slot = 1; $slot <= $slots; $slot++) {
       $form['grid'][$slot]['slot'] = ['#markup' => (string) $slot];
-      $form['grid'][$slot]['hours'] = ['#markup' => self::hour($start + ($slot - 1) * $length) . '–' . self::hour($start + $slot * $length)];
+      $start = $this->inputs->slotStart($period, $slot);
+      $form['grid'][$slot]['hours'] = ['#markup' => self::hour($start) . '–' . self::hour($start + $length)];
       for ($day = 1; $day <= $days; $day++) {
         $form['grid'][$slot]["d$day"] = [
           '#type' => 'checkbox',

@@ -72,6 +72,9 @@ final class AcademicEntityTypes {
    */
   public const GRID = [
     'ancora_time_restriction',
+    'ancora_break',
+    'ancora_priority_zone',
+    'ancora_load_limit',
   ];
 
   /**

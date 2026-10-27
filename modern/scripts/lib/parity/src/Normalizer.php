@@ -134,6 +134,23 @@ final class Normalizer {
       'refs' => ['lugar' => 'lugar', 'periodo' => 'periodo'],
       'where' => 'NOT por_actividad',
     ],
+    // D9b.
+    'receso' => [
+      'derived' => ['periodo', 'despues_del_turno'],
+      'refs' => ['periodo' => 'periodo'],
+    ],
+    'zpriori' => [
+      'derived' => ['clasificacion', 'periodo', 'dia', 'turno'],
+      'refs' => ['clasificacion' => 'clasificacion_de_actividad', 'periodo' => 'periodo'],
+    ],
+    'higiene_para_profesor' => [
+      'derived' => ['profesor', 'periodo'],
+      'refs' => ['profesor' => 'profesor', 'periodo' => 'periodo'],
+    ],
+    'higiene_para_brigada' => [
+      'derived' => ['brigada', 'periodo'],
+      'refs' => ['brigada' => 'brigada', 'periodo' => 'periodo'],
+    ],
   ];
 
   /**

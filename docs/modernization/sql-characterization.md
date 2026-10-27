@@ -77,6 +77,8 @@ After the #70 D6/D10 slice (60 cases): **49 PASS, 11 XFAIL, 0 FAIL / XPASS / XWR
 
 After the #70 D9a slice (61 cases): **50 PASS, 11 XFAIL, 0 FAIL / XPASS / XWRONG**. Case 139 records the effect of a manual restriction of each kind on `generar()`, that a specialty restriction is never read, that a restriction of another period or without a period is inert, the keys (no id default, UNIQUE with the occupancy rows) and the real-date rows. Every earlier result is unchanged.
 
+After the #70 D9b slice (62 cases): **51 PASS, 11 XFAIL, 0 FAIL / XPASS / XWRONG**. Case 140 records that a break changes only the slot hours, that priority zones change the cells only with `parche1`, the effect of teacher and brigade daily load limits, and their keys. Every earlier result is unchanged.
+
 A negative run confirmed that the runner exits non-zero. It used a temporary copy of the suite with three cases modified to give one FAIL, one XPASS and one XWRONG.
 
 ### Coverage against the issue

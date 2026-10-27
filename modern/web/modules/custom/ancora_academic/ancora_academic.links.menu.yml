@@ -42,3 +42,24 @@ ancora_academic.main.restrictions:
   menu_name: main
   parent: ancora_academic.main.plans
   weight: 10
+ancora_academic.main.breaks:
+  title: 'Breaks'
+  description: 'Breaks between the slots of a period.'
+  route_name: ancora_academic.period_inputs.breaks
+  menu_name: main
+  parent: ancora_academic.main.plans
+  weight: 11
+ancora_academic.main.limits:
+  title: 'Daily load limits'
+  description: 'The largest daily load of each teacher and cohort in a period.'
+  route_name: ancora_academic.period_inputs.limits
+  menu_name: main
+  parent: ancora_academic.main.plans
+  weight: 12
+ancora_academic.main.zones:
+  title: 'Priority zones'
+  description: 'The priority zone of each cell of a period for an activity type.'
+  route_name: ancora_academic.period_inputs.zones
+  menu_name: main
+  parent: ancora_academic.main.plans
+  weight: 13

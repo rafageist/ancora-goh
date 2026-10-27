@@ -582,6 +582,57 @@ final class LegacyDriver {
         $this->restrictions($key, $r);
         break;
 
+      case 'break':
+        // No screen wrote breaks (A-4): the generated handler add_Receso.
+        $this->event($as, 'add_Receso', [
+          'field_Receso_periodo' => $id($r['period']),
+          'field_Receso_despues_del_turno' => $r['after_slot'],
+          'field_Receso_duracion' => $r['length'],
+        ], "add_Receso $key");
+        $this->ids[$key] = $id($r['period']);
+        break;
+
+      case 'priority_zones':
+        // The zone editor of the classification browser: the form
+        // (get_form_edit_zpriori with the period), then custom_set_zpriori
+        // with the zone of every cell ("," between slots, ";" between days;
+        // ancoragoh_client_forms_zpriori.js aceptar()).
+        $period = $this->scenario->records[$r['period']];
+        $zones = [];
+        foreach ($r['cells'] as [$day, $slot, $zone]) {
+          $zones["$day:$slot"] = $zone;
+        }
+        $form = ['clasif' => $id($r['activity_type']), 'periodo' => $id($r['period'])];
+        $this->event($as, 'get_form_edit_zpriori', $form, "zone form of $key", TRUE);
+        $days = [];
+        for ($day = 1; $day <= $period['days']; $day++) {
+          $slots = [];
+          for ($slot = 1; $slot <= $period['slots_per_day']; $slot++) {
+            $slots[] = (string) ($zones["$day:$slot"] ?? 1);
+          }
+          $days[] = implode(',', $slots);
+        }
+        $this->event($as, 'custom_set_zpriori', [
+          'clasif' => $id($r['activity_type']),
+          'periodo' => $id($r['period']),
+          'zpriori' => implode(';', $days),
+        ], "custom_set_zpriori $key");
+        $this->ids[$key] = $id($r['period']);
+        break;
+
+      case 'load_limit':
+        // No screen wrote limits (A-4): add_HigieneParaProfesor / _Brigada.
+        [$class, $column] = $r['kind'] === 'teacher'
+          ? ['HigieneParaProfesor', 'profesor']
+          : ['HigieneParaBrigada', 'brigada'];
+        $this->event($as, "add_$class", [
+          "field_{$class}_periodo" => $id($r['period']),
+          "field_{$class}_$column" => $id($r['target']),
+          "field_{$class}_gasto_maximo_diario" => $r['max_daily_load'],
+        ], "add_$class $key");
+        $this->ids[$key] = $id($r['period']);
+        break;
+
       case 'room_assignment':
         // agregarLugarParaActividad (priority 1), then actualizaPrioridadLxact.
         $fields = [

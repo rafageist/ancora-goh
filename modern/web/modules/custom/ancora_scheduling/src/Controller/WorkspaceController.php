@@ -180,6 +180,15 @@ final class WorkspaceController extends ControllerBase {
           'query' => ['kind' => 'period', 'period' => $period->id()],
         ]),
       ];
+      // Breaks and daily load limits of the period (D9b).
+      $links['breaks'] = [
+        'title' => $this->t('Breaks'),
+        'url' => Url::fromRoute('ancora_academic.period_inputs.breaks', [], ['query' => ['period' => $period->id()]]),
+      ];
+      $links['limits'] = [
+        'title' => $this->t('Daily load limits'),
+        'url' => Url::fromRoute('ancora_academic.period_inputs.limits', [], ['query' => ['period' => $period->id()]]),
+      ];
       // The breakdown options of the period's subjects (legacy desglose).
       $links['breakdowns'] = [
         'title' => $this->t('Subject breakdowns'),

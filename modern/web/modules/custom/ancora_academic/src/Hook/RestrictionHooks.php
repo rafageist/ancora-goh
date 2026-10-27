@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Drupal\ancora_academic\Hook;
 
 use Drupal\ancora_academic\Entity\TimeRestriction;
+use Drupal\ancora_academic\PeriodInputs;
 use Drupal\ancora_academic\TimeRestrictionGrid;
 use Drupal\Core\Entity\Display\EntityViewDisplayInterface;
 use Drupal\Core\Entity\EntityInterface;
@@ -13,10 +14,11 @@ use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\Core\Url;
 
 /**
- * Time restrictions are deleted with their period, plan or object.
+ * Period inputs are deleted with their period, plan or object.
  *
- * The legacy restriccion_de_* rows reference their object and period ON
- * DELETE CASCADE; restrictions never block a delete.
+ * The legacy restriccion_de_*, receso, zpriori and higiene_para_* rows
+ * reference their object and period ON DELETE CASCADE; they never block a
+ * delete.
  */
 final class RestrictionHooks {
 
@@ -35,6 +37,7 @@ final class RestrictionHooks {
 
   public function __construct(
     private readonly TimeRestrictionGrid $grid,
+    private readonly PeriodInputs $inputs,
   ) {}
 
   /**
@@ -54,6 +57,16 @@ final class RestrictionHooks {
     $query = $kind === FALSE
       ? ['kind' => 'period', 'period' => $entity->id()]
       : ['kind' => $kind, 'target' => $entity->id()];
+    if ($entity->getEntityTypeId() === 'ancora_activity_type') {
+      $build['ancora_priority_zones'] = [
+        '#type' => 'link',
+        '#title' => new TranslatableMarkup('Priority zones'),
+        '#url' => Url::fromRoute('ancora_academic.period_inputs.zones', [], ['query' => ['activity_type' => $entity->id()]]),
+        '#weight' => 102,
+        '#prefix' => '<p class="ancora-zones-link">',
+        '#suffix' => '</p>',
+      ];
+    }
     $build['ancora_time_restrictions'] = [
       '#type' => 'link',
       '#title' => new TranslatableMarkup('Time restrictions'),
@@ -73,6 +86,8 @@ final class RestrictionHooks {
     $field = self::FIELDS[$entity->getEntityTypeId()] ?? NULL;
     if ($field !== NULL && !$entity instanceof TimeRestriction) {
       $this->grid->deleteFor($field, $entity->id());
+      // Breaks, zones and load limits (D9b) cascade the same way.
+      $this->inputs->deleteFor($field, $entity->id());
     }
   }
 

@@ -14,6 +14,7 @@ use Drupal\ancora_scheduling\Timetable\TimetableReader;
 use Drupal\Core\Access\AccessResult;
 use Drupal\Core\Access\AccessResultInterface;
 use Drupal\Core\Cache\CacheableMetadata;
+use Drupal\ancora_academic\PeriodInputs;
 use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\Datetime\DateFormatterInterface;
 use Drupal\Core\DependencyInjection\AutowireTrait;
@@ -43,6 +44,7 @@ final class SchedulingController extends ControllerBase {
     private readonly TimetableReader $reader,
     private readonly DateFormatterInterface $dateFormatter,
     private readonly RequestStack $requestStack,
+    private readonly PeriodInputs $inputs,
   ) {}
 
   /**
@@ -275,7 +277,8 @@ final class SchedulingController extends ControllerBase {
     $days = range(1, max(1, (int) $period->getDays()));
     $slots = [];
     for ($slot = 1; $slot <= max(1, (int) $period->getSlotsPerDay()); $slot++) {
-      $start = $period->getStartHour() + ($slot - 1) * $period->getSlotDuration();
+      // Breaks included, as dame_hora_inicial_turno() computes it (D9b).
+      $start = $this->inputs->slotStart($period, $slot);
       $cells = [];
       foreach ($days as $day) {
         $cells[$day] = array_values(array_filter($placements, static fn (array $p): bool => $p['day'] === $day && $slot >= $p['slot'] && $slot < $p['slot'] + $p['slots']));
@@ -301,9 +304,9 @@ final class SchedulingController extends ControllerBase {
     usort($placements, static fn (array $a, array $b): int => [$a['day'], $a['slot']] <=> [$b['day'], $b['slot']]);
     $days = [];
     foreach ($placements as $placement) {
-      $start = $period->getStartHour() + ($placement['slot'] - 1) * $period->getSlotDuration();
+      $start = $this->inputs->slotStart($period, $placement['slot']);
       $placement['time'] = WorkspaceController::hour($start);
-      $placement['end'] = WorkspaceController::hour($start + $placement['slots'] * $period->getSlotDuration());
+      $placement['end'] = WorkspaceController::hour($this->inputs->slotStart($period, $placement['slot'] + $placement['slots'] - 1) + $period->getSlotDuration());
       $days[$placement['day']]['day'] = $placement['day'];
       $days[$placement['day']]['placements'][] = $placement;
     }

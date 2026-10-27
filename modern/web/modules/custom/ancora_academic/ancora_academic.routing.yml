@@ -42,3 +42,31 @@ ancora_academic.restrictions:
     _title: 'Time restrictions'
   requirements:
     _permission: 'edit academic data+administer academic data'
+
+# The other inputs of a period (D9b): ?period= (and ?activity_type=).
+ancora_academic.period_inputs.breaks:
+  path: '/ancora/planning/breaks'
+  defaults:
+    _form: '\Drupal\ancora_academic\Form\PeriodInputsForm'
+    _title: 'Breaks'
+    input: breaks
+  requirements:
+    _permission: 'edit academic data+administer academic data'
+
+ancora_academic.period_inputs.zones:
+  path: '/ancora/planning/priority-zones'
+  defaults:
+    _form: '\Drupal\ancora_academic\Form\PeriodInputsForm'
+    _title: 'Priority zones'
+    input: zones
+  requirements:
+    _permission: 'edit academic data+administer academic data'
+
+ancora_academic.period_inputs.limits:
+  path: '/ancora/planning/load-limits'
+  defaults:
+    _form: '\Drupal\ancora_academic\Form\PeriodInputsForm'
+    _title: 'Daily load limits'
+    input: limits
+  requirements:
+    _permission: 'edit academic data+administer academic data'

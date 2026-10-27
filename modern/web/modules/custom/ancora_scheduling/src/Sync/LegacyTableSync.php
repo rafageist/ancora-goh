@@ -80,6 +80,11 @@ final class LegacyTableSync {
     'restriccion_de_brigada' => [['id'], 'id'],
     'restriccion_de_profesor' => [['id'], 'id'],
     'restriccion_de_lugar' => [['id'], 'id'],
+    // D9b: no id of their own; selected by their (numbered) period.
+    'receso' => [['periodo', 'despues_del_turno'], 'periodo'],
+    'zpriori' => [['clasificacion', 'periodo', 'dia', 'turno'], 'periodo'],
+    'higiene_para_profesor' => [['periodo', 'profesor', 'gasto_maximo_diario'], 'periodo'],
+    'higiene_para_brigada' => [['periodo', 'brigada', 'gasto_maximo_diario'], 'periodo'],
   ];
 
   /**

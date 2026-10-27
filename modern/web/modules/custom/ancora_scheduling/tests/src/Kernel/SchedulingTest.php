@@ -12,6 +12,7 @@ use Drupal\ancora_engine\JobRepository;
 use Drupal\ancora_scheduling\ScopeMapper;
 use Drupal\ancora_academic\Entity\Period;
 use Drupal\ancora_academic\Entity\TimeRestriction;
+use Drupal\ancora_academic\PeriodInputs;
 use Drupal\ancora_academic\TimeRestrictionGrid;
 use Drupal\ancora_scheduling\Sync\LegacyTableSync;
 use Drupal\Tests\ancora_academic\Kernel\AcademicKernelTestBase;
@@ -116,6 +117,12 @@ final class SchedulingTest extends AcademicKernelTestBase {
       $target = $code === NULL ? NULL : (int) $this->byCode(TimeRestriction::TARGET_TYPES[$kind], $code)->id();
       $this->assertSame([], $grid->save($kind, $target, $period, [[1, 1]]));
     }
+    // A break, a zone and a load limit of each kind (D9b).
+    $inputs = $this->container->get(PeriodInputs::class);
+    $this->assertSame([], $inputs->saveBreaks($period, [1 => 0.5]));
+    $this->assertSame([], $inputs->saveZones($this->byCode('ancora_activity_type', 'C1')->id(), $period, ['1:1' => 2]));
+    $this->assertSame([], $inputs->saveLimits($period, 'teacher', [(int) $this->byCode('ancora_teacher', 'TA')->id() => 4]));
+    $this->assertSame([], $inputs->saveLimits($period, 'cohort', [(int) $this->byCode('ancora_cohort', 'B1')->id() => 4]));
     $export = $this->container->get(AcademicExport::class)->export($plan);
     $rows = $this->container->get(LegacyRows::class)->build($export, ScopeMapper::creator($plan), TRUE);
     $this->assertSame([], array_diff_key(LegacyTableSync::TABLES, $rows));

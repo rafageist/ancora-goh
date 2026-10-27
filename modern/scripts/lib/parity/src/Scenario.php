@@ -58,6 +58,13 @@ final class Scenario {
     // activity_type, subject, cohort, teacher, room), target (the object,
     // absent for "period"), period, cells: [[day, slot], ...].
     'time_restriction' => ['period' => 'period'],
+    // D9b: a break (after_slot, length in hours), the priority zones of an
+    // activity type (cells: [[day, slot, zone], ...], zone 1 is not
+    // stored), a daily load limit (kind teacher or cohort, target,
+    // max_daily_load).
+    'break' => ['period' => 'period'],
+    'priority_zones' => ['period' => 'period', 'activity_type' => 'activity_type'],
+    'load_limit' => ['period' => 'period'],
   ];
 
   /**
@@ -177,7 +184,7 @@ final class Scenario {
     return match ($record['type']) {
       'plan' => $key,
       'period', 'student_group' => $record['plan'],
-      'activity_template', 'breakdown', 'time_restriction' => $this->planOf($record['period']),
+      'activity_template', 'breakdown', 'time_restriction', 'break', 'priority_zones', 'load_limit' => $this->planOf($record['period']),
       'teacher_assignment', 'room_assignment' => $this->planOf($record['template']),
       default => NULL,
     };
@@ -214,6 +221,9 @@ final class Scenario {
       'room_assignment' => [$r['type'], $r['template'], $r['room']],
       'breakdown' => [$r['type'], $r['subject'], $r['period']],
       'time_restriction' => [$r['type'], $r['kind'], $r['target'] ?? '', $r['period']],
+      'break' => [$r['type'], $r['period'], (string) $r['after_slot']],
+      'priority_zones' => [$r['type'], $r['activity_type'], $r['period']],
+      'load_limit' => [$r['type'], $r['kind'], $r['target'], $r['period']],
       default => [$r['type'], $r['as'], $r['label']],
     };
   }
