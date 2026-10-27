@@ -16,6 +16,7 @@ use Drupal\ancora_academic\Entity\RoomAssignment;
 use Drupal\ancora_academic\Entity\StudentGroup;
 use Drupal\ancora_academic\Entity\Subject;
 use Drupal\ancora_academic\Entity\TeacherAssignment;
+use Drupal\ancora_academic\Entity\TimeRestriction;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 
 /**
@@ -44,6 +45,9 @@ use Drupal\Core\Entity\EntityTypeManagerInterface;
  * - "breakdowns" holds the options of the stored subject breakdowns of the
  *   periods (legacy "desglose", D4). A subject and period without a stored
  *   breakdown has the legacy defaults (LegacyRows).
+ * - "time_restrictions" holds the restricted cells of the periods (legacy
+ *   restriccion_de_*, D9a): kind, the restricted object's key (NULL for
+ *   the period itself), day and slot.
  * - "issues" lists data the engine cannot use as is (for example a template
  *   that requires a teacher and has none); the export never fails for them.
  *
@@ -55,7 +59,7 @@ final class AcademicExport {
   /**
    * The version of the export contract.
    */
-  public const SCHEMA = 'ancora_academic.export.v3';
+  public const SCHEMA = 'ancora_academic.export.v4';
 
   /**
    * The catalogue lists: export key => entity type ID.
@@ -164,6 +168,7 @@ final class AcademicExport {
     ], $room_assignments), $template_order, 'room_code');
 
     $export['breakdowns'] = $this->breakdowns($period_ids);
+    $export['time_restrictions'] = $this->timeRestrictions($period_ids);
     $export['issues'] = $this->issues($export);
     return $export;
   }
@@ -190,6 +195,7 @@ final class AcademicExport {
       'teacher_assignments' => [],
       'room_assignments' => [],
       'breakdowns' => [],
+      'time_restrictions' => [],
       'issues' => [],
     ];
   }
@@ -255,6 +261,39 @@ final class AcademicExport {
     }
     $order = static fn (array $b): array => [$b['subject_code'], $b['period_code'], $b['id']];
     usort($records, static fn (array $a, array $b): int => $order($a) <=> $order($b));
+    return $records;
+  }
+
+  /**
+   * The restricted cells of some periods, in entity id order.
+   *
+   * @param list<int> $period_ids
+   *   The periods.
+   *
+   * @return list<array<string, mixed>>
+   *   key, id, period (key), kind, target (key or NULL), day, slot.
+   */
+  private function timeRestrictions(array $period_ids): array {
+    if ($period_ids === []) {
+      return [];
+    }
+    $storage = $this->entityTypeManager->getStorage('ancora_time_restriction');
+    $ids = $storage->getQuery()->accessCheck(FALSE)->condition('period', $period_ids, 'IN')->sort('id')->execute();
+    $records = [];
+    foreach ($storage->loadMultiple($ids) as $restriction) {
+      assert($restriction instanceof TimeRestriction);
+      $field = TimeRestriction::KINDS[$restriction->getKind()] ?? NULL;
+      [$day, $slot] = $restriction->getCell();
+      $records[] = [
+        'key' => (string) $restriction->uuid(),
+        'id' => (int) $restriction->id(),
+        'period' => $this->key($restriction, 'period'),
+        'kind' => $restriction->getKind(),
+        'target' => $field === NULL ? NULL : $this->key($restriction, $field),
+        'day' => $day,
+        'slot' => $slot,
+      ];
+    }
     return $records;
   }
 

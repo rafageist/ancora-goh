@@ -33,3 +33,12 @@ ancora_academic.section.assignments:
     section: assignments
   requirements:
     _permission: 'view academic data+administer academic data'
+
+# The day x slot restriction grid (D9a): ?period=, ?kind=, ?target=.
+ancora_academic.restrictions:
+  path: '/ancora/planning/restrictions'
+  defaults:
+    _form: '\Drupal\ancora_academic\Form\RestrictionGridForm'
+    _title: 'Time restrictions'
+  requirements:
+    _permission: 'edit academic data+administer academic data'

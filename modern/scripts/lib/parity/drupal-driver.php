@@ -29,6 +29,7 @@ use Ancora\Parity\Scenario;
 use Drupal\ancora_academic\AcademicAccessControlHandler;
 use Drupal\ancora_academic\AcademicEntityInterface;
 use Drupal\ancora_academic\BreakdownMaintainer;
+use Drupal\ancora_academic\TimeRestrictionGrid;
 use Drupal\ancora_engine\Job\JobOptions;
 use Drupal\ancora_scheduling\ScopeMapper;
 use Drupal\user\Entity\Role;
@@ -95,6 +96,30 @@ foreach ($ancora_scenario->records as $key => $r) {
         continue 3;
       }
     }
+  }
+  if ($r['type'] === 'time_restriction') {
+    // The restriction grid of the object and period, saved as the grid form
+    // saves it (TimeRestrictionGrid).
+    $switcher->switchTo($ancora_accounts[$r['as']]);
+    try {
+      $period = $ancora_entities[$r['period']];
+      $target = isset($r['target']) ? ($ancora_entities[$r['target']] ?? NULL) : NULL;
+      if (!$period->access('update') || (isset($r['target']) && ($target === NULL || !$target->access('update')))) {
+        $ancora_fail("restrict $key: access denied or target missing");
+        continue;
+      }
+      $messages = \Drupal::service(TimeRestrictionGrid::class)->save($r['kind'], $target === NULL ? NULL : (int) $target->id(), $period, $r['cells']);
+      if ($messages !== []) {
+        $ancora_fail("restrict $key: " . implode('; ', $messages));
+        continue;
+      }
+      $ancora_entities[$key] = $target ?? $period;
+      echo "ok    restrict $key (" . count($r['cells']) . " cells)\n";
+    }
+    finally {
+      $switcher->switchBack();
+    }
+    continue;
   }
   if ($r['type'] === 'breakdown') {
     // The breakdown exists (BreakdownMaintainer, as the legacy triggers);

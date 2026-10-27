@@ -4,10 +4,12 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\ancora_scheduling\Kernel;
 
+use Drupal\ancora_academic\Entity\Period;
 use Drupal\ancora_academic\Entity\Plan;
 use Drupal\ancora_academic\Entity\StudentGroup;
 use Drupal\ancora_academic\GroupMembership;
 use Drupal\ancora_academic\Plugin\Validation\Constraint\GroupMembershipConstraintValidator;
+use Drupal\ancora_academic\TimeRestrictionGrid;
 use Drupal\ancora_engine\Engine\EngineClient;
 use Drupal\ancora_engine\EngineSettings;
 use Drupal\ancora_scheduling\Hook\GroupActivities;
@@ -119,6 +121,21 @@ final class GroupGuardUnreachableTest extends AcademicKernelTestBase {
     $g1->set('cohorts', []);
     $this->assertSame([], $this->violationFields($g1));
     $this->assertSame('G1=B1 G2=B2', $this->memberships());
+  }
+
+  /**
+   * A teacher, room or cohort restriction cannot be verified: refused.
+   */
+  public function testUnreachableEngineRefusesTheRestriction(): void {
+    $this->plan = $this->loadFixture();
+    $grid = $this->container->get(TimeRestrictionGrid::class);
+    $period = $this->byCode('ancora_period', 'PER', $this->plan);
+    assert($period instanceof Period);
+    $messages = $grid->save('teacher', (int) $this->byCode('ancora_teacher', 'TA')->id(), $period, [[1, 1]]);
+    $this->assertCount(1, $messages);
+    $this->assertStringContainsString('cannot be verified right now', $messages[0]);
+    // A period restriction has no occupancy rows to verify.
+    $this->assertSame([], $grid->save('period', NULL, $period, [[1, 1]]));
   }
 
 }

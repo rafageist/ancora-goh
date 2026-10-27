@@ -143,6 +143,71 @@ final class LegacyDriver {
   }
 
   /**
+   * Enters the restricted cells of one object in one period.
+   *
+   * The period grid is the legacy editor: the browser opens
+   * get_form_edit_Periodo_restricciones and posts the whole grid to
+   * custom_set_Restricciones_Periodo ("1"/"0" per slot, "," between slots,
+   * ";" between days: ancoragoh_client_forms_periodo.js
+   * guardarRestricciones()). The other kinds had no editor (A-4): their
+   * rows go in through the generated handlers add_RestriccionDe<Class>,
+   * one per cell, with valor 1 and por_actividad false, the values of a
+   * manual restriction.
+   */
+  private function restrictions(string $key, array $r): void {
+    $as = $r['as'];
+    $period = $this->scenario->records[$r['period']];
+    $cells = [];
+    foreach ($r['cells'] as [$day, $slot]) {
+      $cells["$day:$slot"] = TRUE;
+    }
+    if ($r['kind'] === 'period') {
+      $this->event($as, 'get_form_edit_Periodo_restricciones', ['id' => $this->ids[$r['period']]], "restriction form of {$r['period']}", TRUE);
+      $days = [];
+      for ($day = 1; $day <= $period['days']; $day++) {
+        $slots = [];
+        for ($slot = 1; $slot <= $period['slots_per_day']; $slot++) {
+          $slots[] = isset($cells["$day:$slot"]) ? '1' : '0';
+        }
+        $days[] = implode(',', $slots);
+      }
+      $this->event($as, 'custom_set_Restricciones_Periodo', [
+        'field_Periodo_id' => $this->ids[$r['period']],
+        'field_Restricciones' => implode(';', $days),
+      ], "custom_set_Restricciones_Periodo $key");
+      $this->ids[$key] = $this->ids[$r['period']];
+      return;
+    }
+    $classes = [
+      'activity_type' => ['ClasifAct', 'clasificacion', FALSE],
+      'subject' => ['Asignatura', 'asignatura', FALSE],
+      'cohort' => ['Brigada', 'brigada', TRUE],
+      'teacher' => ['Profesor', 'profesor', TRUE],
+      'room' => ['Lugar', 'lugar', TRUE],
+    ];
+    [$class, $column, $occupancy] = $classes[$r['kind']];
+    if (!isset($this->ids[$r['target']])) {
+      $this->fail("$key: skipped, target {$r['target']} was not entered");
+      return;
+    }
+    foreach ($r['cells'] as [$day, $slot]) {
+      $fields = [
+        "field_RestriccionDe{$class}_$column" => $this->ids[$r['target']],
+        "field_RestriccionDe{$class}_periodo" => $this->ids[$r['period']],
+        "field_RestriccionDe{$class}_dia" => $day,
+        "field_RestriccionDe{$class}_turno" => $slot,
+        "field_RestriccionDe{$class}_valor" => 1,
+      ];
+      if ($occupancy) {
+        $fields["field_RestriccionDe{$class}_por_actividad"] = 'false';
+      }
+      $this->event($as, "add_RestriccionDe$class", $fields, "add_RestriccionDe$class $key $day.$slot", TRUE);
+    }
+    echo "ok    add_RestriccionDe$class $key (" . count($r['cells']) . " cells)\n";
+    $this->ids[$key] = $this->ids[$r['target']];
+  }
+
+  /**
    * Posts set_Desglose with raw values and records the stored row.
    *
    * The legacy form posts the two day counts as free text and the
@@ -511,6 +576,10 @@ final class LegacyDriver {
           'mismo_dia' => $r['same_day'] ? '1' : '0',
         ]), "set_Desglose $key");
         $this->ids[$key] = $form['id'];
+        break;
+
+      case 'time_restriction':
+        $this->restrictions($key, $r);
         break;
 
       case 'room_assignment':

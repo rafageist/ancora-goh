@@ -233,3 +233,21 @@ function ancora_academic_update_11003(): string {
   $created = \Drupal::service(BreakdownMaintainer::class)->ensureAll();
   return (string) t('@count subject breakdowns were created with the legacy defaults.', ['@count' => $created]);
 }
+
+/**
+ * Adds the time restrictions (#70, D9a).
+ *
+ * Installs the ancora_time_restriction entity type, empty: the earlier
+ * Drupal had no restrictions, so the engine received none and timetables do
+ * not change until a planner restricts a cell.
+ */
+function ancora_academic_update_11005(): string {
+  $manager = \Drupal::entityDefinitionUpdateManager();
+  $entity_type_manager = \Drupal::entityTypeManager();
+  $entity_type_manager->clearCachedDefinitions();
+  if ($manager->getEntityType('ancora_time_restriction') !== NULL) {
+    return (string) t('The time restrictions are already installed.');
+  }
+  $manager->installEntityType($entity_type_manager->getDefinition('ancora_time_restriction'));
+  return (string) t('The time restrictions are installed.');
+}

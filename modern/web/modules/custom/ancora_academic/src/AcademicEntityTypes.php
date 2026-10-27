@@ -65,6 +65,16 @@ final class AcademicEntityTypes {
   ];
 
   /**
+   * Types edited only through a grid (no add or edit form of their own).
+   *
+   * Time restrictions (D9a): one record per restricted cell, edited with the
+   * restriction grid (RestrictionGridForm). They belong to a plan.
+   */
+  public const GRID = [
+    'ancora_time_restriction',
+  ];
+
+  /**
    * The sections of the planner navigation (#105): section => entity types.
    *
    * Only a grouping of the lists for the menus and section pages; the data

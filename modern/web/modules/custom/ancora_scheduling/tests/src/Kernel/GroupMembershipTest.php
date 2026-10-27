@@ -4,11 +4,13 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\ancora_scheduling\Kernel;
 
+use Drupal\ancora_academic\Entity\Period;
 use Drupal\ancora_academic\Entity\Plan;
 use Drupal\ancora_academic\Entity\StudentGroup;
 use Drupal\ancora_academic\GroupMembership;
 use Drupal\ancora_academic\Hook\MembershipHooks;
 use Drupal\ancora_academic\Plugin\Validation\Constraint\GroupMembershipConstraintValidator;
+use Drupal\ancora_academic\TimeRestrictionGrid;
 use Drupal\ancora_engine\EngineSettings;
 use Drupal\ancora_scheduling\Hook\GroupActivities;
 use Drupal\Core\Site\Settings;
@@ -107,6 +109,33 @@ final class GroupMembershipTest extends AcademicKernelTestBase {
       'engine_id' => 'test:' . $group->id(),
       'job' => 1,
     ])->save();
+  }
+
+  /**
+   * A manual restriction cannot take a cell a placement occupies (D9a).
+   *
+   * The legacy UNIQUE (object, period, day, slot) of the brigade, teacher
+   * and room restriction tables, shared with the occupancy rows.
+   */
+  public function testRestrictionOnOccupiedCell(): void {
+    $this->plan = $this->loadFixture();
+    $this->place($this->group('G1'));
+    $grid = $this->container->get(TimeRestrictionGrid::class);
+    $period = $this->byCode('ancora_period', 'PER', $this->plan);
+    assert($period instanceof Period);
+    foreach (['teacher' => 'TA', 'room' => 'L1', 'cohort' => 'B1'] as $kind => $code) {
+      $type = ['teacher' => 'ancora_teacher', 'room' => 'ancora_room', 'cohort' => 'ancora_cohort'][$kind];
+      $id = (int) $this->byCode($type, $code)->id();
+      $messages = $grid->save($kind, $id, $period, [[1, 1], [2, 2]]);
+      $this->assertCount(1, $messages, $kind);
+      $this->assertStringContainsString('a placed activity occupies it', $messages[0]);
+      $this->assertSame([], $grid->load($kind, $id, (int) $period->id()), "$kind: nothing saved");
+      // Another cell, or another object, is free.
+      $this->assertSame([], $grid->save($kind, $id, $period, [[2, 2]]));
+    }
+    $this->assertSame([], $grid->save('teacher', (int) $this->byCode('ancora_teacher', 'TB')->id(), $period, [[1, 1]]));
+    // The period itself, a subject or an activity type has no occupancy.
+    $this->assertSame([], $grid->save('period', NULL, $period, [[1, 1]]));
   }
 
   /**

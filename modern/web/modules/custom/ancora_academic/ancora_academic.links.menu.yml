@@ -35,3 +35,10 @@ ancora_academic.main.assignments:
   weight: -20
 ancora_academic.main:
   deriver: '\Drupal\ancora_academic\Plugin\Derivative\AcademicMainMenuLinks'
+ancora_academic.main.restrictions:
+  title: 'Time restrictions'
+  description: 'The cells of a period that a period, activity type, subject, cohort, teacher or room cannot use.'
+  route_name: ancora_academic.restrictions
+  menu_name: main
+  parent: ancora_academic.main.plans
+  weight: 10

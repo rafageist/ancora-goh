@@ -70,6 +70,16 @@ final class LegacyTableSync {
     'profesor_para_grupo' => [['profesor_para_actividad', 'grupo'], 'grupo'],
     'lugar' => [['id'], 'id'],
     'lugar_para_actividad' => [['plantilla', 'lugar'], 'plantilla'],
+    // Manual time restrictions (D9a). Their tables also hold the occupancy
+    // rows that the legacy RULEs write for placements; those have replica
+    // ids, never a synced id, so the sync does not see them. Inserting or
+    // deleting a row fires the RULEs that write its real-date rows.
+    'restriccion_de_periodo' => [['id'], 'id'],
+    'restriccion_de_clasif_act' => [['id'], 'id'],
+    'restriccion_de_asignatura' => [['id'], 'id'],
+    'restriccion_de_brigada' => [['id'], 'id'],
+    'restriccion_de_profesor' => [['id'], 'id'],
+    'restriccion_de_lugar' => [['id'], 'id'],
   ];
 
   /**

@@ -77,8 +77,28 @@ final class LegacyRows {
     'especialidad', 'nivel', 'brigada', 'grupo', 'brigada_de_grupo',
     'asignatura', 'desglose', 'plantilla_de_actividad', 'profesor',
     'profesor_para_actividad', 'profesor_para_grupo', 'lugar',
-    'lugar_para_actividad',
+    'lugar_para_actividad', 'restriccion_de_periodo',
+    'restriccion_de_clasif_act', 'restriccion_de_asignatura',
+    'restriccion_de_brigada', 'restriccion_de_profesor',
+    'restriccion_de_lugar',
   ];
+
+  /**
+   * Time restriction kind => legacy table and object column (D9a).
+   */
+  public const RESTRICTION_TABLES = [
+    'period' => ['restriccion_de_periodo', NULL],
+    'activity_type' => ['restriccion_de_clasif_act', 'clasificacion'],
+    'subject' => ['restriccion_de_asignatura', 'asignatura'],
+    'cohort' => ['restriccion_de_brigada', 'brigada'],
+    'teacher' => ['restriccion_de_profesor', 'profesor'],
+    'room' => ['restriccion_de_lugar', 'lugar'],
+  ];
+
+  /**
+   * The tables whose rows also carry por_actividad and actividad.
+   */
+  private const OCCUPANCY_TABLES = ['restriccion_de_brigada', 'restriccion_de_profesor', 'restriccion_de_lugar'];
 
   /**
    * Builds the legacy rows of an export.
@@ -248,6 +268,25 @@ final class LegacyRows {
         'lugar' => $code($assignment['room']),
         'prioridad' => $assignment['priority'],
       ];
+    }
+    // Manual restriction rows (valor 1, as the legacy editor stores it; the
+    // occupancy rows of placements are the engine's, never exported).
+    foreach ($export['time_restrictions'] as $restriction) {
+      [$table, $column] = self::RESTRICTION_TABLES[$restriction['kind']];
+      $row = ['id' => $make($restriction, 'r' . $restriction['id'])];
+      if ($column !== NULL) {
+        $row[$column] = $code($restriction['target']);
+      }
+      $row += [
+        'periodo' => $code($restriction['period']),
+        'dia' => $restriction['day'],
+        'turno' => $restriction['slot'],
+        'valor' => 1,
+      ];
+      if (in_array($table, self::OCCUPANCY_TABLES, TRUE)) {
+        $row += ['por_actividad' => FALSE, 'actividad' => NULL];
+      }
+      $rows[$table][] = $row;
     }
     return $rows;
   }

@@ -19,7 +19,9 @@ final class Normalizer {
    *   creator, "ref:" a reference resolved to its key first;
    * - derived: for rows that are no scenario record, the columns whose
    *   resolved values form the key;
-   * - refs: foreign key column => referenced table.
+   * - refs: foreign key column => referenced table;
+   * - where: an SQL condition on the compared rows (the manual restriction
+   *   rows; the occupancy rows of placements are compared as placements).
    */
   public const TABLES = [
     'planificacion' => [
@@ -104,6 +106,34 @@ final class Normalizer {
     'lugar_para_actividad' => [
       'refs' => ['plantilla' => 'plantilla_de_actividad', 'lugar' => 'lugar'],
     ],
+    // Manual time restrictions (D9a).
+    'restriccion_de_periodo' => [
+      'derived' => ['periodo', 'dia', 'turno'],
+      'refs' => ['periodo' => 'periodo'],
+    ],
+    'restriccion_de_clasif_act' => [
+      'derived' => ['clasificacion', 'periodo', 'dia', 'turno'],
+      'refs' => ['clasificacion' => 'clasificacion_de_actividad', 'periodo' => 'periodo'],
+    ],
+    'restriccion_de_asignatura' => [
+      'derived' => ['asignatura', 'periodo', 'dia', 'turno'],
+      'refs' => ['asignatura' => 'asignatura', 'periodo' => 'periodo'],
+    ],
+    'restriccion_de_brigada' => [
+      'derived' => ['brigada', 'periodo', 'dia', 'turno'],
+      'refs' => ['brigada' => 'brigada', 'periodo' => 'periodo'],
+      'where' => 'NOT por_actividad',
+    ],
+    'restriccion_de_profesor' => [
+      'derived' => ['profesor', 'periodo', 'dia', 'turno'],
+      'refs' => ['profesor' => 'profesor', 'periodo' => 'periodo'],
+      'where' => 'NOT por_actividad',
+    ],
+    'restriccion_de_lugar' => [
+      'derived' => ['lugar', 'periodo', 'dia', 'turno'],
+      'refs' => ['lugar' => 'lugar', 'periodo' => 'periodo'],
+      'where' => 'NOT por_actividad',
+    ],
   ];
 
   /**
@@ -136,7 +166,7 @@ final class Normalizer {
     $index = $this->scenario->naturalIndex();
     $tables = [];
     foreach (self::TABLES as $table => $spec) {
-      $rows = pg_fetch_all(pg_query($this->db, "SELECT * FROM $table")) ?: [];
+      $rows = pg_fetch_all(pg_query($this->db, "SELECT * FROM $table" . (isset($spec['where']) ? " WHERE {$spec['where']}" : ''))) ?: [];
       $out = [];
       foreach ($rows as $row) {
         $key = NULL;

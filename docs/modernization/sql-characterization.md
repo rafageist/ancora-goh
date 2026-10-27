@@ -75,6 +75,8 @@ After the #70 breakdown slice (D4, 57 cases): **47 PASS, 10 XFAIL, 0 FAIL / XPAS
 
 After the #70 D6/D10 slice (60 cases): **49 PASS, 11 XFAIL, 0 FAIL / XPASS / XWRONG**. Case 136 records the column rules of brigade, group and subject (any integer enrolment, nullable subject specialty), that `dame_grupos()` follows the brigades' specialty, the "no group" list and the unguarded removal. Case 137 (xfail 57014) records that a zero-duration classification, which the legacy form accepts, makes `generar()` loop until the timeout (quirk Q-27, an availability exception: not reproduced). Case 138 records that the cost takes any integer with the same placements, and that a duration above the slots of a day is placed and overflows. Every earlier result is unchanged.
 
+After the #70 D9a slice (61 cases): **50 PASS, 11 XFAIL, 0 FAIL / XPASS / XWRONG**. Case 139 records the effect of a manual restriction of each kind on `generar()`, that a specialty restriction is never read, that a restriction of another period or without a period is inert, the keys (no id default, UNIQUE with the occupancy rows) and the real-date rows. Every earlier result is unchanged.
+
 A negative run confirmed that the runner exits non-zero. It used a temporary copy of the suite with three cases modified to give one FAIL, one XPASS and one XWRONG.
 
 ### Coverage against the issue
