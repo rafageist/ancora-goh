@@ -86,8 +86,9 @@ final class Period extends AcademicEntityBase {
       new TranslatableMarkup('Days'),
       new TranslatableMarkup('Days in the cycle of the period, for example 5 for Monday to Friday.'),
       1,
+      // Legacy CHECK (cant_dias > 0); no upper bound (#70, D6).
       1,
-      31,
+      self::INT_MAX,
       5,
     );
 
@@ -95,8 +96,9 @@ final class Period extends AcademicEntityBase {
       new TranslatableMarkup('Time slots per day'),
       new TranslatableMarkup('Number of time slots (turns) in each day.'),
       2,
+      // Legacy CHECK (cant_turnos > 0); no upper bound (#70, D6).
       1,
-      48,
+      self::INT_MAX,
       6,
     );
 

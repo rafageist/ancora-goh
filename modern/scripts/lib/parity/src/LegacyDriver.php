@@ -114,6 +114,10 @@ final class LegacyDriver {
         $this->characterizeBreakdownPost($step);
         continue;
       }
+      if ($step['kind'] === 'event') {
+        $this->characterizeEvent($step, $users);
+        continue;
+      }
       $record = $this->scenario->records[$step['record']];
       [$class, $table, $name] = $classes[$record['type']];
       $id = $this->ids[$step['record']];
@@ -171,6 +175,39 @@ final class LegacyDriver {
     $as_recorded = $observed == $step['legacy_expect'];
     $what = sprintf('set_Desglose %s as %s %s', $step['record'], $step['as'], json_encode($step['post']));
     printf("CHAR  %s %s (owner %s): %s, %s\n", $step['ref'] ?? '', $what, $this->scenario->ownerOf($step['record']), json_encode($observed), $as_recorded ? 'as recorded' : 'NOT as recorded');
+    if (!$as_recorded) {
+      $this->failures++;
+    }
+  }
+
+  /**
+   * Sends one legacy event and records the result of a query.
+   *
+   * A value "@KEY" in the fields or the query parameters is the legacy id of
+   * scenario record KEY. The query result (rows of text values; legacy user
+   * ids in a column "creador" become user keys) is compared with
+   * legacy_expect, and the HTTP status is recorded as "http".
+   *
+   * @param array<string, mixed> $step
+   *   The step: as, event, fields, query, params, legacy_expect, ref.
+   * @param array<string, string> $users
+   *   Legacy user id => scenario user key.
+   */
+  private function characterizeEvent(array $step, array $users): void {
+    $id = fn (mixed $v): mixed => is_string($v) && str_starts_with($v, '@') ? ($this->ids[substr($v, 1)] ?? $v) : $v;
+    $fields = ["app_event_{$step['event']}" => 'yes'] + array_map($id, $step['fields'] ?? []);
+    $this->login($step['as']);
+    [$status] = $this->rawPost($step['as'], $this->base . '?execute', $fields);
+    $rows = pg_fetch_all(pg_query_params($this->db, $step['query'], array_map($id, $step['params'] ?? []))) ?: [];
+    foreach ($rows as &$row) {
+      if (isset($row['creador'])) {
+        $row['creador'] = $users[$row['creador']] ?? '?';
+      }
+    }
+    unset($row);
+    $observed = ['http' => $status, 'rows' => $rows];
+    $as_recorded = $observed == $step['legacy_expect'];
+    printf("CHAR  %s %s as %s: %s, %s\n", $step['ref'] ?? '', $step['label'] ?? $step['event'], $step['as'], json_encode($observed), $as_recorded ? 'as recorded' : 'NOT as recorded');
     if (!$as_recorded) {
       $this->failures++;
     }

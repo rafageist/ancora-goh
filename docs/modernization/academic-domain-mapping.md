@@ -51,7 +51,7 @@ The legacy schema is in Spanish. The new code is in English. Each legacy term ma
   - references name records of the same creator, and plan records of the same plan (`AncoraSameCreator`), as the legacy choice lists offer only the user's own records;
   - until #70, catalogues were copied per plan and plan codes were unique on the site. `ancora_academic_update_11001()` converts existing data (see "Update path").
 - **Codes are the human keys; UUIDs are the stable keys.**
-  - Every record that has a name has a short code (`[A-Za-z0-9._-]+`, at most 32 characters), for example `G1` or `PER`.
+  - Every record that has a name has a code, for example `G1` or `PER`: the Drupal handle of the record (legacy records have no code). It is required and unique per owner or plan, and takes any text of up to 255 characters, the Drupal column size; names too (#70, D6; before, codes were `[A-Za-z0-9._-]+` of at most 32 characters and names at most 128).
   - The export identifies records by UUID (`key`), which survives renames.
   - The legacy row builder derives legacy IDs from the codes.
 - **Breakdown (desglose) is an entity kept by the module** (#70, D4). Legacy triggers create one `desglose` row for every subject and every period of the same creator, with defaults (`min_dias` 1, `max_dias` 5, `respetar_orden` true, `mismo_dia` false), and the foreign keys delete it with its subject or period. `ancora_breakdown` does the same (`BreakdownMaintainer`, `Hook/BreakdownHooks.php`): it is created when a subject or period is created (and when an owner changes), deleted with its subject, period or plan, never created or deleted by a user, and it does not block deletes. The owner edits its four options (`min_days`, `max_days`, `respect_order`, `same_day`) at `/admin/ancora/breakdowns/{id}/edit`, as in the legacy form; any integer is accepted, as the legacy handler stores it. Each template still references its subject and period directly.
@@ -114,7 +114,7 @@ Columns not listed are not modelled. The "Not modelled" section explains why.
 | --- | --- | --- |
 | `id`, `descripcion` | `code`, `label` | |
 | `especialidad`, `nivel` | `specialty`, `level` | required |
-| `matricula` | `enrollment` | ≥ 0, default 0 |
+| `matricula` | `enrollment` | any integer, default 0 (#70, D6) |
 | `creador` | `uid` | the owner; no plan. A cohort can be in groups of several of its owner's plans |
 
 ### `grupo` and `brigada_de_grupo` → `ancora_student_group`
@@ -125,14 +125,14 @@ Columns not listed are not modelled. The "Not modelled" section explains why.
 | `clasificacion` | `activity_type` | the kind of activity the group attends together |
 | `especialidad`, `nivel` | `specialty`, `level` | required |
 | `planificacion` | `plan` | |
-| `brigada_de_grupo(brigada, grupo)` | `cohorts` (multi-value) | `AncoraGroupCohorts`: each cohort has the group's specialty and level, as the legacy `dame_grupos` assumes |
+| `brigada_de_grupo(brigada, grupo)` | `cohorts` (multi-value) | Legacy membership (#70, D10; `GroupMembership`): a cohort is in one group per plan, activity type, specialty and level, and adding it to another group of that slot moves it; adding is refused when the group or the group it leaves has placed activities (`AncoraGroupMembership`); removing is never refused. No check that a cohort shares the group's specialty and level (legacy has none, `dame_grupos` goes by the cohorts); the form offers the group's specialty and level |
 
 ### `asignatura` → `ancora_subject`
 
 | Legacy column | Drupal field | Notes |
 | --- | --- | --- |
 | `id`, `descripcion` | `code`, `label` | |
-| `especialidad` (nullable) | `specialty` (required) | The generator selects subjects by specialty and level, so a subject without one is never scheduled. |
+| `especialidad` (nullable) | `specialty` (nullable; required by the form) | As the column (#70, D6). The legacy subject tree always gives a specialty, so the form requires one; data loaded otherwise may have none, and such a subject is never scheduled (case 136). |
 | `nivel` | `level` | required |
 | `creador` | `uid` | the owner; no plan |
 
@@ -340,6 +340,8 @@ The module adds no file to the frozen LBR baseline, and it modifies no legacy fi
 2. it merges catalogue records that were copies in several plans (same type, owner and code, same values) into the oldest one and moves every reference to it; copies with the same code and different values stop the update with a message, and nothing changes;
 3. it removes the plan field of the seven catalogue types.
 
+`ancora_academic_update_11004()` (D6) widens the name and code columns to 255 characters in place (the stored values are unchanged) and reports any cohort that earlier data has in two groups of one slot, without changing it: move it in the group form.
+
 `ancora_academic_update_11003()` (D4) installs the `ancora_breakdown` entity type and creates the breakdown of every subject and period of the same owner with the legacy defaults, the values the engine received before; timetables do not change until an option is edited. It can run again safely (it creates only missing ones).
 
 `ancora_academic_update_11002()` re-saves the activities view, so its results are cached per user. Then give the records to their planner, for example `drush ancora-academic:reassign-owner admin planner`. The first engine run afterwards replaces the engine rows of the earlier `p<plan>:` scheme (and, through the legacy cascades, their placements); request each timetable again. Re-provisioning the site is the alternative.
@@ -351,6 +353,6 @@ The earlier open questions are withdrawn (#70, maintainer decision): the legacy 
 1. **Shared catalogues across plans.** *Answered by the legacy schema:* catalogues belong to their creator and serve all the creator's plans (PAR-003). Implemented in #70 (D1).
 2. **Breakdown rules.** Answered from the legacy code (#70, D4): editable per subject and period, as the legacy form does; see PAR-032..034.
 3. **Restrictions.** How should the time restrictions be modelled: entities per target type, or one entity with a target reference? Should the legacy "real restriction" materialization stay in the engine?
-4. **Cohort membership.** Legacy `mueve_o_crea_brigada_de_grupo` moves a cohort between groups. Should a cohort be in at most one group per activity type? This is not enforced yet.
+4. **Cohort membership.** Answered from the legacy code (#70, D10): one group per plan, activity type, specialty and level, with moves and the activity guard (PAR-018).
 5. **Capacity.** Rooms smaller than the enrolment of a group's cohorts are filtered by the engine (`quita_segun_capacidad`). Should the UI warn about this as an export issue?
 6. **Engine IDs.** *Answered in #70 (D3, D15):* numbered ids (`0000000012:code`) in creation order, owned by the creating user's legacy user; the per-plan prefix and the per-plan owner `p<id>:owner` are gone.

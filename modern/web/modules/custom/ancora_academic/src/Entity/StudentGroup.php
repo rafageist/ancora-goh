@@ -65,7 +65,7 @@ use Drupal\views\EntityViewsData;
   constraints: [
     'AncoraUniqueInScope' => ['fields' => ['code']],
     'AncoraSameCreator' => [],
-    'AncoraGroupCohorts' => [],
+    'AncoraGroupMembership' => [],
   ],
 )]
 final class StudentGroup extends AcademicEntityBase {
@@ -106,7 +106,7 @@ final class StudentGroup extends AcademicEntityBase {
     $fields['cohorts'] = static::referenceField(
       'ancora_cohort',
       new TranslatableMarkup('Cohorts'),
-      new TranslatableMarkup('The cohorts in the group. They must have the specialty and level of the group.'),
+      new TranslatableMarkup('The cohorts in the group. A cohort is in one group per plan, activity type, specialty and level: adding it here moves it out of the other group. A group with placed activities cannot receive cohorts.'),
       4,
       TRUE,
     );

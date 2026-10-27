@@ -114,6 +114,21 @@ abstract class AcademicEntityBase extends ContentEntityBase implements AcademicE
   }
 
   /**
+   * The range of a PostgreSQL integer, the type of the legacy columns.
+   */
+  public const INT_MIN = -2147483648;
+  public const INT_MAX = 2147483647;
+
+  /**
+   * The length of the name and code columns.
+   *
+   * The legacy names (descripcion, nombre) are unbounded VARCHAR, and legacy
+   * records have no code; 255 is the size of a Drupal string column, not a
+   * legacy rule (#70, D6).
+   */
+  public const TEXT_LENGTH = 255;
+
+  /**
    * Defines the name field.
    */
   protected static function labelField(TranslatableMarkup $label, TranslatableMarkup $description): BaseFieldDefinition {
@@ -121,7 +136,7 @@ abstract class AcademicEntityBase extends ContentEntityBase implements AcademicE
       ->setLabel($label)
       ->setDescription($description)
       ->setRequired(TRUE)
-      ->setSetting('max_length', 128)
+      ->setSetting('max_length', self::TEXT_LENGTH)
       ->setDisplayOptions('form', ['type' => 'string_textfield', 'weight' => -10])
       ->setDisplayOptions('view', ['label' => 'hidden', 'type' => 'string', 'weight' => -10])
       ->setDisplayConfigurable('form', TRUE)
@@ -129,24 +144,21 @@ abstract class AcademicEntityBase extends ContentEntityBase implements AcademicE
   }
 
   /**
-   * Defines the code field: short and required.
+   * Defines the code field: required, the Drupal handle of a record.
    *
-   * The uniqueness (among the creator's records of the type, or in the plan)
-   * is checked by the entity constraint AncoraUniqueInScope, which each
-   * entity type declares.
+   * Legacy records have no code, only generated ids; the code identifies a
+   * record in Drupal (Drush, the scenario files) and in the engine ids. It is
+   * required, and unique among the creator's records of the type, or in the
+   * plan (the entity constraint AncoraUniqueInScope). Any text is accepted:
+   * the engine ids are numbered with the entity id, which keeps them unique
+   * whatever the code contains (#70, D6).
    */
   protected static function codeField(): BaseFieldDefinition {
     return BaseFieldDefinition::create('string')
       ->setLabel(new TranslatableMarkup('Code'))
-      ->setDescription(new TranslatableMarkup('A short code. Letters, digits, ".", "_" and "-".'))
+      ->setDescription(new TranslatableMarkup('A short code that identifies the record among yours.'))
       ->setRequired(TRUE)
-      ->setSetting('max_length', 32)
-      ->addPropertyConstraints('value', [
-        'Regex' => [
-          'pattern' => '/^[A-Za-z0-9._-]+$/',
-          'message' => 'The code may contain only letters, digits, ".", "_" and "-".',
-        ],
-      ])
+      ->setSetting('max_length', self::TEXT_LENGTH)
       ->setDisplayOptions('form', ['type' => 'string_textfield', 'weight' => -9])
       ->setDisplayOptions('view', ['label' => 'inline', 'type' => 'string', 'weight' => -9])
       ->setDisplayConfigurable('form', TRUE)

@@ -57,6 +57,7 @@ Everything runs against a verified disposable cluster (`with-ephemeral-pg.sh`, `
    | template | `add_PlantillaDeActividad` on the breakdown row the triggers created |
    | teacher assignment | `add_ProfesorParaActividad` (priority 1), `set_prioridad_pxact`, `custom_ActualizaProfesorParaGrupo` per group |
    | room assignment | `add_LugarParaActividad` (priority 1), `set_LugarParaActividad` |
+   | group membership (D10) | each cohort of a group with `custom_MoverBrigadaDeGrupo`, the drop of the group browser (`browser_grupos_filtrados.tpl`); a cohort already in another group of the slot is moved by the legacy function |
    | breakdown options (D4) | the subject's breakdown browser `get_browser_DesgloseDetalles` (the period link gives the `desglose` id), the form `get_form_edit_desglose` (hidden id, subject and period), then `set_Desglose` with the day counts as text and the checkboxes as `1`/`0`, as `ancoragoh_client_forms_desglose.js` posts them |
    | run | `generar` (`control/custom/generar.php`) with the scenario's options |
 
@@ -171,6 +172,7 @@ Result on `master` (`0e4cf55`), PHP 8.4, PostgreSQL 16: **22 PASS, 2 KNOWN, 0 FA
 | `s04-entry-order` | s01 with codes that do not sort in entry order (groups `Z1`, `A2`; teachers `TZ`, `TB0`) | outcome FAIL: Drupal swaps the two groups' slots (E2E digest `32ecd3da…` instead of `4199818b…`) | **22 PASS, 2 KNOWN, 0 FAIL**; both sides give `4199818b…` |
 | `s05-shared-teacher-continuation` (#95) | Two specialties of one plan share a teacher in one period. Runs F and E1 use the legacy window's default options (D11), and run E2 repeats the E scope with Drupal's options. | — | **24 PASS, 2 KNOWN, 0 FAIL**. Legacy continuation adds nothing in E2. The Drupal regeneration (D7) gives the same cells here, so the end states agree. Workspace mode: 38 PASS, 2 KNOWN. |
 | `s06-breakdown-options` (D4) | Four specialties of one plan, each with its own period (5 days × 3 slots), group, teacher, room and a subject of three templates (the triggers make 16 breakdowns). Breakdowns saved with the defaults (SD), without order and with the same day (SO), without order and without the same day (SQ, Q-04), and with a minimum of 2 days (SM); one run per specialty; 5 legacy-only `breakdown_post` characterization steps | the export's fixed defaults (D4), checked by reverting `LegacyRows` to them: `desglose` FAIL, runs O, Q and M FAIL (Drupal places SQ 3 of 3 instead of 1), and the restriction row counts differ | **29 PASS, 2 KNOWN, 0 FAIL**; `desglose` PASS (16 rows, every option); placements equal: SD days 1, 2, 3; SO day 1 slots 1–3; SQ only the first template; SM days 2 and 4 (Q-24). Workspace mode: **59 PASS, 4 KNOWN, 0 FAIL** (each job equal to both oracles; the real worker's placement entities equal the legacy oracle). |
+| `s07-cohorts-groups` (D6, D10) | One owner, plans P and P2, activity types C1 and C2, specialties E and F. Group G1 gets B1 and B2, then G3 (same slot) gets B1, which moves it; G4 (plan P2) and GL (C2) get B3, which G2 keeps; GF (specialty F) gets B2 (specialty E); B1 has the enrolment -5; one run of E; 5 legacy-only `event` characterization steps | the earlier Drupal refused GF's cohort (`GroupCohorts`) and B1's enrolment (≥ 0), and kept B1 in both G1 and G3 (no move) | **18 PASS, 2 KNOWN, 0 FAIL**; `brigada`, `grupo`, `brigada_de_grupo` (6 rows) and `profesor_para_grupo` PASS; the run places G1, G2 and G3, equal digests (`7ba3239f…`). Workspace mode: **16 PASS, 1 KNOWN, 0 FAIL**. |
 
 Observations recorded by these scenarios:
 
@@ -193,6 +195,8 @@ Numbered after D15 of the inventory.
 | — | every list and choice is filtered by owner, including the drill-down lists | the drill-down and timetable handlers filter only by the ids the client posts, with no `creador` check (`get_browser_Brigadas_filtradas.php`, `get_browser_DesgloseDetalles.php`, `get_browser_GruposXClasifFiltrados.php`, `get_minibrowser_horarios.php`, `get_minibrowser_publico.php`). The screens only post ids from the user's own lists, so this matters only for crafted requests. Like Q-12, it is an access defect: recorded, not reproduced | PAR-002, D14 |
 
 Characterization of `set_Desglose` (s06, legacy only): `0`, negative values, a minimum above the maximum and `" 4 "` (trimmed) are stored; an empty value or `2.5` fails with HTTP 500 after the fields before it were written (Q-25: one `UPDATE` per field); Bob's post updates Alice's breakdown (Q-26: no `creador` check). Drupal accepts the same integers, refuses an invalid form as a whole, and lets only the owner edit (Q-25 and Q-26 are not reproduced).
+
+Characterization of the group browser (s07, legacy only, after the run placed G3): moving a cohort into G3, or out of G3 into G2, answers HTTP 200 and changes nothing (the guard of `mueve_o_crea_brigada_de_grupo`); removing B1 from its group (`custom_EliminaBrigadaDeGrupo`) succeeds while G3 keeps its activity; `set_Brigada` with another specialty selected re-homes B2 and keeps its groups (Q-14); `add_Brigada` with an empty enrolment fails with HTTP 500 and stores nothing. The `event` step kind sends one legacy event (`@KEY` stands for a record's legacy id) and compares a query result.
 
 Legacy defects found by the harness (no Drupal counterpart to change): `add_RolDeUsuario.php` fails with a fatal error; `add_Planificacion.php` reads an undefined `field_Planificacion_activa`.
 
@@ -218,6 +222,7 @@ Parity-verified now (legacy over HTTP = Drupal, table-level and outcome-level, s
 - PAR-008 owner of placed activities (the subject's creator);
 - PAR-014, PAR-015, PAR-019, PAR-030, PAR-050, PAR-054 as rows (owned, no plan);
 - PAR-031 breakdown rows per subject and period of the creator's plans;
+- PAR-014..018, PAR-030 (D6/D10 slice, s07): cohorts, groups and their membership, entered through the legacy group browser handlers and through Drupal, give equal rows and placements, including moves within a slot, adds across slots and plans, and a cohort of another specialty;
 - PAR-032..034 (D4 slice, s06): breakdown options entered through the legacy form handlers and through Drupal give equal `desglose` rows and equal placements, including Q-04 and `min_dias` 2;
 - PAR-110 id order (entry order), through numbered engine ids;
 - Q-23 recorded on the legacy side and reproduced as view access.

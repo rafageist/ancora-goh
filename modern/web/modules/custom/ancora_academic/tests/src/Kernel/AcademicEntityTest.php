@@ -175,10 +175,18 @@ final class AcademicEntityTest extends AcademicKernelTestBase {
       'code' => 'L9',
       'capacity' => -1,
     ])));
-    $this->assertSame(['code'], $this->violationFields($this->newRecord('ancora_teacher', [
-      'label' => 'Spaced code',
-      'code' => 'T 1',
+    // Codes and names take any text up to the column size; the legacy
+    // names are unbounded and legacy records have no code (#70, D6).
+    $this->assertSame([], $this->violationFields($this->newRecord('ancora_teacher', [
+      'label' => str_repeat('n', 255),
+      'code' => 'T 1/ñ:' . str_repeat('x', 249),
     ])));
+    $this->assertSame(['code'], $this->violationFields($this->newRecord('ancora_teacher', [
+      'label' => 'Too long a code',
+      'code' => str_repeat('x', 256),
+    ])));
+    // Periods: only the legacy CHECKs (> 0), no upper bound.
+    $this->assertSame([], $this->violationFields($period(['days' => 400, 'slots_per_day' => 100])));
   }
 
   /**
@@ -249,7 +257,8 @@ final class AcademicEntityTest extends AcademicKernelTestBase {
     $subject->set('specialty', $foreign_specialty->id());
     $this->assertSame(['specialty'], $this->violationFields($subject));
 
-    // A cohort of another specialty cannot join a group.
+    // A cohort of another specialty may join a group: legacy has no such
+    // check, and dame_grupos() goes by the cohorts (case 136; D6).
     $specialty_two = $this->newRecord('ancora_specialty', [
       'label' => 'Second programme',
       'code' => 'E2',
@@ -265,7 +274,7 @@ final class AcademicEntityTest extends AcademicKernelTestBase {
     $cohort->save();
     $group = $this->byCode('ancora_student_group', 'G1', $plan);
     $group->get('cohorts')->appendItem($cohort->id());
-    $this->assertSame(['cohorts'], $this->violationFields($group));
+    $this->assertSame([], $this->violationFields($group));
 
     // A teacher may only be given groups that attend the template.
     $lab = $this->newRecord('ancora_activity_type', ['label' => 'Lab', 'code' => 'C2']);

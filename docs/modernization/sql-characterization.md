@@ -73,6 +73,8 @@ After #95 characterization (56 cases): **46 PASS, 10 XFAIL, 0 FAIL / XPASS / XWR
 
 After the #70 breakdown slice (D4, 57 cases): **47 PASS, 10 XFAIL, 0 FAIL / XPASS / XWRONG**. Case 135 records the effect of every breakdown option (`desglose`) on `generar()`: the defaults, `mismo_dia` with and without `respetar_orden`, Q-04, `min_dias` 0, 2, 3 and negative (Q-24: the first template starts at day `min_dias`), a minimum above the maximum, `max_dias` with blocked days, and the template order after the legacy move (`legacy-parity-inventory.md` PAR-032..035). Every earlier result and METRIC line is unchanged.
 
+After the #70 D6/D10 slice (59 cases): **48 PASS, 11 XFAIL, 0 FAIL / XPASS / XWRONG**. Case 136 records the column rules of brigade, group and subject (any integer enrolment, nullable subject specialty), that `dame_grupos()` follows the brigades' specialty, the "no group" list and the unguarded removal. Case 137 (xfail 57014) records that a zero-duration classification, which the legacy form accepts, makes `generar()` loop until the timeout. Every earlier result is unchanged.
+
 A negative run confirmed that the runner exits non-zero. It used a temporary copy of the suite with three cases modified to give one FAIL, one XPASS and one XWRONG.
 
 ### Coverage against the issue

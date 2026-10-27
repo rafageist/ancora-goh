@@ -146,6 +146,73 @@ function ancora_academic_update_11002(): void {
 }
 
 /**
+ * Widens the name and code columns to 255 characters (#70, D6).
+ *
+ * The legacy names are unbounded VARCHAR and legacy records have no code;
+ * the earlier 128/32-character limits (and the code pattern, which needs no
+ * schema change) were Drupal inventions. The columns are widened in place:
+ * Drupal refuses a schema change of a field with data, so the stored schema
+ * and the installed definitions are updated with the column. Existing
+ * values are unchanged. The update also reports cohorts that are in two
+ * groups of the same plan, activity type, specialty and level, which the
+ * legacy application cannot produce (a cohort moves, PAR-018); they are not
+ * changed, so that no timetable changes: move them in the group form.
+ */
+function ancora_academic_update_11004(): string {
+  $entity_type_manager = \Drupal::entityTypeManager();
+  $installed = \Drupal::service('entity.last_installed_schema.repository');
+  $schema_data = \Drupal::keyValue('entity.storage_schema.sql');
+  $schema = \Drupal::database()->schema();
+  $widened = 0;
+  foreach (AcademicEntityTypes::ids() as $entity_type_id) {
+    $table = $entity_type_manager->getDefinition($entity_type_id)->getBaseTable();
+    $definitions = $installed->getLastInstalledFieldStorageDefinitions($entity_type_id);
+    foreach (['label', 'code'] as $field) {
+      if (!isset($definitions[$field]) || $definitions[$field]->getType() !== 'string' || (int) $definitions[$field]->getSetting('max_length') >= 255) {
+        continue;
+      }
+      $key = "$entity_type_id.field_schema_data.$field";
+      $data = $schema_data->get($key);
+      if (!isset($data[$table]['fields'][$field])) {
+        throw new UpdateException(sprintf('No stored schema for %s.%s.', $entity_type_id, $field));
+      }
+      $data[$table]['fields'][$field]['length'] = 255;
+      $schema->changeField($table, $field, $field, $data[$table]['fields'][$field]);
+      $schema_data->set($key, $data);
+      $definition = $definitions[$field];
+      $definition->setSetting('max_length', 255);
+      $installed->setLastInstalledFieldStorageDefinition($definition);
+      $widened++;
+    }
+  }
+  $entity_type_manager->clearCachedDefinitions();
+  \Drupal::service('entity_field.manager')->clearCachedFieldDefinitions();
+
+  // Cohorts in two groups of one slot (reported, not changed).
+  $groups = $entity_type_manager->getStorage('ancora_student_group')->loadMultiple();
+  $slots = [];
+  foreach ($groups as $group) {
+    $slot = [];
+    foreach (['plan', 'activity_type', 'specialty', 'level'] as $field) {
+      $slot[] = (string) $group->get($field)->target_id;
+    }
+    $slot = implode(':', $slot);
+    foreach ($group->get('cohorts')->getValue() as $item) {
+      $slots[$slot . ':' . $item['target_id']][] = $group->id();
+    }
+  }
+  $doubled = array_filter($slots, static fn (array $ids): bool => count($ids) > 1);
+  $report = (string) t('@count name and code columns were widened to 255 characters.', ['@count' => $widened]);
+  if ($doubled !== []) {
+    $report .= ' ' . t('@count cohorts are in two groups of the same plan, activity type, specialty and level (groups @groups); the legacy application keeps a cohort in one of them. Review them in the group form.', [
+      '@count' => count($doubled),
+      '@groups' => implode(', ', array_unique(array_merge(...array_values($doubled)))),
+    ]);
+  }
+  return $report;
+}
+
+/**
  * Adds the subject breakdowns, with the legacy defaults for existing data.
  *
  * Issue #70, deviation D4 (legacy-parity-inventory.md PAR-031, PAR-032):

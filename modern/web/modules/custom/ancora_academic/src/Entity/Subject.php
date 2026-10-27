@@ -80,12 +80,16 @@ final class Subject extends OwnedAcademicEntityBase {
     );
     $fields['code'] = static::codeField();
 
+    // Not required: legacy asignatura.especialidad is nullable, and such a
+    // subject is in no scope (case 136). The legacy screens always give one
+    // (the subject tree is specialty > level), so the form requires it
+    // (MembershipHooks); data loaded otherwise may have none (#70, D6).
     $fields['specialty'] = static::referenceField(
       'ancora_specialty',
       new TranslatableMarkup('Specialty'),
       new TranslatableMarkup('The specialty (degree programme).'),
       1,
-    )->setRequired(TRUE);
+    );
 
     $fields['level'] = static::referenceField(
       'ancora_level',
