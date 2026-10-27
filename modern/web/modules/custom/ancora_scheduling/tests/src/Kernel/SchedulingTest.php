@@ -14,6 +14,7 @@ use Drupal\ancora_academic\Entity\Period;
 use Drupal\ancora_academic\Entity\TimeRestriction;
 use Drupal\ancora_academic\PeriodInputs;
 use Drupal\ancora_academic\RoomConstraints;
+use Drupal\ancora_academic\SharedResources;
 use Drupal\ancora_academic\TimeRestrictionGrid;
 use Drupal\ancora_scheduling\Sync\LegacyTableSync;
 use Drupal\Tests\ancora_academic\Kernel\AcademicKernelTestBase;
@@ -130,6 +131,15 @@ final class SchedulingTest extends AcademicKernelTestBase {
     $l2 = $this->byCode('ancora_room', 'L2');
     $this->assertSame([], $rooms->saveGroupRooms($this->byCode('ancora_student_group', 'G1', $plan), (int) $l1->id(), [(int) $l2->id()]));
     $this->assertSame([], $rooms->saveTravelCosts($l1, [(int) $l2->id() => 5]));
+    // An other resource in a resource group of a template (D9d).
+    $resource = $this->newRecord('ancora_other_resource', ['label' => 'Projector', 'code' => 'R1']);
+    $resource->save();
+    $shared = $this->container->get(SharedResources::class);
+    $templates = $this->container->get('entity_type.manager')->getStorage('ancora_activity_template')->loadMultiple();
+    $template = reset($templates);
+    $this->assertSame([], $shared->addGroup($template));
+    $groups = $shared->groups($template->id());
+    $this->assertSame([], $shared->addMembers(reset($groups), [(int) $resource->id()]));
     $export = $this->container->get(AcademicExport::class)->export($plan);
     $rows = $this->container->get(LegacyRows::class)->build($export, ScopeMapper::creator($plan), TRUE);
     $this->assertSame([], array_diff_key(LegacyTableSync::TABLES, $rows));

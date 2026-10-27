@@ -89,6 +89,12 @@ final class LegacyTableSync {
     'lugar_fijo' => [['grupo', 'lugar'], 'grupo'],
     'acceso_prohibido' => [['grupo', 'lugar'], 'grupo'],
     'costo_de_traslado' => [['origen', 'destino'], 'origen'],
+    // D9d: other resources, resource groups and their resources. The
+    // group delete trigger relevels priorities (Q-06); the upsert then
+    // sets the exported ones, which follow the same rule.
+    'otro_recurso' => [['id'], 'id'],
+    'otro_grupo_de_recursos_para_actividad' => [['id'], 'id'],
+    'otro_recurso_para_actividad' => [['grupo_de_recursos', 'otro_recurso'], 'grupo_de_recursos'],
   ];
 
   /**

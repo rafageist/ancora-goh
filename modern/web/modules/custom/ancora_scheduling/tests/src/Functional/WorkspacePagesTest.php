@@ -133,7 +133,7 @@ final class WorkspacePagesTest extends AncoraBrowserTestBase {
     $this->clickLink('Academic catalogues');
     $this->assertSession()->statusCodeEquals(200);
     $this->assertSession()->elementTextEquals('css', 'h1', 'Academic catalogues');
-    $this->assertSession()->elementsCount('css', 'li.ancora-planning__step', 8);
+    $this->assertSession()->elementsCount('css', 'li.ancora-planning__step', 9);
     $this->assertSession()->elementExists('xpath', "//main//nav//a[normalize-space()='Teachers']");
     $this->clickLink('Teachers');
     $this->assertSession()->elementTextContains('css', 'table', 'Teacher Alpha');
@@ -221,7 +221,7 @@ final class WorkspacePagesTest extends AncoraBrowserTestBase {
     $this->assertSession()->elementsCount('css', '.ancora-timetable__item', 2);
     $this->assertSession()->elementTextContains('css', '.ancora-timetable__list', 'Day 2');
     $this->assertAccessibleBasics();
-    foreach (['group', 'teacher', 'room'] as $key) {
+    foreach (['group', 'teacher', 'room', 'resource'] as $key) {
       $this->assertSession()->elementExists('css', "label[for='ancora-timetable-filter-$key']");
       $this->assertSession()->elementExists('css', "select#ancora-timetable-filter-$key");
     }
@@ -238,6 +238,11 @@ final class WorkspacePagesTest extends AncoraBrowserTestBase {
     $none = ['period' => $period->id(), 'teacher' => 'TA', 'room' => 'L2'];
     $this->drupalGet("/ancora/planning/$plan_id/timetable", ['query' => $none]);
     $this->assertSession()->pageTextContains('No placement matches the filters.');
+    // The legacy view of an other resource: the activities that use it.
+    $this->drupalGet("/ancora/planning/$plan_id/timetable", ['query' => ['period' => $period->id(), 'resource' => 'R1']]);
+    $this->assertSession()->elementsCount('css', 'td[data-day] .ancora-placement', 1);
+    $this->assertSession()->elementAttributeContains('css', 'td[data-day] .ancora-placement', 'data-resources', 'R1');
+    $this->assertSession()->optionExists('resource', 'Projector 1');
     $unknown = ['period' => $period->id(), 'group' => 'NOPE'];
     $this->drupalGet("/ancora/planning/$plan_id/timetable", ['query' => $unknown]);
     $this->assertSession()->elementsCount('css', 'td[data-day] .ancora-placement', 2);
@@ -353,6 +358,13 @@ final class WorkspacePagesTest extends AncoraBrowserTestBase {
         ScopeMapper::source($plan, $period, $specialty, $level),
       );
     }
+    // An other resource the second placement uses (D9d).
+    $resource = $storage('ancora_other_resource')->create([
+      'uid' => $owner->id(),
+      'label' => 'Projector 1',
+      'code' => 'R1',
+    ]);
+    $resource->save();
     \Drupal::service('entity.memory_cache')->deleteAll();
     $hash = ScopeMapper::hash(\Drupal::service(AcademicExport::class)->export($plan));
     $jobs->finish($jobs->claim('test'), JobState::Succeeded, ['kept' => 'placements', 'input_hash' => $hash]);
@@ -376,6 +388,7 @@ final class WorkspacePagesTest extends AncoraBrowserTestBase {
         'slot' => $slot,
         'engine_id' => "test-$i",
         'job' => 1,
+        'other_resources' => $i === 1 ? [$resource->id()] : [],
       ])->save();
     }
   }

@@ -164,6 +164,21 @@ final class Normalizer {
       'derived' => ['origen', 'destino'],
       'refs' => ['origen' => 'lugar', 'destino' => 'lugar'],
     ],
+    // D9d. The usage rows (otros_recursos_usados) are compared with the
+    // placements of the runs, their occupancy rows by count (other_tables).
+    'otro_recurso' => [
+      'type' => 'other_resource',
+      'natural' => ['user:creador', 'nombre'],
+      'refs' => [],
+    ],
+    'otro_grupo_de_recursos_para_actividad' => [
+      'type' => 'resource_group',
+      'natural' => ['ref:plantilla', 'prioridad'],
+      'refs' => ['plantilla' => 'plantilla_de_actividad'],
+    ],
+    'otro_recurso_para_actividad' => [
+      'refs' => ['grupo_de_recursos' => 'otro_grupo_de_recursos_para_actividad', 'otro_recurso' => 'otro_recurso'],
+    ],
   ];
 
   /**
@@ -320,11 +335,18 @@ final class Normalizer {
   /**
    * The outcome of every scenario run, by run key.
    *
+   * A placement line ends with "+" and the keys of the other resources it
+   * uses, in the order of their rows, when it uses any (D9d).
+   *
    * @return array<string, array<string, mixed>>
    *   metrics, digest, e2e_digest and placements.
    */
   private function runs(): array {
     $placements = pg_fetch_all(pg_query($this->db, 'SELECT * FROM actividad')) ?: [];
+    $uses = [];
+    foreach (pg_fetch_all(pg_query($this->db, 'SELECT otro_recurso, actividad FROM otros_recursos_usados ORDER BY ctid')) ?: [] as $use) {
+      $uses[$use['actividad']][] = $this->resolve('otro_recurso', $use['otro_recurso']);
+    }
     $ids = [];
     foreach ($this->keys as $table => $map) {
       $ids[$table] = array_flip($map);
@@ -343,7 +365,8 @@ final class Normalizer {
         $teacher = $p['profesor'] === NULL ? '(none)' : $this->resolve('profesor', $p['profesor']);
         $room = $p['lugar'] === NULL ? '(none)' : $this->resolve('lugar', $p['lugar']);
         $group = $this->resolve('grupo', $p['grupo']);
-        $lines[] = implode('/', [$template, $group, $teacher, $room, $p['dia'], $p['turno'], $this->user($p['creador'])]);
+        $lines[] = implode('/', [$template, $group, $teacher, $room, $p['dia'], $p['turno'], $this->user($p['creador'])])
+          . (isset($uses[$p['id']]) ? '+' . implode(',', $uses[$p['id']]) : '');
         $label = $this->scenario->records[$teacher]['label'] ?? $teacher;
         $e2e[$template . "\0" . $group] = implode('/', [$template, $group, $label, $room, $p['dia'], $p['turno']]);
       }

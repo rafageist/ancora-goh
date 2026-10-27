@@ -8,7 +8,7 @@
  * - period: The period label.
  * - period_id: The period entity id (kept by the filter form).
  * - periods: Links to the other periods (label, url, current).
- * - filters: group, teacher and room, each with label, options
+ * - filters: group, teacher, room and other resource, each with label, options
  *   (code => label) and the selected code (value, '' for all).
  * - filtered: TRUE when a filter is applied.
  * - reset_url: The timetable of the period without filters.
@@ -122,7 +122,7 @@
                   {% for day, placements in slot.cells %}
                     <td data-day="{{ day }}" data-slot="{{ slot.number }}">
                       {% for p in placements %}
-                        <div class="ancora-placement" data-group="{{ p.group_code }}" data-teacher="{{ p.teacher_code }}" data-room="{{ p.room_code }}">
+                        <div class="ancora-placement" data-group="{{ p.group_code }}" data-teacher="{{ p.teacher_code }}" data-room="{{ p.room_code }}" data-resources="{{ p.resource_codes|join(' ') }}">
                           <span class="ancora-placement__activity">{{ p.activity }}</span>
                           <span class="ancora-placement__group">{{ p.group }}</span>
                           <span class="ancora-placement__teacher">{{ p.teacher }}</span>

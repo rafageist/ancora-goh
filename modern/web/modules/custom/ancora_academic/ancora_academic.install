@@ -292,3 +292,24 @@ function ancora_academic_update_11007(): string {
   }
   return (string) t('Installed: @types.', ['@types' => $installed === [] ? 'none' : implode(', ', $installed)]);
 }
+
+/**
+ * Adds other resources, resource groups and their resources (#70, D9d).
+ *
+ * Installs the three entity types, empty: the engine received no other
+ * resource before, so timetables do not change until a planner gives a
+ * template a resource group.
+ */
+function ancora_academic_update_11008(): string {
+  $manager = \Drupal::entityDefinitionUpdateManager();
+  $entity_type_manager = \Drupal::entityTypeManager();
+  $entity_type_manager->clearCachedDefinitions();
+  $installed = [];
+  foreach (['ancora_other_resource', 'ancora_resource_group', 'ancora_resource_member'] as $entity_type_id) {
+    if ($manager->getEntityType($entity_type_id) === NULL) {
+      $manager->installEntityType($entity_type_manager->getDefinition($entity_type_id));
+      $installed[] = $entity_type_id;
+    }
+  }
+  return (string) t('Installed: @types.', ['@types' => $installed === [] ? 'none' : implode(', ', $installed)]);
+}

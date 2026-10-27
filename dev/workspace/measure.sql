@@ -72,7 +72,9 @@ DECLARE o text; ins text[] := '{}'; part text[]; placements text[]; dml jsonb; c
 BEGIN
   SELECT coalesce(array_agg(l ORDER BY l), '{}') INTO placements FROM (
     SELECT wsproof.k_template(a.plantilla) || '|' || wsproof.k_group(a.grupo) || '|' || wsproof.k_teacher(a.profesor) || '|'
-           || wsproof.k_room(a.lugar) || '@' || a.dia || '.' || a.turno || '|' || wsproof.u(a.creador) AS l
+           || wsproof.k_room(a.lugar) || '@' || a.dia || '.' || a.turno || '|' || wsproof.u(a.creador)
+           -- the other resources of the placement, in row order (D9d)
+           || coalesce('+' || (SELECT string_agg(wsproof.k_resource(u.otro_recurso), ',' ORDER BY u.ctid) FROM otros_recursos_usados u WHERE u.actividad = a.id), '') AS l
       FROM actividad a JOIN plantilla_de_actividad pa ON pa.id = a.plantilla JOIN desglose d ON d.id = pa.desglose
       JOIN asignatura s ON s.id = d.asignatura
      WHERE s.especialidad = pesp AND s.nivel = pniv AND d.periodo = pper) q;

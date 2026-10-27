@@ -95,8 +95,15 @@ final class SchedulingPagesTest extends AncoraBrowserTestBase {
     // The room choice defaults to the nearest room: buscalugar = TRUE, what
     // the legacy generator window posts by default (D9c, A-2).
     $this->assertTrue($job->options->buscalugar);
+    // The other strategy options, with the legacy window's defaults (D11):
+    // priorizar (forma) 1 and compactar 1.
+    $this->assertSame([1, 1], [$job->options->forma, $job->options->compactar]);
 
     $this->drupalGet('/ancora/scheduling/request');
+    $this->assertSession()->fieldValueEquals('compactar', '1');
+    $this->assertSession()->optionExists('compactar', '10');
+    $this->assertSession()->optionNotExists('compactar', '0');
+    $this->assertSession()->checkboxChecked('edit-forma-1');
     $this->submitForm($values, 'Request the timetable');
     $this->assertSession()->pageTextContains('A run for this period, specialty and level is already queued (job 1).');
     $this->assertCount(1, $jobs->recent());

@@ -69,6 +69,10 @@ final class Scenario {
     // travel costs from a room to other rooms (costs: {room key: cost}).
     'group_rooms' => ['group' => 'student_group'],
     'travel_costs' => ['origin' => 'room'],
+    // D9d: an other resource (label); a resource group of a template with
+    // its resources in entry order (members), priority, needed, essential.
+    'other_resource' => [],
+    'resource_group' => ['template' => 'activity_template', 'members' => 'other_resource'],
   ];
 
   /**
@@ -76,7 +80,7 @@ final class Scenario {
    */
   public const OWNED = [
     'plan', 'activity_type', 'specialty', 'level', 'cohort', 'subject',
-    'teacher', 'room',
+    'teacher', 'room', 'other_resource',
   ];
 
   /**
@@ -189,7 +193,7 @@ final class Scenario {
       'plan' => $key,
       'period', 'student_group' => $record['plan'],
       'activity_template', 'breakdown', 'time_restriction', 'break', 'priority_zones', 'load_limit' => $this->planOf($record['period']),
-      'teacher_assignment', 'room_assignment' => $this->planOf($record['template']),
+      'teacher_assignment', 'room_assignment', 'resource_group' => $this->planOf($record['template']),
       'group_rooms' => $this->planOf($record['group']),
       default => NULL,
     };
@@ -231,6 +235,8 @@ final class Scenario {
       'load_limit' => [$r['type'], $r['kind'], $r['target'], $r['period']],
       'group_rooms' => [$r['type'], $r['group']],
       'travel_costs' => [$r['type'], $r['origin']],
+      // A group has no name: its template and priority identify it.
+      'resource_group' => [$r['type'], $r['template'], (string) ($r['priority'] ?? 1)],
       default => [$r['type'], $r['as'], $r['label']],
     };
   }

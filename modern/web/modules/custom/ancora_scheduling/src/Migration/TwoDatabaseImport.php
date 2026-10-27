@@ -32,7 +32,8 @@ use Drupal\user\UserInterface;
  *   same (SiteRows::placements()).
  * - Identity: engine_id is the row's id, unchanged; the other columns are
  *   mapped back to the records and checked as a publication is
- *   (PlacementMapper).
+ *   (PlacementMapper). The row's otros_recursos_usados rows become the
+ *   placement's other resources, in their physical order (D9d).
  * - Job: the two-database layout never recorded which job placed a row. Each
  *   placement is linked to the job whose placements the two-database
  *   timetable showed for its scope (plan, period, specialty and level of the
@@ -40,9 +41,8 @@ use Drupal\user\UserInterface;
  *   (JobRepository::changedPlacements(), as TimetableReader reads them). The
  *   placing moment (momento_de_colocacion) is kept as placed_at.
  * - Refusals (nothing is imported): a row that does not map to the records
- *   or fails a check, a scope without such a job, a row of
- *   otros_recursos_usados (other resources do not exist in Drupal, D9), or
- *   an existing placement entity that is not one of these rows.
+ *   or fails a check (an other resource included), a scope without such a
+ *   job, or an existing placement entity that is not one of these rows.
  * - Idempotent: a placement entity with the row's engine id is kept as it is.
  *   One transaction of Drupal's connection: a failure imports nothing, and
  *   running it again is the recovery.
@@ -67,8 +67,9 @@ final class TwoDatabaseImport {
   /**
    * Reads the engine database: the placement rows and what is not imported.
    *
-   * @return array{rows: list<array<string, string|null>>, resources: int, cancel_requests: int}
-   *   The rows of "actividad" in physical order, the number of rows of
+   * @return array{rows: list<array<string, mixed>>, resources: int, cancel_requests: int}
+   *   The rows of "actividad" in physical order, each with the engine ids
+   *   of its other resources ("otros_recursos"), the number of rows of
    *   otros_recursos_usados and of leftover soft cancellation requests
    *   (generador.cancelar, D12: they are not carried over; a workspace run
    *   only sees the requests of its own job).
@@ -79,7 +80,13 @@ final class TwoDatabaseImport {
     }
     $conn = $this->engine->connectReadOnly();
     try {
-      $rows = $this->engine->rows($conn, 'SELECT id, plantilla, grupo, profesor, lugar, dia, turno, momento_de_colocacion, creador FROM actividad ORDER BY ctid');
+      $rows = $this->engine->rows($conn, "SELECT a.id, a.plantilla, a.grupo, a.profesor, a.lugar, a.dia, a.turno, a.momento_de_colocacion, a.creador,
+          (SELECT coalesce(json_agg(u.otro_recurso ORDER BY u.ctid), '[]'::json) FROM otros_recursos_usados u WHERE u.actividad = a.id) AS otros_recursos
+        FROM actividad a ORDER BY a.ctid");
+      foreach ($rows as &$row) {
+        $row['otros_recursos'] = json_decode((string) $row['otros_recursos'], TRUE, 4, JSON_THROW_ON_ERROR);
+      }
+      unset($row);
       $resources = (int) $this->engine->rows($conn, 'SELECT count(*) AS n FROM otros_recursos_usados')[0]['n'];
       $cancel = (int) $this->engine->rows($conn, 'SELECT count(*) AS n FROM generador.cancelar')[0]['n'];
     }
@@ -97,9 +104,6 @@ final class TwoDatabaseImport {
    */
   public function plan(array $read): array {
     $problems = [];
-    if ($read['resources'] > 0) {
-      $problems[] = sprintf('otros_recursos_usados holds %d rows; other resources do not exist in Drupal (D9), they cannot be imported.', $read['resources']);
-    }
     $placements = [];
     $jobs = [];
     foreach ($read['rows'] as $i => $row) {

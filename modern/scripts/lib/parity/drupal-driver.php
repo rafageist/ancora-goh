@@ -31,6 +31,7 @@ use Drupal\ancora_academic\AcademicEntityInterface;
 use Drupal\ancora_academic\BreakdownMaintainer;
 use Drupal\ancora_academic\PeriodInputs;
 use Drupal\ancora_academic\RoomConstraints;
+use Drupal\ancora_academic\SharedResources;
 use Drupal\ancora_academic\TimeRestrictionGrid;
 use Drupal\ancora_engine\Job\JobOptions;
 use Drupal\ancora_scheduling\ScopeMapper;
@@ -57,6 +58,7 @@ $ancora_types = [
   'teacher_assignment' => 'ancora_teacher_assignment',
   'room' => 'ancora_room',
   'room_assignment' => 'ancora_room_assignment',
+  'other_resource' => 'ancora_other_resource',
 ];
 $ancora_failures = 0;
 $ancora_fail = static function (string $what) use (&$ancora_failures): void {
@@ -117,6 +119,40 @@ foreach ($ancora_scenario->records as $key => $r) {
       }
       $ancora_entities[$key] = $target ?? $period;
       echo "ok    restrict $key (" . count($r['cells']) . " cells)\n";
+    }
+    finally {
+      $switcher->switchBack();
+    }
+    continue;
+  }
+  if ($r['type'] === 'resource_group') {
+    // The resource editor of the template, step by step as its form saves
+    // it (SharedResources): add the group, add the resources, set the
+    // priority, the needed resources and the essential flag.
+    $switcher->switchTo($ancora_accounts[$r['as']]);
+    try {
+      $shared = \Drupal::service(SharedResources::class);
+      $template = $ancora_entities[$r['template']];
+      $before = array_keys($shared->groups($template->id()));
+      $messages = $shared->addGroup($template);
+      $new = array_values(array_diff(array_keys($shared->groups($template->id())), $before));
+      $group = $new === [] ? NULL : $etm->getStorage('ancora_resource_group')->load($new[0]);
+      if ($messages === [] && $group !== NULL) {
+        $messages = $shared->addMembers($group, array_map(static fn (string $k): int => (int) $ancora_entities[$k]->id(), $r['members'] ?? []));
+      }
+      if ($messages === [] && $group !== NULL) {
+        $messages = $shared->setGroup($group, [
+          'priority' => (int) ($r['priority'] ?? 1),
+          'needed' => (int) ($r['needed'] ?? 1),
+          'essential' => (bool) ($r['essential'] ?? TRUE),
+        ]);
+      }
+      if ($messages !== [] || $group === NULL) {
+        $ancora_fail("resource_group $key: " . implode('; ', $messages ?: ['no group was created']));
+        continue;
+      }
+      $ancora_entities[$key] = $group;
+      echo "ok    resource_group $key\n";
     }
     finally {
       $switcher->switchBack();

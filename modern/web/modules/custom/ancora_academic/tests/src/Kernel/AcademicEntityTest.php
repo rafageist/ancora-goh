@@ -39,6 +39,8 @@ final class AcademicEntityTest extends AcademicKernelTestBase {
       'ancora_activity_template' => 4,
       'ancora_room' => 2,
       'ancora_teacher' => 2,
+      // The synthetic fixture has no other resource (dev/e2e/fixture.sql).
+      'ancora_other_resource' => 0,
       'ancora_teacher_assignment' => 4,
       'ancora_room_assignment' => 8,
     ];

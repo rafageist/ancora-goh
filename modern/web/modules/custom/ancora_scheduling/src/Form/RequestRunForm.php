@@ -117,6 +117,24 @@ final class RequestRunForm extends FormBase {
       '#default_value' => 'nearest',
       '#description' => $this->t('Among the rooms of the highest priority that are free and large enough. Travel costs are set on each room.'),
     ];
+    // The other two strategy options of the legacy window (D11, case 143),
+    // with its defaults: "Priorizar" 1 and "Compactar" 1 (bars 1..10).
+    $form['forma'] = [
+      '#type' => 'radios',
+      '#title' => $this->t('Order of the activities'),
+      '#options' => [
+        1 => $this->t('By activity type: every activity of the first activity type in priority order, then the next type (the legacy default)'),
+        2 => $this->t('By activity number: the first activity of every subject, then the second, and so on'),
+      ],
+      '#default_value' => 1,
+    ];
+    $form['compactar'] = [
+      '#type' => 'select',
+      '#title' => $this->t('Compaction'),
+      '#options' => array_combine(range(1, 10), range(1, 10)),
+      '#default_value' => 1,
+      '#description' => $this->t('Only for subjects that keep the order of their activities: the last day an activity may use is the number of days of the period minus the number of activities of its subject still to come, plus this value. 1 is the legacy default; a higher value lets the earlier activities of a subject go later in the period.'),
+    ];
     $form['actions']['submit'] = [
       '#type' => 'submit',
       '#value' => $this->t('Request the timetable'),
@@ -167,7 +185,11 @@ final class RequestRunForm extends FormBase {
     [$plan, $period, $specialty, $level] = $this->records($form_state);
     $id = $this->jobs->enqueue(
       ScopeMapper::scope($plan, $period, $specialty, $level),
-      new JobOptions(buscalugar: $form_state->getValue('room_choice', 'nearest') !== 'most_used'),
+      new JobOptions(
+        forma: (int) $form_state->getValue('forma', 1) === 2 ? 2 : 1,
+        compactar: max(1, min(10, (int) $form_state->getValue('compactar', 1))),
+        buscalugar: $form_state->getValue('room_choice', 'nearest') !== 'most_used',
+      ),
       $this->settings->timeLimit(),
       (int) $this->currentUser()->id(),
       NULL,

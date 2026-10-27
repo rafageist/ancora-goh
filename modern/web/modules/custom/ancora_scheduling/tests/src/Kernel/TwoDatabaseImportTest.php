@@ -146,9 +146,30 @@ final class TwoDatabaseImportTest extends AcademicKernelTestBase {
 
     // Running it again is the recovery of an interrupted migration.
     $this->assertSame(['imported' => 0, 'kept' => 3], $import->import($import->plan($this->read($rows))));
+    $this->assertTrue($first->get('other_resources')->isEmpty());
     $this->assertSame(3, $this->recordCount('ancora_placement'));
     $this->assertSame(0, $import->foreign($this->read($rows)));
     $this->assertSame(1, $import->foreign($this->read(array_slice($rows, 1))));
+  }
+
+  /**
+   * The otros_recursos_usados rows of a row become its other resources (D9d).
+   */
+  public function testResourceUsesAreImported(): void {
+    [, $ids] = $this->jobs([JobState::Succeeded]);
+    $t = $this->templates($ids);
+    $resource = $this->newRecord('ancora_other_resource', ['label' => 'Projector', 'code' => 'R1']);
+    $resource->save();
+    $row = $this->row($ids, 'r-1', $t[0], 'G1', 1, 1) + ['otros_recursos' => [sprintf('%010d:R1', $resource->id())]];
+    $import = $this->container->get(TwoDatabaseImport::class);
+    $plan = $import->plan($this->read([$row], 1));
+    $this->assertSame([], $plan['problems']);
+    $this->assertSame(['imported' => 1, 'kept' => 0], $import->import($plan));
+    $placement = current($this->container->get('entity_type.manager')->getStorage('ancora_placement')->loadByProperties(['engine_id' => 'r-1']));
+    $this->assertSame((string) $resource->id(), (string) $placement->get('other_resources')->target_id);
+
+    $gone = $this->row($ids, 'r-2', $t[0], 'G2', 1, 2) + ['otros_recursos' => ['9999999999:GONE']];
+    $this->assertStringContainsString('an other resource does not exist', $import->plan($this->read([$gone], 1))['problems'][0]);
   }
 
   /**
@@ -160,9 +181,8 @@ final class TwoDatabaseImportTest extends AcademicKernelTestBase {
     $import = $this->container->get(TwoDatabaseImport::class);
 
     $plan = $import->plan($this->read([$this->row($ids, 'a', $t[0], 'G1', 1, 1)], 2));
-    $this->assertCount(2, $plan['problems']);
-    $this->assertStringContainsString('otros_recursos_usados holds 2 rows', $plan['problems'][0]);
-    $this->assertStringContainsString('no job of its scope', $plan['problems'][1]);
+    $this->assertCount(1, $plan['problems']);
+    $this->assertStringContainsString('no job of its scope', $plan['problems'][0]);
 
     $unmapped = $this->row($ids, 'b', $t[0], 'G1', 1, 1);
     $unmapped['plantilla'] = '9999999999:GONE';

@@ -34,8 +34,10 @@ use PgSql\Connection as PgConnection;
  *    refuses a result whose input changed meanwhile.
  * 3. In the workspace, in one transaction: writes the rows with the
  *    unchanged LegacyTableSync (legacy triggers on), inserts the stored
- *    placements with their engine ids (the legacy RULEs rebuild their
- *    occupancy rows, as #93 proved), keeps the #92 closure of the request
+ *    placements with their engine ids, each followed by the rows of the
+ *    other resources it uses (otros_recursos_usados, in the order of
+ *    agrega_actividad; the legacy RULEs rebuild the occupancy rows of
+ *    both, as #93 proved), keeps the #92 closure of the request
  *    (scheduler_control.closure_keep, prune) and commits. Then ANALYZE.
  *
  * Existing placements are never deleted or recomputed (legacy continuation,
@@ -100,6 +102,13 @@ final class WorkspaceSync implements JobInputInterface {
           $p['id'], $p['plantilla'], $p['grupo'], $p['profesor'], $p['lugar'], $p['dia'], $p['turno'],
           $p['momento_de_colocacion'] === NULL ? NULL : var_export($p['momento_de_colocacion'], TRUE), $p['creador'],
         ]);
+        foreach ($p['otros_recursos'] as $resource) {
+          $engine->affected($connection, 'INSERT INTO otros_recursos_usados (otro_recurso, actividad, creador) VALUES ($1, $2, $3)', [
+            $resource,
+            $p['id'],
+            $p['creador'],
+          ]);
+        }
       }
       $input_rows = (int) $engine->rows($connection, 'SELECT scheduler_control.ws_rows() AS n')[0]['n'];
       [$e, $l, $p] = $job->scope->toParameters();
@@ -121,6 +130,7 @@ final class WorkspaceSync implements JobInputInterface {
       'snapshot' => $snapshot,
       'rows' => array_sum(array_map('count', $rows)),
       'placements_loaded' => count($placements),
+      'resource_uses_loaded' => array_sum(array_map(static fn (array $p): int => count($p['otros_recursos']), $placements)),
       'placement_ids' => array_column($placements, 'id'),
       'input_rows' => $input_rows,
       'closure_rows' => $kept,

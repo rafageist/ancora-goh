@@ -23,7 +23,10 @@ use Drupal\Core\Entity\EntityTypeManagerInterface;
  * placements() turns the placement entities (#95) into "actividad" rows, in
  * entity id order: the order in which the worker published them, which is
  * the order of their rows in the workspace that made them (legacy entry
- * order). The row id is the engine id the engine gave the placement.
+ * order). The row id is the engine id the engine gave the placement. Each
+ * row also lists, as "otros_recursos", the engine ids of the other
+ * resources the placement uses (legacy otros_recursos_usados, D9d), in
+ * their order.
  */
 final class SiteRows {
 
@@ -101,13 +104,15 @@ final class SiteRows {
    *
    * @return list<array<string, scalar|null>>
    *   Rows with id, plantilla, grupo, profesor, lugar, dia, turno,
-   *   momento_de_colocacion, creador.
+   *   momento_de_colocacion, creador, and otros_recursos (a list of engine
+   *   ids).
    */
   public function placements(array $rows): array {
     $templates = self::idsByEntity($rows['plantilla_de_actividad']);
     $groups = self::idsByEntity($rows['grupo']);
     $teachers = self::idsByEntity($rows['profesor']);
     $rooms = self::idsByEntity($rows['lugar']);
+    $resources = self::idsByEntity($rows['otro_recurso']);
     $storage = $this->entityTypeManager->getStorage('ancora_placement');
     $ids = $storage->getQuery()->accessCheck(FALSE)->sort('id')->execute();
     $out = [];
@@ -127,6 +132,7 @@ final class SiteRows {
           'turno' => (int) $placement->get('slot')->value,
           'momento_de_colocacion' => $placement->get('placed_at')->value === NULL ? NULL : (float) $placement->get('placed_at')->value,
           'creador' => ScopeMapper::creatorOf((int) $placement->getCreatorId()),
+          'otros_recursos' => array_map(static fn (array $item): ?string => $id($resources, (string) $item['target_id']), $placement->get('other_resources')->getValue()),
         ];
       }
     }

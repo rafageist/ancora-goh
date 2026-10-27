@@ -27,6 +27,9 @@ final class AcademicAccessTest extends AcademicKernelTestBase {
    */
   public function testCreatorRule(): void {
     $this->loadFixture();
+    // The fixture has no other resource (dev/e2e/fixture.sql); one of the
+    // owner's.
+    $this->newRecord('ancora_other_resource', ['label' => 'Projector', 'code' => 'R1'])->save();
     $plain = $this->createUser([]);
     $viewer = $this->createUser(['view academic data']);
     $other = $this->createUser(['view academic data', 'edit academic data']);
@@ -66,6 +69,7 @@ final class AcademicAccessTest extends AcademicKernelTestBase {
    */
   public function testQueriesAreFilteredByCreator(): void {
     $this->loadFixture();
+    $this->newRecord('ancora_other_resource', ['label' => 'Projector', 'code' => 'R1'])->save();
     $other = $this->createUser(['view academic data', 'edit academic data']);
     $administrator = $this->createUser(['administer academic data']);
     $plain = $this->createUser([]);

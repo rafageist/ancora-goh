@@ -29,6 +29,7 @@ final class AcademicEntityTypes {
     'ancora_activity_template' => 'templates',
     'ancora_room' => 'rooms',
     'ancora_teacher' => 'teachers',
+    'ancora_other_resource' => 'other-resources',
     'ancora_teacher_assignment' => 'teacher-assignments',
     'ancora_room_assignment' => 'room-assignments',
   ];
@@ -37,8 +38,9 @@ final class AcademicEntityTypes {
    * The types owned by the user who creates them (legacy column "creador").
    *
    * Legacy: planificacion, clasificacion_de_actividad, especialidad, nivel,
-   * brigada, asignatura, profesor and lugar carry "creador" and no plan
-   * (docs/modernization/legacy-parity-inventory.md PAR-001, PAR-003). A
+   * brigada, asignatura, profesor, lugar and otro_recurso carry "creador"
+   * and no plan (docs/modernization/legacy-parity-inventory.md PAR-001,
+   * PAR-003). A
    * user's catalogue records serve every plan of that user. The other types
    * belong to a plan, and their creator is the plan's.
    */
@@ -51,6 +53,7 @@ final class AcademicEntityTypes {
     'ancora_subject',
     'ancora_room',
     'ancora_teacher',
+    'ancora_other_resource',
   ];
 
   /**
@@ -77,6 +80,8 @@ final class AcademicEntityTypes {
     'ancora_load_limit',
     'ancora_group_room',
     'ancora_travel_cost',
+    'ancora_resource_group',
+    'ancora_resource_member',
   ];
 
   /**
@@ -102,6 +107,7 @@ final class AcademicEntityTypes {
     'catalogues' => [
       'ancora_teacher',
       'ancora_room',
+      'ancora_other_resource',
       'ancora_subject',
       'ancora_specialty',
       'ancora_level',
@@ -131,7 +137,7 @@ final class AcademicEntityTypes {
       ],
       'catalogues' => [
         'title' => new TranslatableMarkup('Academic catalogues'),
-        'intro' => new TranslatableMarkup('Your teachers, rooms, subjects, specialties, levels, cohorts, groups and activity types. Catalogue records serve all your plans; groups belong to one plan.'),
+        'intro' => new TranslatableMarkup('Your teachers, rooms, other resources, subjects, specialties, levels, cohorts, groups and activity types. Catalogue records serve all your plans; groups belong to one plan.'),
       ],
       'assignments' => [
         'title' => new TranslatableMarkup('Assignments & templates'),
@@ -187,6 +193,7 @@ final class AcademicEntityTypes {
       'ancora_breakdown' => new TranslatableMarkup('The scheduling options of each subject in each period: days between its activities, their order, and activities on the same day. One per subject and period, created automatically.'),
       'ancora_room' => new TranslatableMarkup('Rooms and their capacity.'),
       'ancora_teacher' => new TranslatableMarkup('Teachers.'),
+      'ancora_other_resource' => new TranslatableMarkup('Shared resources other than teachers and rooms, for example projectors, that activity templates need.'),
       'ancora_teacher_assignment' => new TranslatableMarkup('Which teacher may give an activity template, to which groups, with which priority.'),
       'ancora_room_assignment' => new TranslatableMarkup('Which rooms an activity template may use, with which priority.'),
     ];

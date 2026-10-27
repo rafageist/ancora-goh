@@ -79,6 +79,8 @@ After the #70 D9a slice (61 cases): **50 PASS, 11 XFAIL, 0 FAIL / XPASS / XWRONG
 
 After the #70 D9b slice (62 cases): **51 PASS, 11 XFAIL, 0 FAIL / XPASS / XWRONG**. Case 140 records that a break changes only the slot hours, that priority zones change the cells only with `parche1`, the effect of teacher and brigade daily load limits, and their keys. Every earlier result is unchanged.
 
+After the #70 D9d and D11 slice (65 cases): **54 PASS, 11 XFAIL, 0 FAIL / XPASS / XWRONG**. Case 142 records the resources `generar()` gives a placed activity (every group but the last, the first group's `necesarios`, priority then use, no availability check: a chosen restricted resource fails the run; Q-31, Q-32); case 143 records `forma` and `compactar` (D11). Every earlier result is unchanged.
+
 After the #70 D9c slice (63 cases): **52 PASS, 11 XFAIL, 0 FAIL / XPASS / XWRONG**. Case 141 records the room strategy (`buscalugar` with and without travel costs), the fixed room, that forbidden rooms never apply in `generar()` (Q-30), and the priority upkeep of `lugar_para_actividad`. Every earlier result is unchanged.
 
 A negative run confirmed that the runner exits non-zero. It used a temporary copy of the suite with three cases modified to give one FAIL, one XPASS and one XWRONG.

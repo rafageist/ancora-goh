@@ -137,7 +137,7 @@ if (is_file("$out/roundtrip.json")) {
     }
     $mine = $norm($r['placements'], 'drupal');
     $theirs = $norm($legacy['runs'][$key]['placements'] ?? [], 'legacy');
-    $report(in_array($r['state'], ['succeeded', 'partial'], TRUE) ? 'PASS' : 'FAIL', sprintf('run %s: job %d %s, %s stored placements loaded, published %s', $key, $r['job'], $r['state'], $r['placements_loaded'] ?? '?', json_encode($r['publication'])), $r['error'] === NULL ? [] : [$r['error']]);
+    $report(in_array($r['state'], ['succeeded', 'partial'], TRUE) ? 'PASS' : 'FAIL', sprintf('run %s: job %d %s, %s stored placements and %s resource uses loaded, published %s', $key, $r['job'], $r['state'], $r['placements_loaded'] ?? '?', $r['resource_uses_loaded'] ?? '?', json_encode($r['publication'])), $r['error'] === NULL ? [] : [$r['error']]);
     $report($mine === $theirs ? 'PASS' : 'FAIL', sprintf('run %s: Drupal placement entities = legacy oracle, placement by placement (%d)', $key, count($mine)), $mine === $theirs ? [] : $diff($theirs, $mine));
     $expected_total = max($expected_total, 0) + (int) ($r['publication']['published'] ?? 0);
     if (isset($run['expect']['e2e_digest'])) {
