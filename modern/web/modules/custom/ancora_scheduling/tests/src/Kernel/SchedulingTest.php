@@ -13,6 +13,7 @@ use Drupal\ancora_scheduling\ScopeMapper;
 use Drupal\ancora_academic\Entity\Period;
 use Drupal\ancora_academic\Entity\TimeRestriction;
 use Drupal\ancora_academic\PeriodInputs;
+use Drupal\ancora_academic\RoomConstraints;
 use Drupal\ancora_academic\TimeRestrictionGrid;
 use Drupal\ancora_scheduling\Sync\LegacyTableSync;
 use Drupal\Tests\ancora_academic\Kernel\AcademicKernelTestBase;
@@ -123,6 +124,12 @@ final class SchedulingTest extends AcademicKernelTestBase {
     $this->assertSame([], $inputs->saveZones($this->byCode('ancora_activity_type', 'C1')->id(), $period, ['1:1' => 2]));
     $this->assertSame([], $inputs->saveLimits($period, 'teacher', [(int) $this->byCode('ancora_teacher', 'TA')->id() => 4]));
     $this->assertSame([], $inputs->saveLimits($period, 'cohort', [(int) $this->byCode('ancora_cohort', 'B1')->id() => 4]));
+    // A fixed and a forbidden room, a travel cost (D9c).
+    $rooms = $this->container->get(RoomConstraints::class);
+    $l1 = $this->byCode('ancora_room', 'L1');
+    $l2 = $this->byCode('ancora_room', 'L2');
+    $this->assertSame([], $rooms->saveGroupRooms($this->byCode('ancora_student_group', 'G1', $plan), (int) $l1->id(), [(int) $l2->id()]));
+    $this->assertSame([], $rooms->saveTravelCosts($l1, [(int) $l2->id() => 5]));
     $export = $this->container->get(AcademicExport::class)->export($plan);
     $rows = $this->container->get(LegacyRows::class)->build($export, ScopeMapper::creator($plan), TRUE);
     $this->assertSame([], array_diff_key(LegacyTableSync::TABLES, $rows));

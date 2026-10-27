@@ -230,12 +230,12 @@ Drupal:
 
 `install-disposable.sh` loads the fixture into the freshly installed site, exports it and checks that it has 8 demands (4 templates × 2 groups) and 8 teacher–group links. The HTTP smoke test then reads the fixture through the overview, the teacher list and the Views page.
 
-## Export contract (`AcademicExport`, schema `ancora_academic.export.v5`)
+## Export contract (`AcademicExport`, schema `ancora_academic.export.v6`)
 
 `AcademicExport::export(Plan $plan, ?Period $period = NULL): array` returns plain PHP data (scalars and lists, JSON-serializable): the plan's own records and **all the catalogue records of the plan's owner** (they serve every plan of that owner). `AcademicExport::catalogue(int $owner)` returns the catalogues of a user who may have no plan (`plan` NULL, no plan records). Both read with access checks disabled; the caller decides who may export. The command `drush ancora-academic:export <plan code> [--owner=<account>] [--period=<code>] [--legacy]` prints the export, or its legacy rows, as JSON.
 
 ```text
-schema               "ancora_academic.export.v5"
+schema               "ancora_academic.export.v6"
 owner                user ID of the plan's creator
 plan                 {key, id, code, label, starts_on (Y-m-d|null), duration_days, active}
 periods[]            {key, id, code, label, days, slots_per_day, start_hour, slot_duration, plan_days[]}
@@ -257,10 +257,12 @@ time_restrictions[]  {key, id, period, kind, target, day, slot}
 breaks[]             {key, id, period, after_slot, length}
 priority_zones[]     {key, id, period, activity_type, day, slot, zone}
 load_limits[]        {key, id, period, kind, target, max_daily_load}
+group_rooms[]        {key, id, kind (fixed|forbidden), group, room}
+travel_costs[]       {key, id, origin, destination, cost}          (owner's)
 issues[]             {type, key, message}
 ```
 
-v2 (#70) adds `owner` and the entity `id` of every record, and the catalogue lists are the owner's instead of the plan's. v5 (#70, D9b) adds `breaks` (to `receso`), `priority_zones` (to `zpriori`; only zones other than 1 exist) and `load_limits` (to `higiene_para_profesor` / `_brigada`). v4 (#70, D9a) adds `time_restrictions`: one record per restricted cell of the exported periods; `kind` is period, activity_type, subject, cohort, teacher or room, `target` the key of the object (NULL for the period). `LegacyRows` writes them to `restriccion_de_{periodo,clasif_act,asignatura,brigada,profesor,lugar}` with `valor` 1 and, on the last three, `por_actividad` false. v3 (#70, D4) adds `breakdowns`: the stored breakdowns of the exported periods, sorted by subject and period code. `LegacyRows` gives every subject × period its options, or the legacy defaults when it has no breakdown.
+v2 (#70) adds `owner` and the entity `id` of every record, and the catalogue lists are the owner's instead of the plan's. v6 (#70, D9c) adds `group_rooms` (to `lugar_fijo` / `acceso_prohibido`) and the owner's `travel_costs` (to `costo_de_traslado`). v5 (#70, D9b) adds `breaks` (to `receso`), `priority_zones` (to `zpriori`; only zones other than 1 exist) and `load_limits` (to `higiene_para_profesor` / `_brigada`). v4 (#70, D9a) adds `time_restrictions`: one record per restricted cell of the exported periods; `kind` is period, activity_type, subject, cohort, teacher or room, `target` the key of the object (NULL for the period). `LegacyRows` writes them to `restriccion_de_{periodo,clasif_act,asignatura,brigada,profesor,lugar}` with `valor` 1 and, on the last three, `por_actividad` false. v3 (#70, D4) adds `breakdowns`: the stored breakdowns of the exported periods, sorted by subject and period code. `LegacyRows` gives every subject × period its options, or the legacy defaults when it has no breakdown.
 
 Rules:
 
@@ -343,6 +345,8 @@ The module adds no file to the frozen LBR baseline, and it modifies no legacy fi
 1. it adds the owner field to the eight owned types; existing records get the site's first account (uid 1), because the earlier schema recorded no creator;
 2. it merges catalogue records that were copies in several plans (same type, owner and code, same values) into the oldest one and moves every reference to it; copies with the same code and different values stop the update with a message, and nothing changes;
 3. it removes the plan field of the seven catalogue types.
+
+`ancora_academic_update_11007()` (D9c) installs the empty `ancora_group_room` and `ancora_travel_cost` entity types. The planner request form now sends `buscalugar` TRUE by default (the nearest room, the legacy window's default, A-2); a request can choose the room the group uses most.
 
 `ancora_academic_update_11006()` (D9b) installs the empty `ancora_break`, `ancora_priority_zone` and `ancora_load_limit` entity types.
 

@@ -151,6 +151,19 @@ final class Normalizer {
       'derived' => ['brigada', 'periodo'],
       'refs' => ['brigada' => 'brigada', 'periodo' => 'periodo'],
     ],
+    // D9c.
+    'lugar_fijo' => [
+      'derived' => ['grupo', 'lugar'],
+      'refs' => ['grupo' => 'grupo', 'lugar' => 'lugar'],
+    ],
+    'acceso_prohibido' => [
+      'derived' => ['grupo', 'lugar'],
+      'refs' => ['grupo' => 'grupo', 'lugar' => 'lugar'],
+    ],
+    'costo_de_traslado' => [
+      'derived' => ['origen', 'destino'],
+      'refs' => ['origen' => 'lugar', 'destino' => 'lugar'],
+    ],
   ];
 
   /**

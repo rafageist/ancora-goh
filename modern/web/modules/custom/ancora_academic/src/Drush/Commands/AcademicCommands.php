@@ -131,7 +131,7 @@ final class AcademicCommands extends DrushCommands {
     $transaction = $this->database->startTransaction();
     $moved = 0;
     try {
-      foreach (AcademicEntityTypes::OWNED as $entity_type_id) {
+      foreach ([...AcademicEntityTypes::OWNED, ...AcademicEntityTypes::OWNED_GRID] as $entity_type_id) {
         $storage = $this->entityTypeManager->getStorage($entity_type_id);
         $ids = $storage->getQuery()->accessCheck(FALSE)->condition('uid', $old->id())->execute();
         foreach ($storage->loadMultiple($ids) as $entity) {

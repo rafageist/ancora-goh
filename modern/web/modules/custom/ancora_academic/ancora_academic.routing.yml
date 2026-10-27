@@ -43,6 +43,25 @@ ancora_academic.restrictions:
   requirements:
     _permission: 'edit academic data+administer academic data'
 
+# The room constraints (D9c): ?group= and ?room=.
+ancora_academic.room_constraints.group_rooms:
+  path: '/ancora/planning/group-rooms'
+  defaults:
+    _form: '\Drupal\ancora_academic\Form\RoomConstraintsForm'
+    _title: 'Fixed and forbidden rooms'
+    input: group_rooms
+  requirements:
+    _permission: 'edit academic data+administer academic data'
+
+ancora_academic.room_constraints.travel_costs:
+  path: '/ancora/planning/travel-costs'
+  defaults:
+    _form: '\Drupal\ancora_academic\Form\RoomConstraintsForm'
+    _title: 'Travel costs'
+    input: travel_costs
+  requirements:
+    _permission: 'edit academic data+administer academic data'
+
 # The other inputs of a period (D9b): ?period= (and ?activity_type=).
 ancora_academic.period_inputs.breaks:
   path: '/ancora/planning/breaks'

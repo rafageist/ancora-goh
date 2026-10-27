@@ -272,3 +272,23 @@ function ancora_academic_update_11006(): string {
   }
   return (string) t('Installed: @types.', ['@types' => $installed === [] ? 'none' : implode(', ', $installed)]);
 }
+
+/**
+ * Adds fixed and forbidden rooms and travel costs (#70, D9c).
+ *
+ * Installs the two entity types, empty: the engine received none of these
+ * rows before. Room assignment priorities are not changed.
+ */
+function ancora_academic_update_11007(): string {
+  $manager = \Drupal::entityDefinitionUpdateManager();
+  $entity_type_manager = \Drupal::entityTypeManager();
+  $entity_type_manager->clearCachedDefinitions();
+  $installed = [];
+  foreach (['ancora_group_room', 'ancora_travel_cost'] as $entity_type_id) {
+    if ($manager->getEntityType($entity_type_id) === NULL) {
+      $manager->installEntityType($entity_type_manager->getDefinition($entity_type_id));
+      $installed[] = $entity_type_id;
+    }
+  }
+  return (string) t('Installed: @types.', ['@types' => $installed === [] ? 'none' : implode(', ', $installed)]);
+}

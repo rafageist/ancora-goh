@@ -81,7 +81,8 @@ final class LegacyRows {
     'restriccion_de_clasif_act', 'restriccion_de_asignatura',
     'restriccion_de_brigada', 'restriccion_de_profesor',
     'restriccion_de_lugar', 'receso', 'zpriori', 'higiene_para_profesor',
-    'higiene_para_brigada',
+    'higiene_para_brigada', 'lugar_fijo', 'acceso_prohibido',
+    'costo_de_traslado',
   ];
 
   /**
@@ -288,6 +289,20 @@ final class LegacyRows {
         $row += ['por_actividad' => FALSE, 'actividad' => NULL];
       }
       $rows[$table][] = $row;
+    }
+    // D9c: fixed and forbidden rooms, travel costs.
+    foreach ($export['group_rooms'] as $group_room) {
+      $rows[$group_room['kind'] === 'fixed' ? 'lugar_fijo' : 'acceso_prohibido'][] = [
+        'grupo' => $code($group_room['group']),
+        'lugar' => $code($group_room['room']),
+      ];
+    }
+    foreach ($export['travel_costs'] as $cost) {
+      $rows['costo_de_traslado'][] = [
+        'origen' => $code($cost['origin']),
+        'destino' => $code($cost['destination']),
+        'costo' => $cost['cost'],
+      ];
     }
     // D9b: breaks, priority zones (only zones other than 1 exist), daily
     // load limits.
