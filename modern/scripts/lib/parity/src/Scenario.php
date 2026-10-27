@@ -65,6 +65,10 @@ final class Scenario {
     'break' => ['period' => 'period'],
     'priority_zones' => ['period' => 'period', 'activity_type' => 'activity_type'],
     'load_limit' => ['period' => 'period'],
+    // D9c: the fixed room (or none) and forbidden rooms of a group; the
+    // travel costs from a room to other rooms (costs: {room key: cost}).
+    'group_rooms' => ['group' => 'student_group'],
+    'travel_costs' => ['origin' => 'room'],
   ];
 
   /**
@@ -186,6 +190,7 @@ final class Scenario {
       'period', 'student_group' => $record['plan'],
       'activity_template', 'breakdown', 'time_restriction', 'break', 'priority_zones', 'load_limit' => $this->planOf($record['period']),
       'teacher_assignment', 'room_assignment' => $this->planOf($record['template']),
+      'group_rooms' => $this->planOf($record['group']),
       default => NULL,
     };
   }
@@ -224,6 +229,8 @@ final class Scenario {
       'break' => [$r['type'], $r['period'], (string) $r['after_slot']],
       'priority_zones' => [$r['type'], $r['activity_type'], $r['period']],
       'load_limit' => [$r['type'], $r['kind'], $r['target'], $r['period']],
+      'group_rooms' => [$r['type'], $r['group']],
+      'travel_costs' => [$r['type'], $r['origin']],
       default => [$r['type'], $r['as'], $r['label']],
     };
   }

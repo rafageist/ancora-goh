@@ -103,6 +103,20 @@ final class RequestRunForm extends FormBase {
         '#required' => TRUE,
       ];
     }
+    // The room strategy of the legacy generator window (D9c, A-2). Its
+    // first, default choice reads "el más utilizado" but posts buscalugar =
+    // TRUE, which generar() treats as the least travel cost (quirk Q-21);
+    // the labels here say what the engine does.
+    $form['room_choice'] = [
+      '#type' => 'radios',
+      '#title' => $this->t('Room choice'),
+      '#options' => [
+        'nearest' => $this->t('The nearest room: least travel cost from the rooms used around the slot (the legacy default)'),
+        'most_used' => $this->t('The room the group uses most'),
+      ],
+      '#default_value' => 'nearest',
+      '#description' => $this->t('Among the rooms of the highest priority that are free and large enough. Travel costs are set on each room.'),
+    ];
     $form['actions']['submit'] = [
       '#type' => 'submit',
       '#value' => $this->t('Request the timetable'),
@@ -153,7 +167,7 @@ final class RequestRunForm extends FormBase {
     [$plan, $period, $specialty, $level] = $this->records($form_state);
     $id = $this->jobs->enqueue(
       ScopeMapper::scope($plan, $period, $specialty, $level),
-      new JobOptions(),
+      new JobOptions(buscalugar: $form_state->getValue('room_choice', 'nearest') !== 'most_used'),
       $this->settings->timeLimit(),
       (int) $this->currentUser()->id(),
       NULL,

@@ -6,6 +6,7 @@ namespace Drupal\ancora_academic\Hook;
 
 use Drupal\ancora_academic\Entity\TimeRestriction;
 use Drupal\ancora_academic\PeriodInputs;
+use Drupal\ancora_academic\RoomConstraints;
 use Drupal\ancora_academic\TimeRestrictionGrid;
 use Drupal\Core\Entity\Display\EntityViewDisplayInterface;
 use Drupal\Core\Entity\EntityInterface;
@@ -38,12 +39,14 @@ final class RestrictionHooks {
   public function __construct(
     private readonly TimeRestrictionGrid $grid,
     private readonly PeriodInputs $inputs,
+    private readonly RoomConstraints $rooms,
   ) {}
 
   /**
    * Implements hook_ENTITY_TYPE_view(): a link to the restriction grid.
    */
   #[Hook('ancora_period_view')]
+  #[Hook('ancora_student_group_view')]
   #[Hook('ancora_activity_type_view')]
   #[Hook('ancora_subject_view')]
   #[Hook('ancora_cohort_view')]
@@ -53,10 +56,32 @@ final class RestrictionHooks {
     if (($view_mode !== 'full' && $view_mode !== 'default') || !$entity->access('update')) {
       return;
     }
+    if ($entity->getEntityTypeId() === 'ancora_student_group') {
+      // Fixed and forbidden rooms (D9c); groups have no time restrictions.
+      $build['ancora_group_rooms'] = [
+        '#type' => 'link',
+        '#title' => new TranslatableMarkup('Fixed and forbidden rooms'),
+        '#url' => Url::fromRoute('ancora_academic.room_constraints.group_rooms', [], ['query' => ['group' => $entity->id()]]),
+        '#weight' => 101,
+        '#prefix' => '<p class="ancora-group-rooms-link">',
+        '#suffix' => '</p>',
+      ];
+      return;
+    }
     $kind = array_search($entity->getEntityTypeId(), TimeRestriction::TARGET_TYPES, TRUE);
     $query = $kind === FALSE
       ? ['kind' => 'period', 'period' => $entity->id()]
       : ['kind' => $kind, 'target' => $entity->id()];
+    if ($entity->getEntityTypeId() === 'ancora_room') {
+      $build['ancora_travel_costs'] = [
+        '#type' => 'link',
+        '#title' => new TranslatableMarkup('Travel costs'),
+        '#url' => Url::fromRoute('ancora_academic.room_constraints.travel_costs', [], ['query' => ['room' => $entity->id()]]),
+        '#weight' => 102,
+        '#prefix' => '<p class="ancora-travel-costs-link">',
+        '#suffix' => '</p>',
+      ];
+    }
     if ($entity->getEntityTypeId() === 'ancora_activity_type') {
       $build['ancora_priority_zones'] = [
         '#type' => 'link',
@@ -83,6 +108,10 @@ final class RestrictionHooks {
    */
   #[Hook('entity_predelete')]
   public function entityPredelete(EntityInterface $entity): void {
+    // Fixed and forbidden rooms, travel costs (D9c).
+    if (in_array($entity->getEntityTypeId(), ['ancora_plan', 'ancora_student_group', 'ancora_room'], TRUE)) {
+      $this->rooms->deleteFor($entity->getEntityTypeId(), $entity->id());
+    }
     $field = self::FIELDS[$entity->getEntityTypeId()] ?? NULL;
     if ($field !== NULL && !$entity instanceof TimeRestriction) {
       $this->grid->deleteFor($field, $entity->id());

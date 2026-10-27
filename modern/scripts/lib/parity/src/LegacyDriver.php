@@ -620,6 +620,45 @@ final class LegacyDriver {
         $this->ids[$key] = $id($r['period']);
         break;
 
+      case 'group_rooms':
+        // No screen wrote these (A-4): add_LugarFijo, add_AccesoProhibido.
+        if (isset($r['fixed'])) {
+          $this->event($as, 'add_LugarFijo', [
+            'field_LugarFijo_grupo' => $id($r['group']),
+            'field_LugarFijo_lugar' => $id($r['fixed']),
+          ], "add_LugarFijo $key");
+        }
+        foreach ($r['forbidden'] ?? [] as $room) {
+          $this->event($as, 'add_AccesoProhibido', [
+            'field_AccesoProhibido_grupo' => $id($r['group']),
+            'field_AccesoProhibido_lugar' => $id($room),
+          ], "add_AccesoProhibido $key $room");
+        }
+        $this->ids[$key] = $id($r['group']);
+        break;
+
+      case 'travel_costs':
+        // The travel cost editor of a room posts one custom_set_costotraslado
+        // per other room of the owner, 0 included
+        // (ancoragoh_client_forms_costotraslado.js aceptar()). Its form,
+        // get_form_edit_lugar_costos_de_traslado.php, fails on PHP 8 (line
+        // 24 assigns a property of an undefined array entry, which PHP 5
+        // turned into an object): a legacy runtime defect, recorded in
+        // legacy-parity-harness.md; the save handler works.
+        foreach ($this->scenario->ofType('room') as $room_key => $room) {
+          if ($room_key === $r['origin'] || $room['as'] !== $as || !isset($this->ids[$room_key])) {
+            continue;
+          }
+          $this->event($as, 'custom_set_costotraslado', [
+            'origen' => $id($r['origin']),
+            'destino' => $id($room_key),
+            'costo' => $r['costs'][$room_key] ?? 0,
+          ], "custom_set_costotraslado $key $room_key", TRUE);
+        }
+        echo "ok    custom_set_costotraslado $key\n";
+        $this->ids[$key] = $id($r['origin']);
+        break;
+
       case 'load_limit':
         // No screen wrote limits (A-4): add_HigieneParaProfesor / _Brigada.
         [$class, $column] = $r['kind'] === 'teacher'

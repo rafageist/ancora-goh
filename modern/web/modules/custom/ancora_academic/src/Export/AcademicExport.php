@@ -50,6 +50,9 @@ use Drupal\Core\Entity\EntityTypeManagerInterface;
  *   the period itself), day and slot.
  * - "breaks", "priority_zones" and "load_limits" hold the other inputs of
  *   the periods (legacy receso, zpriori, higiene_para_*, D9b).
+ * - "group_rooms" holds the fixed and forbidden rooms of the plan's groups,
+ *   "travel_costs" the owner's travel costs between rooms (legacy
+ *   lugar_fijo, acceso_prohibido, costo_de_traslado; D9c).
  * - "issues" lists data the engine cannot use as is (for example a template
  *   that requires a teacher and has none); the export never fails for them.
  *
@@ -61,7 +64,7 @@ final class AcademicExport {
   /**
    * The version of the export contract.
    */
-  public const SCHEMA = 'ancora_academic.export.v5';
+  public const SCHEMA = 'ancora_academic.export.v6';
 
   /**
    * The catalogue lists: export key => entity type ID.
@@ -172,6 +175,7 @@ final class AcademicExport {
     $export['breakdowns'] = $this->breakdowns($period_ids);
     $export['time_restrictions'] = $this->timeRestrictions($period_ids);
     $export += $this->periodInputs($period_ids);
+    $export['group_rooms'] = $this->groupRooms(array_map(static fn (StudentGroup $g): int => (int) $g->id(), $groups));
     $export['issues'] = $this->issues($export);
     return $export;
   }
@@ -202,6 +206,7 @@ final class AcademicExport {
       'breaks' => [],
       'priority_zones' => [],
       'load_limits' => [],
+      'group_rooms' => [],
       'issues' => [],
     ];
   }
@@ -235,6 +240,13 @@ final class AcademicExport {
         'capacity' => $r->getCapacity(),
       ], $load('ancora_room'))),
       'teachers' => $this->sortByCode(array_map($this->basic(...), $load('ancora_teacher'))),
+      'travel_costs' => array_map(fn ($c): array => [
+        'key' => (string) $c->uuid(),
+        'id' => (int) $c->id(),
+        'origin' => $this->key($c, 'origin'),
+        'destination' => $this->key($c, 'destination'),
+        'cost' => (int) $c->get('cost')->value,
+      ], $load('ancora_travel_cost')),
     ];
   }
 
@@ -268,6 +280,33 @@ final class AcademicExport {
     $order = static fn (array $b): array => [$b['subject_code'], $b['period_code'], $b['id']];
     usort($records, static fn (array $a, array $b): int => $order($a) <=> $order($b));
     return $records;
+  }
+
+  /**
+   * The fixed and forbidden rooms of some groups, in entity id order.
+   *
+   * @param list<int> $group_ids
+   *   The groups.
+   *
+   * @return list<array<string, mixed>>
+   *   key, id, kind, group and room keys.
+   */
+  private function groupRooms(array $group_ids): array {
+    if ($group_ids === []) {
+      return [];
+    }
+    $storage = $this->entityTypeManager->getStorage('ancora_group_room');
+    $out = [];
+    foreach ($storage->loadMultiple($storage->getQuery()->accessCheck(FALSE)->condition('student_group', $group_ids, 'IN')->sort('id')->execute()) as $r) {
+      $out[] = [
+        'key' => (string) $r->uuid(),
+        'id' => (int) $r->id(),
+        'kind' => (string) $r->get('kind')->value,
+        'group' => $this->key($r, 'student_group'),
+        'room' => $this->key($r, 'room'),
+      ];
+    }
+    return $out;
   }
 
   /**

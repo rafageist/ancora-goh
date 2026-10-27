@@ -85,6 +85,10 @@ final class LegacyTableSync {
     'zpriori' => [['clasificacion', 'periodo', 'dia', 'turno'], 'periodo'],
     'higiene_para_profesor' => [['periodo', 'profesor', 'gasto_maximo_diario'], 'periodo'],
     'higiene_para_brigada' => [['periodo', 'brigada', 'gasto_maximo_diario'], 'periodo'],
+    // D9c: selected by their (numbered) group or origin room.
+    'lugar_fijo' => [['grupo', 'lugar'], 'grupo'],
+    'acceso_prohibido' => [['grupo', 'lugar'], 'grupo'],
+    'costo_de_traslado' => [['origen', 'destino'], 'origen'],
   ];
 
   /**

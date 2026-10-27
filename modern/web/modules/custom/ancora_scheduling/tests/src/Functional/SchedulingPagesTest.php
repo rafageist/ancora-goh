@@ -92,6 +92,9 @@ final class SchedulingPagesTest extends AncoraBrowserTestBase {
       sprintf('%010d:N', $level->id()),
       sprintf('%010d:PER', $period->id()),
     ], $job->scope->toParameters());
+    // The room choice defaults to the nearest room: buscalugar = TRUE, what
+    // the legacy generator window posts by default (D9c, A-2).
+    $this->assertTrue($job->options->buscalugar);
 
     $this->drupalGet('/ancora/scheduling/request');
     $this->submitForm($values, 'Request the timetable');

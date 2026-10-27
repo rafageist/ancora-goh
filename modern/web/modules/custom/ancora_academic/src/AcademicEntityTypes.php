@@ -75,6 +75,17 @@ final class AcademicEntityTypes {
     'ancora_break',
     'ancora_priority_zone',
     'ancora_load_limit',
+    'ancora_group_room',
+    'ancora_travel_cost',
+  ];
+
+  /**
+   * Grid-edited types owned by their creator, not by a plan (D9c).
+   *
+   * Travel costs connect two rooms of one owner, catalogue records.
+   */
+  public const OWNED_GRID = [
+    'ancora_travel_cost',
   ];
 
   /**
@@ -133,7 +144,7 @@ final class AcademicEntityTypes {
    * Whether records of a type are owned by their creator (not by a plan).
    */
   public static function isOwned(string $entity_type_id): bool {
-    return in_array($entity_type_id, self::OWNED, TRUE);
+    return in_array($entity_type_id, self::OWNED, TRUE) || in_array($entity_type_id, self::OWNED_GRID, TRUE);
   }
 
   /**

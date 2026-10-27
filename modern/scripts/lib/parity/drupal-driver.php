@@ -30,6 +30,7 @@ use Drupal\ancora_academic\AcademicAccessControlHandler;
 use Drupal\ancora_academic\AcademicEntityInterface;
 use Drupal\ancora_academic\BreakdownMaintainer;
 use Drupal\ancora_academic\PeriodInputs;
+use Drupal\ancora_academic\RoomConstraints;
 use Drupal\ancora_academic\TimeRestrictionGrid;
 use Drupal\ancora_engine\Job\JobOptions;
 use Drupal\ancora_scheduling\ScopeMapper;
@@ -116,6 +117,37 @@ foreach ($ancora_scenario->records as $key => $r) {
       }
       $ancora_entities[$key] = $target ?? $period;
       echo "ok    restrict $key (" . count($r['cells']) . " cells)\n";
+    }
+    finally {
+      $switcher->switchBack();
+    }
+    continue;
+  }
+  if (in_array($r['type'], ['group_rooms', 'travel_costs'], TRUE)) {
+    // The room constraint editors, saved as their form saves them.
+    $switcher->switchTo($ancora_accounts[$r['as']]);
+    try {
+      $rooms = \Drupal::service(RoomConstraints::class);
+      if ($r['type'] === 'group_rooms') {
+        $messages = $rooms->saveGroupRooms(
+          $ancora_entities[$r['group']],
+          isset($r['fixed']) ? (int) $ancora_entities[$r['fixed']]->id() : NULL,
+          array_map(static fn (string $k): int => (int) $ancora_entities[$k]->id(), $r['forbidden'] ?? []),
+        );
+      }
+      else {
+        $costs = [];
+        foreach ($r['costs'] as $room_key => $cost) {
+          $costs[(int) $ancora_entities[$room_key]->id()] = (int) $cost;
+        }
+        $messages = $rooms->saveTravelCosts($ancora_entities[$r['origin']], $costs);
+      }
+      if ($messages !== []) {
+        $ancora_fail("{$r['type']} $key: " . implode('; ', $messages));
+        continue;
+      }
+      $ancora_entities[$key] = $ancora_entities[$r['group'] ?? $r['origin']];
+      echo "ok    {$r['type']} $key\n";
     }
     finally {
       $switcher->switchBack();
