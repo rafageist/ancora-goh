@@ -11,6 +11,8 @@
 #   ancora-site.sh resume <slug>
 #   ancora-site.sh deprovision <slug> --backup-dir <dir> --confirm <slug>
 #   ancora-site.sh update-all [--backup-dir <dir>]
+#   ancora-site.sh migrate-single-db <slug> [--check] [--backup-dir <dir>]
+#   ancora-site.sh rollback-single-db <slug> [--discard-new-placements]
 #   ancora-site.sh list
 #   ancora-site.sh work <slug> [worker options, e.g. --once]
 #
@@ -39,9 +41,12 @@
 #   ANCORA_DB_NAME, ANCORA_DB_USER, ANCORA_DB_OWNER_USER,
 #   ANCORA_DB_PASSWORD_FILE, ANCORA_DB_OWNER_PASSWORD_FILE,
 #   ANCORA_HASH_SALT_FILE         the control site (control-install, update-all)
-#   ANCORA_PROVISION_TEST_FAIL_AFTER  test hook: stop provisioning after the
-#                                 named step (the verification uses it to prove
-#                                 recovery). Never set it in production.
+#   ANCORA_PROVISION_TEST_FAIL_AFTER  test hook: stop provisioning or a
+#                                 migration after the named step (the
+#                                 verification uses it to prove recovery).
+#   ANCORA_MIGRATION_TEST_FAIL_AFTER  test hook: fail the placement import
+#                                 after N placements. Never set either in
+#                                 production.
 set -euo pipefail
 
 project=$(cd "$(dirname "$0")/.." && pwd -P)
@@ -561,6 +566,204 @@ SQL
   say "$slug: deprovisioned"
 }
 
+# ---------------------------------------------------------------- migration (#96)
+# migrate-single-db <slug> [--check] [--backup-dir <dir>]
+#
+# Moves a two-database site (#71) to the single-database layout, without
+# changing any record of the site. It is idempotent and resumable: the steps
+# done are recorded (MIGRATION in provision.state), a re-run continues after
+# the last one, and a migrated site is left as it is.
+#
+#   --check   report only (any status): how many placements would be
+#             imported, of which jobs, and every problem; nothing is changed.
+#
+# Steps (the site must be suspended and no job queued or running):
+#   1. backup: pg_dump -Fc of tt_<slug> and tt_<slug>_engine and a copy of
+#      site.ini into --backup-dir (required the first time);
+#   2. checksums of the Drupal records (every content entity table but the
+#      placements, the configuration, the job history);
+#   3. engine: the engine owner, the job group and the engine in schema
+#      "scheduler" of tt_<slug> (workspace_ensure, as provision does);
+#   4. placements: the rows of tt_<slug>_engine.actividad become placement
+#      entities through the Entity API, with their engine ids, in their
+#      order, linked to their jobs (one transaction; TwoDatabaseImport);
+#   5. the checksums again: they must be equal;
+#   6. switch: site.ini gets ENGINE_MODE=workspace and the site's own
+#      database; the engine is reached with the site's settings.
+# The engine database tt_<slug>_engine is left in place, unchanged, for the
+# rollback; retiring it is a separate, later step.
+cmd_migrate_single_db() {
+  local slug=${1:-} backup="" check=0
+  shift || true
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      --check) check=1; shift ;;
+      --backup-dir) backup=$2; shift 2 ;;
+      *) die "unknown option $1" ;;
+    esac
+  done
+  valid_slug "$slug" && [ -f "$sites_dir/$slug/site.ini" ] || die "unknown site '$slug'"
+  lock
+  local id dir mdir status step max
+  id=$(db_id "$slug"); dir=$sites_dir/$slug; mdir=$dir/migration
+  status=$(ini_get "$slug" STATUS)
+  step=$(state_get "$slug" MIGRATION)
+  if [ "$(engine_layout "$slug")" = workspace ]; then
+    case "$step" in
+      done) say "$slug: already migrated to the single-database layout"; return 0 ;;
+      switched) ;;
+      *) die "$slug was provisioned with the single-database layout; there is nothing to migrate" ;;
+    esac
+  else
+    db_exists "${id}_engine" || die "$slug: its engine database ${id}_engine does not exist"
+    if [ "$check" = 1 ]; then
+      task "$slug" placements-check || die "$slug: the placements cannot be imported as they are (see the problems above)"
+      return 0
+    fi
+    [ "$status" = suspended ] || die "$slug is $status: suspend it first (ancora-site.sh suspend $slug)"
+    task "$slug" jobs-idle >/dev/null || die "$slug: a job is queued or running; let it finish or cancel it first"
+    case "$step" in ""|rolled-back) step=""; rm -rf "$mdir" ;; esac
+    audit migrate-single-db "$slug" started
+    mkdir -p "$mdir"
+    chmod 0700 "$mdir"
+
+    # 1. Backup.
+    if [ -z "$step" ]; then
+      [ -n "$backup" ] || die "--backup-dir is required"
+      mkdir -p "$backup"
+      local ts
+      ts=$(date -u +%Y%m%dT%H%M%SZ)
+      (umask 077
+        pg_dump -Fc -d "$id" -f "$backup/$id-pre-single-db-$ts.dump"
+        pg_dump -Fc -d "${id}_engine" -f "$backup/${id}_engine-pre-single-db-$ts.dump"
+        cp "$dir/site.ini" "$backup/$slug-site.ini-pre-single-db-$ts")
+      state_set "$slug" MIGRATION_BACKUP "$backup/$id-pre-single-db-$ts.dump $backup/${id}_engine-pre-single-db-$ts.dump"
+      say "$slug: backups $backup/$id-pre-single-db-$ts.dump, $backup/${id}_engine-pre-single-db-$ts.dump"
+      step=backup; state_set "$slug" MIGRATION backup
+    fi
+    fail_point migrate-backup
+
+    # 2. Checksums of the records before anything changes.
+    if [ "$step" = backup ]; then
+      max=$(task "$slug" job-max)
+      task "$slug" checksums "$max" >"$mdir/before.json"
+      state_set "$slug" MIGRATION_JOB_MAX "$max"
+      step=checksums; state_set "$slug" MIGRATION checksums
+    fi
+    max=$(state_get "$slug" MIGRATION_JOB_MAX)
+
+    # 3. The engine in the site's own database.
+    if [ "$step" = checksums ]; then
+      workspace_ensure "$slug"
+      step=engine; state_set "$slug" MIGRATION engine
+    fi
+    fail_point migrate-engine
+
+    # 4. The placements, read from the engine database (the site's settings
+    # still name it) and written as entities.
+    if [ "$step" = engine ]; then
+      task "$slug" placements-import >"$mdir/import.json" || { cat "$mdir/import.json" >&2; die "$slug: the placements were not imported (nothing of them was written)"; }
+      step=placements; state_set "$slug" MIGRATION placements
+    fi
+    fail_point migrate-placements
+
+    # 5. Nothing else changed.
+    task "$slug" checksums "$max" >"$mdir/after.json"
+    cmp -s "$mdir/before.json" "$mdir/after.json" \
+      || { diff "$mdir/before.json" "$mdir/after.json" >&2 || true; die "$slug: the Drupal records changed during the migration; the site was not switched"; }
+
+    # 6. Switch.
+    write_ini "$slug" "$status" "$(ini_get "$slug" SITE_NAME)" workspace
+    state_set "$slug" MIGRATION switched
+  fi
+  quiet site_drush "$slug" cache:rebuild
+  task "$slug" engine-check
+  state_set "$slug" MIGRATION done
+  state_set "$slug" MIGRATED "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+  audit migrate-single-db "$slug" ok
+  say "$slug: migrated to the single-database layout; ${id}_engine is kept, unchanged, until it is retired"
+  say "$slug: resume it with 'ancora-site.sh resume $slug'"
+}
+
+# rollback-single-db <slug> [--discard-new-placements]
+#
+# Takes a migrated (or partly migrated) site back to its engine database:
+# site.ini names tt_<slug>_engine again, the placement entities are deleted
+# through the Entity API (they are a copy of the engine database's rows), and
+# the engine schemas, the job roles, the job group and the engine owner are
+# removed from tt_<slug>. The Drupal records are then checked against the
+# checksums taken before the migration. Placements made by runs AFTER the
+# migration exist only as entities: the rollback refuses to delete them
+# unless --discard-new-placements is given. The backups of step 1 stay the
+# last resort (pg_restore, docs/modernization/tenant-migration.md).
+cmd_rollback_single_db() {
+  local slug=${1:-} discard=0
+  shift || true
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      --discard-new-placements) discard=1; shift ;;
+      *) die "unknown option $1" ;;
+    esac
+  done
+  valid_slug "$slug" && [ -f "$sites_dir/$slug/site.ini" ] || die "unknown site '$slug'"
+  lock
+  local id dir mdir status step max eo foreign
+  id=$(db_id "$slug"); dir=$sites_dir/$slug; mdir=$dir/migration; eo=${id}_engine_owner
+  status=$(ini_get "$slug" STATUS)
+  step=$(state_get "$slug" MIGRATION)
+  case "$step" in
+    backup|checksums|engine|placements|switched|done|rolling-back) ;;
+    *) die "$slug has no migration to roll back" ;;
+  esac
+  [ "$status" = suspended ] || die "$slug is $status: suspend it first (ancora-site.sh suspend $slug)"
+  db_exists "${id}_engine" || die "$slug: its engine database ${id}_engine is gone; restore it from the backup (docs/modernization/tenant-migration.md)"
+  task "$slug" jobs-idle >/dev/null || die "$slug: a job is queued or running; let it finish or cancel it first"
+  audit rollback-single-db "$slug" started
+  # 1. Back to the engine database (the placements are read from it below).
+  if [ "$(engine_layout "$slug")" = workspace ]; then
+    write_ini "$slug" "$status" "$(ini_get "$slug" SITE_NAME)" two_database
+  fi
+  state_set "$slug" MIGRATION rolling-back
+  foreign=$(task "$slug" placements-foreign)
+  if [ "$foreign" != 0 ] && [ "$discard" = 0 ]; then
+    die "$slug: $foreign placements were made after the migration and exist only as entities; rerun with --discard-new-placements to delete them, or migrate forward again"
+  fi
+  # 2. The placement entities (Entity API, one transaction).
+  task "$slug" placements-delete
+  # 3. The engine leaves the site's database.
+  if [ "$(psql -X -At -d postgres -v eo="$eo" <<<"SELECT count(*) FROM pg_roles WHERE rolname = :'eo'")" = 1 ]; then
+    psql_admin -d "$id" -v eo="$eo" -v id="$id" -v worker="${id}_engine_app" <<'SQL'
+SET client_min_messages = warning;
+SET ROLE :"eo";
+SELECT format('DROP SCHEMA %I CASCADE', nspname) FROM pg_namespace
+ WHERE nspname ~ '^scheduler_job_[0-9]+_[0-9]+$'
+    OR nspname IN ('scheduler', 'scheduler_control', 'generador', 'seguridad', 'tiempo', 'matrix', 'prioriza', 'portal') \gexec
+-- The engine owner granted CONNECT and TEMPORARY to the job group and
+-- CONNECT to the worker.
+SELECT format('REVOKE ALL ON DATABASE %I FROM %I', :'id', :'id' || '_jobs')
+ WHERE EXISTS (SELECT 1 FROM pg_roles WHERE rolname = :'id' || '_jobs') \gexec
+REVOKE ALL ON DATABASE :"id" FROM :"worker";
+SELECT format('DROP ROLE %I', rolname) FROM pg_roles
+ WHERE rolname ~ ('^' || :'id' || '_job_[0-9]+_[0-9]+$') OR rolname = :'id' || '_jobs' \gexec
+RESET ROLE;
+REVOKE ALL ON DATABASE :"id" FROM :"eo" CASCADE;
+DROP ROLE :"eo";
+SQL
+  fi
+  # 4. Nothing else changed.
+  max=$(state_get "$slug" MIGRATION_JOB_MAX)
+  if [ -n "$max" ] && [ -f "$mdir/before.json" ]; then
+    task "$slug" checksums "$max" >"$mdir/rollback.json"
+    cmp -s "$mdir/before.json" "$mdir/rollback.json" \
+      || { diff "$mdir/before.json" "$mdir/rollback.json" >&2 || true; die "$slug: the Drupal records differ from the checksums taken before the migration"; }
+  fi
+  quiet site_drush "$slug" cache:rebuild
+  task "$slug" engine-check
+  state_set "$slug" MIGRATION rolled-back
+  audit rollback-single-db "$slug" ok
+  say "$slug: back on its engine database ${id}_engine; resume it with 'ancora-site.sh resume $slug'"
+}
+
 org_sites() { # slugs with a site.ini, sorted
   local f
   for f in "$sites_dir"/*/site.ini; do
@@ -665,5 +868,7 @@ case "$command" in
   update-all) cmd_update_all "$@" ;;
   list) cmd_list ;;
   work) cmd_work "$@" ;;
-  *) sed -n '2,40p' "$0" | sed 's/^# \{0,1\}//'; exit 2 ;;
+  migrate-single-db) cmd_migrate_single_db "$@" ;;
+  rollback-single-db) cmd_rollback_single_db "$@" ;;
+  *) sed -n '2,44p' "$0" | sed 's/^# \{0,1\}//'; exit 2 ;;
 esac

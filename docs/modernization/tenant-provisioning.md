@@ -4,7 +4,7 @@ Issue: #96, under #91 and #66. It builds on [single-db-workspace.md](single-db-w
 
 A new organization site now gets **one database**. The unchanged engine lives in schema `scheduler` of the site's own database, every run gets a job-scoped workspace there, and the site file selects the workspace mode. Nothing of it needs a superuser: the operator role of the host (`LOGIN CREATEDB CREATEROLE`) provisions everything.
 
-Sites provisioned before keep the two-database layout (#71) until they are migrated. The migration is a separate step, `ancora-site.sh migrate-single-db` (see [tenant-migration.md](tenant-migration.md) once it lands).
+Sites provisioned before keep the two-database layout (#71) until they are migrated. The migration is a separate step, `ancora-site.sh migrate-single-db` ([tenant-migration.md](tenant-migration.md); for `demo`: [runbook-demo-single-db.md](runbook-demo-single-db.md)).
 
 The legacy engine SQL is unchanged and no business rule was added. **0 LBR bytes are claimed.**
 
@@ -149,7 +149,7 @@ It runs in a disposable cluster only. The operator role is a non-superuser with 
    - `alpha-engine` is refused;
    - deprovisioning removes the database and every `tt_gamma_*` role, including the job role of a workspace that was never closed.
 
-**Result on the development workstation** (PHP 8.4, PostgreSQL 16.15): **54 checks, 54 PASS, 0 FAIL**, in about 90 s. CI runs it on PHP 8.4 + PostgreSQL 16 and PHP 8.5 + PostgreSQL 18 (job `tenant` in `modern.yml`).
+**Result on the development workstation** (PHP 8.4, PostgreSQL 16.15): **54 checks, 54 PASS, 0 FAIL**, in about 90 s. Sections 6 to 9 (the migration, [tenant-migration.md](tenant-migration.md)) bring it to 84. CI runs it on PHP 8.4 + PostgreSQL 16 and PHP 8.5 + PostgreSQL 18 (job `tenant` in `modern.yml`).
 
 The other suites were adapted to the per-tenant group name (`<database>_jobs` instead of `agoh_engine`), and stay green:
 

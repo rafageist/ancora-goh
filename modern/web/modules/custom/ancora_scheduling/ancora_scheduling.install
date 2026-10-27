@@ -21,3 +21,26 @@ function ancora_scheduling_update_11001(): string {
   }
   return 'The placement entity type is already installed.';
 }
+
+/**
+ * Stores the placement moment in double precision (#96).
+ *
+ * The engine's momento_de_colocacion is double precision. Stored as a
+ * single precision "float" it lost its hour part (8463176.47 became
+ * 8463176). The column is widened in place; existing values cannot regain
+ * the lost digits.
+ */
+function ancora_scheduling_update_11002(): string {
+  $key_value = \Drupal::keyValue('entity.storage_schema.sql');
+  $key = 'ancora_placement.field_schema_data.placed_at';
+  $installed = $key_value->get($key);
+  if (($installed['ancora_placement']['fields']['placed_at']['size'] ?? NULL) === 'big') {
+    return 'The placement moment is already double precision.';
+  }
+  $spec = $installed['ancora_placement']['fields']['placed_at'];
+  $spec['size'] = 'big';
+  \Drupal::database()->schema()->changeField('ancora_placement', 'placed_at', 'placed_at', $spec);
+  $installed['ancora_placement']['fields']['placed_at'] = $spec;
+  $key_value->set($key, $installed);
+  return 'The placement moment is now double precision.';
+}

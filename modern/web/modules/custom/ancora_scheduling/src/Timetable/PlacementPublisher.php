@@ -4,17 +4,13 @@ declare(strict_types=1);
 
 namespace Drupal\ancora_scheduling\Timetable;
 
-use Drupal\ancora_academic\AcademicEntityInterface;
-use Drupal\ancora_academic\Entity\ActivityTemplate;
 use Drupal\ancora_academic\Entity\Period;
-use Drupal\ancora_academic\Export\LegacyRows;
 use Drupal\ancora_engine\Engine\JobOutputInterface;
 use Drupal\ancora_engine\Engine\PublicationException;
 use Drupal\ancora_engine\Engine\RunResult;
 use Drupal\ancora_engine\Job\Job;
 use Drupal\ancora_engine\JobRepository;
 use Drupal\ancora_scheduling\Entity\Placement;
-use Drupal\ancora_scheduling\ScopeMapper;
 use Drupal\ancora_scheduling\Sync\WorkspaceSync;
 use Drupal\Core\Database\Connection;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
@@ -36,9 +32,9 @@ use Psr\Log\LoggerInterface;
  *    published;
  * 3. for every new placement, in the order the run made them: an existing
  *    record with the same engine id is a replay and is skipped; otherwise
- *    the engine ids are mapped back to the records (the entity id is the
- *    numbered part of the id, LegacyRows::engineId()), checked, and the
- *    record is created and validated through the Entity API.
+ *    the engine ids are mapped back to the records and checked
+ *    (PlacementMapper), and the record is created and validated through the
+ *    Entity API.
  *
  * Checks (refuse, nothing published): the template belongs to the job's
  * period; the group, teacher and room exist and belong to the plan's
@@ -70,6 +66,7 @@ final class PlacementPublisher implements JobOutputInterface {
     private readonly WorkspaceSync $input,
     private readonly LoggerInterface $logger,
     private readonly AccountSwitcherInterface $accountSwitcher,
+    private readonly PlacementMapper $mapper,
   ) {}
 
   /**
@@ -80,6 +77,7 @@ final class PlacementPublisher implements JobOutputInterface {
     if ($source === NULL) {
       throw new PublicationException(PublicationException::INVALID, 'Only a job with a source can be published.');
     }
+    $this->warm($source->periodId);
     $transaction = $this->database->startTransaction();
     $switched = FALSE;
     try {
@@ -110,7 +108,7 @@ final class PlacementPublisher implements JobOutputInterface {
           $replayed++;
           continue;
         }
-        $values = $this->values($row, $period, $creator, $i);
+        $values = $this->mapper->values($row, $period, $creator, sprintf('Placement %d', $i + 1));
         $duplicate = $storage->getQuery()->accessCheck(FALSE)
           ->condition('template', $values['template'])
           ->condition('student_group', $values['student_group'])
@@ -150,66 +148,17 @@ final class PlacementPublisher implements JobOutputInterface {
   }
 
   /**
-   * Maps one output row to placement values, with the checks.
+   * Warms the caches the validation needs, before the transaction.
    *
-   * @throws \Drupal\ancora_engine\Engine\PublicationException
+   * PlacementMapper::warmAccess(). Nothing is checked here: the
+   * publication checks everything again in its transaction.
    */
-  private function values(array $row, Period $period, int $creator, int $i): array {
-    $what = sprintf('Placement %d', $i + 1);
-    $template = $this->record('ancora_activity_template', $row['plantilla'] ?? NULL);
-    if (!$template instanceof ActivityTemplate || (int) $template->get('period')->target_id !== (int) $period->id()) {
-      throw new PublicationException(PublicationException::INVALID, "$what: the template is not a template of the job's period.");
+  private function warm(int $periodId): void {
+    $period = $this->entityTypeManager->getStorage('ancora_period')->load($periodId);
+    $owner = $period instanceof Period ? $this->entityTypeManager->getStorage('user')->load((int) $period->getCreatorId()) : NULL;
+    if ($owner instanceof UserInterface) {
+      $this->mapper->warmAccess($owner);
     }
-    $group = $this->record('ancora_student_group', $row['grupo'] ?? NULL);
-    $teacher = ($row['profesor'] ?? NULL) === NULL ? NULL : $this->record('ancora_teacher', $row['profesor']);
-    $room = ($row['lugar'] ?? NULL) === NULL ? NULL : $this->record('ancora_room', $row['lugar']);
-    foreach (['group' => $group, 'teacher' => $teacher, 'room' => $room] as $name => $record) {
-      $given = [
-        'group' => $row['grupo'] ?? NULL,
-        'teacher' => $row['profesor'] ?? NULL,
-        'room' => $row['lugar'] ?? NULL,
-      ][$name];
-      if ($given !== NULL && (!$record instanceof AcademicEntityInterface || (int) $record->getCreatorId() !== $creator)) {
-        throw new PublicationException(PublicationException::INVALID, "$what: the $name does not exist or belongs to another user.");
-      }
-    }
-    if ((int) $template->getCreatorId() !== $creator || ($row['creador'] ?? NULL) !== ScopeMapper::creatorOf($creator)) {
-      throw new PublicationException(PublicationException::INVALID, "$what: it does not belong to the plan's creator.");
-    }
-    if ((bool) $template->get('requires_teacher')->value && $teacher === NULL) {
-      throw new PublicationException(PublicationException::INVALID, "$what: the template requires a teacher.");
-    }
-    if ((bool) $template->get('requires_room')->value && $room === NULL) {
-      throw new PublicationException(PublicationException::INVALID, "$what: the template requires a room.");
-    }
-    $day = (int) ($row['dia'] ?? 0);
-    $slot = (int) ($row['turno'] ?? 0);
-    if ($day < 1 || $day > (int) $period->getDays() || $slot < 1 || $slot > (int) $period->getSlotsPerDay()) {
-      throw new PublicationException(PublicationException::INVALID, "$what: day $day, slot $slot is outside the period.");
-    }
-    return [
-      'plan' => $period->getPlanId(),
-      'period' => $period->id(),
-      'template' => $template->id(),
-      'student_group' => $group->id(),
-      'teacher' => $teacher?->id(),
-      'room' => $room?->id(),
-      'day' => $day,
-      'slot' => $slot,
-      'placed_at' => ($row['momento_de_colocacion'] ?? NULL) === NULL ? NULL : (float) $row['momento_de_colocacion'],
-      'engine_id' => (string) $row['id'],
-    ];
-  }
-
-  /**
-   * The record of a numbered engine id, or NULL.
-   */
-  private function record(string $entityTypeId, ?string $engineId): ?AcademicEntityInterface {
-    if ($engineId === NULL || !preg_match('/^([0-9]{10})' . preg_quote(LegacyRows::ID_SEPARATOR, '/') . '/', $engineId, $m)) {
-      return NULL;
-    }
-    $entity = $this->entityTypeManager->getStorage($entityTypeId)->load((int) $m[1]);
-    return $entity instanceof AcademicEntityInterface ? $entity : NULL;
   }
 
 }
