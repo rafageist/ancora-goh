@@ -60,6 +60,9 @@ final class LegacyDriver {
     foreach ($this->scenario->records as $key => $record) {
       $this->enter($key, $record);
     }
+    foreach ($this->scenario->edits() as $edit) {
+      $this->edit($edit);
+    }
     foreach ($this->scenario->visibility() as $check) {
       $this->visibility($check);
     }
@@ -468,11 +471,26 @@ final class LegacyDriver {
         break;
 
       case 'activity_type':
+        // The priority is the form's hidden field: the creator's count + 1
+        // (get_form_new_clasifact.php, D13). For a user's FIRST
+        // classification that form fails on PHP 8 (line 13: count() of the
+        // empty collection, NULL; PHP 5 gave 0, so priority 1): a legacy
+        // runtime defect, recorded in legacy-parity-harness.md; the driver
+        // then posts the PHP 5 value, 1.
+        $own = (int) $this->value('SELECT count(*) FROM clasificacion_de_actividad c JOIN seguridad.usuario u ON u.id = c.creador WHERE u.nick = $1', [$this->credentials[$as]['nick']]);
+        $m = [1 => 1];
+        if ($own > 0) {
+          $form = $this->event($as, 'get_form_new_clasifact', [], "get_form_new_clasifact $key", TRUE);
+          if (!preg_match('/id = "field_ClasifAct_Prioridad" value = "([0-9]+)"/', $form, $m)) {
+            $this->fail("get_form_new_clasifact $key: no priority");
+            return;
+          }
+        }
         $this->add($key, 'clasificacion_de_actividad', $as, 'add_ClasificacionDeActividad', [
           'field_ClasificacionDeActividad_descripcion' => $r['label'],
           'field_ClasificacionDeActividad_duracion' => $r['duration_slots'],
           'field_ClasificacionDeActividad_gasto' => $r['cost'],
-          'field_ClasificacionDeActividad_prioridad' => $r['priority'],
+          'field_ClasificacionDeActividad_prioridad' => (int) $m[1],
         ]);
         break;
 
@@ -525,9 +543,16 @@ final class LegacyDriver {
           $this->fail("$key: no desglose row for its subject and period");
           return;
         }
+        // The order is the form's hidden field: count + 1
+        // (get_form_new_plantilla.php, D13).
+        $form = $this->event($as, 'get_form_new_plantilla', ['desglose' => $desglose], "get_form_new_plantilla $key", TRUE);
+        if (!preg_match('/value="([0-9]+)" id = "edtOrden"/', $form, $m)) {
+          $this->fail("get_form_new_plantilla $key: no order");
+          return;
+        }
         $this->add($key, 'plantilla_de_actividad', $as, 'add_PlantillaDeActividad', [
           'field_PlantillaDeActividad_desglose' => $desglose,
-          'field_PlantillaDeActividad_orden' => $r['sequence'],
+          'field_PlantillaDeActividad_orden' => (int) $m[1],
           'field_PlantillaDeActividad_exige_profesor' => ($r['requires_teacher'] ?? TRUE) ? 'true' : 'false',
           'field_PlantillaDeActividad_exige_lugar' => ($r['requires_room'] ?? TRUE) ? 'true' : 'false',
           'field_PlantillaDeActividad_clasificacion' => $id($r['activity_type']),
@@ -729,6 +754,33 @@ final class LegacyDriver {
         }
         break;
     }
+  }
+
+  /**
+   * Applies one edit with the events of the legacy arrows and deletes (D13).
+   *
+   * Move: set_ClasifAct_subeprioridad / _bajaprioridad (id), and
+   * custom_SubePlantilla / custom_BajaPlantilla (plantilla). Delete: the
+   * generated del_<Class> handler by id.
+   */
+  private function edit(array $edit): void {
+    $record = $this->scenario->records[$edit['record']];
+    $id = $this->ids[$edit['record']] ?? NULL;
+    if ($id === NULL) {
+      $this->fail("edit {$edit['op']} {$edit['record']}: not entered");
+      return;
+    }
+    $template = $record['type'] === 'activity_template';
+    $up = $template ? ['custom_SubePlantilla', ['plantilla' => $id]] : ['set_ClasifAct_subeprioridad', ['id' => $id]];
+    $down = $template ? ['custom_BajaPlantilla', ['plantilla' => $id]] : ['set_ClasifAct_bajaprioridad', ['id' => $id]];
+    [$event, $fields] = match ($edit['op']) {
+      'move_up' => $up,
+      'move_down' => $down,
+      'delete' => $template
+        ? ['del_PlantillaDeActividad', ['field_PlantillaDeActividad_id' => $id]]
+        : ['del_ClasificacionDeActividad', ['field_ClasificacionDeActividad_id' => $id]],
+    };
+    $this->event($edit['as'], $event, $fields, "{$edit['op']} {$edit['record']}");
   }
 
   /**

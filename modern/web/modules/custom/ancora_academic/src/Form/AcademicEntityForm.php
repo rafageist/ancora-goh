@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Drupal\ancora_academic\Form;
 
 use Drupal\ancora_academic\AcademicEntityInterface;
+use Drupal\ancora_academic\Entity\ActivityTemplate;
 use Drupal\Core\Entity\ContentEntityForm;
 use Drupal\Core\Form\FormStateInterface;
 
@@ -33,7 +34,18 @@ final class AcademicEntityForm extends ContentEntityForm {
         $entity->set('plan', $plan_id);
       }
     }
-    return parent::form($form, $form_state);
+    $form = parent::form($form, $form_state);
+    // The legacy template edit form keeps the breakdown (subject and
+    // period) and the order (get_form_edit_plantilla.php, hidden fields);
+    // the order changes only with the moves (OrderUpkeep, D13).
+    if ($entity instanceof ActivityTemplate && !$entity->isNew()) {
+      foreach (['subject', 'period'] as $field) {
+        if (isset($form[$field])) {
+          $form[$field]['#disabled'] = TRUE;
+        }
+      }
+    }
+    return $form;
   }
 
   /**

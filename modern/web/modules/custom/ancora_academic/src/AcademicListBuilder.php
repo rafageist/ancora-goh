@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\ancora_academic;
 
+use Drupal\ancora_academic\Controller\OrderController;
 use Drupal\ancora_academic\Entity\ActivityTemplate;
 use Drupal\ancora_academic\Entity\Breakdown;
 use Drupal\Core\Entity\EntityFieldManagerInterface;
@@ -13,6 +14,7 @@ use Drupal\Core\Entity\EntityStorageInterface;
 use Drupal\Core\Entity\EntityTypeInterface;
 use Drupal\Core\Entity\Query\QueryInterface;
 use Drupal\Core\Field\EntityReferenceFieldItemListInterface;
+use Drupal\Core\Url;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
@@ -93,7 +95,8 @@ final class AcademicListBuilder extends EntityListBuilder {
         $query->condition($field, $id);
       }
     }
-    foreach (['plan', 'code', 'subject', 'period', 'template', 'sequence'] as $sort) {
+    // Activity types in their scheduling order (the legacy list), D13.
+    foreach (['plan', 'priority', 'code', 'subject', 'period', 'template', 'sequence'] as $sort) {
       if (isset($fields[$sort])) {
         $query->sort($sort);
       }
@@ -173,6 +176,31 @@ final class AcademicListBuilder extends EntityListBuilder {
       $labels[] = $template->getSequence() . ' ' . ($template->getActivityType()?->label() ?? '?');
     }
     return $labels === [] ? (string) $this->t('None') : implode(', ', $labels);
+  }
+
+  /**
+   * {@inheritdoc}
+   *
+   * Activity types and templates have the legacy up and down arrows
+   * (OrderController, D13).
+   */
+  protected function getDefaultOperations(EntityInterface $entity): array {
+    $operations = parent::getDefaultOperations($entity);
+    $type = array_search($entity->getEntityTypeId(), OrderController::TYPES, TRUE);
+    if ($type !== FALSE && $entity->access('update')) {
+      foreach (['up' => $this->t('Move up'), 'down' => $this->t('Move down')] as $direction => $title) {
+        $operations['move_' . $direction] = [
+          'title' => $title,
+          'weight' => $direction === 'up' ? 20 : 21,
+          'url' => $this->ensureDestination(Url::fromRoute('ancora_academic.order.move', [
+            'type' => $type,
+            'id' => $entity->id(),
+            'direction' => $direction,
+          ])),
+        ];
+      }
+    }
+    return $operations;
   }
 
   /**

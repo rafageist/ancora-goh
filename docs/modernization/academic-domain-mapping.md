@@ -362,6 +362,8 @@ The module adds no file to the frozen LBR baseline, and it modifies no legacy fi
 2. it merges catalogue records that were copies in several plans (same type, owner and code, same values) into the oldest one and moves every reference to it; copies with the same code and different values stop the update with a message, and nothing changes;
 3. it removes the plan field of the seven catalogue types.
 
+`ancora_academic_update_11009()` (D13) renumbers, without gaps, each owner's activity type priorities (by priority, then id) and the templates of each subject and period (by order, then id); records already numbered 1..n are not touched, and the update reports how many changed. From then on `OrderUpkeep` keeps both: the priority and the order are no longer on the forms, a template's subject and period are fixed after creation, and the lists have Move up / Move down.
+
 `ancora_academic_update_11008()` (D9d) installs the empty `ancora_other_resource`, `ancora_resource_group` and `ancora_resource_member` entity types; `ancora_scheduling_update_11003()` (after it, `hook_update_dependencies()`) adds the field `other_resources` of placements (table `ancora_placement__other_resources`), empty for the existing placements. The planner request form also offers `forma` (default 1) and `compactar` (1..10, default 1), the legacy window's defaults (D11); before, every planner request ran with `compactar` 0.
 
 `ancora_academic_update_11007()` (D9c) installs the empty `ancora_group_room` and `ancora_travel_cost` entity types. The planner request form now sends `buscalugar` TRUE by default (the nearest room, the legacy window's default, A-2); a request can choose the room the group uses most.

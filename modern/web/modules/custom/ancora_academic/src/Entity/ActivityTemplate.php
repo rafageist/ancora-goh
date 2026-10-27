@@ -92,14 +92,15 @@ final class ActivityTemplate extends AcademicEntityBase {
       -9,
     )->setRequired(TRUE);
 
+    // Kept as legacy keeps "orden" (OrderUpkeep, D13): a new template is
+    // appended, the order changes only with the moves, a delete renumbers.
+    // Not on the forms (the legacy forms post it as a hidden field).
     $fields['sequence'] = static::integerField(
       new TranslatableMarkup('Number'),
       new TranslatableMarkup('Order of the activity within the subject and period: 1 for the first weekly activity, 2 for the second...'),
       -8,
       1,
-      99,
-      1,
-    );
+    )->setRequired(FALSE)->setDisplayOptions('form', ['region' => 'hidden']);
 
     $fields['activity_type'] = static::referenceField(
       'ancora_activity_type',

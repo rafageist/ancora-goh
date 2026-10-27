@@ -93,14 +93,15 @@ final class ActivityType extends OwnedAcademicEntityBase {
       1,
     );
 
+    // Kept as legacy keeps "prioridad" (OrderUpkeep, D13): count + 1 on
+    // create, unchanged on edit, moved up or down, renumbered on delete.
+    // Not on the forms (a hidden field of the legacy form).
     $fields['priority'] = static::integerField(
       new TranslatableMarkup('Priority'),
       new TranslatableMarkup('Scheduling order: the engine places types with priority 1 first.'),
       2,
       1,
-      NULL,
-      1,
-    );
+    )->setRequired(FALSE)->setDisplayOptions('form', ['region' => 'hidden']);
 
     $fields['cost'] = static::integerField(
       new TranslatableMarkup('Cost'),
