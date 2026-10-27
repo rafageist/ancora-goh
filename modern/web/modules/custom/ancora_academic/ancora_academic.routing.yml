@@ -98,3 +98,15 @@ ancora_academic.period_inputs.limits:
     input: limits
   requirements:
     _permission: 'edit academic data+administer academic data'
+
+# The legacy up/down arrows of classifications and templates (D13).
+ancora_academic.order.move:
+  path: '/ancora/planning/order/{type}/{id}/{direction}'
+  defaults:
+    _controller: '\Drupal\ancora_academic\Controller\OrderController::move'
+  requirements:
+    _permission: 'edit academic data+administer academic data'
+    _csrf_token: 'TRUE'
+    type: 'activity-type|template'
+    id: '\d+'
+    direction: 'up|down'

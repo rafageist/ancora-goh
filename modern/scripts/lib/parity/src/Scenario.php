@@ -276,6 +276,28 @@ final class Scenario {
   }
 
   /**
+   * The edits applied after the records (D13).
+   *
+   * Op move_up, move_down or delete, of an activity type or an activity
+   * template, as a user.
+   *
+   * @return list<array<string, mixed>>
+   *   The edits.
+   */
+  public function edits(): array {
+    $edits = $this->data['edits'] ?? [];
+    foreach ($edits as $edit) {
+      $type = $this->records[$edit['record'] ?? '']['type'] ?? NULL;
+      $op = $edit['op'] ?? '';
+      $ops = ['move_up', 'move_down', 'delete'];
+      if (!in_array($type, ['activity_type', 'activity_template'], TRUE) || !in_array($op, $ops, TRUE)) {
+        throw new \InvalidArgumentException('invalid edit ' . json_encode($edit));
+      }
+    }
+    return $edits;
+  }
+
+  /**
    * The visibility checks.
    *
    * @return list<array<string, mixed>>

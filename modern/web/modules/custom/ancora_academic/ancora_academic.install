@@ -9,6 +9,7 @@ declare(strict_types=1);
 
 use Drupal\ancora_academic\AcademicEntityTypes;
 use Drupal\ancora_academic\BreakdownMaintainer;
+use Drupal\ancora_academic\OrderUpkeep;
 use Drupal\Core\Utility\UpdateException;
 
 /**
@@ -312,4 +313,34 @@ function ancora_academic_update_11008(): string {
     }
   }
   return (string) t('Installed: @types.', ['@types' => $installed === [] ? 'none' : implode(', ', $installed)]);
+}
+
+/**
+ * Renumbers activity type priorities and template orders (#70, D13).
+ *
+ * Until now both were free numbers, so a site may hold gaps or repeated
+ * priorities that legacy can never hold (its triggers renumber them,
+ * PAR-020, PAR-035). Each owner's activity types get 1..n in their current
+ * order (priority, then id), and the templates of each subject and period
+ * 1..n (order, then id), as OrderUpkeep keeps them from now on. Records
+ * that already have these numbers are not touched.
+ */
+function ancora_academic_update_11009(): string {
+  \Drupal::entityTypeManager()->clearCachedDefinitions();
+  $order = \Drupal::service(OrderUpkeep::class);
+  $database = \Drupal::database();
+  $types = 0;
+  foreach ($database->query('SELECT DISTINCT uid FROM {ancora_activity_type} WHERE uid IS NOT NULL')->fetchCol() as $owner) {
+    $types += $order->renumberPriorities((int) $owner);
+  }
+  $templates = 0;
+  foreach ($database->query('SELECT DISTINCT subject, period FROM {ancora_activity_template}')->fetchAll() as $row) {
+    if ($row->subject !== NULL && $row->period !== NULL) {
+      $templates += $order->renumberSequences($row->subject, $row->period);
+    }
+  }
+  return (string) t('@types activity type priorities and @templates template orders were renumbered without gaps.', [
+    '@types' => $types,
+    '@templates' => $templates,
+  ]);
 }

@@ -29,6 +29,7 @@ use Ancora\Parity\Scenario;
 use Drupal\ancora_academic\AcademicAccessControlHandler;
 use Drupal\ancora_academic\AcademicEntityInterface;
 use Drupal\ancora_academic\BreakdownMaintainer;
+use Drupal\ancora_academic\OrderUpkeep;
 use Drupal\ancora_academic\PeriodInputs;
 use Drupal\ancora_academic\RoomConstraints;
 use Drupal\ancora_academic\SharedResources;
@@ -271,10 +272,11 @@ foreach ($ancora_scenario->records as $key => $r) {
       'slot_duration' => $r['slot_duration'],
       'plan_days' => $r['plan_days'],
     ],
-    'activity_type' => ['duration_slots' => $r['duration_slots'], 'priority' => $r['priority'], 'cost' => $r['cost']],
+    // The priority and the order are kept by OrderUpkeep (count + 1), as
+    // the legacy forms post them (D13).
+    'activity_type' => ['duration_slots' => $r['duration_slots'], 'cost' => $r['cost']],
     'cohort' => ['enrollment' => $r['enrollment']],
     'activity_template' => [
-      'sequence' => $r['sequence'],
       'requires_teacher' => $r['requires_teacher'] ?? TRUE,
       'requires_room' => $r['requires_room'] ?? TRUE,
     ],
@@ -317,6 +319,36 @@ foreach ($ancora_scenario->records as $key => $r) {
     $entity->save();
     $ancora_entities[$key] = $entity;
     echo "ok    create {$r['type']} $key\n";
+  }
+  finally {
+    $switcher->switchBack();
+  }
+}
+
+// Edits (D13): the arrows and deletes, as the user.
+foreach ($ancora_scenario->edits() as $edit) {
+  $entity = $ancora_entities[$edit['record']] ?? NULL;
+  if ($entity === NULL) {
+    $ancora_fail("edit {$edit['op']} {$edit['record']}: not created");
+    continue;
+  }
+  $switcher->switchTo($ancora_accounts[$edit['as']]);
+  try {
+    $etm->getStorage($entity->getEntityTypeId())->resetCache();
+    $entity = $etm->getStorage($entity->getEntityTypeId())->load($entity->id());
+    if (!$entity->access($edit['op'] === 'delete' ? 'delete' : 'update')) {
+      $ancora_fail("edit {$edit['op']} {$edit['record']}: access denied");
+      continue;
+    }
+    if ($edit['op'] === 'delete') {
+      $entity->delete();
+    }
+    else {
+      $order = \Drupal::service(OrderUpkeep::class);
+      $step = $edit['op'] === 'move_up' ? -1 : 1;
+      $entity->getEntityTypeId() === 'ancora_activity_type' ? $order->moveActivityType($entity, $step) : $order->moveTemplate($entity, $step);
+    }
+    echo "ok    {$edit['op']} {$edit['record']}\n";
   }
   finally {
     $switcher->switchBack();

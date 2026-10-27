@@ -1,0 +1,54 @@
+{
+  "schema": "ancora.parity.scenario.v1",
+  "id": "s12-order-upkeep",
+  "title": "Order and priority upkeep (D13): classification priorities and template order, appended, moved and renumbered",
+  "notes": [
+    "Issue #70, D13 (legacy-parity-inventory.md PAR-019, PAR-020, PAR-035; SQL cases 111, 112, 144). One plan and period (5 days x 3 slots), one group.",
+    "Legacy side: the priority and the order come from the hidden fields of the new-record forms (get_form_new_clasifact, get_form_new_plantilla: count + 1); the edits use the legacy arrows (set_ClasifAct_subeprioridad / _bajaprioridad, custom_SubePlantilla / custom_BajaPlantilla) and the delete handlers. Drupal side: OrderUpkeep, the same moves and the entity deletes.",
+    "Edits: template AX (order 2, no assignment) is deleted, so A2 and A3 move to 2 and 3; A3 moves up, A1 moves down: the order is A3, A1, A2. Classification C1 moves down, C3 moves up, C2 is deleted: C3 = 1, C1 = 2. With respetar_orden the run places the templates on days 1, 2, 3 in that order.",
+    "Rows are matched by natural key, so a template is named after the scenario record with its FINAL order (order 1 = A1, 2 = AX, 3 = A2) on both sides."
+  ],
+  "users": [
+    {"key": "admin", "name": "Administrator", "legacy": "seeded-admin"},
+    {"key": "alice", "name": "Alice Planner"}
+  ],
+  "records": [
+    {"type": "plan", "key": "P", "as": "alice", "label": "Semester", "starts_on": "2026-09-07", "duration_days": 30},
+    {"type": "period", "key": "W", "as": "alice", "plan": "P", "label": "Week", "days": 5, "slots_per_day": 3, "start_hour": 8, "slot_duration": 1, "plan_days": [1]},
+    {"type": "activity_type", "key": "C1", "as": "alice", "label": "Lecture", "duration_slots": 1, "priority": 1, "cost": 1},
+    {"type": "activity_type", "key": "C2", "as": "alice", "label": "Lab", "duration_slots": 1, "priority": 2, "cost": 1},
+    {"type": "activity_type", "key": "C3", "as": "alice", "label": "Seminar", "duration_slots": 1, "priority": 3, "cost": 1},
+    {"type": "specialty", "key": "E", "as": "alice", "label": "Program E"},
+    {"type": "level", "key": "N", "as": "alice", "label": "Year 1"},
+    {"type": "cohort", "key": "B1", "as": "alice", "label": "Cohort 1", "specialty": "E", "level": "N", "enrollment": 20},
+    {"type": "student_group", "key": "G1", "as": "alice", "plan": "P", "label": "Group 1", "activity_type": "C1", "specialty": "E", "level": "N", "cohorts": ["B1"]},
+    {"type": "subject", "key": "A", "as": "alice", "label": "Subject A", "specialty": "E", "level": "N"},
+    {"type": "activity_template", "key": "A1", "as": "alice", "subject": "A", "period": "W", "sequence": 1, "activity_type": "C1"},
+    {"type": "activity_template", "key": "AX", "as": "alice", "subject": "A", "period": "W", "sequence": 2, "activity_type": "C1"},
+    {"type": "activity_template", "key": "A2", "as": "alice", "subject": "A", "period": "W", "sequence": 3, "activity_type": "C1"},
+    {"type": "activity_template", "key": "A3", "as": "alice", "subject": "A", "period": "W", "sequence": 4, "activity_type": "C1"},
+    {"type": "teacher", "key": "TA", "as": "alice", "label": "Teacher A"},
+    {"type": "room", "key": "L1", "as": "alice", "label": "Room 1", "capacity": 50},
+    {"type": "teacher_assignment", "key": "A1@TA", "as": "alice", "template": "A1", "teacher": "TA", "priority": 1, "groups": ["G1"]},
+    {"type": "teacher_assignment", "key": "A2@TA", "as": "alice", "template": "A2", "teacher": "TA", "priority": 1, "groups": ["G1"]},
+    {"type": "teacher_assignment", "key": "A3@TA", "as": "alice", "template": "A3", "teacher": "TA", "priority": 1, "groups": ["G1"]},
+    {"type": "room_assignment", "key": "A1@L1", "as": "alice", "template": "A1", "room": "L1", "priority": 1},
+    {"type": "room_assignment", "key": "A2@L1", "as": "alice", "template": "A2", "room": "L1", "priority": 1},
+    {"type": "room_assignment", "key": "A3@L1", "as": "alice", "template": "A3", "room": "L1", "priority": 1}
+  ],
+  "edits": [
+    {"op": "delete", "record": "AX", "as": "alice"},
+    {"op": "move_up", "record": "A3", "as": "alice"},
+    {"op": "move_down", "record": "A1", "as": "alice"},
+    {"op": "move_down", "record": "C1", "as": "alice"},
+    {"op": "move_up", "record": "C3", "as": "alice"},
+    {"op": "delete", "record": "C2", "as": "alice"}
+  ],
+  "runs": [
+    {"key": "E", "as": "alice", "plan": "P", "period": "W", "specialty": "E", "level": "N",
+     "options": {"forma": 1, "parche": false, "compactar": 1, "parche1": false, "buscalugar": true}}
+  ],
+  "visibility": [
+    {"as": "alice", "type": "activity_type", "visible": ["C1", "C3"]}
+  ]
+}
