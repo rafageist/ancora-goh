@@ -153,6 +153,14 @@ final class WorkspacePagesTest extends AncoraBrowserTestBase {
     $records = $this->getSession()->getPage()->find('xpath', "//ul[contains(@class, 'ancora-records')]/li[span[normalize-space()='Activity templates']]");
     $this->assertNotNull($records);
     $this->assertStringContainsString('4', $records->find('css', '.ancora-records__count')->getText());
+    // The subject breakdowns (legacy desglose, D4): listed per plan and per
+    // period, with no add link (the module keeps them).
+    $breakdowns = $this->getSession()->getPage()->find('xpath', "//ul[contains(@class, 'ancora-records')]/li[span[normalize-space()='Subject breakdowns']]");
+    $this->assertNotNull($breakdowns);
+    $this->assertStringContainsString('2', $breakdowns->find('css', '.ancora-records__count')->getText());
+    $this->assertNull($breakdowns->find('css', '.ancora-workspace__add'));
+    $this->assertSession()->linkByHrefExists("/admin/ancora/breakdowns?plan=$plan_id");
+    $this->assertSession()->linkByHrefExists('/admin/ancora/breakdowns?period=');
     $this->assertAccessibleBasics();
 
     // A new record from the plan page is pre-filled with the plan and comes
