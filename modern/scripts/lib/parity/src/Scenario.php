@@ -54,6 +54,10 @@ final class Scenario {
     // An edit of the breakdown (legacy desglose) that the triggers created
     // for a subject and period: min_days, max_days, respect_order, same_day.
     'breakdown' => ['subject' => 'subject', 'period' => 'period'],
+    // The restricted cells of one object in one period (D9a): kind (period,
+    // activity_type, subject, cohort, teacher, room), target (the object,
+    // absent for "period"), period, cells: [[day, slot], ...].
+    'time_restriction' => ['period' => 'period'],
   ];
 
   /**
@@ -173,7 +177,7 @@ final class Scenario {
     return match ($record['type']) {
       'plan' => $key,
       'period', 'student_group' => $record['plan'],
-      'activity_template', 'breakdown' => $this->planOf($record['period']),
+      'activity_template', 'breakdown', 'time_restriction' => $this->planOf($record['period']),
       'teacher_assignment', 'room_assignment' => $this->planOf($record['template']),
       default => NULL,
     };
@@ -209,6 +213,7 @@ final class Scenario {
       'teacher_assignment' => [$r['type'], $r['template'], $r['teacher']],
       'room_assignment' => [$r['type'], $r['template'], $r['room']],
       'breakdown' => [$r['type'], $r['subject'], $r['period']],
+      'time_restriction' => [$r['type'], $r['kind'], $r['target'] ?? '', $r['period']],
       default => [$r['type'], $r['as'], $r['label']],
     };
   }

@@ -60,6 +60,7 @@ final class FixtureExportTest extends AcademicKernelTestBase {
       'teacher_assignments' => 4,
       'room_assignments' => 8,
       'breakdowns' => 2,
+      'time_restrictions' => 0,
       'issues' => 0,
     ], $counts);
 

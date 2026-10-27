@@ -173,6 +173,13 @@ final class WorkspaceController extends ControllerBase {
       if ($period_edit->access()) {
         $links['edit'] = ['title' => $this->t('Edit'), 'url' => $period_edit];
       }
+      // The restricted cells of the period (legacy restriccion_de_periodo).
+      $links['restrictions'] = [
+        'title' => $this->t('Time restrictions'),
+        'url' => Url::fromRoute('ancora_academic.restrictions', [], [
+          'query' => ['kind' => 'period', 'period' => $period->id()],
+        ]),
+      ];
       // The breakdown options of the period's subjects (legacy desglose).
       $links['breakdowns'] = [
         'title' => $this->t('Subject breakdowns'),

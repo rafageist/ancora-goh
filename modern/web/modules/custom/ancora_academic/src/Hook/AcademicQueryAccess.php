@@ -60,11 +60,12 @@ final class AcademicQueryAccess {
   #[Hook('query_ancora_room_access_alter')]
   #[Hook('query_ancora_room_assignment_access_alter')]
   #[Hook('query_ancora_breakdown_access_alter')]
+  #[Hook('query_ancora_time_restriction_access_alter')]
   public function alter(AlterableInterface $query): void {
     if (!$query instanceof SelectInterface || $this->currentUser->hasPermission(AcademicAccessControlHandler::ADMINISTER)) {
       return;
     }
-    foreach (AcademicEntityTypes::all() as $entity_type_id) {
+    foreach ([...AcademicEntityTypes::all(), ...AcademicEntityTypes::GRID] as $entity_type_id) {
       if (!$query->hasTag($entity_type_id . '_access')) {
         continue;
       }

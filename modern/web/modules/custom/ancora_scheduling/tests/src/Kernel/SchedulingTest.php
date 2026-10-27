@@ -10,6 +10,9 @@ use Drupal\ancora_engine\Job\JobOptions;
 use Drupal\ancora_engine\Job\JobState;
 use Drupal\ancora_engine\JobRepository;
 use Drupal\ancora_scheduling\ScopeMapper;
+use Drupal\ancora_academic\Entity\Period;
+use Drupal\ancora_academic\Entity\TimeRestriction;
+use Drupal\ancora_academic\TimeRestrictionGrid;
 use Drupal\ancora_scheduling\Sync\LegacyTableSync;
 use Drupal\Tests\ancora_academic\Kernel\AcademicKernelTestBase;
 use PHPUnit\Framework\Attributes\Group;
@@ -97,6 +100,22 @@ final class SchedulingTest extends AcademicKernelTestBase {
    */
   public function testEveryRowIsNumbered(): void {
     $plan = $this->loadFixture();
+    // One restricted cell of every kind (D9a).
+    $grid = $this->container->get(TimeRestrictionGrid::class);
+    $period = $this->byCode('ancora_period', 'PER', $plan);
+    assert($period instanceof Period);
+    $codes = [
+      'period' => NULL,
+      'activity_type' => 'C1',
+      'subject' => 'A',
+      'cohort' => 'B1',
+      'teacher' => 'TA',
+      'room' => 'L1',
+    ];
+    foreach ($codes as $kind => $code) {
+      $target = $code === NULL ? NULL : (int) $this->byCode(TimeRestriction::TARGET_TYPES[$kind], $code)->id();
+      $this->assertSame([], $grid->save($kind, $target, $period, [[1, 1]]));
+    }
     $export = $this->container->get(AcademicExport::class)->export($plan);
     $rows = $this->container->get(LegacyRows::class)->build($export, ScopeMapper::creator($plan), TRUE);
     $this->assertSame([], array_diff_key(LegacyTableSync::TABLES, $rows));
