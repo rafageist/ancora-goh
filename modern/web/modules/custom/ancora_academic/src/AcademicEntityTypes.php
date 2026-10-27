@@ -54,6 +54,17 @@ final class AcademicEntityTypes {
   ];
 
   /**
+   * Types whose records the module keeps, as legacy triggers do.
+   *
+   * Not part of the data entry order (SEGMENTS): the user never creates or
+   * deletes them, only edits them. Legacy "desglose": one per subject and
+   * period of the same creator (BreakdownMaintainer). They belong to a plan.
+   */
+  public const DERIVED = [
+    'ancora_breakdown',
+  ];
+
+  /**
    * The sections of the planner navigation (#105): section => entity types.
    *
    * Only a grouping of the lists for the menus and section pages; the data
@@ -75,6 +86,7 @@ final class AcademicEntityTypes {
       'ancora_activity_type',
     ],
     'assignments' => [
+      'ancora_breakdown',
       'ancora_activity_template',
       'ancora_teacher_assignment',
       'ancora_room_assignment',
@@ -99,7 +111,7 @@ final class AcademicEntityTypes {
       ],
       'assignments' => [
         'title' => new TranslatableMarkup('Assignments & templates'),
-        'intro' => new TranslatableMarkup('The weekly activities of each subject, and which teachers and rooms may take them.'),
+        'intro' => new TranslatableMarkup('The breakdown of each subject in each period (its scheduling options), its weekly activities, and which teachers and rooms may take them.'),
       ],
     ];
   }
@@ -122,6 +134,16 @@ final class AcademicEntityTypes {
   }
 
   /**
+   * Returns every academic entity type: data entry types, then derived ones.
+   *
+   * @return list<string>
+   *   The entity type IDs.
+   */
+  public static function all(): array {
+    return [...self::ids(), ...self::DERIVED];
+  }
+
+  /**
    * Returns a one-line description of each entity type, for the overview.
    *
    * @return array<string, \Drupal\Core\StringTranslation\TranslatableMarkup>
@@ -138,6 +160,7 @@ final class AcademicEntityTypes {
       'ancora_student_group' => new TranslatableMarkup('Teaching groups: the cohorts that attend one kind of activity together.'),
       'ancora_subject' => new TranslatableMarkup('Subjects of a specialty and level.'),
       'ancora_activity_template' => new TranslatableMarkup('The weekly breakdown of a subject in a period: one template per weekly activity.'),
+      'ancora_breakdown' => new TranslatableMarkup('The scheduling options of each subject in each period: days between its activities, their order, and activities on the same day. One per subject and period, created automatically.'),
       'ancora_room' => new TranslatableMarkup('Rooms and their capacity.'),
       'ancora_teacher' => new TranslatableMarkup('Teachers.'),
       'ancora_teacher_assignment' => new TranslatableMarkup('Which teacher may give an activity template, to which groups, with which priority.'),

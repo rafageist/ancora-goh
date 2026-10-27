@@ -31,6 +31,10 @@ use Drupal\Core\Session\AccountInterface;
  *   A-5). Editing them stays the owner's;
  * - create: "edit academic data". Any data entry user creates their own
  *   plans, as any legacy user allowed to run add_Planificacion did;
+ * - subject breakdowns (legacy desglose) are kept by BreakdownMaintainer,
+ *   as the legacy triggers and cascades keep them: a user may view and
+ *   update (the options) those of their own plans, and never create or
+ *   delete one (the legacy UI has no such action);
  * - "administer academic data" (restricted) allows everything. It has no
  *   legacy counterpart in the screens; it is the operator's way to reach
  *   every record of the site (for example to reassign an owner).
@@ -59,6 +63,9 @@ final class AcademicAccessControlHandler extends EntityAccessControlHandler {
     if ($account->hasPermission(self::ADMINISTER)) {
       return AccessResult::allowed()->cachePerPermissions();
     }
+    if (in_array($entity->getEntityTypeId(), AcademicEntityTypes::DERIVED, TRUE) && $operation === 'delete') {
+      return AccessResult::neutral()->cachePerPermissions();
+    }
     $permission = match ($operation) {
       'view', 'view label' => self::VIEW,
       'update', 'delete' => self::EDIT,
@@ -84,6 +91,9 @@ final class AcademicAccessControlHandler extends EntityAccessControlHandler {
    * {@inheritdoc}
    */
   protected function checkCreateAccess(AccountInterface $account, array $context, $entity_bundle = NULL): AccessResultInterface {
+    if (in_array($this->entityTypeId, AcademicEntityTypes::DERIVED, TRUE)) {
+      return AccessResult::neutral();
+    }
     return AccessResult::allowedIfHasPermissions($account, [self::EDIT, self::ADMINISTER], 'OR');
   }
 

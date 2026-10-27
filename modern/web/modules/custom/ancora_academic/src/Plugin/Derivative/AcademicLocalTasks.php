@@ -17,7 +17,7 @@ final class AcademicLocalTasks extends DeriverBase {
    * {@inheritdoc}
    */
   public function getDerivativeDefinitions($base_plugin_definition): array {
-    foreach (AcademicEntityTypes::ids() as $entity_type_id) {
+    foreach (AcademicEntityTypes::all() as $entity_type_id) {
       $base_route = "entity.$entity_type_id.canonical";
       $this->derivatives["$entity_type_id.canonical"] = [
         'title' => new TranslatableMarkup('View'),
@@ -29,6 +29,10 @@ final class AcademicLocalTasks extends DeriverBase {
         'route_name' => "entity.$entity_type_id.edit_form",
         'base_route' => $base_route,
       ] + $base_plugin_definition;
+      if (in_array($entity_type_id, AcademicEntityTypes::DERIVED, TRUE)) {
+        // Kept by the module; never deleted by a user.
+        continue;
+      }
       $this->derivatives["$entity_type_id.delete_form"] = [
         'title' => new TranslatableMarkup('Delete'),
         'route_name' => "entity.$entity_type_id.delete_form",
