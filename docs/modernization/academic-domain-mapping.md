@@ -57,11 +57,10 @@ The legacy schema is in Spanish. The new code is in English. Each legacy term ma
 - **Breakdown (desglose) is an entity kept by the module** (#70, D4). Legacy triggers create one `desglose` row for every subject and every period of the same creator, with defaults (`min_dias` 1, `max_dias` 5, `respetar_orden` true, `mismo_dia` false), and the foreign keys delete it with its subject or period. `ancora_breakdown` does the same (`BreakdownMaintainer`, `Hook/BreakdownHooks.php`): it is created when a subject or period is created (and when an owner changes), deleted with its subject, period or plan, never created or deleted by a user, and it does not block deletes. The owner edits its four options (`min_days`, `max_days`, `respect_order`, `same_day`) at `/admin/ancora/breakdowns/{id}/edit`, as in the legacy form; any integer is accepted, as the legacy handler stores it. Each template still references its subject and period directly.
 - **Template length comes from the activity type.** The legacy template has no duration of its own: an activity lasts `clasificacion_de_actividad.duracion` slots. This is `ancora_activity_type.duration_slots` (≥ 1).
 - **Assignments are entities, not multi-value fields.** A teacher assignment carries a priority and a set of groups. A room assignment carries a priority. Both need their own validation, listing and lifecycle.
-- **No cascade.** A record that other records reference cannot be deleted, through any API.
-  - Entities: `AcademicEntityBase::preDelete` throws, using `ReferenceGuard`.
-  - UI: the delete form lists the dependents and offers no Delete button.
-  - So a plan cannot be deleted while it has any record. Dependents are deleted first, explicitly.
-  - The legacy schema uses `ON DELETE CASCADE` everywhere, which can silently delete a whole plan's data. That behaviour is intentionally not reproduced.
+- **The legacy cascade (#70, D5).** Legacy deletes by key and every foreign key is `ON DELETE CASCADE` (PAR-100..103, cases 114 and 145). Drupal does the same, through any API:
+  - `AcademicEntityBase::preDelete` calls `ReferenceGuard::cascade()`: a record held in a single reference (a legacy foreign key column) is deleted, through the Entity API, so its own cascades run; a record holding it in a multi-value reference (a legacy link table: a group's cohorts, a teacher assignment's groups) only loses the link.
+  - Grid records, breakdowns and placements cascade through their hooks (`RestrictionHooks`, `RoomConstraints`, `SharedResources`, `BreakdownHooks`, `PlacementCascade`); a delete removes the placements of the deleted templates, groups, teachers and rooms. In two-database mode the next sync deletes the engine rows and the engine's foreign keys remove the placements and their occupancy.
+  - UI: the delete form is a confirmation; it says which records reference the record and that they go with it. Everything runs in one transaction.
 
 ## Mapping: legacy table and column → Drupal entity and field
 

@@ -161,21 +161,27 @@ final class PlanningUiTest extends AncoraBrowserTestBase {
   }
 
   /**
-   * A plan with records cannot be deleted from its form.
+   * A plan with records is deleted with them, after a confirmation (D5).
    */
-  public function testPlanWithRecordsIsNotDeleted(): void {
+  public function testPlanWithRecordsIsDeletedWithThem(): void {
     \Drupal::service(SyntheticFixture::class)->load();
     $this->drupalLogin($this->drupalCreateUser(['view academic data', 'administer academic data']));
-    $this->drupalGet('/admin/ancora/plans/1/delete');
-    $this->assertSession()->statusCodeEquals(200);
-    $this->assertSession()->pageTextContains('Plan cannot be deleted because it is still used by');
-    $this->assertSession()->pageTextContains('4 activity templates');
-    $this->assertSession()->buttonNotExists('Delete');
-
-    $this->drupalGet('/admin/ancora/templates');
-    $this->assertSession()->elementsCount('css', 'table tbody tr', 4);
     $this->drupalGet('/admin/ancora/templates', ['query' => ['plan' => 999]]);
     $this->assertSession()->elementTextContains('css', 'table', 'There are no activity templates yet.');
+    $this->drupalGet('/admin/ancora/templates');
+    $this->assertSession()->elementsCount('css', 'table tbody tr', 4);
+
+    $this->drupalGet('/admin/ancora/plans/1/delete');
+    $this->assertSession()->statusCodeEquals(200);
+    $this->assertSession()->pageTextContains('Plan is used by');
+    $this->assertSession()->pageTextContains('4 activity templates');
+    $this->assertSession()->pageTextContains('Deleting it also deletes them');
+    $this->submitForm([], 'Delete');
+    $this->drupalGet('/admin/ancora/templates');
+    $this->assertSession()->elementTextContains('css', 'table', 'There are no activity templates yet.');
+    // The catalogues stay.
+    $this->drupalGet('/admin/ancora/teachers');
+    $this->assertSession()->pageTextContains('Teacher Alpha');
   }
 
 }

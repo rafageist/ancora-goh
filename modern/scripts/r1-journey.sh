@@ -346,6 +346,21 @@ site_op work alpha --once >"$work/log/work5.log" 2>&1
 j=$(job_json "$job5")
 check "after the fix, job $job5 syncs the change (one room updated) and succeeds" eq "$(jq -r '.state + "/" + (.result.input.tables.lugar.updated|tostring)' <<<"$j")/$(engine "SELECT capacidad FROM lugar WHERE id = '$(eid "$room" L1)'")" "succeeded/1/60"
 
+section "A delete cascades as the legacy foreign keys do (D5)"
+g2=$(alpha_drush php:eval 'print key(\Drupal::entityTypeManager()->getStorage("ancora_student_group")->loadByProperties(["code" => "G2"]));')
+req alpha "/o/alpha/admin/ancora/groups/$g2/delete"
+check "the delete page of a group with placements confirms what goes with it" bash -c "[ \"\$(cat '$work/r.status')\" = 200 ] && grep -q 'Deleting it also deletes them' '$work/r.body'"
+build_id=$(form_value form_build_id) token=$(form_value form_token)
+req alpha "/o/alpha/admin/ancora/groups/$g2/delete" --data-urlencode form_id=ancora_student_group_delete_form \
+  --data-urlencode "form_build_id=$build_id" --data-urlencode "form_token=$token" --data-urlencode "op=Delete"
+check "the group is deleted, and its teacher assignments keep their other group" eq "$(alpha_drush php:eval '$s = \Drupal::entityTypeManager()->getStorage("ancora_student_group"); $a = \Drupal::entityTypeManager()->getStorage("ancora_teacher_assignment"); print count($s->loadMultiple()) . "/" . count($a->loadMultiple());')" "1/4"
+job6=$(request_run alpha)
+site_op work alpha --once >"$work/log/work6.log" 2>&1
+j=$(job_json "$job6")
+check "job $job6 syncs the delete and succeeds: the engine cascade removed Group 2's placements and occupancy" eq "$(jq -r .state <<<"$j")/$(engine "SELECT count(*) FROM actividad WHERE grupo = '$(eid "$g2" G2)'")/$(engine "SELECT count(*) FROM actividad")/$(engine "SELECT count(*) FROM restriccion_de_brigada WHERE por_actividad AND brigada !~ '^[0-9]{10}:B1'")" "succeeded/0/4/0"
+timetable alpha
+check "the timetable lists Group 1's 4 placements only" eq "$(timetable_cells final | cut -d/ -f3 | sort | uniq -c | tr -s ' ')" " 4 G1"
+
 section "Logs"
 check "PostgreSQL logged no permission error other than the refused cross-site connections" bash -c "! grep 'permission denied' '$pg_log' | grep -v 'permission denied for database' | grep -q ."
 check "no PHP error logged by PHP-FPM" bash -c "! grep -qi 'fatal\|warning\|exception' '$work/log/php.log' 2>/dev/null"

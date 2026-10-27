@@ -79,6 +79,8 @@ After the #70 D9a slice (61 cases): **50 PASS, 11 XFAIL, 0 FAIL / XPASS / XWRONG
 
 After the #70 D9b slice (62 cases): **51 PASS, 11 XFAIL, 0 FAIL / XPASS / XWRONG**. Case 140 records that a break changes only the slot hours, that priority zones change the cells only with `parche1`, the effect of teacher and brigade daily load limits, and their keys. Every earlier result is unchanged.
 
+After the #70 D5 slice (67 cases): **56 PASS, 11 XFAIL, 0 FAIL / XPASS / XWRONG**. Case 145 records what every delete removes through the `ON DELETE CASCADE` foreign keys, link tables included. Every earlier result is unchanged.
+
 After the #70 D13 slice (66 cases): **55 PASS, 11 XFAIL, 0 FAIL / XPASS / XWRONG**. Case 144 records the down moves of classifications and templates and the global-count defect of `baja_prioridad_clasif` (Q-34). Every earlier result is unchanged.
 
 After the #70 D9d and D11 slice (65 cases): **54 PASS, 11 XFAIL, 0 FAIL / XPASS / XWRONG**. Case 142 records the resources `generar()` gives a placed activity (every group but the last, the first group's `necesarios`, priority then use, no availability check: a chosen restricted resource fails the run; Q-31, Q-32); case 143 records `forma` and `compactar` (D11). Every earlier result is unchanged.

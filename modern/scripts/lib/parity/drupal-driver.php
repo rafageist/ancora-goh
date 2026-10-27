@@ -325,7 +325,7 @@ foreach ($ancora_scenario->records as $key => $r) {
   }
 }
 
-// Edits (D13): the arrows and deletes, as the user.
+// Edits (D13, D5): the arrows and deletes, as the user.
 foreach ($ancora_scenario->edits() as $edit) {
   $entity = $ancora_entities[$edit['record']] ?? NULL;
   if ($entity === NULL) {
@@ -336,6 +336,11 @@ foreach ($ancora_scenario->edits() as $edit) {
   try {
     $etm->getStorage($entity->getEntityTypeId())->resetCache();
     $entity = $etm->getStorage($entity->getEntityTypeId())->load($entity->id());
+    if ($entity === NULL) {
+      // An earlier delete cascaded to it, as legacy (D5).
+      echo "ok    {$edit['op']} {$edit['record']} (already deleted by a cascade)\n";
+      continue;
+    }
     if (!$entity->access($edit['op'] === 'delete' ? 'delete' : 'update')) {
       $ancora_fail("edit {$edit['op']} {$edit['record']}: access denied");
       continue;

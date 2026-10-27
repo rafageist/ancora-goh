@@ -10,7 +10,6 @@ use Drupal\ancora_academic\Entity\ActivityTemplate;
 use Drupal\ancora_academic\Entity\Period;
 use Drupal\ancora_academic\Entity\TeacherAssignment;
 use Drupal\ancora_academic\ReferenceGuard;
-use Drupal\Core\Entity\EntityStorageException;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Group;
 
@@ -304,9 +303,9 @@ final class AcademicEntityTest extends AcademicKernelTestBase {
   }
 
   /**
-   * A record still in use cannot be deleted, through any API.
+   * The legacy delete cascade, through any API (D5; cases 114, 145).
    */
-  public function testDeleteIsRefusedWhileReferenced(): void {
+  public function testDeleteCascades(): void {
     $plan = $this->loadFixture();
     $guard = $this->container->get(ReferenceGuard::class);
     $dependents = $guard->dependents($plan);
@@ -320,24 +319,48 @@ final class AcademicEntityTest extends AcademicKernelTestBase {
       'ancora_teacher_assignment',
       'ancora_room_assignment',
     ], array_keys($dependents));
+    $etm = $this->container->get('entity_type.manager');
+    $count = fn (string $type): int => $this->recordCount($type);
 
-    try {
-      $plan->delete();
-      $this->fail('A plan with records was deleted.');
+    // A group: its teacher assignments lose it and stay (profesor_para_grupo).
+    $g2 = $this->byCode('ancora_student_group', 'G2', $plan);
+    $g2->delete();
+    $this->assertSame(1, $count('ancora_student_group'));
+    $this->assertSame(4, $count('ancora_teacher_assignment'));
+    $etm->getStorage('ancora_teacher_assignment')->resetCache();
+    foreach ($etm->getStorage('ancora_teacher_assignment')->loadMultiple() as $assignment) {
+      $this->assertNotContains((string) $g2->id(), array_column($assignment->get('groups')->getValue(), 'target_id'));
     }
-    catch (EntityStorageException $e) {
-      $this->assertStringContainsString('cannot be deleted', $e->getMessage());
-      $this->assertStringContainsString('4 activity templates', $e->getMessage());
+    // A cohort: the group loses it and stays (brigada_de_grupo).
+    $this->byCode('ancora_cohort', 'B1')->delete();
+    $etm->getStorage('ancora_student_group')->resetCache();
+    $this->assertSame([], $this->byCode('ancora_student_group', 'G1', $plan)->get('cohorts')->getValue());
+    // A teacher: its assignments go.
+    $this->byCode('ancora_teacher', 'TB')->delete();
+    $this->assertSame(2, $count('ancora_teacher_assignment'));
+    // A subject: its templates and their assignments go.
+    $this->byCode('ancora_subject', 'B')->delete();
+    $this->assertSame(2, $count('ancora_activity_template'));
+    $this->assertSame(4, $count('ancora_room_assignment'));
+    $this->assertSame(1, $count('ancora_subject'));
+    // The plan: its periods, groups, templates and assignments; the
+    // owner's catalogues stay.
+    $plan->delete();
+    $types = [
+      'ancora_plan',
+      'ancora_period',
+      'ancora_student_group',
+      'ancora_activity_template',
+      'ancora_teacher_assignment',
+    ];
+    foreach ([...$types, 'ancora_room_assignment'] as $type) {
+      $this->assertSame(0, $count($type), $type);
     }
-    $this->assertSame(1, $this->recordCount('ancora_plan'));
-
-    $teacher = $this->byCode('ancora_teacher', 'TB', $plan);
-    $this->assertSame(['ancora_teacher_assignment' => 2], $guard->dependents($teacher));
-    $storage = $this->container->get('entity_type.manager')->getStorage('ancora_teacher_assignment');
-    $storage->delete($storage->loadByProperties(['teacher' => $teacher->id()]));
-    $this->assertSame([], $guard->dependents($teacher));
-    $teacher->delete();
-    $this->assertSame(1, $this->recordCount('ancora_teacher'));
+    $this->assertSame(1, $count('ancora_subject'));
+    $this->assertSame(1, $count('ancora_activity_type'));
+    // A specialty: its cohorts and subjects.
+    $this->byCode('ancora_specialty', 'E')->delete();
+    $this->assertSame([0, 0, 1], [$count('ancora_cohort'), $count('ancora_subject'), $count('ancora_level')]);
   }
 
 }

@@ -757,11 +757,12 @@ final class LegacyDriver {
   }
 
   /**
-   * Applies one edit with the events of the legacy arrows and deletes (D13).
+   * Applies one edit with the events of the legacy arrows and deletes.
    *
-   * Move: set_ClasifAct_subeprioridad / _bajaprioridad (id), and
-   * custom_SubePlantilla / custom_BajaPlantilla (plantilla). Delete: the
-   * generated del_<Class> handler by id.
+   * Move (D13): set_ClasifAct_subeprioridad / _bajaprioridad (id), and
+   * custom_SubePlantilla / custom_BajaPlantilla (plantilla). Delete (D5):
+   * the generated del_<Class> handler by id (a direct DELETE; the foreign
+   * keys cascade).
    */
   private function edit(array $edit): void {
     $record = $this->scenario->records[$edit['record']];
@@ -773,12 +774,11 @@ final class LegacyDriver {
     $template = $record['type'] === 'activity_template';
     $up = $template ? ['custom_SubePlantilla', ['plantilla' => $id]] : ['set_ClasifAct_subeprioridad', ['id' => $id]];
     $down = $template ? ['custom_BajaPlantilla', ['plantilla' => $id]] : ['set_ClasifAct_bajaprioridad', ['id' => $id]];
+    $class = Scenario::DELETABLE[$record['type']] ?? '';
     [$event, $fields] = match ($edit['op']) {
       'move_up' => $up,
       'move_down' => $down,
-      'delete' => $template
-        ? ['del_PlantillaDeActividad', ['field_PlantillaDeActividad_id' => $id]]
-        : ['del_ClasificacionDeActividad', ['field_ClasificacionDeActividad_id' => $id]],
+      'delete' => ["del_$class", ["field_{$class}_id" => $id]],
     };
     $this->event($edit['as'], $event, $fields, "{$edit['op']} {$edit['record']}");
   }
