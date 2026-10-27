@@ -276,10 +276,27 @@ final class Scenario {
   }
 
   /**
-   * The edits applied after the records (D13).
+   * Record type => legacy class of its delete handler (del_<Class>, D5).
+   */
+  public const DELETABLE = [
+    'plan' => 'Planificacion',
+    'period' => 'Periodo',
+    'activity_type' => 'ClasificacionDeActividad',
+    'specialty' => 'Especialidad',
+    'level' => 'Nivel',
+    'cohort' => 'Brigada',
+    'student_group' => 'Grupo',
+    'subject' => 'Asignatura',
+    'activity_template' => 'PlantillaDeActividad',
+    'teacher' => 'Profesor',
+    'room' => 'Lugar',
+  ];
+
+  /**
+   * The edits applied after the records (D13, D5).
    *
-   * Op move_up, move_down or delete, of an activity type or an activity
-   * template, as a user.
+   * Op move_up or move_down of an activity type or an activity template;
+   * op delete of a record of a DELETABLE type; as a user.
    *
    * @return list<array<string, mixed>>
    *   The edits.
@@ -289,8 +306,8 @@ final class Scenario {
     foreach ($edits as $edit) {
       $type = $this->records[$edit['record'] ?? '']['type'] ?? NULL;
       $op = $edit['op'] ?? '';
-      $ops = ['move_up', 'move_down', 'delete'];
-      if (!in_array($type, ['activity_type', 'activity_template'], TRUE) || !in_array($op, $ops, TRUE)) {
+      $movable = in_array($type, ['activity_type', 'activity_template'], TRUE) && in_array($op, ['move_up', 'move_down'], TRUE);
+      if (!$movable && !($op === 'delete' && isset(self::DELETABLE[$type]))) {
         throw new \InvalidArgumentException('invalid edit ' . json_encode($edit));
       }
     }

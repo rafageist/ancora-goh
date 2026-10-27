@@ -220,6 +220,37 @@ final class PlacementPublisherTest extends AcademicKernelTestBase {
   }
 
   /**
+   * The legacy cascades reach the placements in workspace mode (D5).
+   *
+   * Case 145: a cohort delete keeps the placement; a group delete, a
+   * subject delete and an activity type delete (its groups and templates)
+   * delete the placements, without deleting the assignments first.
+   */
+  public function testAcademicDeletesCascadeToPlacements(): void {
+    [$job, $ids] = $this->runningJob();
+    $templates = array_keys($ids['plantilla_de_actividad']);
+    sort($templates);
+    $output = [
+      $this->row($ids, 'c-1', $templates[0], 'G1', 'TA', 'L1', 1, 1),
+      $this->row($ids, 'c-2', $templates[0], 'G2', 'TA', 'L1', 1, 2),
+      $this->row($ids, 'c-3', $templates[2], 'G1', 'TB', 'L2', 2, 1),
+    ];
+    $this->container->get(PlacementPublisher::class)->publish($job, $this->returned($output));
+    $this->assertSame(3, $this->recordCount('ancora_placement'));
+    $this->byCode('ancora_cohort', 'B1')->delete();
+    $this->assertSame(3, $this->recordCount('ancora_placement'), 'a cohort delete keeps the placements');
+    $plan = $this->byCode('ancora_plan', 'P');
+    $this->byCode('ancora_student_group', 'G2', $plan)->delete();
+    $this->assertSame(2, $this->recordCount('ancora_placement'), 'a group delete deletes its placements');
+    $this->byCode('ancora_subject', 'B')->delete();
+    $this->assertSame(1, $this->recordCount('ancora_placement'), 'a subject delete deletes its templates\' placements');
+    $this->byCode('ancora_activity_type', 'C1')->delete();
+    $this->assertSame(0, $this->recordCount('ancora_placement'));
+    $this->assertSame(0, $this->recordCount('ancora_activity_template'));
+    $this->assertSame(0, $this->recordCount('ancora_student_group'));
+  }
+
+  /**
    * Published right after a cache rebuild (cold caches), as after a deploy.
    *
    * The entity reference checks run entity queries; their access alter

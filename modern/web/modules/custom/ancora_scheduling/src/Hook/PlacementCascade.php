@@ -15,8 +15,9 @@ use Drupal\Core\Hook\Attribute\Hook;
  * DELETE CASCADE, and through the template its breakdown, subject and
  * period (legacy-parity-inventory.md PAR-101..103, case 114). Placements do
  * not block a delete (they are not academic records for ReferenceGuard);
- * the records the academic delete guard already protects still need their
- * dependents removed first (D5).
+ * since D5 every academic delete cascades too (ReferenceGuard), so
+ * deleting a subject, an activity type or a period deletes its templates
+ * and, through this hook, their placements.
  *
  * An other resource is different: legacy otros_recursos_usados references
  * it ON DELETE CASCADE, so deleting it removes it from the placements that

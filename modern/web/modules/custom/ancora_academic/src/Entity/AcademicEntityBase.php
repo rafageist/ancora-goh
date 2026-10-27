@@ -9,7 +9,6 @@ use Drupal\ancora_academic\AcademicEntityTypes;
 use Drupal\ancora_academic\ReferenceGuard;
 use Drupal\Core\Entity\ContentEntityBase;
 use Drupal\Core\Entity\EntityChangedTrait;
-use Drupal\Core\Entity\EntityStorageException;
 use Drupal\Core\Entity\EntityStorageInterface;
 use Drupal\Core\Entity\EntityTypeInterface;
 use Drupal\Core\Field\BaseFieldDefinition;
@@ -21,10 +20,11 @@ use Drupal\Core\StringTranslation\TranslatableMarkup;
  *
  * Provides the plan reference of the plan records (periods, groups,
  * templates, assignments), the created and changed timestamps, field
- * definition helpers and the deletion guard: a record that other academic
- * records still reference cannot be deleted, through any API (see
- * ReferenceGuard). Plans and catalogue records have an owner instead of a
- * plan (OwnedAcademicEntityBase).
+ * definition helpers and the legacy delete cascade: deleting a record
+ * deletes the records that reference it, or removes it from their
+ * multi-value references, through any API (ReferenceGuard, D5). Plans and
+ * catalogue records have an owner instead of a plan
+ * (OwnedAcademicEntityBase).
  */
 abstract class AcademicEntityBase extends ContentEntityBase implements AcademicEntityInterface {
 
@@ -103,13 +103,12 @@ abstract class AcademicEntityBase extends ContentEntityBase implements AcademicE
    */
   public static function preDelete(EntityStorageInterface $storage, array $entities): void {
     parent::preDelete($storage, $entities);
+    // The legacy foreign keys cascade (D5, PAR-100..103): the records that
+    // reference these ones are deleted, or lose the link (ReferenceGuard).
     $guard = \Drupal::service(ReferenceGuard::class);
     assert($guard instanceof ReferenceGuard);
     foreach ($entities as $entity) {
-      $summary = $guard->describe($guard->dependents($entity));
-      if ($summary !== '') {
-        throw new EntityStorageException(sprintf('%s "%s" cannot be deleted: it is still used by %s.', $entity->getEntityType()->getLabel(), $entity->label(), $summary));
-      }
+      $guard->cascade($entity);
     }
   }
 
