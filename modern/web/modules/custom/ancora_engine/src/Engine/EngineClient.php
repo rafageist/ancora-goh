@@ -111,7 +111,8 @@ final class EngineClient {
   /**
    * The placements of a scope, for the timetable read model.
    */
-  private const SCOPE_GRID = "SELECT a.plantilla, a.grupo, a.profesor, a.lugar, a.dia, a.turno, c.duracion
+  private const SCOPE_GRID = "SELECT a.plantilla, a.grupo, a.profesor, a.lugar, a.dia, a.turno, c.duracion,
+      (SELECT coalesce(json_agg(u.otro_recurso ORDER BY u.ctid), '[]'::json) FROM otros_recursos_usados u WHERE u.actividad = a.id) AS otros_recursos
     FROM actividad a
     JOIN plantilla_de_actividad pa ON pa.id = a.plantilla
     JOIN clasificacion_de_actividad c ON c.id = pa.clasificacion
@@ -370,6 +371,7 @@ final class EngineClient {
         'dia' => (int) $row['dia'],
         'turno' => (int) $row['turno'],
         'duracion' => max(1, (int) $row['duracion']),
+        'otros_recursos' => json_decode((string) $row['otros_recursos'], TRUE, 4, JSON_THROW_ON_ERROR),
       ], $this->rows($conn, self::SCOPE_GRID, $scope->toParameters()));
     }
     finally {

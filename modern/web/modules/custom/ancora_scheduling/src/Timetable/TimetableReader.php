@@ -57,7 +57,8 @@ final class TimetableReader {
    *
    * @return array
    *   - hash: the input snapshot hash of the plan's current data;
-   *   - groups, teachers, rooms: code => label, for the filters;
+   *   - groups, teachers, rooms, resources: code => label, for the
+   *     filters (resources: the owner's other resources, D9d);
    *   - scopes: list of scope arrays, each with specialty and level labels,
    *     the job whose placements are shown ("job", NULL when none), "final"
    *     (bool), "stale" (the data changed since the run), "active" (a queued
@@ -119,6 +120,7 @@ final class TimetableReader {
       'groups' => $index['group_labels'],
       'teachers' => $index['teacher_labels'],
       'rooms' => $index['room_labels'],
+      'resources' => $index['resource_labels'],
       'scopes' => $scopes,
     ];
   }
@@ -145,6 +147,8 @@ final class TimetableReader {
         'teacher_code' => $row['profesor'] === NULL ? '' : self::strip($row['profesor']),
         'room' => $row['lugar'] === NULL ? '' : ($index['rooms'][$row['lugar']] ?? self::strip($row['lugar'])),
         'room_code' => $row['lugar'] === NULL ? '' : self::strip($row['lugar']),
+        'resources' => array_map(fn (string $id): string => $index['resources'][$id] ?? self::strip($id), $row['otros_recursos'] ?? []),
+        'resource_codes' => array_map(self::strip(...), $row['otros_recursos'] ?? []),
       ];
     }
     return $placements;
@@ -173,6 +177,7 @@ final class TimetableReader {
       $teacher = $placement->get('teacher')->entity;
       $room = $placement->get('room')->entity;
       $group = $placement->get('student_group')->entity;
+      $resources = array_values($placement->get('other_resources')->referencedEntities());
       $type = $template?->getActivityType();
       $placements[] = [
         'day' => (int) $placement->get('day')->value,
@@ -186,6 +191,8 @@ final class TimetableReader {
         'teacher_code' => $teacher?->getCode() ?? '',
         'room' => $room?->label() ?? '',
         'room_code' => $room?->getCode() ?? '',
+        'resources' => array_map(static fn ($r): string => (string) $r->label(), $resources),
+        'resource_codes' => array_map(static fn ($r): string => $r->getCode(), $resources),
       ];
     }
     return $placements;
@@ -208,6 +215,7 @@ final class TimetableReader {
       'groups' => ['student_groups', 'grupo'],
       'teachers' => ['teachers', 'profesor'],
       'rooms' => ['rooms', 'lugar'],
+      'resources' => ['other_resources', 'otro_recurso'],
       'specialties' => ['specialties', 'especialidad'],
       'levels' => ['levels', 'nivel'],
     ];
@@ -217,7 +225,7 @@ final class TimetableReader {
         $index[$name][$rows[$table][$i]['id']] = $record['label'];
       }
     }
-    foreach (['group' => 'student_groups', 'teacher' => 'teachers', 'room' => 'rooms'] as $name => $list) {
+    foreach (['group' => 'student_groups', 'teacher' => 'teachers', 'room' => 'rooms', 'resource' => 'other_resources'] as $name => $list) {
       $index[$name . '_labels'] = array_column($export[$list], 'label', 'code');
     }
     return $index;

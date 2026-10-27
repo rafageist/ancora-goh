@@ -238,6 +238,72 @@ final class PlacementPublisherTest extends AcademicKernelTestBase {
   }
 
   /**
+   * The other resources of a placement: published, replayed, reloaded (D9d).
+   *
+   * The legacy otros_recursos_usados rows of a new activity are published
+   * with it, in their order; a replay adds nothing; the next workspace
+   * receives them after the placement (SiteRows::placements()); deleting a
+   * resource removes it from the placement, which stays (ON DELETE CASCADE
+   * of otros_recursos_usados only).
+   */
+  public function testOtherResourcesArePublishedAndReloaded(): void {
+    [$job, $ids] = $this->runningJob();
+    $templates = array_keys($ids['plantilla_de_actividad']);
+    sort($templates);
+    $resources = [];
+    foreach (['R1', 'R2'] as $code) {
+      $resource = $this->newRecord('ancora_other_resource', ['label' => "Projector $code", 'code' => $code]);
+      $resource->save();
+      $resources[$code] = $resource;
+    }
+    $eid = static fn (string $code): string => sprintf('%010d:%s', $resources[$code]->id(), $code);
+    $uses = ['otros_recursos' => [$eid('R2'), $eid('R1')]];
+    $row = $this->row($ids, 'res-1', $templates[0], 'G1', 'TA', 'L1', 1, 1) + $uses;
+    $plain = $this->row($ids, 'res-2', $templates[0], 'G2', 'TA', 'L1', 1, 2) + ['otros_recursos' => []];
+    $publisher = $this->container->get(PlacementPublisher::class);
+    $result = $publisher->publish($job, $this->returned([$row, $plain]));
+    $this->assertSame(['published' => 2, 'already_published' => 0], $result);
+    $storage = $this->container->get('entity_type.manager')->getStorage('ancora_placement');
+    $placement = current($storage->loadByProperties(['engine_id' => 'res-1']));
+    $used = static fn ($p): array => array_map(static fn (array $i): int => (int) $i['target_id'], $p->get('other_resources')->getValue());
+    $expected = [(int) $resources['R2']->id(), (int) $resources['R1']->id()];
+    $this->assertSame($expected, $used($placement), 'in the order of their rows');
+    $result = $publisher->publish($job, $this->returned([$row, $plain]));
+    $this->assertSame(['published' => 0, 'already_published' => 2], $result);
+    $this->assertSame(2, $this->recordCount('ancora_placement'));
+
+    [$rows] = $this->container->get(SiteRows::class)->site();
+    $loaded = array_column($this->container->get(SiteRows::class)->placements($rows), 'otros_recursos', 'id');
+    $this->assertSame(['res-1' => [$eid('R2'), $eid('R1')], 'res-2' => []], $loaded);
+    $before = $this->container->get(WorkspaceSync::class)->currentVersion();
+
+    $resources['R2']->delete();
+    $storage->resetCache();
+    $placement = $storage->load($placement->id());
+    $this->assertSame([(int) $resources['R1']->id()], $used($placement), 'the placement stays without the deleted resource');
+    $this->assertNotSame($before, $this->container->get(WorkspaceSync::class)->currentVersion(), 'the resource uses are part of the input version');
+  }
+
+  /**
+   * An other resource of another user is refused; the update path.
+   */
+  public function testForeignResourceAndUpdatePath(): void {
+    [$job, $ids] = $this->runningJob();
+    $templates = array_keys($ids['plantilla_de_actividad']);
+    $other = $this->createUser(['view academic data', 'edit academic data'], 'other');
+    $foreign = $this->newRecord('ancora_other_resource', ['uid' => $other->id(), 'label' => 'Foreign', 'code' => 'RF']);
+    $foreign->save();
+    $row = $this->row($ids, 'x-1', $templates[0], 'G1', 'TA', 'L1', 1, 1) + ['otros_recursos' => [sprintf('%010d:RF', $foreign->id())]];
+    $this->assertPublicationFails($job, $this->returned([$row]), PublicationException::INVALID);
+
+    $manager = $this->container->get('entity.definition_update_manager');
+    $manager->uninstallFieldStorageDefinition($manager->getFieldStorageDefinition('other_resources', 'ancora_placement'));
+    $this->container->get('module_handler')->loadInclude('ancora_scheduling', 'install');
+    $this->assertSame('Installed the other resources of placements.', ancora_scheduling_update_11003());
+    $this->assertSame('The other resources of placements are already installed.', ancora_scheduling_update_11003());
+  }
+
+  /**
    * Empties every cache, persistent and in memory.
    */
   private function coldCaches(): void {

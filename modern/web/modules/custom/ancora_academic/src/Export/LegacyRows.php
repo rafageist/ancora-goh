@@ -82,7 +82,8 @@ final class LegacyRows {
     'restriccion_de_brigada', 'restriccion_de_profesor',
     'restriccion_de_lugar', 'receso', 'zpriori', 'higiene_para_profesor',
     'higiene_para_brigada', 'lugar_fijo', 'acceso_prohibido',
-    'costo_de_traslado',
+    'costo_de_traslado', 'otro_recurso',
+    'otro_grupo_de_recursos_para_actividad', 'otro_recurso_para_actividad',
   ];
 
   /**
@@ -124,7 +125,7 @@ final class LegacyRows {
     $ids = [];
     $coded = [
       'periods', 'activity_types', 'specialties', 'levels', 'cohorts',
-      'student_groups', 'subjects', 'rooms', 'teachers',
+      'student_groups', 'subjects', 'rooms', 'teachers', 'other_resources',
     ];
     foreach ($coded as $list) {
       foreach ($export[$list] as $record) {
@@ -303,6 +304,29 @@ final class LegacyRows {
         'destino' => $code($cost['destination']),
         'costo' => $cost['cost'],
       ];
+    }
+    // D9d: other resources, the resource groups of the templates and their
+    // resources, in entry order.
+    foreach ($export['other_resources'] as $resource) {
+      $rows['otro_recurso'][] = ['id' => $code($resource['key']), 'nombre' => $resource['label'], 'creador' => $creator];
+    }
+    foreach ($export['resource_groups'] as $group) {
+      $group_id = $make($group, 'g' . $group['id']);
+      $rows['otro_grupo_de_recursos_para_actividad'][] = [
+        'id' => $group_id,
+        'plantilla' => $template_ids[$group['template']],
+        'prioridad' => $group['priority'],
+        'necesarios' => $group['needed'],
+        'imprescindibles' => $group['essential'],
+        'creador' => $creator,
+      ];
+      foreach ($group['members'] as $member) {
+        $rows['otro_recurso_para_actividad'][] = [
+          'grupo_de_recursos' => $group_id,
+          'prioridad' => $member['priority'],
+          'otro_recurso' => $code($member['resource']),
+        ];
+      }
     }
     // D9b: breaks, priority zones (only zones other than 1 exist), daily
     // load limits.

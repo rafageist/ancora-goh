@@ -49,7 +49,7 @@ final class PlanningUiTest extends AncoraBrowserTestBase {
     $this->drupalLogin($owner);
     $this->drupalGet('/ancora/planning');
     $this->assertSession()->statusCodeEquals(200);
-    $this->assertSession()->elementsCount('css', 'li.ancora-planning__step', 13);
+    $this->assertSession()->elementsCount('css', 'li.ancora-planning__step', 14);
     $this->assertSession()->linkExists('Teacher assignments');
     $this->assertSession()->linkNotExists('Add teacher');
 

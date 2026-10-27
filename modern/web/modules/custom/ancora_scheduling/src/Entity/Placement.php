@@ -33,8 +33,13 @@ use Drupal\views\EntityViewsData;
  *   legacy, actividad.creador is the subject's creator, the same user
  *   (PAR-008).
  * - job: the job whose run created it.
+ * - other_resources: the other resources the engine gave the activity
+ *   (legacy otros_recursos_usados, D9d), in the order of their rows. They
+ *   are loaded back after the placement, which books them again (PAR-059).
  * - Deleting a referenced record deletes its placements, as the legacy
- *   foreign keys cascade (PAR-101..103, PlacementCascade).
+ *   foreign keys cascade (PAR-101..103, PlacementCascade). Deleting an
+ *   other resource only removes it from the placements: legacy deletes its
+ *   otros_recursos_usados rows, not the activities.
  */
 #[ContentEntityType(
   id: 'ancora_placement',
@@ -72,6 +77,7 @@ final class Placement extends AcademicEntityBase {
     $fields['room'] = static::referenceField('ancora_room', new TranslatableMarkup('Room'), new TranslatableMarkup('Empty when the template requires no room.'), -6);
     $fields['day'] = static::integerField(new TranslatableMarkup('Day'), new TranslatableMarkup('Day of the period, from 1.'), -5, 1);
     $fields['slot'] = static::integerField(new TranslatableMarkup('Slot'), new TranslatableMarkup('First slot of the day, from 1.'), -4, 1);
+    $fields['other_resources'] = static::referenceField('ancora_other_resource', new TranslatableMarkup('Other resources'), new TranslatableMarkup('The other resources the activity uses.'), -3, TRUE);
     $fields['placed_at'] = BaseFieldDefinition::create('float')
       ->setLabel(new TranslatableMarkup('Placement moment'))
       ->setDescription(new TranslatableMarkup('The engine value momento_de_colocacion (tiempo.moment_now).'));

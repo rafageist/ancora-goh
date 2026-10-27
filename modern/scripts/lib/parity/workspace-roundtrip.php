@@ -11,8 +11,11 @@
  * (Worker::runOnce(): workspace, generar(), publication as placement
  * entities). After each job the placement ENTITIES of its scope are read
  * back and written in the natural-key form of wsproof.outcome() (template,
- * group, teacher, room, day, slot, creator), so workspace-compare.php can
- * compare them placement by placement with the legacy oracle.
+ * group, teacher, room, day, slot, creator, and "+" with the other resources
+ * when the placement has any, D9d), so workspace-compare.php can compare
+ * them placement by placement with the legacy oracle. Every job after the
+ * first loads the placements and resource uses the earlier jobs published
+ * (continuation, "resource_uses_loaded").
  *
  * Usage (drush php:script):
  *
@@ -81,7 +84,8 @@ foreach ($rt_scenario['runs'] as $i => $run) {
     $lines[] = $u($subject->getCreatorId()) . '/' . $subject->label() . '@' . $plan_key($period->get('plan')->entity) . '/' . $period->label() . '#' . $template->getSequence()
       . '|' . $plan_key($group->get('plan')->entity) . '/' . $group->label()
       . '|' . $owned($p->get('teacher')->entity) . '|' . $owned($p->get('room')->entity)
-      . '@' . $p->get('day')->value . '.' . $p->get('slot')->value . '|' . $u($p->getCreatorId());
+      . '@' . $p->get('day')->value . '.' . $p->get('slot')->value . '|' . $u($p->getCreatorId())
+      . ($p->get('other_resources')->isEmpty() ? '' : '+' . implode(',', array_map($owned, $p->get('other_resources')->referencedEntities())));
     // The E2E list as Normalizer::runs() builds it: scenario keys of
     // template, group and room, the teacher's label, day, slot.
     $tkey = $rt_template($rt_codes['subject'][$subject->getCode()] ?? '', $rt_codes['period'][$period->getCode()] ?? '', (int) $template->getSequence());
@@ -105,6 +109,7 @@ foreach ($rt_scenario['runs'] as $i => $run) {
     'error' => $job->error,
     'publication' => $job->result['input']['publication'] ?? NULL,
     'placements_loaded' => $job->result['input']['placements_loaded'] ?? NULL,
+    'resource_uses_loaded' => $job->result['input']['resource_uses_loaded'] ?? NULL,
     'digest' => md5(implode(',', $e2e)),
     'placements' => $lines,
   ];

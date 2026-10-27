@@ -43,6 +43,15 @@ ancora_academic.restrictions:
   requirements:
     _permission: 'edit academic data+administer academic data'
 
+# The other resources of an activity template (D9d): ?template=.
+ancora_academic.template_resources:
+  path: '/ancora/planning/template-resources'
+  defaults:
+    _form: '\Drupal\ancora_academic\Form\SharedResourcesForm'
+    _title: 'Other resources of a template'
+  requirements:
+    _permission: 'edit academic data+administer academic data'
+
 # The room constraints (D9c): ?group= and ?room=.
 ancora_academic.room_constraints.group_rooms:
   path: '/ancora/planning/group-rooms'

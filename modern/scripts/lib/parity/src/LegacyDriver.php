@@ -672,6 +672,49 @@ final class LegacyDriver {
         $this->ids[$key] = $id($r['period']);
         break;
 
+      case 'other_resource':
+        $this->add($key, 'otro_recurso', $as, 'add_OtroRecurso', ['field_OtroRecurso_nombre' => $r['label']]);
+        break;
+
+      case 'resource_group':
+        // The resource window of the template (ancoragoh_server_recursos.js):
+        // nuevoGrupoDeRecursosParaActividad (priority 1, needed 1,
+        // essential), then the checked resources of get_form_add_rxact, all
+        // with its hidden max_prioridad (the group's highest + 1), then the
+        // priority, needed and essential setters when they differ.
+        $this->add($key, 'otro_grupo_de_recursos_para_actividad', $as, 'add_OtroGrupoDeRecursosParaActividad', [
+          'field_OtroGrupoDeRecursosParaActividad_plantilla' => $id($r['template']),
+          'field_OtroGrupoDeRecursosParaActividad_prioridad' => 1,
+          'field_OtroGrupoDeRecursosParaActividad_necesarios' => 1,
+          'field_OtroGrupoDeRecursosParaActividad_imprescindibles' => 1,
+        ]);
+        if (!isset($this->ids[$key])) {
+          break;
+        }
+        $form = $this->event($as, 'get_form_add_rxact', ['grupo' => $this->ids[$key]], "get_form_add_rxact $key", TRUE);
+        $max = preg_match('/id="field_RecursoParaActividad_max_prioridad" value ="([0-9]+)"/', $form, $m) ? (int) $m[1] : NULL;
+        if ($max === NULL) {
+          $this->fail("get_form_add_rxact $key: no max_prioridad");
+          break;
+        }
+        foreach ($r['members'] ?? [] as $member) {
+          $this->event($as, 'add_OtroRecursoParaActividad', [
+            'field_OtroRecursoParaActividad_grupo_de_recursos' => $this->ids[$key],
+            'field_OtroRecursoParaActividad_prioridad' => $max,
+            'field_OtroRecursoParaActividad_otro_recurso' => $id($member),
+          ], "add_OtroRecursoParaActividad $key $member");
+        }
+        if (($r['priority'] ?? 1) !== 1) {
+          $this->event($as, 'custom_set_PrioridadRxact', ['rxact' => $this->ids[$key], 'prioridad' => $r['priority']], "priority of $key");
+        }
+        if (($r['needed'] ?? 1) !== 1) {
+          $this->event($as, 'set_GrupoRecursos_necesarios', ['id' => $this->ids[$key], 'nec' => $r['needed']], "needed of $key");
+        }
+        if (!($r['essential'] ?? TRUE)) {
+          $this->event($as, 'set_GrupoRecursos_imprescindibles', ['id' => $this->ids[$key], 'imp' => 0], "essential of $key");
+        }
+        break;
+
       case 'room_assignment':
         // agregarLugarParaActividad (priority 1), then actualizaPrioridadLxact.
         $fields = [
@@ -725,6 +768,7 @@ final class LegacyDriver {
       'subject' => ['get_minibrowser_asignaturas', []],
       'teacher' => ['get_minibrowser_profesores', []],
       'room' => ['get_minibrowser_lugares', []],
+      'other_resource' => ['get_minibrowser_otrosrecursos', []],
     ];
     [$event, $fields] = $events[$check['type']];
     $body = $this->event($check['as'], $event, $fields, "list {$check['type']} as {$check['as']}", TRUE);

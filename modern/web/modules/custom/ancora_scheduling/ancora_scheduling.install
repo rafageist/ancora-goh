@@ -44,3 +44,29 @@ function ancora_scheduling_update_11002(): string {
   $key_value->set($key, $installed);
   return 'The placement moment is now double precision.';
 }
+
+/**
+ * Implements hook_update_dependencies().
+ */
+function ancora_scheduling_update_dependencies(): array {
+  // The other resources of a placement reference the entity type that
+  // ancora_academic_update_11008() installs.
+  return ['ancora_scheduling' => [11003 => ['ancora_academic' => 11008]]];
+}
+
+/**
+ * Adds the other resources of a placement (#70, D9d).
+ *
+ * Legacy otros_recursos_usados: the resources the engine gave a placed
+ * activity. Existing placements have none: no other resource existed in
+ * Drupal before.
+ */
+function ancora_scheduling_update_11003(): string {
+  $manager = \Drupal::entityDefinitionUpdateManager();
+  if ($manager->getFieldStorageDefinition('other_resources', 'ancora_placement') !== NULL) {
+    return 'The other resources of placements are already installed.';
+  }
+  $definitions = \Drupal::service('entity_field.manager')->getFieldStorageDefinitions('ancora_placement');
+  $manager->installFieldStorageDefinition('other_resources', 'ancora_placement', 'ancora_scheduling', $definitions['other_resources']);
+  return 'Installed the other resources of placements.';
+}

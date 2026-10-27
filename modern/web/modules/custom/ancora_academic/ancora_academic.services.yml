@@ -7,6 +7,7 @@ services:
   Drupal\ancora_academic\TimeRestrictionGrid: ~
   Drupal\ancora_academic\PeriodInputs: ~
   Drupal\ancora_academic\RoomConstraints: ~
+  Drupal\ancora_academic\SharedResources: ~
   Drupal\ancora_academic\Export\AcademicExport: ~
   Drupal\ancora_academic\Export\LegacyRows: ~
   Drupal\ancora_academic\Fixture\SyntheticFixture: ~

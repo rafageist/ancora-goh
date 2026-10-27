@@ -26,7 +26,8 @@ use Drupal\user\UserInterface;
  * period; the group, teacher and room exist and belong to the plan's creator
  * (D1-D3); the creador of the row is that creator; the day and the first
  * slot are inside the period; a teacher and a room are present when the
- * template requires them. Invariants of the timetable as a whole
+ * template requires them; the other resources ("otros_recursos", D9d) exist
+ * and belong to that creator. Invariants of the timetable as a whole
  * (collisions, overflow) are not checked: legacy keeps what generar() placed
  * (D12).
  */
@@ -42,6 +43,7 @@ final class PlacementMapper {
     'ancora_student_group',
     'ancora_teacher',
     'ancora_room',
+    'ancora_other_resource',
   ];
 
   public function __construct(
@@ -78,7 +80,8 @@ final class PlacementMapper {
    *
    * @param array $row
    *   The engine row: id, plantilla, grupo, profesor, lugar, dia, turno,
-   *   momento_de_colocacion, creador.
+   *   momento_de_colocacion, creador, and optionally otros_recursos (the
+   *   engine ids of its other resources).
    * @param \Drupal\ancora_academic\Entity\Period $period
    *   The period the placement must belong to.
    * @param int $creator
@@ -115,6 +118,14 @@ final class PlacementMapper {
     if ((bool) $template->get('requires_room')->value && $room === NULL) {
       throw new PublicationException(PublicationException::INVALID, "$what: the template requires a room.");
     }
+    $resources = [];
+    foreach ($row['otros_recursos'] ?? [] as $engine_id) {
+      $resource = $this->record('ancora_other_resource', $engine_id === NULL ? NULL : (string) $engine_id);
+      if (!$resource instanceof AcademicEntityInterface || (int) $resource->getCreatorId() !== $creator) {
+        throw new PublicationException(PublicationException::INVALID, "$what: an other resource does not exist or belongs to another user.");
+      }
+      $resources[] = (int) $resource->id();
+    }
     $day = (int) ($row['dia'] ?? 0);
     $slot = (int) ($row['turno'] ?? 0);
     if ($day < 1 || $day > (int) $period->getDays() || $slot < 1 || $slot > (int) $period->getSlotsPerDay()) {
@@ -131,6 +142,7 @@ final class PlacementMapper {
       'slot' => $slot,
       'placed_at' => ($row['momento_de_colocacion'] ?? NULL) === NULL ? NULL : (float) $row['momento_de_colocacion'],
       'engine_id' => (string) $row['id'],
+      'other_resources' => $resources,
     ];
   }
 

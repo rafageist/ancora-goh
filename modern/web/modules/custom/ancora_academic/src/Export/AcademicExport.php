@@ -53,6 +53,12 @@ use Drupal\Core\Entity\EntityTypeManagerInterface;
  * - "group_rooms" holds the fixed and forbidden rooms of the plan's groups,
  *   "travel_costs" the owner's travel costs between rooms (legacy
  *   lugar_fijo, acceso_prohibido, costo_de_traslado; D9c).
+ * - "other_resources" holds the owner's other resources (a catalogue),
+ *   "resource_groups" the resource groups of the exported templates, in
+ *   entity id order, each with its resources ("members", entity id order):
+ *   legacy otro_recurso, otro_grupo_de_recursos_para_actividad,
+ *   otro_recurso_para_actividad (D9d). Their order is the legacy entry
+ *   order, which generar() depends on (SharedResources).
  * - "issues" lists data the engine cannot use as is (for example a template
  *   that requires a teacher and has none); the export never fails for them.
  *
@@ -64,7 +70,7 @@ final class AcademicExport {
   /**
    * The version of the export contract.
    */
-  public const SCHEMA = 'ancora_academic.export.v6';
+  public const SCHEMA = 'ancora_academic.export.v7';
 
   /**
    * The catalogue lists: export key => entity type ID.
@@ -77,6 +83,7 @@ final class AcademicExport {
     'subjects' => 'ancora_subject',
     'rooms' => 'ancora_room',
     'teachers' => 'ancora_teacher',
+    'other_resources' => 'ancora_other_resource',
   ];
 
   public function __construct(
@@ -172,6 +179,7 @@ final class AcademicExport {
       'priority' => $a->getPriority(),
     ], $room_assignments), $template_order, 'room_code');
 
+    $export['resource_groups'] = $this->resourceGroups($template_ids);
     $export['breakdowns'] = $this->breakdowns($period_ids);
     $export['time_restrictions'] = $this->timeRestrictions($period_ids);
     $export += $this->periodInputs($period_ids);
@@ -207,6 +215,7 @@ final class AcademicExport {
       'priority_zones' => [],
       'load_limits' => [],
       'group_rooms' => [],
+      'resource_groups' => [],
       'issues' => [],
     ];
   }
@@ -240,6 +249,7 @@ final class AcademicExport {
         'capacity' => $r->getCapacity(),
       ], $load('ancora_room'))),
       'teachers' => $this->sortByCode(array_map($this->basic(...), $load('ancora_teacher'))),
+      'other_resources' => $this->sortByCode(array_map($this->basic(...), $load('ancora_other_resource'))),
       'travel_costs' => array_map(fn ($c): array => [
         'key' => (string) $c->uuid(),
         'id' => (int) $c->id(),
@@ -280,6 +290,46 @@ final class AcademicExport {
     $order = static fn (array $b): array => [$b['subject_code'], $b['period_code'], $b['id']];
     usort($records, static fn (array $a, array $b): int => $order($a) <=> $order($b));
     return $records;
+  }
+
+  /**
+   * The resource groups of some templates and their resources, by id.
+   *
+   * @param list<int> $template_ids
+   *   The templates.
+   *
+   * @return list<array<string, mixed>>
+   *   key, id, template, priority, needed, essential and members (key, id,
+   *   resource, priority).
+   */
+  private function resourceGroups(array $template_ids): array {
+    if ($template_ids === []) {
+      return [];
+    }
+    $groups = $this->entityTypeManager->getStorage('ancora_resource_group');
+    $members = $this->entityTypeManager->getStorage('ancora_resource_member');
+    $out = [];
+    foreach ($groups->loadMultiple($groups->getQuery()->accessCheck(FALSE)->condition('template', $template_ids, 'IN')->sort('id')->execute()) as $g) {
+      $list = [];
+      foreach ($members->loadMultiple($members->getQuery()->accessCheck(FALSE)->condition('resource_group', $g->id())->sort('id')->execute()) as $m) {
+        $list[] = [
+          'key' => (string) $m->uuid(),
+          'id' => (int) $m->id(),
+          'resource' => $this->key($m, 'other_resource'),
+          'priority' => (int) $m->get('priority')->value,
+        ];
+      }
+      $out[] = [
+        'key' => (string) $g->uuid(),
+        'id' => (int) $g->id(),
+        'template' => $this->key($g, 'template'),
+        'priority' => (int) $g->get('priority')->value,
+        'needed' => (int) $g->get('needed')->value,
+        'essential' => (bool) $g->get('essential')->value,
+        'members' => $list,
+      ];
+    }
+    return $out;
   }
 
   /**

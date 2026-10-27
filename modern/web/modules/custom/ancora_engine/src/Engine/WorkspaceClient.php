@@ -28,7 +28,10 @@ use Drupal\ancora_engine\Job\Job;
  *    worker's heartbeat, cancellation forwarding and statement_timeout, as
  *    in EngineClient::run();
  * 5. when it returned, the metrics, the E2E digest and the new placements
- *    (rows of "actividad" that were not input, in insertion order) are read.
+ *    (rows of "actividad" that were not input, in insertion order) are read,
+ *    each with the other resources generar() gave it ("otros_recursos": the
+ *    otro_recurso of its otros_recursos_usados rows, in insertion order;
+ *    D9d).
  *
  * Nothing is deleted before the run (no D7: legacy continuation). The worker
  * publishes the output (JobOutputInterface) and then closes the workspace.
@@ -111,8 +114,13 @@ final class WorkspaceClient {
       $this->mark($key, 'ran');
       $left = (int) $this->engine->rows($conn, 'SELECT count(*) AS n FROM generador.cancelar')[0]['n'];
       $metrics = $this->engine->metricsOn($conn, $job->scope, $job->idPrefix());
-      $output = $this->engine->rows($conn, 'SELECT id, plantilla, grupo, profesor, lugar, dia, turno, momento_de_colocacion, creador
-        FROM actividad WHERE NOT (id = ANY (ARRAY(SELECT jsonb_array_elements_text($1::jsonb)))) ORDER BY ctid', [json_encode(array_values($input_ids), JSON_THROW_ON_ERROR)]);
+      $output = $this->engine->rows($conn, "SELECT a.id, a.plantilla, a.grupo, a.profesor, a.lugar, a.dia, a.turno, a.momento_de_colocacion, a.creador,
+          (SELECT coalesce(json_agg(u.otro_recurso ORDER BY u.ctid), '[]'::json) FROM otros_recursos_usados u WHERE u.actividad = a.id) AS otros_recursos
+        FROM actividad a WHERE NOT (a.id = ANY (ARRAY(SELECT jsonb_array_elements_text($1::jsonb)))) ORDER BY a.ctid", [json_encode(array_values($input_ids), JSON_THROW_ON_ERROR)]);
+      foreach ($output as &$row) {
+        $row['otros_recursos'] = json_decode((string) $row['otros_recursos'], TRUE, 4, JSON_THROW_ON_ERROR);
+      }
+      unset($row);
       return new RunResult(RunResult::RETURNED, $metrics, $duration, stoppedBy: $stopped, cancelRowLeft: $left > 0, input: $loaded, output: $output, workspace: $key);
     }
     finally {

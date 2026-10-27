@@ -175,6 +175,19 @@ The legacy UI flow in `dev/e2e/lib.sh` has three steps: `add_Profesor`, `add_Pro
 | `plantilla`, `lugar` | `template`, `room` | required, unique together (legacy primary key) |
 | `prioridad` | `priority` | ≥ 1, default 1 |
 
+### `otro_recurso`, `otro_grupo_de_recursos_para_actividad`, `otro_recurso_para_actividad` → `ancora_other_resource`, `ancora_resource_group`, `ancora_resource_member` (D9d)
+
+| Legacy column | Drupal field | Notes |
+| --- | --- | --- |
+| `otro_recurso.nombre`, `creador` | `label`, `uid` (+ `code`) | a catalogue record of its owner (PAR-003); the engine id is `engineId(id, code)` |
+| `otro_grupo_de_recursos_para_actividad.plantilla` | `template` | required; the group belongs to the template's plan |
+| `prioridad`, `necesarios`, `imprescindibles` | `priority`, `needed`, `essential` | defaults 1, 1, TRUE (the legacy window's values); priority and needed ≥ 1; engine id `engineId(id, "g" . id)` |
+| `otro_recurso_para_actividad.grupo_de_recursos`, `otro_recurso` | `resource_group`, `other_resource` | unique together (legacy primary key) |
+| `prioridad` | `priority` | the group's highest + 1 when added (legacy window) |
+| `otros_recursos_usados` | `ancora_placement.other_resources` | the resources the engine gave a placement, in row order (workspace mode, `ancora_scheduling_update_11003()`) |
+
+Edited only with the template's resource editor (`/ancora/planning/template-resources?template=<id>`, `SharedResources`). Records are exported and synced in entity id order, the legacy entry order that `generar()` reads (case 142). Manual other-resource restrictions are not provided (Q-32).
+
 ## Not modelled yet (intentionally)
 
 | Legacy area | Tables | Why not now |
@@ -182,7 +195,7 @@ The legacy UI flow in `dev/e2e/lib.sh` has three steps: `add_Profesor`, `add_Pro
 | Time restrictions (nominal, real, conditional, inherited) | `restriccion_*`, `restriccion_real_*`, `restriccion_condicional`, `herencia_de_restricciones`, `excepcion_de_hrt` | Not needed for a basic run: the fixture has none. They are the biggest remaining domain area and need their own design (#70, next slice). |
 | Placement preference matrix | `zpriori` | Optional. The engine defaults every cell to 1. |
 | Breaks between slots | `receso` | Only affects the displayed hours (`dame_hora_inicial_turno`), not placement. |
-| Other resources and resource groups | `otro_recurso`, `otro_grupo_de_recursos_para_actividad`, `otro_recurso_para_actividad`, `uso_de_otros_recursos`, `costo_de_traslado` | Not used by the fixture or R1. |
+| Other-resource views | `uso_de_otros_recursos` | Unused by `generar()`. Resources, groups and travel costs are modelled since D9c/D9d. |
 | Fixed and forbidden rooms per group | `lugar_fijo`, `acceso_prohibido` | Not used by the fixture. They will be references on the group. |
 | Breakdown rules | `desglose.min_dias`, `max_dias`, `respetar_orden`, `mismo_dia` | Exported from `ancora_breakdown` (export `breakdowns`); defaults for a pair without one. |
 | Placements and generation state | `actividad`, `generador.*` | Engine output and engine state (#71). |
@@ -230,12 +243,12 @@ Drupal:
 
 `install-disposable.sh` loads the fixture into the freshly installed site, exports it and checks that it has 8 demands (4 templates × 2 groups) and 8 teacher–group links. The HTTP smoke test then reads the fixture through the overview, the teacher list and the Views page.
 
-## Export contract (`AcademicExport`, schema `ancora_academic.export.v6`)
+## Export contract (`AcademicExport`, schema `ancora_academic.export.v7`)
 
 `AcademicExport::export(Plan $plan, ?Period $period = NULL): array` returns plain PHP data (scalars and lists, JSON-serializable): the plan's own records and **all the catalogue records of the plan's owner** (they serve every plan of that owner). `AcademicExport::catalogue(int $owner)` returns the catalogues of a user who may have no plan (`plan` NULL, no plan records). Both read with access checks disabled; the caller decides who may export. The command `drush ancora-academic:export <plan code> [--owner=<account>] [--period=<code>] [--legacy]` prints the export, or its legacy rows, as JSON.
 
 ```text
-schema               "ancora_academic.export.v6"
+schema               "ancora_academic.export.v7"
 owner                user ID of the plan's creator
 plan                 {key, id, code, label, starts_on (Y-m-d|null), duration_days, active}
 periods[]            {key, id, code, label, days, slots_per_day, start_hour, slot_duration, plan_days[]}
@@ -249,8 +262,11 @@ cohorts[]            {key, id, code, label, specialty, level, enrollment}       
 subjects[]           {key, id, code, label, specialty, level}                    (owner's)
 rooms[]              {key, id, code, label, capacity}                            (owner's)
 teachers[]           {key, id, code, label}                                      (owner's)
+other_resources[]    {key, id, code, label}                                      (owner's)
 teacher_assignments[] {key, id, template, teacher, teacher_code, priority, groups[]}
 room_assignments[]   {key, id, template, room, room_code, priority}
+resource_groups[]    {key, id, template, priority, needed, essential,
+                      members[] {key, id, resource, priority}}    (entity id order)
 breakdowns[]         {key, id, subject, subject_code, period, period_code,
                       min_dias, max_dias, respetar_orden, mismo_dia}
 time_restrictions[]  {key, id, period, kind, target, day, slot}
@@ -262,7 +278,7 @@ travel_costs[]       {key, id, origin, destination, cost}          (owner's)
 issues[]             {type, key, message}
 ```
 
-v2 (#70) adds `owner` and the entity `id` of every record, and the catalogue lists are the owner's instead of the plan's. v6 (#70, D9c) adds `group_rooms` (to `lugar_fijo` / `acceso_prohibido`) and the owner's `travel_costs` (to `costo_de_traslado`). v5 (#70, D9b) adds `breaks` (to `receso`), `priority_zones` (to `zpriori`; only zones other than 1 exist) and `load_limits` (to `higiene_para_profesor` / `_brigada`). v4 (#70, D9a) adds `time_restrictions`: one record per restricted cell of the exported periods; `kind` is period, activity_type, subject, cohort, teacher or room, `target` the key of the object (NULL for the period). `LegacyRows` writes them to `restriccion_de_{periodo,clasif_act,asignatura,brigada,profesor,lugar}` with `valor` 1 and, on the last three, `por_actividad` false. v3 (#70, D4) adds `breakdowns`: the stored breakdowns of the exported periods, sorted by subject and period code. `LegacyRows` gives every subject × period its options, or the legacy defaults when it has no breakdown.
+v2 (#70) adds `owner` and the entity `id` of every record, and the catalogue lists are the owner's instead of the plan's. v7 (#70, D9d) adds the owner's `other_resources` (to `otro_recurso`) and the `resource_groups` of the exported templates with their members (to `otro_grupo_de_recursos_para_actividad` / `otro_recurso_para_actividad`), in entity id order. v6 (#70, D9c) adds `group_rooms` (to `lugar_fijo` / `acceso_prohibido`) and the owner's `travel_costs` (to `costo_de_traslado`). v5 (#70, D9b) adds `breaks` (to `receso`), `priority_zones` (to `zpriori`; only zones other than 1 exist) and `load_limits` (to `higiene_para_profesor` / `_brigada`). v4 (#70, D9a) adds `time_restrictions`: one record per restricted cell of the exported periods; `kind` is period, activity_type, subject, cohort, teacher or room, `target` the key of the object (NULL for the period). `LegacyRows` writes them to `restriccion_de_{periodo,clasif_act,asignatura,brigada,profesor,lugar}` with `valor` 1 and, on the last three, `por_actividad` false. v3 (#70, D4) adds `breakdowns`: the stored breakdowns of the exported periods, sorted by subject and period code. `LegacyRows` gives every subject × period its options, or the legacy defaults when it has no breakdown.
 
 Rules:
 
@@ -345,6 +361,8 @@ The module adds no file to the frozen LBR baseline, and it modifies no legacy fi
 1. it adds the owner field to the eight owned types; existing records get the site's first account (uid 1), because the earlier schema recorded no creator;
 2. it merges catalogue records that were copies in several plans (same type, owner and code, same values) into the oldest one and moves every reference to it; copies with the same code and different values stop the update with a message, and nothing changes;
 3. it removes the plan field of the seven catalogue types.
+
+`ancora_academic_update_11008()` (D9d) installs the empty `ancora_other_resource`, `ancora_resource_group` and `ancora_resource_member` entity types; `ancora_scheduling_update_11003()` (after it, `hook_update_dependencies()`) adds the field `other_resources` of placements (table `ancora_placement__other_resources`), empty for the existing placements. The planner request form also offers `forma` (default 1) and `compactar` (1..10, default 1), the legacy window's defaults (D11); before, every planner request ran with `compactar` 0.
 
 `ancora_academic_update_11007()` (D9c) installs the empty `ancora_group_room` and `ancora_travel_cost` entity types. The planner request form now sends `buscalugar` TRUE by default (the nearest room, the legacy window's default, A-2); a request can choose the room the group uses most.
 

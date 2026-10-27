@@ -35,7 +35,7 @@ final class SchedulingController extends ControllerBase {
   /**
    * The filters of the timetable: query key => reader list.
    */
-  private const FILTERS = ['group' => 'groups', 'teacher' => 'teachers', 'room' => 'rooms'];
+  private const FILTERS = ['group' => 'groups', 'teacher' => 'teachers', 'room' => 'rooms', 'resource' => 'resources'];
 
   public function __construct(
     #[Autowire(service: 'ancora_engine.job_repository')]
@@ -162,6 +162,7 @@ final class SchedulingController extends ControllerBase {
         'url.query_args:group',
         'url.query_args:teacher',
         'url.query_args:room',
+        'url.query_args:resource',
       ])
       ->addCacheTags([JobRepository::CACHE_TAG])
       ->addCacheableDependency($plan);
@@ -194,6 +195,7 @@ final class SchedulingController extends ControllerBase {
       'group' => $this->t('Group'),
       'teacher' => $this->t('Teacher'),
       'room' => $this->t('Room'),
+      'resource' => $this->t('Other resource'),
     ];
     $filtered = FALSE;
     foreach (self::FILTERS as $key => $list) {
@@ -215,7 +217,8 @@ final class SchedulingController extends ControllerBase {
       $placements = array_filter($scope['placements'], static function (array $p) use ($filters): bool {
         return ($filters['group']['value'] === '' || $p['group_code'] === $filters['group']['value'])
           && ($filters['teacher']['value'] === '' || $p['teacher_code'] === $filters['teacher']['value'])
-          && ($filters['room']['value'] === '' || $p['room_code'] === $filters['room']['value']);
+          && ($filters['room']['value'] === '' || $p['room_code'] === $filters['room']['value'])
+          && ($filters['resource']['value'] === '' || in_array($filters['resource']['value'], $p['resource_codes'], TRUE));
       });
       $scopes[] = [
         'title' => $this->t('@specialty, @level', ['@specialty' => $scope['specialty'], '@level' => $scope['level']]),

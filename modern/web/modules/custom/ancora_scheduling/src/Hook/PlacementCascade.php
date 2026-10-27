@@ -17,6 +17,10 @@ use Drupal\Core\Hook\Attribute\Hook;
  * not block a delete (they are not academic records for ReferenceGuard);
  * the records the academic delete guard already protects still need their
  * dependents removed first (D5).
+ *
+ * An other resource is different: legacy otros_recursos_usados references
+ * it ON DELETE CASCADE, so deleting it removes it from the placements that
+ * used it, and the placements stay (D9d).
  */
 final class PlacementCascade {
 
@@ -41,6 +45,10 @@ final class PlacementCascade {
    */
   #[Hook('entity_predelete')]
   public function entityPredelete(EntityInterface $entity): void {
+    if ($entity->getEntityTypeId() === 'ancora_other_resource') {
+      $this->removeResource((int) $entity->id());
+      return;
+    }
     $field = self::FIELDS[$entity->getEntityTypeId()] ?? NULL;
     if ($field === NULL) {
       return;
@@ -49,6 +57,21 @@ final class PlacementCascade {
     $ids = $storage->getQuery()->accessCheck(FALSE)->condition($field, $entity->id())->execute();
     if ($ids !== []) {
       $storage->delete($storage->loadMultiple($ids));
+    }
+  }
+
+  /**
+   * Removes an other resource from the placements that use it.
+   */
+  private function removeResource(int $resource): void {
+    $storage = $this->entityTypeManager->getStorage('ancora_placement');
+    $ids = $storage->getQuery()->accessCheck(FALSE)->condition('other_resources', $resource)->execute();
+    foreach ($storage->loadMultiple($ids) as $placement) {
+      $kept = array_values(array_filter(
+        $placement->get('other_resources')->getValue(),
+        static fn (array $item): bool => (int) $item['target_id'] !== $resource,
+      ));
+      $placement->set('other_resources', $kept)->save();
     }
   }
 
