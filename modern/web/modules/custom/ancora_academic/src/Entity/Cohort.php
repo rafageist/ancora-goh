@@ -98,8 +98,10 @@ final class Cohort extends OwnedAcademicEntityBase {
       new TranslatableMarkup('Enrolment'),
       new TranslatableMarkup('Number of students, compared with room capacity.'),
       3,
-      0,
-      NULL,
+      // Any integer, as the legacy column (matricula INTEGER default 0) and
+      // its free-text input store it (#70, D6; case 136).
+      self::INT_MIN,
+      self::INT_MAX,
       0,
     );
 

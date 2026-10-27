@@ -3,6 +3,7 @@ services:
     autowire: true
   Drupal\ancora_academic\ReferenceGuard: ~
   Drupal\ancora_academic\BreakdownMaintainer: ~
+  Drupal\ancora_academic\GroupMembership: ~
   Drupal\ancora_academic\Export\AcademicExport: ~
   Drupal\ancora_academic\Export\LegacyRows: ~
   Drupal\ancora_academic\Fixture\SyntheticFixture: ~

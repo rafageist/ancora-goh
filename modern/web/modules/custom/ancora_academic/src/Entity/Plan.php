@@ -98,8 +98,10 @@ final class Plan extends OwnedAcademicEntityBase {
       new TranslatableMarkup('Length in days'),
       new TranslatableMarkup('Calendar days the plan covers.'),
       1,
+      // No upper bound (#70, D6). The lower bound stays until the plan dates
+      // are entered as in legacy (PAR-010, the time-input slice).
       1,
-      3660,
+      self::INT_MAX,
       30,
     );
 
