@@ -7,6 +7,7 @@ namespace Drupal\ancora_academic\Export;
 use Drupal\ancora_academic\AcademicEntityInterface;
 use Drupal\ancora_academic\Entity\ActivityTemplate;
 use Drupal\ancora_academic\Entity\ActivityType;
+use Drupal\ancora_academic\Entity\Breakdown;
 use Drupal\ancora_academic\Entity\Cohort;
 use Drupal\ancora_academic\Entity\Period;
 use Drupal\ancora_academic\Entity\Plan;
@@ -40,6 +41,9 @@ use Drupal\Core\Entity\EntityTypeManagerInterface;
  * - Lists are sorted deterministically, so equal data gives equal output.
  * - With a period, "periods" holds only that period, and templates and their
  *   assignments are only those of that period. Everything else is plan-wide.
+ * - "breakdowns" holds the options of the stored subject breakdowns of the
+ *   periods (legacy "desglose", D4). A subject and period without a stored
+ *   breakdown has the legacy defaults (LegacyRows).
  * - "issues" lists data the engine cannot use as is (for example a template
  *   that requires a teacher and has none); the export never fails for them.
  *
@@ -51,7 +55,7 @@ final class AcademicExport {
   /**
    * The version of the export contract.
    */
-  public const SCHEMA = 'ancora_academic.export.v2';
+  public const SCHEMA = 'ancora_academic.export.v3';
 
   /**
    * The catalogue lists: export key => entity type ID.
@@ -159,6 +163,7 @@ final class AcademicExport {
       'priority' => $a->getPriority(),
     ], $room_assignments), $template_order, 'room_code');
 
+    $export['breakdowns'] = $this->breakdowns($period_ids);
     $export['issues'] = $this->issues($export);
     return $export;
   }
@@ -184,6 +189,7 @@ final class AcademicExport {
     ] + $this->catalogueLists($owner) + [
       'teacher_assignments' => [],
       'room_assignments' => [],
+      'breakdowns' => [],
       'issues' => [],
     ];
   }
@@ -218,6 +224,38 @@ final class AcademicExport {
       ], $load('ancora_room'))),
       'teachers' => $this->sortByCode(array_map($this->basic(...), $load('ancora_teacher'))),
     ];
+  }
+
+  /**
+   * The stored breakdowns of some periods, by subject and period code.
+   *
+   * @param list<int> $period_ids
+   *   The periods.
+   *
+   * @return list<array<string, mixed>>
+   *   key, id, subject, period (keys) and the four legacy options.
+   */
+  private function breakdowns(array $period_ids): array {
+    if ($period_ids === []) {
+      return [];
+    }
+    $storage = $this->entityTypeManager->getStorage('ancora_breakdown');
+    $ids = $storage->getQuery()->accessCheck(FALSE)->condition('period', $period_ids, 'IN')->sort('id')->execute();
+    $records = [];
+    foreach ($storage->loadMultiple($ids) as $breakdown) {
+      assert($breakdown instanceof Breakdown);
+      $records[] = [
+        'key' => (string) $breakdown->uuid(),
+        'id' => (int) $breakdown->id(),
+        'subject' => $this->key($breakdown, 'subject'),
+        'subject_code' => (string) $breakdown->getSubject()?->getCode(),
+        'period' => $this->key($breakdown, 'period'),
+        'period_code' => (string) $breakdown->getPeriod()?->getCode(),
+      ] + $breakdown->legacyOptions();
+    }
+    $order = static fn (array $b): array => [$b['subject_code'], $b['period_code'], $b['id']];
+    usort($records, static fn (array $a, array $b): int => $order($a) <=> $order($b));
+    return $records;
   }
 
   /**

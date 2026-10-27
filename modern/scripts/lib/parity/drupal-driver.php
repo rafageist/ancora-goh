@@ -28,6 +28,7 @@ declare(strict_types=1);
 use Ancora\Parity\Scenario;
 use Drupal\ancora_academic\AcademicAccessControlHandler;
 use Drupal\ancora_academic\AcademicEntityInterface;
+use Drupal\ancora_academic\BreakdownMaintainer;
 use Drupal\ancora_engine\Job\JobOptions;
 use Drupal\ancora_scheduling\ScopeMapper;
 use Drupal\user\Entity\Role;
@@ -94,6 +95,34 @@ foreach ($ancora_scenario->records as $key => $r) {
         continue 3;
       }
     }
+  }
+  if ($r['type'] === 'breakdown') {
+    // The breakdown exists (BreakdownMaintainer, as the legacy triggers);
+    // the user edits its options, as in the breakdown form.
+    $switcher->switchTo($ancora_accounts[$r['as']]);
+    try {
+      $breakdown = \Drupal::service(BreakdownMaintainer::class)->find($ancora_entities[$r['subject']]->id(), $ancora_entities[$r['period']]->id());
+      if ($breakdown === NULL || !$breakdown->access('update')) {
+        $ancora_fail("edit breakdown $key: " . ($breakdown === NULL ? 'no breakdown for its subject and period' : 'update access denied'));
+        continue;
+      }
+      $breakdown->set('min_days', $r['min_days'])
+        ->set('max_days', $r['max_days'])
+        ->set('respect_order', $r['respect_order'])
+        ->set('same_day', $r['same_day']);
+      $violations = $breakdown->validate();
+      if ($violations->count() > 0) {
+        $ancora_fail("edit breakdown $key: " . $violations->get(0)->getPropertyPath() . ': ' . strip_tags((string) $violations->get(0)->getMessage()));
+        continue;
+      }
+      $breakdown->save();
+      $ancora_entities[$key] = $breakdown;
+      echo "ok    edit breakdown $key\n";
+    }
+    finally {
+      $switcher->switchBack();
+    }
+    continue;
   }
   $values = ['label' => $r['label'] ?? NULL, 'code' => $ancora_scenario->code($key)];
   $plan = $ancora_scenario->planOf($key);

@@ -30,7 +30,7 @@ The legacy schema is in Spanish. The new code is in English. Each legacy term ma
 | grupo | student group | `ancora_student_group` |
 | brigada de grupo | cohorts of a group | `ancora_student_group.cohorts` |
 | asignatura | subject | `ancora_subject` |
-| desglose | subject breakdown (subject × period) | implied by the templates; see below |
+| desglose | subject breakdown (subject × period) | `ancora_breakdown` (D4), kept by the module; see below |
 | plantilla de actividad | activity template | `ancora_activity_template` |
 | orden (de plantilla) | sequence (number) | `ancora_activity_template.sequence` |
 | lugar | room | `ancora_room` |
@@ -54,7 +54,7 @@ The legacy schema is in Spanish. The new code is in English. Each legacy term ma
   - Every record that has a name has a short code (`[A-Za-z0-9._-]+`, at most 32 characters), for example `G1` or `PER`.
   - The export identifies records by UUID (`key`), which survives renames.
   - The legacy row builder derives legacy IDs from the codes.
-- **Breakdown (desglose) is implied.** Legacy triggers create one `desglose` row for every subject and period, with defaults (`min_dias` 1, `max_dias` 5, `respetar_orden` true, `mismo_dia` false). The fixture never changes them. Here each template references its subject and period directly. The legacy row builder emits one desglose row per subject and period with those defaults. Editable breakdown rules are an open question (2).
+- **Breakdown (desglose) is an entity kept by the module** (#70, D4). Legacy triggers create one `desglose` row for every subject and every period of the same creator, with defaults (`min_dias` 1, `max_dias` 5, `respetar_orden` true, `mismo_dia` false), and the foreign keys delete it with its subject or period. `ancora_breakdown` does the same (`BreakdownMaintainer`, `Hook/BreakdownHooks.php`): it is created when a subject or period is created (and when an owner changes), deleted with its subject, period or plan, never created or deleted by a user, and it does not block deletes. The owner edits its four options (`min_days`, `max_days`, `respect_order`, `same_day`) at `/admin/ancora/breakdowns/{id}/edit`, as in the legacy form; any integer is accepted, as the legacy handler stores it. Each template still references its subject and period directly.
 - **Template length comes from the activity type.** The legacy template has no duration of its own: an activity lasts `clasificacion_de_actividad.duracion` slots. This is `ancora_activity_type.duration_slots` (≥ 1).
 - **Assignments are entities, not multi-value fields.** A teacher assignment carries a priority and a set of groups. A room assignment carries a priority. Both need their own validation, listing and lifecycle.
 - **No cascade.** A record that other records reference cannot be deleted, through any API.
@@ -144,7 +144,7 @@ Columns not listed are not modelled. The "Not modelled" section explains why.
 | `plantilla.orden` | `sequence` | 1 to 99, required. Unique per subject and period (`AncoraUniqueInPlan` on subject, period and sequence). Legacy: `UNIQUE (desglose, orden)`, and #23 makes it required by the generator. |
 | `plantilla.clasificacion` | `activity_type` | required |
 | `exige_profesor`, `exige_lugar` | `requires_teacher`, `requires_room` | default true |
-| `desglose.min_dias`, `max_dias`, `respetar_orden`, `mismo_dia` | — | legacy defaults in the export; open question 2 |
+| `desglose.min_dias`, `max_dias`, `respetar_orden`, `mismo_dia` | `ancora_breakdown.min_days`, `max_days`, `respect_order`, `same_day` | defaults 1, 5, TRUE, FALSE; integers in the PostgreSQL range, no other check (PAR-032) |
 | `plantilla.actualizacion_interna` | — | an internal flag of the legacy triggers |
 
 The template has no name or code of its own. Its label is "Subject #sequence (period code)". Its legacy ID is the subject code plus the sequence (`A1`), as in the fixture. When an export holds more than one period, `@` and the period code are appended.
@@ -184,7 +184,7 @@ The legacy UI flow in `dev/e2e/lib.sh` has three steps: `add_Profesor`, `add_Pro
 | Breaks between slots | `receso` | Only affects the displayed hours (`dame_hora_inicial_turno`), not placement. |
 | Other resources and resource groups | `otro_recurso`, `otro_grupo_de_recursos_para_actividad`, `otro_recurso_para_actividad`, `uso_de_otros_recursos`, `costo_de_traslado` | Not used by the fixture or R1. |
 | Fixed and forbidden rooms per group | `lugar_fijo`, `acceso_prohibido` | Not used by the fixture. They will be references on the group. |
-| Breakdown rules | `desglose.min_dias`, `max_dias`, `respetar_orden`, `mismo_dia` | Legacy defaults are exported (open question 2). |
+| Breakdown rules | `desglose.min_dias`, `max_dias`, `respetar_orden`, `mismo_dia` | Exported from `ancora_breakdown` (export `breakdowns`); defaults for a pair without one. |
 | Placements and generation state | `actividad`, `generador.*` | Engine output and engine state (#71). |
 | Ownership and users | `creador`, `seguridad.*` | Drupal users, roles and permissions replace them. The tenant boundary is the site (#72). |
 
@@ -230,12 +230,12 @@ Drupal:
 
 `install-disposable.sh` loads the fixture into the freshly installed site, exports it and checks that it has 8 demands (4 templates × 2 groups) and 8 teacher–group links. The HTTP smoke test then reads the fixture through the overview, the teacher list and the Views page.
 
-## Export contract (`AcademicExport`, schema `ancora_academic.export.v2`)
+## Export contract (`AcademicExport`, schema `ancora_academic.export.v3`)
 
 `AcademicExport::export(Plan $plan, ?Period $period = NULL): array` returns plain PHP data (scalars and lists, JSON-serializable): the plan's own records and **all the catalogue records of the plan's owner** (they serve every plan of that owner). `AcademicExport::catalogue(int $owner)` returns the catalogues of a user who may have no plan (`plan` NULL, no plan records). Both read with access checks disabled; the caller decides who may export. The command `drush ancora-academic:export <plan code> [--owner=<account>] [--period=<code>] [--legacy]` prints the export, or its legacy rows, as JSON.
 
 ```text
-schema               "ancora_academic.export.v2"
+schema               "ancora_academic.export.v3"
 owner                user ID of the plan's creator
 plan                 {key, id, code, label, starts_on (Y-m-d|null), duration_days, active}
 periods[]            {key, id, code, label, days, slots_per_day, start_hour, slot_duration, plan_days[]}
@@ -251,10 +251,12 @@ rooms[]              {key, id, code, label, capacity}                           
 teachers[]           {key, id, code, label}                                      (owner's)
 teacher_assignments[] {key, id, template, teacher, teacher_code, priority, groups[]}
 room_assignments[]   {key, id, template, room, room_code, priority}
+breakdowns[]         {key, id, subject, subject_code, period, period_code,
+                      min_dias, max_dias, respetar_orden, mismo_dia}
 issues[]             {type, key, message}
 ```
 
-v2 (#70) adds `owner` and the entity `id` of every record, and the catalogue lists are the owner's instead of the plan's.
+v2 (#70) adds `owner` and the entity `id` of every record, and the catalogue lists are the owner's instead of the plan's. v3 (#70, D4) adds `breakdowns`: the stored breakdowns of the exported periods, sorted by subject and period code. `LegacyRows` gives every subject × period its options, or the legacy defaults when it has no breakdown.
 
 Rules:
 
@@ -338,6 +340,8 @@ The module adds no file to the frozen LBR baseline, and it modifies no legacy fi
 2. it merges catalogue records that were copies in several plans (same type, owner and code, same values) into the oldest one and moves every reference to it; copies with the same code and different values stop the update with a message, and nothing changes;
 3. it removes the plan field of the seven catalogue types.
 
+`ancora_academic_update_11003()` (D4) installs the `ancora_breakdown` entity type and creates the breakdown of every subject and period of the same owner with the legacy defaults, the values the engine received before; timetables do not change until an option is edited. It can run again safely (it creates only missing ones).
+
 `ancora_academic_update_11002()` re-saves the activities view, so its results are cached per user. Then give the records to their planner, for example `drush ancora-academic:reassign-owner admin planner`. The first engine run afterwards replaces the engine rows of the earlier `p<plan>:` scheme (and, through the legacy cascades, their placements); request each timetable again. Re-provisioning the site is the alternative.
 
 ## Open questions
@@ -345,7 +349,7 @@ The module adds no file to the frozen LBR baseline, and it modifies no legacy fi
 The earlier open questions are withdrawn (#70, maintainer decision): the legacy implementation answers them.
 
 1. **Shared catalogues across plans.** *Answered by the legacy schema:* catalogues belong to their creator and serve all the creator's plans (PAR-003). Implemented in #70 (D1).
-2. **Breakdown rules.** Should `min_dias`, `max_dias`, `respetar_orden` and `mismo_dia` be edited per subject and period? The legacy `max_dias` default (5) ignores the period's `cant_dias`.
+2. **Breakdown rules.** Answered from the legacy code (#70, D4): editable per subject and period, as the legacy form does; see PAR-032..034.
 3. **Restrictions.** How should the time restrictions be modelled: entities per target type, or one entity with a target reference? Should the legacy "real restriction" materialization stay in the engine?
 4. **Cohort membership.** Legacy `mueve_o_crea_brigada_de_grupo` moves a cohort between groups. Should a cohort be in at most one group per activity type? This is not enforced yet.
 5. **Capacity.** Rooms smaller than the enrolment of a group's cohorts are filtered by the engine (`quita_segun_capacidad`). Should the UI warn about this as an export issue?

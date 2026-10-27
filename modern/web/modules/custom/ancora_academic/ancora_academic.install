@@ -8,6 +8,7 @@
 declare(strict_types=1);
 
 use Drupal\ancora_academic\AcademicEntityTypes;
+use Drupal\ancora_academic\BreakdownMaintainer;
 use Drupal\Core\Utility\UpdateException;
 
 /**
@@ -142,4 +143,26 @@ function ancora_academic_update_11002(): void {
   if ($view !== NULL) {
     $view->save();
   }
+}
+
+/**
+ * Adds the subject breakdowns, with the legacy defaults for existing data.
+ *
+ * Issue #70, deviation D4 (legacy-parity-inventory.md PAR-031, PAR-032):
+ * the legacy "desglose" row of each subject and period carries four
+ * editable options. This update installs the breakdown entity type and
+ * creates one breakdown per subject and period of the same owner, with the
+ * legacy column defaults (min_dias 1, max_dias 5, respetar_orden TRUE,
+ * mismo_dia FALSE), which are the values the engine sync used so far: the
+ * timetables do not change until a planner edits an option.
+ */
+function ancora_academic_update_11003(): string {
+  $manager = \Drupal::entityDefinitionUpdateManager();
+  $entity_type_manager = \Drupal::entityTypeManager();
+  $entity_type_manager->clearCachedDefinitions();
+  if ($manager->getEntityType('ancora_breakdown') === NULL) {
+    $manager->installEntityType($entity_type_manager->getDefinition('ancora_breakdown'));
+  }
+  $created = \Drupal::service(BreakdownMaintainer::class)->ensureAll();
+  return (string) t('@count subject breakdowns were created with the legacy defaults.', ['@count' => $created]);
 }

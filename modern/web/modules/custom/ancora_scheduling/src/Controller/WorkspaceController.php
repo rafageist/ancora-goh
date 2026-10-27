@@ -38,6 +38,7 @@ final class WorkspaceController extends ControllerBase {
   private const PLAN_RECORDS = [
     'ancora_period',
     'ancora_student_group',
+    'ancora_breakdown',
     'ancora_activity_template',
     'ancora_teacher_assignment',
     'ancora_room_assignment',
@@ -172,6 +173,11 @@ final class WorkspaceController extends ControllerBase {
       if ($period_edit->access()) {
         $links['edit'] = ['title' => $this->t('Edit'), 'url' => $period_edit];
       }
+      // The breakdown options of the period's subjects (legacy desglose).
+      $links['breakdowns'] = [
+        'title' => $this->t('Subject breakdowns'),
+        'url' => Url::fromRoute('entity.ancora_breakdown.collection', [], ['query' => ['period' => $period->id()]]),
+      ];
       $period_rows[] = [
         $period->label(),
         $period->getCode(),
@@ -370,7 +376,10 @@ final class WorkspaceController extends ControllerBase {
     $entity_type = $this->entityTypeManager()->getDefinition($entity_type_id);
     $query = $plan === NULL ? [] : ['plan' => $plan->id()];
     $add_query = $plan === NULL ? $this->getDestinationArray() : $query + $this->getDestinationArray();
-    $add = $this->addLink($entity_type_id, $this->t('Add @type', ['@type' => $entity_type->getSingularLabel()]), $cache, $add_query);
+    // Types without an add form (subject breakdowns) are kept by the module.
+    $add = $entity_type->hasLinkTemplate('add-form')
+      ? $this->addLink($entity_type_id, $this->t('Add @type', ['@type' => $entity_type->getSingularLabel()]), $cache, $add_query)
+      : NULL;
     if ($add !== NULL) {
       $add['#attributes']['class'] = ['ancora-workspace__add'];
     }

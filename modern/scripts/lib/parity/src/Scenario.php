@@ -51,6 +51,9 @@ final class Scenario {
     ],
     'room' => [],
     'room_assignment' => ['template' => 'activity_template', 'room' => 'room'],
+    // An edit of the breakdown (legacy desglose) that the triggers created
+    // for a subject and period: min_days, max_days, respect_order, same_day.
+    'breakdown' => ['subject' => 'subject', 'period' => 'period'],
   ];
 
   /**
@@ -170,7 +173,7 @@ final class Scenario {
     return match ($record['type']) {
       'plan' => $key,
       'period', 'student_group' => $record['plan'],
-      'activity_template' => $this->planOf($record['period']),
+      'activity_template', 'breakdown' => $this->planOf($record['period']),
       'teacher_assignment', 'room_assignment' => $this->planOf($record['template']),
       default => NULL,
     };
@@ -205,6 +208,7 @@ final class Scenario {
       'activity_template' => [$r['type'], $r['subject'], $r['period'], (string) $r['sequence']],
       'teacher_assignment' => [$r['type'], $r['template'], $r['teacher']],
       'room_assignment' => [$r['type'], $r['template'], $r['room']],
+      'breakdown' => [$r['type'], $r['subject'], $r['period']],
       default => [$r['type'], $r['as'], $r['label']],
     };
   }
