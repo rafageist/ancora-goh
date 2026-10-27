@@ -40,8 +40,10 @@ namespace Drupal\ancora_academic\Export;
  *
  * The legacy schema creates a desglose row for every subject and period by
  * trigger (nuevo_desglose_cuando_nueva_asignatura / _nuevo_periodo). The rows
- * here contain those desglose rows explicitly, with the legacy defaults; a
- * loader that keeps the triggers must reuse the trigger rows instead.
+ * here contain those desglose rows explicitly, with the options of the
+ * stored breakdown (export "breakdowns", D4) or the legacy defaults when the
+ * subject and period have none; a loader that keeps the triggers must reuse
+ * the trigger rows instead (LegacyTableSync updates their options).
  */
 final class LegacyRows {
 
@@ -112,6 +114,10 @@ final class LegacyRows {
     $several_periods = count($export['periods']) > 1;
 
     $rows = array_fill_keys(self::TABLES, []);
+    $options = [];
+    foreach ($export['breakdowns'] as $breakdown) {
+      $options[$breakdown['subject'] . "\x1F" . $breakdown['period']] = array_intersect_key($breakdown, self::BREAKDOWN_DEFAULTS);
+    }
 
     $plan_id = NULL;
     if ($plan !== NULL) {
@@ -194,7 +200,7 @@ final class LegacyRows {
           'id' => $code($subject['key']) . '@' . $code($period['key']),
           'asignatura' => $code($subject['key']),
           'periodo' => $code($period['key']),
-        ] + self::BREAKDOWN_DEFAULTS;
+        ] + ($options[$subject['key'] . "\x1F" . $period['key']] ?? []) + self::BREAKDOWN_DEFAULTS;
       }
     }
 

@@ -110,6 +110,10 @@ final class LegacyDriver {
         }
         continue;
       }
+      if ($step['kind'] === 'breakdown_post') {
+        $this->characterizeBreakdownPost($step);
+        continue;
+      }
       $record = $this->scenario->records[$step['record']];
       [$class, $table, $name] = $classes[$record['type']];
       $id = $this->ids[$step['record']];
@@ -132,6 +136,138 @@ final class LegacyDriver {
         $this->failures++;
       }
     }
+  }
+
+  /**
+   * Posts set_Desglose with raw values and records the stored row.
+   *
+   * The legacy form posts the two day counts as free text and the
+   * checkboxes as 1/0 (forms_desglose.js:10-19); set_Desglose.php calls one
+   * setter per posted field in order, and each setter runs its own UPDATE
+   * (model/data/Desglose.php, PartModel::sqlValue()). The step records the
+   * HTTP status and the row afterwards. "as" may be another user than the
+   * breakdown's owner: the handler updates by id.
+   *
+   * @param array<string, mixed> $step
+   *   The step: record (a breakdown record), as, post (column => raw
+   *   value), legacy_expect, ref.
+   */
+  private function characterizeBreakdownPost(array $step): void {
+    $id = $this->ids[$step['record']];
+    $row = pg_fetch_assoc(pg_query_params($this->db, 'SELECT asignatura, periodo FROM desglose WHERE id = $1', [$id]));
+    $fields = [
+      'app_event_set_Desglose' => 'yes',
+      'field_Desglose_id' => $id,
+      'field_Desglose_asignatura' => $row['asignatura'],
+      'field_Desglose_periodo' => $row['periodo'],
+    ];
+    foreach ($step['post'] as $column => $value) {
+      $fields["field_Desglose_$column"] = (string) $value;
+    }
+    $this->login($step['as']);
+    [$status] = $this->rawPost($step['as'], $this->base . '?execute', $fields);
+    $after = pg_fetch_assoc(pg_query_params($this->db, 'SELECT min_dias, max_dias, respetar_orden, mismo_dia FROM desglose WHERE id = $1', [$id]));
+    $observed = ['http' => $status] + $after;
+    $as_recorded = $observed == $step['legacy_expect'];
+    $what = sprintf('set_Desglose %s as %s %s', $step['record'], $step['as'], json_encode($step['post']));
+    printf("CHAR  %s %s (owner %s): %s, %s\n", $step['ref'] ?? '', $what, $this->scenario->ownerOf($step['record']), json_encode($observed), $as_recorded ? 'as recorded' : 'NOT as recorded');
+    if (!$as_recorded) {
+      $this->failures++;
+    }
+  }
+
+  /**
+   * Opens the edit form of a breakdown as the browser reaches it.
+   *
+   * The subject's breakdown browser (get_browser_DesgloseDetalles,
+   * desglose_detalles.tpl:8) lists one link per period of the plan, which
+   * calls showForEdit(<desglose id>); the form (get_form_edit_desglose,
+   * form_desglose.tpl) carries the id, subject and period as hidden fields
+   * and the current options.
+   *
+   * @return array<string, string>|null
+   *   id, asignatura, periodo, min_dias, max_dias; NULL after a FAIL.
+   */
+  private function breakdownForm(string $key, array $r): ?array {
+    $as = $r['as'];
+    $browser = $this->event($as, 'get_browser_DesgloseDetalles', [
+      'idasig' => $this->ids[$r['subject']],
+      'idplanificacion' => $this->ids[$this->scenario->planOf($key)],
+    ], "breakdown browser of {$r['subject']}", TRUE);
+    preg_match_all("/forms\\.desglose\\.showForEdit\\('([^']+)'\\);[^>]*><img[^>]*>([^<]*)/", $browser, $links, PREG_SET_ORDER);
+    $id = NULL;
+    foreach ($links as [, $desglose, $label]) {
+      if (trim($label) === $this->scenario->records[$r['period']]['label']) {
+        $id = $desglose;
+      }
+    }
+    if ($id === NULL) {
+      $this->fail("$key: the breakdown browser has no link for period {$r['period']}");
+      return NULL;
+    }
+    $html = $this->event($as, 'get_form_edit_desglose', ['id' => $id], "breakdown form of $key", TRUE);
+    $form = ['id' => $id];
+    $inputs = [
+      'asignatura' => 'edtAsigDesglose',
+      'periodo' => 'edtPeriodoDesglose',
+      'min_dias' => 'edtMinDias',
+      'max_dias' => 'edtMaxDias',
+    ];
+    foreach ($inputs as $field => $input) {
+      if (!preg_match('/id="' . $input . '"\s+value\s*=\s*"([^"]*)"/', $html, $m)) {
+        $this->fail("$key: the breakdown form has no $input");
+        return NULL;
+      }
+      $form[$field] = trim($m[1]);
+    }
+    if ($form['asignatura'] !== $this->ids[$r['subject']] || $form['periodo'] !== $this->ids[$r['period']]) {
+      $this->fail("$key: the breakdown form shows another subject or period");
+      return NULL;
+    }
+    return $form;
+  }
+
+  /**
+   * The set_Desglose fields the browser client posts.
+   *
+   * @param array<string, string> $form
+   *   The values of the edit form (breakdownForm()).
+   * @param array<string, string> $options
+   *   The options as posted: min_dias, max_dias, respetar_orden, mismo_dia.
+   *
+   * @return array<string, string>
+   *   The POST fields (ancoragoh.server.desgloses.actualizar).
+   */
+  private function breakdownPost(array $form, array $options): array {
+    $fields = [
+      'field_Desglose_id' => $form['id'],
+      'field_Desglose_asignatura' => $form['asignatura'],
+      'field_Desglose_periodo' => $form['periodo'],
+    ];
+    foreach ($options as $column => $value) {
+      $fields["field_Desglose_$column"] = $value;
+    }
+    return $fields;
+  }
+
+  /**
+   * POSTs form fields with the user's cookie jar; any HTTP status.
+   *
+   * @return array{0: int, 1: string}
+   *   The HTTP status and the body.
+   */
+  private function rawPost(string $as, string $url, array $fields): array {
+    $curl = curl_init($url);
+    curl_setopt_array($curl, [
+      CURLOPT_POST => TRUE,
+      CURLOPT_POSTFIELDS => http_build_query(array_map('strval', $fields)),
+      CURLOPT_RETURNTRANSFER => TRUE,
+      CURLOPT_COOKIEFILE => $this->jars[$as],
+      CURLOPT_COOKIEJAR => $this->jars[$as],
+      CURLOPT_TIMEOUT => 30,
+    ]);
+    $body = curl_exec($curl);
+    return [(int) curl_getinfo($curl, CURLINFO_RESPONSE_CODE), is_string($body) ? $body : ''];
   }
 
   /**
@@ -321,6 +457,23 @@ final class LegacyDriver {
           'field_Lugar_nombre' => $r['label'],
           'field_Lugar_capacidad' => $r['capacity'],
         ]);
+        break;
+
+      case 'breakdown':
+        // The breakdown row was created by the legacy triggers; the user
+        // opens it from the subject's breakdown browser and saves the form
+        // (forms_desglose.js modificar(), ancoragoh_server_desgloses.js).
+        $form = $this->breakdownForm($key, $r);
+        if ($form === NULL) {
+          return;
+        }
+        $this->event($as, 'set_Desglose', $this->breakdownPost($form, [
+          'min_dias' => (string) $r['min_days'],
+          'max_dias' => (string) $r['max_days'],
+          'respetar_orden' => $r['respect_order'] ? '1' : '0',
+          'mismo_dia' => $r['same_day'] ? '1' : '0',
+        ]), "set_Desglose $key");
+        $this->ids[$key] = $form['id'];
         break;
 
       case 'room_assignment':

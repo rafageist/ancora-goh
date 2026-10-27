@@ -32,7 +32,7 @@ final class AcademicMenuLinks extends DeriverBase implements ContainerDeriverInt
   public function getDerivativeDefinitions($base_plugin_definition): array {
     $descriptions = AcademicEntityTypes::descriptions();
     $weight = 0;
-    foreach (AcademicEntityTypes::ids() as $entity_type_id) {
+    foreach (AcademicEntityTypes::all() as $entity_type_id) {
       $entity_type = $this->entityTypeManager->getDefinition($entity_type_id);
       $this->derivatives[$entity_type_id] = [
         'title' => $entity_type->getCollectionLabel(),

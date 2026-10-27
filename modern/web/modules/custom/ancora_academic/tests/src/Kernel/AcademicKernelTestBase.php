@@ -44,7 +44,7 @@ abstract class AcademicKernelTestBase extends AncoraKernelTestBase {
   protected function setUp(): void {
     parent::setUp();
     $this->installEntitySchema('user');
-    foreach (AcademicEntityTypes::ids() as $entity_type_id) {
+    foreach (AcademicEntityTypes::all() as $entity_type_id) {
       $this->installEntitySchema($entity_type_id);
     }
     $this->installConfig(['ancora_academic']);
