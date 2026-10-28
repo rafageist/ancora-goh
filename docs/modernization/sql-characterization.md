@@ -79,6 +79,18 @@ After the #70 D9a slice (61 cases): **50 PASS, 11 XFAIL, 0 FAIL / XPASS / XWRONG
 
 After the #70 D9b slice (62 cases): **51 PASS, 11 XFAIL, 0 FAIL / XPASS / XWRONG**. Case 140 records that a break changes only the slot hours, that priority zones change the cells only with `parche1`, the effect of teacher and brigade daily load limits, and their keys. Every earlier result is unchanged.
 
+After the #123 characterization of placement moves (72 cases): **61 PASS, 11 XFAIL, 0 FAIL / XPASS / XWRONG**. Every earlier result is unchanged.
+- Case 148 records a move by UPDATE of `dia`/`turno`: no rule fires, the occupancy stays at the old cell, and nothing is validated.
+- Case 149 records a move by DELETE + INSERT:
+  - the rules rebuild teacher, room and brigade occupancy, with real-date rows;
+  - the other resources must be inserted again;
+  - the unique keys refuse collisions and manual restrictions, and the move rolls back as a whole;
+  - period restrictions, duration overflow and capacity are trusted;
+  - continuation keeps the moved row.
+- Case 150 compares a destination check built from the `valor_restriccion_*` functions with what the database accepts:
+  - `posible_inicio()` is not usable as a move check (6.2);
+  - a teacher shared with another plan's period is invisible to both.
+
 After #119, the timetable explorer (69 cases): **58 PASS, 11 XFAIL, 0 FAIL / XPASS / XWRONG**. Case 147 runs the explorer's activity queries (`get_minibrowser_horarios.php`) on two plans and two users. Every earlier result is unchanged.
 
 After the #70 time-input slice (68 cases): **57 PASS, 11 XFAIL, 0 FAIL / XPASS / XWRONG**. Case 146 records the period hours as the legacy UI stores them (Q-20) and that they never change a placement. Every earlier result is unchanged.
