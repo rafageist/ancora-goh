@@ -109,4 +109,30 @@ final class AcademicAccessTest extends AcademicKernelTestBase {
     $this->assertTrue($plan->get('uid')->access('edit', $administrator));
   }
 
+  /**
+   * An edit never transfers the owner (PAR-004, quirk Q-11).
+   *
+   * Legacy set handlers rewrite creador to the editing user. For the owner's
+   * own edit that is the same value; it only transfers a record on a forged
+   * edit of another user's record (Q-12), which is not reproduced: another
+   * editor may not update the record at all.
+   */
+  public function testEditNeverTransfersOwner(): void {
+    $this->loadFixture();
+    $other = $this->createUser([AcademicAccessControlHandler::VIEW, AcademicAccessControlHandler::EDIT]);
+    $storage = $this->container->get('entity_type.manager')->getStorage('ancora_teacher');
+    $teacher = $storage->load(array_key_first($storage->getQuery()->accessCheck(FALSE)->execute()));
+    $this->assertSame((int) $this->owner->id(), $teacher->getCreatorId());
+
+    $this->assertFalse($teacher->access('update', $other));
+    $this->assertFalse($teacher->access('delete', $other));
+    $this->assertFalse($teacher->get('uid')->access('edit', $other));
+
+    $this->setCurrentUser($this->owner);
+    $teacher->set('label', 'Renamed by its owner')->save();
+    $teacher = $storage->loadUnchanged($teacher->id());
+    $this->assertSame('Renamed by its owner', $teacher->label());
+    $this->assertSame((int) $this->owner->id(), $teacher->getCreatorId());
+  }
+
 }
