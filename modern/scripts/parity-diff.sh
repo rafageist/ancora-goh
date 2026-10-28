@@ -258,10 +258,17 @@ EOF
   # ---------------------------------------------------------------- characterization (legacy only)
   if [ "$(jq '.characterize // [] | length' "$file")" -gt 0 ]; then
     echo "# legacy characterization (after the comparison: it changes data)"
+    # A scenario may turn the legacy public viewer's anonymous switch on for
+    # its characterization (#121); the disposable copy of the application
+    # is switched back afterwards.
+    local anon_switch
+    anon_switch=$(jq -r '.legacy_switches.public_viewer_anonymous // false' "$file")
+    [ "$anon_switch" = true ] && sed -i 's/^public_viewer_anonymous = false$/public_viewer_anonymous = true/' "$app/bin/security.conf"
     legacy_start "$out"
     php "$lib/legacy-driver.php" --characterize "$file" "$base" "$db" "$out/credentials.json" "$out" >"$out/legacy-characterize.log" 2>&1 \
       || { echo "FAIL  legacy characterization"; rc=1; }
     legacy_stop
+    [ "$anon_switch" = true ] && sed -i 's/^public_viewer_anonymous = true$/public_viewer_anonymous = false/' "$app/bin/security.conf"
     grep -v '^ok' "$out/legacy-characterize.log" || true
   fi
 
@@ -269,8 +276,8 @@ EOF
   # The legacy explorer's grids (characterize steps "explorer_grid") against
   # the Drupal explorer, in the two-database mode and, with --workspace,
   # on the placement entities the round trip published.
-  if [ "$(jq '[.characterize // [] | .[] | select(.kind == "explorer_grid")] | length' "$file")" -gt 0 ]; then
-    echo "# timetable explorer: legacy get_minibrowser_horarios against the Drupal explorer"
+  if [ "$(jq '[.characterize // [] | .[] | select(.kind == "explorer_grid" or .kind == "viewer_lists")] | length' "$file")" -gt 0 ]; then
+    echo "# timetable explorer: the legacy explorer or public viewer against the Drupal explorer or viewer"
     local modes=(two_database)
     [ "$workspace" -eq 1 ] && modes+=(workspace)
     local mode

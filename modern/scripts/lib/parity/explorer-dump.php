@@ -11,6 +11,12 @@
  * the legacy grid: "day.slot|classification|subject|teacher|room". A
  * refused request is written as ["refused:<status>"].
  *
+ * The timetable viewer (#121): "viewer_lists" steps get the viewer's lists
+ * (plans, periods, brigades, teachers, rooms, resources: labels) and grid
+ * steps with "viewer" use its lists. A step with "anonymous" is checked
+ * against the viewer route's access for an anonymous visitor, which must be
+ * denied (["refused:anonymous"]).
+ *
  * Usage (drush php:script; ANCORA_ENGINE_MODE selects the engine mode):
  *
  * @code
@@ -24,6 +30,8 @@ declare(strict_types=1);
 
 use Ancora\Parity\Scenario;
 use Drupal\ancora_scheduling\Timetable\TimetableExplorer;
+use Drupal\Core\Session\AnonymousUserSession;
+use Drupal\Core\Url;
 use Drupal\user\Entity\User;
 
 require __DIR__ . '/src/Scenario.php';
@@ -63,8 +71,35 @@ $ex_id = static function (string $key) use ($ex_scenario, $etm, $ex_types, $ex_a
 $ex_fields = ['idbrg' => 'brigade', 'idprofe' => 'teacher', 'idlug' => 'room', 'idres' => 'resource'];
 
 $out = [];
+$explorer = \Drupal::service(TimetableExplorer::class);
 foreach ($ex_scenario->data['characterize'] ?? [] as $step) {
-  if ($step['kind'] !== 'explorer_grid') {
+  if (!in_array($step['kind'], ['explorer_grid', 'viewer_lists'], TRUE)) {
+    continue;
+  }
+  if (!empty($step['anonymous'])) {
+    $allowed = Url::fromRoute('ancora_scheduling.viewer')->access(new AnonymousUserSession());
+    $out[$step['key']] = $allowed ? ['ANONYMOUS ALLOWED'] : ['refused:anonymous'];
+    continue;
+  }
+  if ($step['kind'] === 'viewer_lists') {
+    \Drupal::service('entity.memory_cache')->deleteAll();
+    $account = $ex_account($step['as']);
+    $periods = $explorer->periods($account, TRUE);
+    $sorted = static function (array $labels): array {
+      $labels = array_values(array_unique($labels));
+      sort($labels, SORT_STRING);
+      return $labels;
+    };
+    $lists = [
+      'plans' => $sorted(array_map(static fn ($p) => (string) $p->get('plan')->entity->label(), $periods)),
+      'periods' => $sorted(array_map(static fn ($p) => (string) $p->label(), $periods)),
+    ];
+    $options = $periods === [] ? [] : $explorer->options(reset($periods), $account);
+    foreach (['brigade' => 'brigades', 'teacher' => 'teachers', 'room' => 'rooms', 'resource' => 'resources'] as $selector => $key) {
+      $lists[$key] = $sorted(array_column($options[$selector] ?? [], 'label'));
+    }
+    $out[$step['key']] = $lists;
+    echo "ok    viewer lists {$step['key']}\n";
     continue;
   }
   $selectors = [];
@@ -79,7 +114,7 @@ foreach ($ex_scenario->data['characterize'] ?? [] as $step) {
     }
   }
   \Drupal::service('entity.memory_cache')->deleteAll();
-  $result = \Drupal::service(TimetableExplorer::class)->explore($ex_account($step['as']), $period, $selectors);
+  $result = $explorer->explore($ex_account($step['as']), $period, $selectors, !empty($step['viewer']));
   if ($result['status'] !== 'ok') {
     $out[$step['key']] = ['refused:' . $result['status']];
     continue;

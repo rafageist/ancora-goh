@@ -89,3 +89,15 @@ ancora_scheduling.explorer:
     _title: 'Timetable explorer'
   requirements:
     _permission: 'view academic data+administer academic data'
+
+# The timetable viewer (#121, PAR-092): the legacy public viewer, for
+# logged-in users only. The anonymous viewer is not provided (#62); no
+# request value, header or setting turns it on.
+ancora_scheduling.viewer:
+  path: '/ancora/timetables/viewer'
+  defaults:
+    _controller: '\Drupal\ancora_scheduling\Controller\ExplorerController::viewer'
+    _title: 'Timetable viewer'
+  requirements:
+    _permission: 'view timetable viewer'
+    _user_is_logged_in: 'TRUE'

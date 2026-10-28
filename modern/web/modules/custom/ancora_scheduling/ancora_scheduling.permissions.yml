@@ -1,0 +1,7 @@
+# The timetable viewer (#121, PAR-092): every plan's timetable of the site,
+# read-only. The route also requires a login, so granting this to the
+# anonymous role gives anonymous visitors nothing (anonymous viewing waits
+# for the release approval of #62).
+view timetable viewer:
+  title: 'View the timetable viewer'
+  description: 'Browse the timetables of every plan of this organization by period and cohort, teacher, room or own other resource, as the legacy timetable viewer. Logged-in users only.'

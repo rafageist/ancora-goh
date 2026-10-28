@@ -182,6 +182,8 @@ The E2E placement digest (`dev/e2e/expected-placements.md5`) is computed over te
 | Status page of a run | `view ancora engine jobs` + `view academic data`, and view access to the run's plan |
 | Cancel a run | the requester with `request ancora engine jobs`, or `administer ancora engine` (existing cancel form) |
 | Timetable page | `view academic data` (and view access to the plan) |
+| Timetable explorer `/ancora/timetables/explorer` (#119) | `view academic data`; the periods of the plans the user may view |
+| Timetable viewer `/ancora/timetables/viewer` (#121) | `view timetable viewer` and a login (never anonymous); every plan of the site, read-only. Update 11004 grants it to the roles holding `view academic data` |
 
 Organizations are separated by site (#72). A planner of beta has no session on alpha, and alpha's job and plan ids do not exist on beta (404).
 

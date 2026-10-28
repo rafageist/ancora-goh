@@ -31,7 +31,7 @@ $drupal = json_decode((string) @file_get_contents("$out/drupal-explorer-$label.j
 $fail = 0;
 $pass = 0;
 foreach ($scenario['characterize'] ?? [] as $step) {
-  if ($step['kind'] !== 'explorer_grid') {
+  if (!in_array($step['kind'], ['explorer_grid', 'viewer_lists'], TRUE)) {
     continue;
   }
   $key = $step['key'];
@@ -43,20 +43,18 @@ foreach ($scenario['characterize'] ?? [] as $step) {
     continue;
   }
   if (($step['drupal'] ?? 'same') === 'refused') {
-    $refused = count($d) === 1 && str_starts_with((string) $d[0], 'refused:');
-    printf("%-6s explorer %s (%s): legacy answers with %d start cells, Drupal %s (%s)\n", $refused ? 'PASS' : 'FAIL', $key, $label, count($l), $refused ? 'refuses: ' . $d[0] : 'ANSWERS', $step['ref'] ?? '');
+    $refused = count($d) === 1 && str_starts_with((string) ($d[0] ?? ''), 'refused:');
+    $legacy_answers = $step['kind'] === 'viewer_lists' ? (isset($l['denied']) ? 'denies' : 'answers with its lists') : 'answers with ' . count($l) . ' start cells';
+    printf("%-6s explorer %s (%s): legacy %s, Drupal %s (%s)\n", $refused ? 'PASS' : 'FAIL', $key, $label, $legacy_answers, $refused ? 'refuses: ' . $d[0] : 'ANSWERS', $step['ref'] ?? '');
     $refused ? $pass++ : $fail++;
     continue;
   }
   $same = $l === $d;
-  printf("%-6s explorer %s (%s): %d start cells%s\n", $same ? 'PASS' : 'FAIL', $key, $label, count($l), $same ? '' : '');
+  $size = $step['kind'] === 'viewer_lists' ? implode(', ', array_map(static fn ($k, $v) => count($v) . " $k", array_keys($l), $l)) : count($l) . ' start cells';
+  printf("%-6s explorer %s (%s): %s\n", $same ? 'PASS' : 'FAIL', $key, $label, $size);
   if (!$same) {
-    foreach (array_diff($l, $d) as $line) {
-      echo "         - legacy $line\n";
-    }
-    foreach (array_diff($d, $l) as $line) {
-      echo "         + Drupal $line\n";
-    }
+    echo '         - legacy ' . json_encode($l, JSON_UNESCAPED_UNICODE) . "\n";
+    echo '         + Drupal ' . json_encode($d, JSON_UNESCAPED_UNICODE) . "\n";
     $fail++;
     continue;
   }
