@@ -31,6 +31,16 @@ use Drupal\Core\Session\AccountInterface;
  *
  * The placements are the ones the plan timetable shows (TimetableReader):
  * both engine modes, with the final or draft state of each scope.
+ *
+ * The timetable viewer (#121, PAR-092) is the same read with the lists of
+ * the legacy public viewer (get_browser_publico.php:13-24,
+ * public_tree_brigadas.tpl:18-34, get_public_list_{profesores,lugares}.php,
+ * get_public_list_otros_recursos.php:11-13): the periods of every plan of
+ * the site, every user's brigades, teachers and rooms, and the viewer's own
+ * other resources. Its grid is the explorer's
+ * (get_minibrowser_publico.php:44-51 runs the same four queries). Only
+ * authenticated users reach it; the legacy anonymous mode is not provided
+ * (security exception until #62).
  */
 final class TimetableExplorer {
 
@@ -52,14 +62,17 @@ final class TimetableExplorer {
   /**
    * The periods the account may explore: of the plans it may view.
    *
+   * In the viewer, the periods of every plan of the site (the legacy public
+   * viewer loads every planificacion).
+   *
    * @return array<int, \Drupal\ancora_academic\Entity\Period>
    *   Periods by id, by plan and id.
    */
-  public function periods(AccountInterface $account): array {
+  public function periods(AccountInterface $account, bool $viewer = FALSE): array {
     $plans = $this->entityTypeManager->getStorage('ancora_plan');
     $out = [];
     foreach ($plans->loadMultiple($plans->getQuery()->accessCheck(FALSE)->sort('id')->execute()) as $plan) {
-      if (!$plan->access('view', $account)) {
+      if (!$viewer && !$plan->access('view', $account)) {
         continue;
       }
       $storage = $this->entityTypeManager->getStorage('ancora_period');
@@ -74,25 +87,33 @@ final class TimetableExplorer {
    * The records offered for each selector, for a period's plan owner.
    *
    * Brigades and other resources are the plan owner's (the legacy lists
-   * filter by creador); teachers and rooms are every user's (Q-23).
+   * filter by creador); teachers and rooms are every user's (Q-23). In the
+   * viewer: every user's brigades, teachers and rooms, and the viewer's own
+   * other resources (the session user, get_public_list_otros_recursos.php).
    *
    * @return array<string, array<int, array{label: string, owner: string}>>
-   *   Selector => id => label and owner name.
+   *   Selector => id => label and owner name (empty in the viewer).
    */
-  public function options(Period $period): array {
-    $owner = (int) $period->getCreatorId();
+  public function options(?Period $period, ?AccountInterface $viewer = NULL): array {
+    $owner = (int) $period?->getCreatorId();
     $out = [];
     foreach (self::SELECTORS as $selector => $type) {
       $storage = $this->entityTypeManager->getStorage($type);
       $query = $storage->getQuery()->accessCheck(FALSE)->sort('label')->sort('id');
-      if ($selector === 'brigade' || $selector === 'resource') {
+      if ($viewer !== NULL) {
+        if ($selector === 'resource') {
+          $query->condition('uid', (int) $viewer->id());
+        }
+      }
+      elseif ($selector === 'brigade' || $selector === 'resource') {
         $query->condition('uid', $owner);
       }
       $out[$selector] = [];
       foreach ($storage->loadMultiple($query->execute()) as $id => $record) {
         $out[$selector][(int) $id] = [
           'label' => (string) $record->label(),
-          'owner' => (string) ($record->getOwner()?->getDisplayName() ?? ''),
+          // The viewer names no account: its lists show the names only.
+          'owner' => $viewer === NULL ? (string) ($record->getOwner()?->getDisplayName() ?? '') : '',
         ];
       }
     }
@@ -108,6 +129,8 @@ final class TimetableExplorer {
    *   The posted period id.
    * @param array<string, mixed> $selectors
    *   The posted ids by selector (brigade, teacher, room, resource).
+   * @param bool $viewer
+   *   The timetable viewer's lists instead of the explorer's.
    *
    * @return array
    *   - status: 'ok', 'no_period' (none posted), 'period_refused' (not a
@@ -119,7 +142,7 @@ final class TimetableExplorer {
    *   - placements: the matching placements, each with its scope's "draft"
    *     flag.
    */
-  public function explore(AccountInterface $account, string|int|null $period_id, array $selectors): array {
+  public function explore(AccountInterface $account, string|int|null $period_id, array $selectors, bool $viewer = FALSE): array {
     $result = [
       'status' => 'no_period',
       'period' => NULL,
@@ -129,16 +152,20 @@ final class TimetableExplorer {
       'scopes' => [],
       'placements' => [],
     ];
+    // The viewer's lists do not depend on the period (the legacy lists).
+    if ($viewer) {
+      $result['options'] = $this->options(NULL, $account);
+    }
     if ($period_id === NULL || $period_id === '') {
       return $result;
     }
-    $periods = $this->periods($account);
+    $periods = $this->periods($account, $viewer);
     $period = ctype_digit((string) $period_id) ? ($periods[(int) $period_id] ?? NULL) : NULL;
     if (!$period instanceof Period) {
       return ['status' => 'period_refused'] + $result;
     }
     $result['period'] = $period;
-    $result['options'] = $this->options($period);
+    $result['options'] = $this->options($period, $viewer ? $account : NULL);
 
     // The last selector of the legacy order that was posted wins.
     $chosen = NULL;

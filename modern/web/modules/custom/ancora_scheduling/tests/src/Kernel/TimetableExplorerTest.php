@@ -250,4 +250,50 @@ final class TimetableExplorerTest extends AcademicKernelTestBase {
     $this->assertSame('ok', $explorer->explore($admin, $this->per->id(), ['teacher' => $this->byCode('ancora_teacher', 'TA')->id()])['status']);
   }
 
+  /**
+   * The timetable viewer's lists and reads (#121, PAR-092; s15).
+   *
+   * The legacy public viewer: every plan's periods, every user's brigades,
+   * teachers and rooms, the viewer's own other resources; no account names.
+   */
+  public function testViewer(): void {
+    $explorer = $this->container->get(TimetableExplorer::class);
+    $periods = $explorer->periods($this->bob, TRUE);
+    $this->assertSame([(int) $this->per->id(), (int) $this->per2->id()], array_keys($periods), 'every plan of the site');
+    $options = $explorer->options($this->per, $this->bob);
+    $b1 = (int) $this->byCode('ancora_cohort', 'B1')->id();
+    $rz = (int) $this->byCode('ancora_other_resource', 'RZ', NULL, $this->bob)->id();
+    $r1 = (int) $this->byCode('ancora_other_resource', 'R1')->id();
+    $this->assertArrayHasKey($b1, $options['brigade'], 'every user\'s brigades');
+    $this->assertSame([$rz], array_keys($options['resource']), 'the viewer\'s own other resources');
+    $this->assertSame([''], array_values(array_unique(array_column($options['teacher'], 'owner'))), 'no account names');
+
+    $ta = (int) $this->byCode('ancora_teacher', 'TA')->id();
+    $this->assertSame(['1.1 G1', '1.3 G2'], $this->cells($explorer->explore($this->bob, $this->per->id(), ['teacher' => $ta], TRUE)));
+    $this->assertSame(['1.1 G1', '2.1 GL'], $this->cells($explorer->explore($this->bob, $this->per->id(), ['brigade' => $b1], TRUE)));
+    $this->assertSame('selector_refused', $explorer->explore($this->bob, $this->per->id(), ['resource' => $r1], TRUE)['status'], 'another user\'s resource');
+    $this->assertSame('ok', $explorer->explore($this->bob, $this->per->id(), ['resource' => $rz], TRUE)['status']);
+    $this->assertSame('period_refused', $explorer->explore($this->bob, 999999, ['teacher' => $ta], TRUE)['status']);
+    // The explorer of the same user still refuses another user's period.
+    $this->assertSame('period_refused', $explorer->explore($this->bob, $this->per->id(), ['teacher' => $ta])['status']);
+  }
+
+  /**
+   * The update grants the viewer to the roles that see academic data.
+   */
+  public function testViewerPermissionUpdate(): void {
+    $storage = $this->container->get('entity_type.manager')->getStorage('user_role');
+    $storage->create(['id' => 'planner', 'label' => 'Planner', 'permissions' => ['view academic data']])->save();
+    $storage->create(['id' => 'other', 'label' => 'Other', 'permissions' => []])->save();
+    $anonymous = $storage->load('anonymous') ?? $storage->create(['id' => 'anonymous', 'label' => 'Anonymous']);
+    $anonymous->grantPermission('view academic data')->save();
+    $this->container->get('module_handler')->loadInclude('ancora_scheduling', 'install');
+    $this->assertStringContainsString('planner', ancora_scheduling_update_11004());
+    $storage->resetCache();
+    $this->assertTrue($storage->load('planner')->hasPermission('view timetable viewer'));
+    $this->assertFalse($storage->load('other')->hasPermission('view timetable viewer'));
+    $this->assertFalse($storage->load('anonymous')->hasPermission('view timetable viewer'), 'never the anonymous role');
+    $this->assertSame('No role was granted the timetable viewer.', ancora_scheduling_update_11004());
+  }
+
 }

@@ -1,0 +1,606 @@
+{
+  "schema": "ancora.parity.scenario.v1",
+  "id": "s15-timetable-viewer",
+  "title": "Timetable viewer (#121, PAR-092): the legacy public viewer across two users, authenticated only in Drupal",
+  "notes": [
+    "Issue #121 (legacy-parity-inventory.md PAR-092, Q-23, Q-37). The records and runs of s14: Alice with two plans, Bob with one, one run per period.",
+    "The legacy characterization runs with public_viewer_anonymous = true in the disposable copy of the application (legacy_switches), so that its anonymous mode can be recorded too; the default is false.",
+    "viewer_lists steps read the viewer's lists (get_browser_publico, get_public_treeBrigadas, get_public_list_profesores, _lugares, _otros_recursos) and explorer_grid steps with get_minibrowser_publico its grids; explorer-compare.php compares them with the Drupal timetable viewer (TimetableExplorer in viewer mode) in both engine modes.",
+    "Steps marked \"drupal\": \"refused\" are answered by legacy and refused by Drupal: every anonymous request (the viewer is for logged-in users only until #62), and ids outside the user's lists (another user's other resource, a period that does not exist)."
+  ],
+  "users": [
+    {
+      "key": "admin",
+      "name": "Administrator",
+      "legacy": "seeded-admin"
+    },
+    {
+      "key": "alice",
+      "name": "Alice Planner"
+    },
+    {
+      "key": "bob",
+      "name": "Bob Planner"
+    }
+  ],
+  "records": [
+    {
+      "type": "plan",
+      "key": "P1",
+      "as": "alice",
+      "label": "Alice semester",
+      "starts_on": "2026-09-07",
+      "duration_days": 30
+    },
+    {
+      "type": "plan",
+      "key": "P2",
+      "as": "alice",
+      "label": "Alice summer",
+      "starts_on": "2027-06-07",
+      "duration_days": 30
+    },
+    {
+      "type": "period",
+      "key": "W1",
+      "as": "alice",
+      "plan": "P1",
+      "label": "Week 1",
+      "days": 3,
+      "slots_per_day": 3,
+      "start_hour": 8,
+      "slot_duration": 1,
+      "plan_days": [
+        1
+      ]
+    },
+    {
+      "type": "period",
+      "key": "W2",
+      "as": "alice",
+      "plan": "P2",
+      "label": "Week 2",
+      "days": 3,
+      "slots_per_day": 3,
+      "start_hour": 8,
+      "slot_duration": 1,
+      "plan_days": [
+        1
+      ]
+    },
+    {
+      "type": "activity_type",
+      "key": "C1",
+      "as": "alice",
+      "label": "Lecture",
+      "duration_slots": 1,
+      "priority": 1,
+      "cost": 1
+    },
+    {
+      "type": "activity_type",
+      "key": "C2",
+      "as": "alice",
+      "label": "Lab",
+      "duration_slots": 1,
+      "priority": 2,
+      "cost": 1
+    },
+    {
+      "type": "activity_type",
+      "key": "C3",
+      "as": "alice",
+      "label": "Seminar",
+      "duration_slots": 1,
+      "priority": 3,
+      "cost": 1
+    },
+    {
+      "type": "specialty",
+      "key": "E",
+      "as": "alice",
+      "label": "Program E"
+    },
+    {
+      "type": "level",
+      "key": "N",
+      "as": "alice",
+      "label": "Year 1"
+    },
+    {
+      "type": "cohort",
+      "key": "B1",
+      "as": "alice",
+      "label": "Cohort 1",
+      "specialty": "E",
+      "level": "N",
+      "enrollment": 20
+    },
+    {
+      "type": "cohort",
+      "key": "B2",
+      "as": "alice",
+      "label": "Cohort 2",
+      "specialty": "E",
+      "level": "N",
+      "enrollment": 20
+    },
+    {
+      "type": "student_group",
+      "key": "G1",
+      "as": "alice",
+      "plan": "P1",
+      "label": "Group 1",
+      "activity_type": "C1",
+      "specialty": "E",
+      "level": "N",
+      "cohorts": [
+        "B1"
+      ]
+    },
+    {
+      "type": "student_group",
+      "key": "G2",
+      "as": "alice",
+      "plan": "P1",
+      "label": "Group 2",
+      "activity_type": "C1",
+      "specialty": "E",
+      "level": "N",
+      "cohorts": [
+        "B2"
+      ]
+    },
+    {
+      "type": "student_group",
+      "key": "GL",
+      "as": "alice",
+      "plan": "P1",
+      "label": "Lab group",
+      "activity_type": "C2",
+      "specialty": "E",
+      "level": "N",
+      "cohorts": [
+        "B1"
+      ]
+    },
+    {
+      "type": "student_group",
+      "key": "G3",
+      "as": "alice",
+      "plan": "P2",
+      "label": "Group 3",
+      "activity_type": "C3",
+      "specialty": "E",
+      "level": "N",
+      "cohorts": [
+        "B1"
+      ]
+    },
+    {
+      "type": "subject",
+      "key": "A",
+      "as": "alice",
+      "label": "Subject A",
+      "specialty": "E",
+      "level": "N"
+    },
+    {
+      "type": "activity_template",
+      "key": "A1",
+      "as": "alice",
+      "subject": "A",
+      "period": "W1",
+      "sequence": 1,
+      "activity_type": "C1"
+    },
+    {
+      "type": "activity_template",
+      "key": "AL",
+      "as": "alice",
+      "subject": "A",
+      "period": "W1",
+      "sequence": 2,
+      "activity_type": "C2"
+    },
+    {
+      "type": "activity_template",
+      "key": "AW2",
+      "as": "alice",
+      "subject": "A",
+      "period": "W2",
+      "sequence": 1,
+      "activity_type": "C3"
+    },
+    {
+      "type": "teacher",
+      "key": "TA",
+      "as": "alice",
+      "label": "Teacher A"
+    },
+    {
+      "type": "teacher",
+      "key": "TB",
+      "as": "alice",
+      "label": "Teacher B"
+    },
+    {
+      "type": "room",
+      "key": "L1",
+      "as": "alice",
+      "label": "Room 1",
+      "capacity": 50
+    },
+    {
+      "type": "room",
+      "key": "L2",
+      "as": "alice",
+      "label": "Room 2",
+      "capacity": 50
+    },
+    {
+      "type": "teacher_assignment",
+      "key": "A1@TA",
+      "as": "alice",
+      "template": "A1",
+      "teacher": "TA",
+      "priority": 1,
+      "groups": [
+        "G1",
+        "G2"
+      ]
+    },
+    {
+      "type": "teacher_assignment",
+      "key": "AL@TB",
+      "as": "alice",
+      "template": "AL",
+      "teacher": "TB",
+      "priority": 1,
+      "groups": [
+        "GL"
+      ]
+    },
+    {
+      "type": "teacher_assignment",
+      "key": "AW2@TA",
+      "as": "alice",
+      "template": "AW2",
+      "teacher": "TA",
+      "priority": 1,
+      "groups": [
+        "G3"
+      ]
+    },
+    {
+      "type": "room_assignment",
+      "key": "A1@L1",
+      "as": "alice",
+      "template": "A1",
+      "room": "L1",
+      "priority": 1
+    },
+    {
+      "type": "room_assignment",
+      "key": "AL@L2",
+      "as": "alice",
+      "template": "AL",
+      "room": "L2",
+      "priority": 1
+    },
+    {
+      "type": "room_assignment",
+      "key": "AW2@L1",
+      "as": "alice",
+      "template": "AW2",
+      "room": "L1",
+      "priority": 1
+    },
+    {
+      "type": "other_resource",
+      "key": "R1",
+      "as": "alice",
+      "label": "Projector 1"
+    },
+    {
+      "type": "other_resource",
+      "key": "R2",
+      "as": "alice",
+      "label": "Projector 2"
+    },
+    {
+      "type": "resource_group",
+      "key": "AL-G1",
+      "as": "alice",
+      "template": "AL",
+      "members": [
+        "R1"
+      ]
+    },
+    {
+      "type": "resource_group",
+      "key": "AL-G2",
+      "as": "alice",
+      "template": "AL",
+      "members": [
+        "R2"
+      ],
+      "priority": 2
+    },
+    {
+      "type": "plan",
+      "key": "PB",
+      "as": "bob",
+      "label": "Bob semester",
+      "starts_on": "2026-09-07",
+      "duration_days": 30
+    },
+    {
+      "type": "period",
+      "key": "WB",
+      "as": "bob",
+      "plan": "PB",
+      "label": "Bob week",
+      "days": 3,
+      "slots_per_day": 3,
+      "start_hour": 8,
+      "slot_duration": 1,
+      "plan_days": [
+        1
+      ]
+    },
+    {
+      "type": "activity_type",
+      "key": "CB",
+      "as": "bob",
+      "label": "Bob lecture",
+      "duration_slots": 1,
+      "priority": 1,
+      "cost": 1
+    },
+    {
+      "type": "specialty",
+      "key": "EB",
+      "as": "bob",
+      "label": "Bob program"
+    },
+    {
+      "type": "level",
+      "key": "NB",
+      "as": "bob",
+      "label": "Bob year"
+    },
+    {
+      "type": "cohort",
+      "key": "BB",
+      "as": "bob",
+      "label": "Bob cohort",
+      "specialty": "EB",
+      "level": "NB",
+      "enrollment": 20
+    },
+    {
+      "type": "student_group",
+      "key": "GB",
+      "as": "bob",
+      "plan": "PB",
+      "label": "Bob group",
+      "activity_type": "CB",
+      "specialty": "EB",
+      "level": "NB",
+      "cohorts": [
+        "BB"
+      ]
+    },
+    {
+      "type": "subject",
+      "key": "SB",
+      "as": "bob",
+      "label": "Bob subject",
+      "specialty": "EB",
+      "level": "NB"
+    },
+    {
+      "type": "activity_template",
+      "key": "SB1",
+      "as": "bob",
+      "subject": "SB",
+      "period": "WB",
+      "sequence": 1,
+      "activity_type": "CB"
+    },
+    {
+      "type": "teacher",
+      "key": "TZ",
+      "as": "bob",
+      "label": "Teacher Z"
+    },
+    {
+      "type": "room",
+      "key": "LZ",
+      "as": "bob",
+      "label": "Room Z",
+      "capacity": 50
+    },
+    {
+      "type": "teacher_assignment",
+      "key": "SB1@TZ",
+      "as": "bob",
+      "template": "SB1",
+      "teacher": "TZ",
+      "priority": 1,
+      "groups": [
+        "GB"
+      ]
+    },
+    {
+      "type": "room_assignment",
+      "key": "SB1@LZ",
+      "as": "bob",
+      "template": "SB1",
+      "room": "LZ",
+      "priority": 1
+    }
+  ],
+  "runs": [
+    {
+      "key": "W1",
+      "as": "alice",
+      "plan": "P1",
+      "period": "W1",
+      "specialty": "E",
+      "level": "N",
+      "options": {
+        "forma": 1,
+        "parche": false,
+        "compactar": 1,
+        "parche1": false,
+        "buscalugar": true
+      }
+    },
+    {
+      "key": "W2",
+      "as": "alice",
+      "plan": "P2",
+      "period": "W2",
+      "specialty": "E",
+      "level": "N",
+      "options": {
+        "forma": 1,
+        "parche": false,
+        "compactar": 1,
+        "parche1": false,
+        "buscalugar": true
+      }
+    },
+    {
+      "key": "WB",
+      "as": "bob",
+      "plan": "PB",
+      "period": "WB",
+      "specialty": "EB",
+      "level": "NB",
+      "options": {
+        "forma": 1,
+        "parche": false,
+        "compactar": 1,
+        "parche1": false,
+        "buscalugar": true
+      }
+    }
+  ],
+  "visibility": [],
+  "characterize": [
+    {
+      "kind": "viewer_lists",
+      "key": "lists-alice",
+      "as": "alice",
+      "ref": "PAR-092: every plan, period, brigade, teacher and room; her resources"
+    },
+    {
+      "kind": "viewer_lists",
+      "key": "lists-bob",
+      "as": "bob",
+      "ref": "PAR-092: the same lists; his resources (none)"
+    },
+    {
+      "kind": "viewer_lists",
+      "key": "lists-anonymous",
+      "as": "alice",
+      "anonymous": true,
+      "drupal": "refused",
+      "ref": "Q-37: anonymous with the switch on"
+    },
+    {
+      "kind": "explorer_grid",
+      "key": "grid-bob-sees-alice",
+      "as": "bob",
+      "event": "get_minibrowser_publico",
+      "viewer": true,
+      "fields": {
+        "idperiodo": "W1",
+        "idprofe": "TA"
+      },
+      "ref": "PAR-092: another user's timetable"
+    },
+    {
+      "kind": "explorer_grid",
+      "key": "grid-alice-brigade-of-bob",
+      "as": "alice",
+      "event": "get_minibrowser_publico",
+      "viewer": true,
+      "fields": {
+        "idperiodo": "WB",
+        "idbrg": "BB"
+      },
+      "ref": "PAR-092: another user's brigade"
+    },
+    {
+      "kind": "explorer_grid",
+      "key": "grid-brigade-two-groups",
+      "as": "bob",
+      "event": "get_minibrowser_publico",
+      "viewer": true,
+      "fields": {
+        "idperiodo": "W1",
+        "idbrg": "B1"
+      },
+      "ref": "PAR-092: a brigade in two groups"
+    },
+    {
+      "kind": "explorer_grid",
+      "key": "grid-alice-resource",
+      "as": "alice",
+      "event": "get_minibrowser_publico",
+      "viewer": true,
+      "fields": {
+        "idperiodo": "W1",
+        "idres": "R1"
+      },
+      "ref": "PAR-092: her own resource"
+    },
+    {
+      "kind": "explorer_grid",
+      "key": "grid-bob-resource-of-alice",
+      "as": "bob",
+      "event": "get_minibrowser_publico",
+      "viewer": true,
+      "fields": {
+        "idperiodo": "W1",
+        "idres": "R1"
+      },
+      "ref": "a resource outside his list (the handler trusts the id)",
+      "drupal": "refused"
+    },
+    {
+      "kind": "explorer_grid",
+      "key": "grid-anonymous",
+      "as": "alice",
+      "event": "get_minibrowser_publico",
+      "viewer": true,
+      "fields": {
+        "idperiodo": "W1",
+        "idprofe": "TA"
+      },
+      "ref": "Q-37: anonymous with the switch on",
+      "anonymous": true,
+      "drupal": "refused"
+    },
+    {
+      "kind": "explorer_grid",
+      "key": "grid-forged-period",
+      "as": "alice",
+      "event": "get_minibrowser_publico",
+      "viewer": true,
+      "fields": {
+        "idperiodo": "NOPE",
+        "idprofe": "TA"
+      },
+      "ref": "a period that does not exist",
+      "drupal": "refused"
+    }
+  ],
+  "legacy_switches": {
+    "public_viewer_anonymous": true
+  }
+}

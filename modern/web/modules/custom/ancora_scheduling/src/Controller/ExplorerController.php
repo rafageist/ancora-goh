@@ -42,10 +42,29 @@ final class ExplorerController extends ControllerBase {
    * The explorer page.
    */
   public function page(): array {
+    return $this->build(FALSE);
+  }
+
+  /**
+   * The timetable viewer (#121, PAR-092): every plan of the site, read-only.
+   *
+   * The legacy public viewer's lists; authenticated users only (the route
+   * requires a login and its own permission, and nothing here reads a
+   * request value to change that).
+   */
+  public function viewer(): array {
+    return $this->build(TRUE);
+  }
+
+  /**
+   * The page of the explorer or of the viewer.
+   */
+  private function build(bool $viewer): array {
     $query = $this->requestStack->getCurrentRequest()->query;
     $cache = (new CacheableMetadata())
       ->addCacheContexts([
         'user',
+        'user.roles:authenticated',
         'url.query_args:period',
         ...array_map(static fn (string $s): string => "url.query_args:$s", array_keys(TimetableExplorer::SELECTORS)),
       ])
@@ -57,20 +76,21 @@ final class ExplorerController extends ControllerBase {
     foreach (array_keys(TimetableExplorer::SELECTORS) as $selector) {
       $selectors[$selector] = $query->get($selector);
     }
-    $result = $this->explorer->explore($this->currentUser(), $query->get('period'), $selectors);
-    $periods = $this->explorer->periods($this->currentUser());
+    $result = $this->explorer->explore($this->currentUser(), $query->get('period'), $selectors, $viewer);
+    $periods = $this->explorer->periods($this->currentUser(), $viewer);
 
+    $intro = $viewer
+      ? $this->t('The timetables of every plan of this organization, as the legacy timetable viewer shows them: pick a period, then a cohort, a teacher, a room or one of your other resources. Read-only.')
+      : $this->t('Pick one of your periods, then a cohort, a teacher, a room or an other resource, as in the legacy timetable explorer. The teacher and room lists include those of every planner of this site, as in the legacy explorer; only the activities of your periods are shown.');
     $build = [
-      'intro' => [
-        '#markup' => '<p>' . $this->t('Pick one of your periods, then a cohort, a teacher, a room or an other resource, as in the legacy timetable explorer. The teacher and room lists include those of every planner of this site, as in the legacy explorer; only the activities of your periods are shown.') . '</p>',
-      ],
-      'form' => $this->form($periods, $result),
+      'intro' => ['#markup' => '<p>' . $intro . '</p>'],
+      'form' => $this->form($periods, $result, $viewer ? 'ancora_scheduling.viewer' : 'ancora_scheduling.explorer'),
     ];
     $message = match ($result['status']) {
-      'period_refused' => $this->t('That period is not one of yours.'),
+      'period_refused' => $viewer ? $this->t('That period is not in the timetable viewer.') : $this->t('That period is not one of yours.'),
       'selector_refused' => $this->t('That record is not in the lists of this period.'),
       'no_selector' => $this->t('Pick a cohort, a teacher, a room or an other resource.'),
-      'no_period' => $periods === [] ? $this->t('There is no period yet.') : NULL,
+      'no_period' => $periods === [] ? $this->t('There is no period yet.') : $this->t('Pick a period, then a cohort, a teacher, a room or an other resource.'),
       default => NULL,
     };
     if ($message !== NULL) {
@@ -83,7 +103,12 @@ final class ExplorerController extends ControllerBase {
         }
       }
       $build['status'] = $this->scopes($result['scopes']);
-      $build['grid'] = $this->grid($result['period'], $result['placements'], $result['record']['label']);
+      // A scrolling wrapper keeps the grid usable on a narrow screen.
+      $build['grid'] = [
+        '#type' => 'container',
+        '#attributes' => ['class' => ['ancora-timetable__grid-wrapper']],
+        'table' => $this->grid($result['period'], $result['placements'], $result['record']['label']),
+      ];
     }
     $build['#attached']['library'][] = 'ancora_scheduling/timetable';
     $cache->applyTo($build);
@@ -93,14 +118,14 @@ final class ExplorerController extends ControllerBase {
   /**
    * The GET form: the period and one list per selector.
    */
-  private function form(array $periods, array $result): array {
+  private function form(array $periods, array $result, string $route): array {
     $form = [
       '#type' => 'html_tag',
       '#tag' => 'form',
       '#attributes' => [
         'method' => 'get',
         'class' => ['ancora-explorer__form'],
-        'action' => Url::fromRoute('ancora_scheduling.explorer')->toString(),
+        'action' => Url::fromRoute($route)->toString(),
       ],
     ];
     $grouped = [];
@@ -119,7 +144,7 @@ final class ExplorerController extends ControllerBase {
     foreach ($result['options'] as $selector => $records) {
       $options = [];
       foreach ($records as $id => $record) {
-        $options[$id] = $record['label'] . ($selector === 'teacher' || $selector === 'room' ? ' (' . $record['owner'] . ')' : '');
+        $options[$id] = $record['label'] . (($selector === 'teacher' || $selector === 'room') && $record['owner'] !== '' ? ' (' . $record['owner'] . ')' : '');
       }
       $value = $result['selector'] === $selector ? ($result['record']['id'] ?? NULL) : NULL;
       $form[$selector] = $this->select($selector, $labels[$selector], $options, $value);

@@ -126,6 +126,10 @@ final class LegacyDriver {
         $explorer[$step['key']] = $this->explorerGrid($step);
         continue;
       }
+      if ($step['kind'] === 'viewer_lists') {
+        $explorer[$step['key']] = $this->viewerLists($step);
+        continue;
+      }
       $record = $this->scenario->records[$step['record']];
       [$class, $table, $name] = $classes[$record['type']];
       $id = $this->ids[$step['record']];
@@ -308,7 +312,10 @@ final class LegacyDriver {
     foreach ($step['fields'] as $name => $ref) {
       $fields[$name] = $this->ids[$ref] ?? $ref;
     }
-    $body = $this->event($step['as'], 'get_minibrowser_horarios', $fields, "explorer {$step['key']}", TRUE);
+    $event = $step['event'] ?? 'get_minibrowser_horarios';
+    $body = !empty($step['anonymous'])
+      ? $this->anonymousEvent($event, $fields)
+      : $this->event($step['as'], $event, $fields, "explorer {$step['key']}", TRUE);
     $lines = [];
     $dom = new \DOMDocument();
     @$dom->loadHTML('<?xml encoding="utf-8"?>' . $body);
@@ -336,6 +343,65 @@ final class LegacyDriver {
     sort($lines, SORT_STRING);
     printf("CHAR  %s explorer %s as %s: %d start cells %s\n", $step['ref'] ?? '', $step['key'], $step['as'], count($lines), json_encode($lines, JSON_UNESCAPED_UNICODE));
     return $lines;
+  }
+
+  /**
+   * Reads the lists of the legacy timetable viewer (#121, PAR-092).
+   *
+   * Get_browser_publico (the plans and their periods), get_public_tree
+   * Brigadas, get_public_list_profesores, _lugares and _otros_recursos, as
+   * ancoragoh_client_browsers_publico.js posts them (with "access" =
+   * "public"), as the step's user or, with "anonymous", without a session.
+   *
+   * @return array<string, list<string>>
+   *   plans, periods, brigades, teachers, rooms, resources: sorted labels;
+   *   or ["denied"] when the viewer answered with the login page.
+   */
+  private function viewerLists(array $step): array {
+    $get = fn (string $event): string => !empty($step['anonymous'])
+      ? $this->anonymousEvent($event, ['access' => 'public'])
+      : $this->event($step['as'], $event, ['access' => 'public'], "viewer {$step['key']} $event", TRUE);
+    $browser = $get('get_browser_publico');
+    if (!str_contains($browser, 'publico_cboPeriodo')) {
+      printf("CHAR  %s viewer %s: denied\n", $step['ref'] ?? '', $step['key']);
+      return ['denied' => ['denied']];
+    }
+    $labels = static function (string $body, string $call): array {
+      preg_match_all('/showHorario' . $call . '\(\\\\?"[^"]*\\\\?"\)[^>]*>\s*<img[^>]*>([^<]*)</s', $body, $m);
+      $out = array_values(array_unique(array_map('trim', $m[1])));
+      sort($out, SORT_STRING);
+      return $out;
+    };
+    preg_match_all('/<optgroup label ="([^"]*)">/', $browser, $plans);
+    preg_match_all('/<option value = "[^"]*">([^<]*)<\/option>/', $browser, $periods);
+    $out = [
+      'plans' => $plans[1],
+      'periods' => $periods[1],
+      'brigades' => $labels($get('get_public_treeBrigadas'), ''),
+      'teachers' => $labels($get('get_public_list_profesores'), 'Profesor'),
+      'rooms' => $labels($get('get_public_list_lugares'), 'Lugar'),
+      'resources' => $labels($get('get_public_list_otros_recursos'), 'OtroRecurso'),
+    ];
+    foreach (['plans', 'periods'] as $k) {
+      sort($out[$k], SORT_STRING);
+    }
+    printf("CHAR  %s viewer %s as %s: %s\n", $step['ref'] ?? '', $step['key'], empty($step['anonymous']) ? $step['as'] : 'anonymous', json_encode($out, JSON_UNESCAPED_UNICODE));
+    return $out;
+  }
+
+  /**
+   * Sends an event without a session (a fresh cookie jar).
+   */
+  private function anonymousEvent(string $event, array $fields): string {
+    $curl = curl_init($this->base . '?execute');
+    curl_setopt_array($curl, [
+      CURLOPT_POST => TRUE,
+      CURLOPT_POSTFIELDS => http_build_query(array_map('strval', ["app_event_$event" => 'yes'] + $fields)),
+      CURLOPT_RETURNTRANSFER => TRUE,
+      CURLOPT_TIMEOUT => 30,
+    ]);
+    $body = curl_exec($curl);
+    return is_string($body) ? $body : '';
   }
 
   /**

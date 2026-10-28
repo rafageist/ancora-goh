@@ -70,3 +70,23 @@ function ancora_scheduling_update_11003(): string {
   $manager->installFieldStorageDefinition('other_resources', 'ancora_placement', 'ancora_scheduling', $definitions['other_resources']);
   return 'Installed the other resources of placements.';
 }
+
+/**
+ * Grants the timetable viewer to the roles that see academic data (#121).
+ *
+ * Legacy offers its timetable viewer (PAR-092) only on the login page, to
+ * everyone, when its anonymous switch is on. #121 makes it a clearly
+ * accessible page of the authenticated demo instead: every role with "view
+ * academic data" gets "view timetable viewer"; the anonymous role never.
+ */
+function ancora_scheduling_update_11004(): string {
+  $granted = [];
+  foreach (\Drupal::entityTypeManager()->getStorage('user_role')->loadMultiple() as $role) {
+    if ($role->id() === 'anonymous' || !$role->hasPermission('view academic data') || $role->hasPermission('view timetable viewer')) {
+      continue;
+    }
+    $role->grantPermission('view timetable viewer')->save();
+    $granted[] = $role->id();
+  }
+  return $granted === [] ? 'No role was granted the timetable viewer.' : 'The timetable viewer was granted to: ' . implode(', ', $granted) . '.';
+}

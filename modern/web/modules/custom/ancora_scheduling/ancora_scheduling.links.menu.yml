@@ -46,3 +46,9 @@ ancora_scheduling.main.timetables.explorer:
   menu_name: main
   parent: ancora_scheduling.main.timetables
   weight: 1
+ancora_scheduling.main.timetables.viewer:
+  title: 'Timetable viewer'
+  route_name: ancora_scheduling.viewer
+  menu_name: main
+  parent: ancora_scheduling.main.timetables
+  weight: 2
