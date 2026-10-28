@@ -110,3 +110,22 @@ ancora_academic.order.move:
     type: 'activity-type|template'
     id: '\d+'
     direction: 'up|down'
+
+# The visual assignment editor of templates (#122): ?template= and ?q=.
+ancora_academic.assignment_editor:
+  path: '/ancora/planning/assignment-editor'
+  defaults:
+    _controller: '\Drupal\ancora_academic\Controller\AssignmentEditorController::page'
+    _title_callback: '\Drupal\ancora_academic\Controller\AssignmentEditorController::title'
+  requirements:
+    _permission: 'edit academic data+administer academic data'
+
+# The details of one teacher or room assignment (a dialog of the editor).
+ancora_academic.assignment_details:
+  path: '/ancora/planning/assignment-editor/details/{kind}/{id}'
+  defaults:
+    _controller: '\Drupal\ancora_academic\Controller\AssignmentEditorController::details'
+  requirements:
+    _permission: 'edit academic data+administer academic data'
+    kind: 'teacher|room'
+    id: '\d+'

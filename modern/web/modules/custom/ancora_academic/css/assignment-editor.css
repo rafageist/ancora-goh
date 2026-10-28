@@ -1,0 +1,204 @@
+/**
+ * @file
+ * The assignment editor (#122): three adjacent panels that stack on narrow
+ * screens. Colours come from the theme's custom properties, with fallbacks.
+ */
+
+.ancora-assign__panels {
+  display: grid;
+  grid-template-columns: minmax(14rem, 1fr) minmax(20rem, 2fr) minmax(14rem, 1fr);
+  gap: var(--ancora-space, 1rem);
+  align-items: start;
+}
+
+@media (max-width: 60rem) {
+  .ancora-assign__panels {
+    grid-template-columns: 1fr;
+  }
+}
+
+.ancora-assign__panel,
+.ancora-assign__list {
+  min-width: 0;
+  padding: 0.75rem;
+  border: 1px solid var(--ancora-line, #d9dee4);
+  border-radius: var(--ancora-radius, 6px);
+  background: var(--ancora-surface, #fff);
+}
+
+.ancora-assign__assigned {
+  display: grid;
+  gap: var(--ancora-space, 1rem);
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+
+.ancora-assign__panel h2,
+.ancora-assign__list h2 {
+  margin: 0 0 0.5rem;
+  font-size: 1.1rem;
+}
+
+.ancora-assign__panel h3,
+.ancora-assign__lane h3 {
+  margin: 0.75rem 0 0.25rem;
+  font-size: 0.95rem;
+}
+
+.ancora-assign__help,
+.ancora-assign__meta,
+.ancora-assign__empty {
+  margin: 0.25rem 0;
+  color: var(--ancora-muted, #5b6878);
+  font-size: 0.875rem;
+}
+
+.ancora-assign__warning {
+  margin: 0.25rem 0;
+  color: var(--ancora-danger, #a4262c);
+  font-size: 0.875rem;
+}
+
+.ancora-assign__search {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+  margin-bottom: var(--ancora-space, 1rem);
+}
+
+.ancora-assign__lane {
+  margin-top: 0.5rem;
+  padding: 0.5rem;
+  border: 1px dashed var(--ancora-line, #d9dee4);
+  border-radius: var(--ancora-radius, 6px);
+}
+
+.ancora-assign__card {
+  margin: 0.5rem 0;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--ancora-line, #d9dee4);
+  border-left: 4px solid var(--ancora-accent, #1f5f8b);
+  border-radius: var(--ancora-radius, 6px);
+  background: var(--ancora-canvas, #f4f6f8);
+}
+
+.ancora-assign__card--confirm {
+  border-left-color: var(--ancora-danger, #a4262c);
+}
+
+.ancora-assign__card .form-item {
+  display: inline-block;
+  margin: 0.25rem 0.5rem 0.25rem 0;
+}
+
+.ancora-assign__name {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.ancora-assign__chips {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ancora-assign__chip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.375rem 0.5rem;
+  border: 1px solid var(--ancora-line, #d9dee4);
+  border-radius: var(--ancora-radius, 6px);
+  background: var(--ancora-surface, #fff);
+}
+
+.ancora-assign__chip--static {
+  display: inline-flex;
+  margin: 0 0.25rem 0.25rem 0;
+  padding: 0.125rem 0.375rem;
+}
+
+.ancora-assign__chip-remove {
+  min-width: 2rem;
+  min-height: 2rem;
+  padding: 0 0.5rem;
+}
+
+.ancora-assign__groups {
+  margin: 0.25rem 0;
+}
+
+.ancora-assign__card-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+  margin-top: 0.25rem;
+}
+
+.ancora-assign__nav {
+  margin: 0.5rem 0;
+  padding-left: 1.25rem;
+}
+
+.ancora-assign__feedback--status,
+.ancora-assign__feedback--error {
+  margin-bottom: var(--ancora-space, 1rem);
+  padding: 0.5rem 0.75rem;
+  border-radius: var(--ancora-radius, 6px);
+  border: 1px solid var(--ancora-line, #d9dee4);
+}
+
+.ancora-assign__feedback--error {
+  border-color: var(--ancora-danger, #a4262c);
+  color: var(--ancora-danger, #a4262c);
+}
+
+.ancora-assign__feedback ul {
+  margin: 0;
+  padding-left: 1.25rem;
+}
+
+/* Drag and drop (only with the script). */
+.ancora-assign.is-enhanced [draggable="true"] {
+  cursor: grab;
+}
+
+.ancora-assign .is-dragging {
+  opacity: 0.6;
+}
+
+.ancora-assign .is-drop-target {
+  outline: 3px solid var(--ancora-accent, #1f5f8b);
+  outline-offset: 2px;
+}
+
+.ancora-assign.is-busy {
+  opacity: 0.7;
+  pointer-events: none;
+}
+
+.ancora-assign [tabindex="-1"]:focus {
+  outline: 3px solid var(--ancora-accent, #1f5f8b);
+  outline-offset: 2px;
+}
+
+.ancora-assign__counts {
+  color: var(--ancora-muted, #5b6878);
+  font-size: 0.875rem;
+}
+
+.ancora-assign__move {
+  display: inline-block;
+  min-width: 1.75rem;
+  text-align: center;
+  text-decoration: none;
+}
