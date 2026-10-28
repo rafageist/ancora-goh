@@ -149,6 +149,12 @@ final class TimetableReader {
         'room_code' => $row['lugar'] === NULL ? '' : self::strip($row['lugar']),
         'resources' => array_map(fn (string $id): string => $index['resources'][$id] ?? self::strip($id), $row['otros_recursos'] ?? []),
         'resource_codes' => array_map(self::strip(...), $row['otros_recursos'] ?? []),
+        // The explorer (D14) selects by record, not by code.
+        'activity_type' => $template['type'] ?? '',
+        'group_id' => self::entityId($row['grupo']),
+        'teacher_id' => self::entityId($row['profesor']),
+        'room_id' => self::entityId($row['lugar']),
+        'resource_ids' => array_values(array_filter(array_map(self::entityId(...), $row['otros_recursos'] ?? []))),
       ];
     }
     return $placements;
@@ -193,6 +199,11 @@ final class TimetableReader {
         'room_code' => $room?->getCode() ?? '',
         'resources' => array_map(static fn ($r): string => (string) $r->label(), $resources),
         'resource_codes' => array_map(static fn ($r): string => $r->getCode(), $resources),
+        'activity_type' => $type === NULL ? '' : (string) $type->label(),
+        'group_id' => $group === NULL ? NULL : (int) $group->id(),
+        'teacher_id' => $teacher === NULL ? NULL : (int) $teacher->id(),
+        'room_id' => $room === NULL ? NULL : (int) $room->id(),
+        'resource_ids' => array_map(static fn ($r): int => (int) $r->id(), $resources),
       ];
     }
     return $placements;
@@ -203,12 +214,14 @@ final class TimetableReader {
    */
   private function index(array $export, array $rows): array {
     $subjects = array_column($export['subjects'], 'label', 'key');
+    $types = array_column($export['activity_types'], 'label', 'key');
     $index = ['templates' => []];
     foreach ($export['activity_templates'] as $i => $template) {
       $subject = $subjects[$template['subject']] ?? $template['subject_code'];
       $index['templates'][$rows['plantilla_de_actividad'][$i]['id']] = [
         'label' => $subject . ' #' . $template['sequence'],
         'subject' => $subject,
+        'type' => $types[$template['activity_type']] ?? '',
       ];
     }
     $pairs = [
@@ -229,6 +242,13 @@ final class TimetableReader {
       $index[$name . '_labels'] = array_column($export[$list], 'label', 'code');
     }
     return $index;
+  }
+
+  /**
+   * The entity id of a numbered engine id, or NULL.
+   */
+  private static function entityId(?string $id): ?int {
+    return $id !== NULL && preg_match('/^([0-9]{10})' . preg_quote(LegacyRows::ID_SEPARATOR, '/') . '/', $id, $m) ? (int) $m[1] : NULL;
   }
 
   /**

@@ -96,6 +96,7 @@ final class LegacyDriver {
    */
   public function characterize(array $users): void {
     $this->ids = json_decode((string) file_get_contents($this->out . '/legacy-ids.json'), TRUE, 8, JSON_THROW_ON_ERROR);
+    $explorer = [];
     $classes = [
       'teacher' => ['Profesor', 'profesor', 'nombre'],
       'room' => ['Lugar', 'lugar', 'nombre'],
@@ -121,6 +122,10 @@ final class LegacyDriver {
         $this->characterizeEvent($step, $users);
         continue;
       }
+      if ($step['kind'] === 'explorer_grid') {
+        $explorer[$step['key']] = $this->explorerGrid($step);
+        continue;
+      }
       $record = $this->scenario->records[$step['record']];
       [$class, $table, $name] = $classes[$record['type']];
       $id = $this->ids[$step['record']];
@@ -142,6 +147,10 @@ final class LegacyDriver {
       if (!$as_recorded) {
         $this->failures++;
       }
+    }
+    if ($explorer !== []) {
+      // Compared with the Drupal explorer by explorer-compare.php.
+      file_put_contents($this->out . '/legacy-explorer.json', json_encode($explorer, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
     }
   }
 
@@ -279,6 +288,54 @@ final class LegacyDriver {
     if (!$as_recorded) {
       $this->failures++;
     }
+  }
+
+  /**
+   * Reads the timetable explorer's grid for posted selectors (#119).
+   *
+   * The explorer posts get_minibrowser_horarios with idperiodo and the id of
+   * the brigade (idbrg), teacher (idprofe), room (idlug) or other resource
+   * (idres) the person clicked (www/js/app/client/browsers/ancoragoh_client_
+   * browsers_horarios.js); "fields" maps those names to scenario keys. The
+   * grid (minibrowser_horarios.tpl) has one row per slot and one cell per
+   * day; a start cell shows classification, subject, teacher and room.
+   *
+   * @return list<string>
+   *   "day.slot|classification|subject|teacher|room", sorted.
+   */
+  private function explorerGrid(array $step): array {
+    $fields = [];
+    foreach ($step['fields'] as $name => $ref) {
+      $fields[$name] = $this->ids[$ref] ?? $ref;
+    }
+    $body = $this->event($step['as'], 'get_minibrowser_horarios', $fields, "explorer {$step['key']}", TRUE);
+    $lines = [];
+    $dom = new \DOMDocument();
+    @$dom->loadHTML('<?xml encoding="utf-8"?>' . $body);
+    $rows = $dom->getElementsByTagName('tr');
+    foreach ($rows as $r => $row) {
+      if ($r === 0) {
+        continue;
+      }
+      $cells = $row->getElementsByTagName('td');
+      $slot = trim((string) $cells->item(0)?->textContent);
+      for ($c = 1; $c < $cells->length; $c++) {
+        $cell = $cells->item($c);
+        if (!str_contains((string) $cell->getAttribute('class'), 'iconlink')) {
+          continue;
+        }
+        $parts = [];
+        foreach ($cell->childNodes as $node) {
+          if ($node->nodeType === XML_TEXT_NODE) {
+            $parts[] = trim($node->textContent);
+          }
+        }
+        $lines[] = $c . '.' . $slot . '|' . implode('|', $parts);
+      }
+    }
+    sort($lines, SORT_STRING);
+    printf("CHAR  %s explorer %s as %s: %d start cells %s\n", $step['ref'] ?? '', $step['key'], $step['as'], count($lines), json_encode($lines, JSON_UNESCAPED_UNICODE));
+    return $lines;
   }
 
   /**

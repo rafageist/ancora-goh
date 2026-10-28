@@ -237,6 +237,9 @@ timetable alpha "&teacher=TB"
 check "filter by teacher TB: 4 placements, all of Teacher Beta" eq "$(timetable_cells final | cut -d/ -f7 | sort | uniq -c | tr -s ' ')" " 4 Teacher Beta"
 timetable alpha "&room=L1"
 check "filter by room L1: only Room 1" eq "$(timetable_cells final | cut -d/ -f8 | sort -u)" "Room 1"
+tb=$(alpha_drush php:eval 'print key(\Drupal::entityTypeManager()->getStorage("ancora_teacher")->loadByProperties(["code" => "TB"]));')
+req alpha "/o/alpha/ancora/timetables/explorer?period=$period&teacher=$tb"
+check "the legacy explorer (D14) shows Teacher Beta's 4 activities from the engine database" bash -c "[ \"\$(cat '$work/r.status')\" = 200 ] && [ \"\$(grep -o 'class=\"ancora-placement\"' '$work/r.body' | wc -l)\" = 4 ]"
 timetable alpha
 # Since #70 the plan is visible to its creator only (legacy creador), so
 # the page varies by user; Dynamic Page Cache does not cache per-user
