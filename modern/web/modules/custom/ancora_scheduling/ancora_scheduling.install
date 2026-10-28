@@ -72,21 +72,36 @@ function ancora_scheduling_update_11003(): string {
 }
 
 /**
- * Grants the timetable viewer to the roles that see academic data (#121).
+ * Formerly granted the timetable viewer to the academic roles (#121).
  *
- * Legacy offers its timetable viewer (PAR-092) only on the login page, to
- * everyone, when its anonymous switch is on. #121 makes it a clearly
- * accessible page of the authenticated demo instead: every role with "view
- * academic data" gets "view timetable viewer"; the anonymous role never.
+ * "View academic data" does not imply the organization-wide viewer, so this
+ * update grants nothing any more (least privilege, #121 review). It stays so
+ * that a site that already ran it sees no change; update 11005 reports the
+ * grants a site holds.
  */
 function ancora_scheduling_update_11004(): string {
-  $granted = [];
+  return 'Nothing to grant: the timetable viewer is granted explicitly.';
+}
+
+/**
+ * Reports the roles holding the timetable viewer (#121), revoking nothing.
+ *
+ * Administrators reach the viewer without it (user 1, and the route accepts
+ * "administer academic data"); any other role needs an explicit grant of
+ * "view timetable viewer". Grants made earlier, by update 11004 or by an
+ * administrator, are kept and listed here and in the log for review.
+ */
+function ancora_scheduling_update_11005(): string {
+  $roles = [];
   foreach (\Drupal::entityTypeManager()->getStorage('user_role')->loadMultiple() as $role) {
-    if ($role->id() === 'anonymous' || !$role->hasPermission('view academic data') || $role->hasPermission('view timetable viewer')) {
-      continue;
+    if ($role->hasPermission('view timetable viewer') || $role->isAdmin()) {
+      $roles[] = $role->id() . ($role->isAdmin() ? ' (administrator role)' : '');
     }
-    $role->grantPermission('view timetable viewer')->save();
-    $granted[] = $role->id();
   }
-  return $granted === [] ? 'No role was granted the timetable viewer.' : 'The timetable viewer was granted to: ' . implode(', ', $granted) . '.';
+  sort($roles);
+  $message = $roles === []
+    ? 'No role holds the timetable viewer permission.'
+    : 'Roles holding the timetable viewer permission (kept): ' . implode(', ', $roles) . '.';
+  \Drupal::logger('ancora_scheduling')->notice($message);
+  return $message;
 }

@@ -30,7 +30,7 @@ final class ViewerTest extends AncoraBrowserTestBase {
   protected static $modules = ['ancora_scheduling', 'block'];
 
   /**
-   * The permissions of a planner with the viewer.
+   * The permissions of a planner whose role is granted the viewer.
    */
   private const PLANNER = [
     'view academic data',
@@ -201,6 +201,62 @@ final class ViewerTest extends AncoraBrowserTestBase {
     $this->drupalLogin($this->drupalCreateUser(['view academic data']));
     $this->drupalGet('/ancora/timetables/viewer');
     $this->assertSession()->statusCodeEquals(403);
+  }
+
+  /**
+   * Least privilege: administrators by default, other roles when granted.
+   */
+  public function testAccessPolicy(): void {
+    // A fresh install grants the viewer to no role (an administrator role, if
+    // the profile has one, holds every permission).
+    foreach (Role::loadMultiple() as $role) {
+      if (!$role->isAdmin()) {
+        $this->assertFalse($role->hasPermission('view timetable viewer'), $role->id());
+      }
+    }
+    [, , $period] = $this->alicePlan();
+    $ta = $this->id('ancora_teacher', 'TA');
+    $url = ['query' => ['period' => $period, 'teacher' => $ta]];
+    // "View academic data" (a planner without the grant) is not enough.
+    $academic = ['view academic data', 'edit academic data', 'view ancora engine jobs', 'request ancora engine jobs'];
+    $planner = $this->drupalCreateUser($academic);
+    $this->drupalLogin($planner);
+    $this->drupalGet('/ancora/timetables');
+    $this->assertSession()->linkNotExists('Timetable viewer');
+    $this->drupalGet('/ancora/timetables/viewer', $url);
+    $this->assertSession()->statusCodeEquals(403);
+    $this->assertSession()->responseNotContains('Subject Alpha');
+
+    // An explicit grant to the planner's role opens it; a revocation closes
+    // it again at once (nothing stale is served).
+    $rid = $planner->getRoles(TRUE)[0];
+    Role::load($rid)->grantPermission('view timetable viewer')->save();
+    $this->drupalGet('/ancora/timetables/viewer', $url);
+    $this->assertSession()->statusCodeEquals(200);
+    $this->assertSession()->pageTextContains('Teacher Alpha: 1 activities');
+    Role::load($rid)->revokePermission('view timetable viewer')->save();
+    $this->drupalGet('/ancora/timetables/viewer', $url);
+    $this->assertSession()->statusCodeEquals(403);
+    $this->assertSession()->responseNotContains('Subject Alpha');
+
+    // Administrators see it without the permission: "administer academic
+    // data" and user 1.
+    $this->drupalLogin($this->drupalCreateUser(['view academic data', 'administer academic data']));
+    $this->drupalGet('/ancora/timetables');
+    $this->clickLink('Timetable viewer');
+    $this->drupalGet('/ancora/timetables/viewer', $url);
+    $this->assertSession()->statusCodeEquals(200);
+    $this->assertSession()->pageTextContains('Teacher Alpha: 1 activities');
+    $this->drupalLogin($this->rootUser);
+    $this->drupalGet('/ancora/timetables/viewer', $url);
+    $this->assertSession()->statusCodeEquals(200);
+    $this->assertSession()->pageTextContains('Teacher Alpha: 1 activities');
+
+    // Anonymous, after all of this, still gets nothing.
+    $this->drupalLogout();
+    $this->drupalGet('/ancora/timetables/viewer', $url);
+    $this->assertSession()->statusCodeEquals(403);
+    $this->assertSession()->responseNotContains('Subject Alpha');
   }
 
   /**

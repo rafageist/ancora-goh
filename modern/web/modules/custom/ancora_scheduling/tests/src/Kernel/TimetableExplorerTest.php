@@ -279,21 +279,29 @@ final class TimetableExplorerTest extends AcademicKernelTestBase {
   }
 
   /**
-   * The update grants the viewer to the roles that see academic data.
+   * The updates grant nothing; 11005 reports the existing grants (#121).
    */
-  public function testViewerPermissionUpdate(): void {
+  public function testViewerPermissionUpdates(): void {
     $storage = $this->container->get('entity_type.manager')->getStorage('user_role');
     $storage->create(['id' => 'planner', 'label' => 'Planner', 'permissions' => ['view academic data']])->save();
-    $storage->create(['id' => 'other', 'label' => 'Other', 'permissions' => []])->save();
+    $storage->create(['id' => 'viewer', 'label' => 'Viewer', 'permissions' => ['view timetable viewer']])->save();
+    $storage->create(['id' => 'admin', 'label' => 'Admin', 'is_admin' => TRUE])->save();
     $anonymous = $storage->load('anonymous') ?? $storage->create(['id' => 'anonymous', 'label' => 'Anonymous']);
     $anonymous->grantPermission('view academic data')->save();
     $this->container->get('module_handler')->loadInclude('ancora_scheduling', 'install');
-    $this->assertStringContainsString('planner', ancora_scheduling_update_11004());
+
+    $this->assertSame('Nothing to grant: the timetable viewer is granted explicitly.', ancora_scheduling_update_11004());
+    $this->assertSame('Roles holding the timetable viewer permission (kept): admin (administrator role), viewer.', ancora_scheduling_update_11005());
     $storage->resetCache();
-    $this->assertTrue($storage->load('planner')->hasPermission('view timetable viewer'));
-    $this->assertFalse($storage->load('other')->hasPermission('view timetable viewer'));
-    $this->assertFalse($storage->load('anonymous')->hasPermission('view timetable viewer'), 'never the anonymous role');
-    $this->assertSame('No role was granted the timetable viewer.', ancora_scheduling_update_11004());
+    // "View academic data" does not imply the viewer; explicit grants stay.
+    $this->assertFalse($storage->load('planner')->hasPermission('view timetable viewer'));
+    $this->assertFalse($storage->load('anonymous')->hasPermission('view timetable viewer'));
+    $this->assertTrue($storage->load('viewer')->hasPermission('view timetable viewer'));
+
+    // Without any grant, the report says so.
+    $storage->load('viewer')->delete();
+    $storage->load('admin')->delete();
+    $this->assertSame('No role holds the timetable viewer permission.', ancora_scheduling_update_11005());
   }
 
 }
