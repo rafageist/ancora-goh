@@ -4,4 +4,5 @@
 # for the release approval of #62).
 view timetable viewer:
   title: 'View the timetable viewer'
-  description: 'Browse the timetables of every plan of this organization by period and cohort, teacher, room or own other resource, as the legacy timetable viewer. Logged-in users only.'
+  description: 'Browse the timetables of every plan of this organization by period and cohort, teacher, room or own other resource, as the legacy timetable viewer. Logged-in users only. "View academic data" does not include it: grant it explicitly to the roles that may see the timetables of every planner.'
+  restrict access: true
