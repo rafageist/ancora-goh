@@ -63,3 +63,10 @@ ancora_academic.main.zones:
   menu_name: main
   parent: ancora_academic.main.plans
   weight: 13
+ancora_academic.main.assignment_editor:
+  title: 'Assignment editor'
+  description: 'Assign the teachers, groups and rooms of each activity template, and set their priorities.'
+  route_name: ancora_academic.assignment_editor
+  menu_name: main
+  parent: ancora_academic.main.assignments
+  weight: -10

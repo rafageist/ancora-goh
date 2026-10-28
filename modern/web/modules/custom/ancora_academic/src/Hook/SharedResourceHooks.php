@@ -78,6 +78,15 @@ final class SharedResourceHooks {
       '#prefix' => '<p class="ancora-template-resources-link">',
       '#suffix' => '</p>',
     ];
+    // The visual editor of its teachers, groups and rooms (#122).
+    $build['ancora_template_assignments'] = [
+      '#type' => 'link',
+      '#title' => new TranslatableMarkup('Teachers, groups and rooms'),
+      '#url' => Url::fromRoute('ancora_academic.assignment_editor', [], ['query' => ['template' => $entity->id()]]),
+      '#weight' => 102,
+      '#prefix' => '<p class="ancora-template-assignments-link">',
+      '#suffix' => '</p>',
+    ];
   }
 
 }

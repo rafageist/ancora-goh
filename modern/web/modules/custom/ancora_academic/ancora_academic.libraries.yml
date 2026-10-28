@@ -1,0 +1,12 @@
+assignment_editor:
+  version: VERSION
+  css:
+    component:
+      css/assignment-editor.css: {}
+  js:
+    js/assignment-editor.js: {}
+  dependencies:
+    - core/drupal
+    - core/once
+    - core/drupal.announce
+    - core/drupal.dialog.ajax

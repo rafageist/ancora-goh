@@ -8,6 +8,7 @@ services:
   Drupal\ancora_academic\PeriodInputs: ~
   Drupal\ancora_academic\RoomConstraints: ~
   Drupal\ancora_academic\SharedResources: ~
+  Drupal\ancora_academic\TemplateAssignments: ~
   Drupal\ancora_academic\OrderUpkeep: ~
   Drupal\ancora_academic\Export\AcademicExport: ~
   Drupal\ancora_academic\Export\LegacyRows: ~
