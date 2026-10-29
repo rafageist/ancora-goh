@@ -152,3 +152,15 @@
     display: block;
   }
 }
+
+/* A placement moved by hand, and its move link (#130). */
+.ancora-placement__moved {
+  display: block;
+  font-size: 0.85rem;
+}
+
+.ancora-placement__move {
+  display: inline-block;
+  margin-top: 0.25rem;
+  min-height: 1.75rem;
+}

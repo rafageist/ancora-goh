@@ -1,6 +1,6 @@
 # Interactive timetable editing: characterization and design (#123)
 
-Status: **characterization and design only**. Nothing here is implemented or authorized. The first slice is proposed as a separate issue, "[UI-TIMETABLE-1]", and needs maintainer approval. Parents: #74 and #70. Depends on #95 (placement persistence), #119 (explorer) and #128 (interaction conventions).
+Status: characterization and design (§1–§8). **The first slice is implemented (#130, §9)**; the later proposals (§6) are not. Parents: #74 and #70. Depends on #95 (placement persistence), #119 (explorer) and #128 (interaction conventions).
 
 Sources:
 - VB6: `rafageist/ancora-vb6` at `6c7038d`, inspected from a shallow clone; files are cited by path and line.
@@ -203,3 +203,65 @@ The engine row is never UPDATEd. The next job's input re-inserts the placement a
 4. The site-wide stale version forbids moves while any job runs.
 5. Checks need a workspace, which means the worker and about 1 s of latency.
 6. Teachers shared across plans are invisible to every engine check.
+
+## 9. Implemented: the first slice (#130)
+
+Authorized by the maintainer and implemented as specified in §5, with the checkpoint's conditions. It applies to workspace mode only.
+
+**What the destinations mean.** A valid cell is valid **within the placement's period, as the scheduler sees it**. That covers the period, the activity type, the subject and their restrictions, and every activity of the period for the group's cohorts, the teacher, the room and the other resources.
+- It is **not** checked against other plans whose dates overlap. A teacher or room shared with another plan may be busy there (case 150).
+- The move page says so in a visible note and again in the preview. Nothing is labelled "conflict-free".
+- A cross-plan check stays a documented follow-up (§6).
+
+**Routes**
+- `ancora_scheduling.placement_move`, `/ancora/timetables/placements/{ancora_placement}/move`, with `?check=<id>[&undo=<change id>]` (`PlacementMoveForm`).
+  - It requires `edit academic data` or `administer academic data`, and update access to the placement: the plan's owner, or an administrator.
+  - It is linked as "Move" from the plan timetable (start cell and mobile list) and from the explorer. The viewer has no link and shows no marker.
+- In two-database mode the page explains why moves are not offered, and no link is shown.
+
+**Command contract** (`PlacementModification`)
+- `requestCheck(Placement, account): int`
+  - It queues a check, or reuses a queued or running check by the same user.
+  - It is never refused because a generation job is queued.
+- `check(Placement, id): ?array` returns the state, the grid and whether the check has expired.
+- `commit(Placement, check id, day, slot, account, ?undo): PlacementChange`
+  - It runs in one Drupal transaction under the publication's advisory lock (`PlacementPublisher::LOCK`).
+  - It refuses with `PlacementModificationException` (reason codes `mode`, `access`, `check`, `expired`, `job`, `version`, `placement`, `cell`, `same`, `undo`) and writes nothing in that case.
+  - It sets only the day and the first slot. It validates and saves as the plan's creator, and writes an `ancora_placement_change`.
+- `undo(change, check id, account)` is a commit back to the change's origin. It allows only the placement's last change, with a new check.
+
+**The check is not a generation job**
+- It has its own table, `ancora_placement_check`, with states queued, running, done and failed. It is never in the job queue, and the one-running-job rule never counts it.
+- The worker runs pending checks at the start of every cycle, before it claims a generation job (`ancora_engine.check_runner`, `CheckRunnerInterface`), so a queued generation job does not block a check.
+- `PlacementCheckRunner` works as follows:
+  - it opens a workspace under its own key range (900000000000 + check id; generation job ids never reach it);
+  - it loads the whole site with the unchanged `WorkspaceSync` (`loadForCheck()`: no closure prune);
+  - in a transaction that is rolled back, it deletes the placement's row and evaluates every cell with the case-150 functions;
+  - it drops the workspace.
+- It writes only its own row, which is not part of the generation input, so it can never make a run's publication stale.
+- A check that cannot run fails, with its reason. A check left running for 120 s is marked failed.
+
+**Guards and their tests**
+
+| Guard | Kernel `PlacementModificationTest` | Functional `PlacementMoveUiTest` | `workspace-journey.sh` step 11 (real engine) |
+|---|---|---|---|
+| Destinations come from the engine's functions, in a workspace | — | — | own cell valid; shared teacher (A1/G2), cohort (B1/G1), manual teacher restriction and period restriction refused; 2-slot overflow refused |
+| Only a done, unexpired check of this placement; only its valid cells | `testRefusals` | disabled cells with reasons | — |
+| No generation job queued or running | `testChecksAndGenerationJobs` (queued, running) | alert after a job is queued | a job queued after the check refuses the commit |
+| Input version and placement signature | `testRefusals`, stale after a run | — | — |
+| A check is not blocked by, and does not block, anything | a running check does not block a commit; a check request while a job is queued; no job created | — | a check and a queued job both run in one cycle |
+| Owner, viewer and anonymous access; forged ids | `testRefusals` | 403 / 404 | — |
+| Time-only: group, teacher, room, resources, engine id and job kept | `testMoveIsTimeOnlyAndAudited` | — | the next run keeps it at the new cell, publishes nothing, duplicates nothing, and books its occupancy there (A1/G2's check sees TA busy at the new cell, not at the old one) |
+| Audit, cascade and plan access | `testMoveIsTimeOnlyAndAudited` | history list | — |
+| Undo | `testUndo` | keyboard undo | undo returns it |
+| Two-database mode | `testRefusals` | explanation, no button | — |
+
+**Accessibility** (the #128 conventions)
+- The grid of buttons is the primary path. A disabled cell carries its reasons as text, linked by `aria-describedby`.
+- The preview is a labelled group with a focused confirm button.
+- Feedback goes to `role="status"` and `role="alert"` regions.
+- While the check runs, a loading state (`aria-busy`) with a Refresh link. The script reloads every 2 s, at most 30 times.
+- Dragging the activity onto a valid cell presses that cell's button.
+- On mobile the grid scrolls inside its wrapper.
+
+**Deploy:** `drush updatedb` runs `ancora_scheduling_update_11006`, which creates the check table and the change entity type. Then `drush cr`. The worker must run, as it already does for generation.

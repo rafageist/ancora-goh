@@ -142,6 +142,23 @@ final class JobRepository {
   }
 
   /**
+   * The oldest queued or running generation job of the site, if any.
+   *
+   * The input version of the workspace mode covers the whole site, so any
+   * such job would see a manual placement change as stale input (#130).
+   */
+  public function activeForSite(): ?Job {
+    $row = $this->database->select('ancora_engine_job', 'j')
+      ->fields('j')
+      ->condition('state', [JobState::Queued->value, JobState::Running->value], 'IN')
+      ->orderBy('id')
+      ->range(0, 1)
+      ->execute()
+      ->fetchObject();
+    return $row ? Job::fromRow($row) : NULL;
+  }
+
+  /**
    * The queued or running job of a scope, if any.
    */
   public function activeForScope(JobScope $scope): ?Job {

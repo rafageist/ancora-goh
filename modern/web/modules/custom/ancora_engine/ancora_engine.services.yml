@@ -22,7 +22,7 @@ services:
 
   ancora_engine.worker:
     class: Drupal\ancora_engine\Worker
-    arguments: ['@ancora_engine.job_repository', '@ancora_engine.engine_client', '@ancora_engine.settings', '@datetime.time', '@logger.channel.ancora_engine', '@?ancora_engine.job_input', '@ancora_engine.workspace_client', '@?ancora_engine.workspace_input', '@?ancora_engine.job_output']
+    arguments: ['@ancora_engine.job_repository', '@ancora_engine.engine_client', '@ancora_engine.settings', '@datetime.time', '@logger.channel.ancora_engine', '@?ancora_engine.job_input', '@ancora_engine.workspace_client', '@?ancora_engine.workspace_input', '@?ancora_engine.job_output', '@?ancora_engine.check_runner']
   Drupal\ancora_engine\Worker: '@ancora_engine.worker'
 
   logger.channel.ancora_engine:

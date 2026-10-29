@@ -102,3 +102,20 @@ ancora_scheduling.viewer:
   requirements:
     _permission: 'view timetable viewer+administer academic data'
     _user_is_logged_in: 'TRUE'
+
+# Moving one saved placement (#130, time only, workspace mode): its checked
+# destinations, the preview, the move and its undo. ?check=<id>[&undo=<id>].
+ancora_scheduling.placement_move:
+  path: '/ancora/timetables/placements/{ancora_placement}/move'
+  defaults:
+    _form: '\Drupal\ancora_scheduling\Form\PlacementMoveForm'
+    _title: 'Move an activity'
+  requirements:
+    _permission: 'edit academic data+administer academic data'
+    _entity_access: 'ancora_placement.update'
+    ancora_placement: '\d+'
+  options:
+    no_cache: TRUE
+    parameters:
+      ancora_placement:
+        type: 'entity:ancora_placement'

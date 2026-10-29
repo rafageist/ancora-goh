@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Drupal\ancora_scheduling\Hook;
 
 use Drupal\Core\Entity\EntityInterface;
+use Drupal\Core\Entity\EntityLastInstalledSchemaRepositoryInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Hook\Attribute\Hook;
 
@@ -39,6 +40,7 @@ final class PlacementCascade {
 
   public function __construct(
     private readonly EntityTypeManagerInterface $entityTypeManager,
+    private readonly EntityLastInstalledSchemaRepositoryInterface $installed,
   ) {}
 
   /**
@@ -48,6 +50,19 @@ final class PlacementCascade {
   public function entityPredelete(EntityInterface $entity): void {
     if ($entity->getEntityTypeId() === 'ancora_other_resource') {
       $this->removeResource((int) $entity->id());
+      return;
+    }
+    // A placement's manual moves (#130) go with it.
+    if ($entity->getEntityTypeId() === 'ancora_placement') {
+      // Only once update 11006 installed them (the code may be deployed first).
+      if ($this->installed->getLastInstalledDefinition('ancora_placement_change') === NULL) {
+        return;
+      }
+      $changes = $this->entityTypeManager->getStorage('ancora_placement_change');
+      $ids = $changes->getQuery()->accessCheck(FALSE)->condition('placement', $entity->id())->execute();
+      if ($ids !== []) {
+        $changes->delete($changes->loadMultiple($ids));
+      }
       return;
     }
     $field = self::FIELDS[$entity->getEntityTypeId()] ?? NULL;

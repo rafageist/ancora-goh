@@ -8,6 +8,7 @@ use Drupal\ancora_academic\AcademicEntityTypes;
 use Drupal\ancora_academic\Entity\Period;
 use Drupal\ancora_academic\PeriodInputs;
 use Drupal\ancora_engine\JobRepository;
+use Drupal\ancora_scheduling\Timetable\PlacementModification;
 use Drupal\ancora_scheduling\Timetable\TimetableExplorer;
 use Drupal\Core\Cache\CacheableMetadata;
 use Drupal\Core\Controller\ControllerBase;
@@ -36,6 +37,7 @@ final class ExplorerController extends ControllerBase {
     private readonly TimetableExplorer $explorer,
     private readonly RequestStack $requestStack,
     private readonly PeriodInputs $inputs,
+    private readonly PlacementModification $modification,
   ) {}
 
   /**
@@ -69,7 +71,7 @@ final class ExplorerController extends ControllerBase {
         ...array_map(static fn (string $s): string => "url.query_args:$s", array_keys(TimetableExplorer::SELECTORS)),
       ])
       ->addCacheTags([JobRepository::CACHE_TAG]);
-    foreach ([...AcademicEntityTypes::ids(), 'ancora_placement'] as $entity_type_id) {
+    foreach ([...AcademicEntityTypes::ids(), 'ancora_placement', 'ancora_placement_change'] as $entity_type_id) {
       $cache->addCacheTags($this->entityTypeManager()->getDefinition($entity_type_id)->getListCacheTags());
     }
     $selectors = [];
@@ -107,7 +109,7 @@ final class ExplorerController extends ControllerBase {
       $build['grid'] = [
         '#type' => 'container',
         '#attributes' => ['class' => ['ancora-timetable__grid-wrapper']],
-        'table' => $this->grid($result['period'], $result['placements'], $result['record']['label']),
+        'table' => $this->grid($result['period'], $result['placements'], $result['record']['label'], $viewer),
       ];
     }
     $build['#attached']['library'][] = 'ancora_scheduling/timetable';
@@ -214,7 +216,18 @@ final class ExplorerController extends ControllerBase {
   /**
    * The slot by day grid: each placement in its start cell.
    */
-  private function grid(Period $period, array $placements, string $record): array {
+  private function grid(Period $period, array $placements, string $record, bool $viewer = FALSE): array {
+    // Moving one placement (#130): the explorer only, workspace mode, the
+    // placements the user may edit. The viewer stays read-only.
+    $movable = [];
+    if (!$viewer && $this->modification->isAvailable()) {
+      $ids = array_values(array_filter(array_column($placements, 'placement_id')));
+      foreach ($this->entityTypeManager()->getStorage('ancora_placement')->loadMultiple($ids) as $id => $entity) {
+        if ($entity->access('update')) {
+          $movable[(int) $id] = TRUE;
+        }
+      }
+    }
     $days = range(1, max(1, (int) $period->getDays()));
     $rows = [];
     for ($slot = 1; $slot <= max(1, (int) $period->getSlotsPerDay()); $slot++) {
@@ -236,6 +249,16 @@ final class ExplorerController extends ControllerBase {
           $lines = array_map('htmlspecialchars', [$p['activity_type'], $p['subject'], $p['teacher'], $p['room']]);
           if ($p['draft']) {
             $lines[] = '<strong>' . $this->t('Draft') . '</strong>';
+          }
+          if (!$viewer && !empty($p['moved'])) {
+            $lines[] = '<em class="ancora-placement__moved">' . $this->t('Moved by hand') . '</em>';
+          }
+          if (isset($movable[(int) ($p['placement_id'] ?? 0)])) {
+            $url = Url::fromRoute('ancora_scheduling.placement_move', ['ancora_placement' => $p['placement_id']])->toString();
+            $lines[] = '<a class="ancora-placement__move" href="' . htmlspecialchars($url) . '" aria-label="' . htmlspecialchars((string) $this->t('Move @subject of @group', [
+              '@subject' => $p['subject'],
+              '@group' => $p['group'],
+            ])) . '">' . $this->t('Move') . '</a>';
           }
           $items[] = [
             '#markup' => implode('<br>', $lines),

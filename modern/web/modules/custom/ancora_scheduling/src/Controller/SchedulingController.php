@@ -10,6 +10,7 @@ use Drupal\ancora_academic\Entity\Plan;
 use Drupal\ancora_engine\Job\Job;
 use Drupal\ancora_engine\Job\JobState;
 use Drupal\ancora_engine\JobRepository;
+use Drupal\ancora_scheduling\Timetable\PlacementModification;
 use Drupal\ancora_scheduling\Timetable\TimetableReader;
 use Drupal\Core\Access\AccessResult;
 use Drupal\Core\Access\AccessResultInterface;
@@ -45,6 +46,8 @@ final class SchedulingController extends ControllerBase {
     private readonly DateFormatterInterface $dateFormatter,
     private readonly RequestStack $requestStack,
     private readonly PeriodInputs $inputs,
+    #[Autowire(service: 'ancora_scheduling.placement_modification')]
+    private readonly PlacementModification $modification,
   ) {}
 
   /**
@@ -166,7 +169,7 @@ final class SchedulingController extends ControllerBase {
       ])
       ->addCacheTags([JobRepository::CACHE_TAG])
       ->addCacheableDependency($plan);
-    foreach ([...AcademicEntityTypes::ids(), 'ancora_placement'] as $entity_type_id) {
+    foreach ([...AcademicEntityTypes::ids(), 'ancora_placement', 'ancora_placement_change'] as $entity_type_id) {
       $cache->addCacheTags($this->entityTypeManager()->getDefinition($entity_type_id)->getListCacheTags());
     }
 
@@ -209,11 +212,19 @@ final class SchedulingController extends ControllerBase {
       ];
     }
 
+    // Moving one placement (#130): workspace mode, the plan's editors.
+    $update = $plan->access('update', NULL, TRUE);
+    $cache->addCacheableDependency($update);
+    $movable = $update->isAllowed() && $this->modification->isAvailable();
     $scopes = [];
     foreach ($data['scopes'] as $scope) {
       if ($scope['error'] !== NULL) {
         $cache->setCacheMaxAge(0);
       }
+      foreach ($scope['placements'] as &$p) {
+        $p['move_url'] = $movable && !empty($p['placement_id']) ? Url::fromRoute('ancora_scheduling.placement_move', ['ancora_placement' => $p['placement_id']])->toString() : NULL;
+      }
+      unset($p);
       $placements = array_filter($scope['placements'], static function (array $p) use ($filters): bool {
         return ($filters['group']['value'] === '' || $p['group_code'] === $filters['group']['value'])
           && ($filters['teacher']['value'] === '' || $p['teacher_code'] === $filters['teacher']['value'])

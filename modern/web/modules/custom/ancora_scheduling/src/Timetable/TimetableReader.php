@@ -15,6 +15,7 @@ use Drupal\ancora_engine\Job\JobState;
 use Drupal\ancora_engine\JobRepository;
 use Drupal\ancora_scheduling\Entity\Placement;
 use Drupal\ancora_scheduling\ScopeMapper;
+use Drupal\Core\Entity\EntityLastInstalledSchemaRepositoryInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Psr\Log\LoggerInterface;
 
@@ -50,6 +51,7 @@ final class TimetableReader {
     private readonly LegacyRows $legacyRows,
     private readonly LoggerInterface $logger,
     private readonly ?EntityTypeManagerInterface $entityTypeManager = NULL,
+    private readonly ?EntityLastInstalledSchemaRepositoryInterface $installed = NULL,
   ) {}
 
   /**
@@ -155,6 +157,9 @@ final class TimetableReader {
         'teacher_id' => self::entityId($row['profesor']),
         'room_id' => self::entityId($row['lugar']),
         'resource_ids' => array_values(array_filter(array_map(self::entityId(...), $row['otros_recursos'] ?? []))),
+        // No entity in the two-database mode: no move (#130).
+        'placement_id' => NULL,
+        'moved' => FALSE,
       ];
     }
     return $placements;
@@ -177,7 +182,18 @@ final class TimetableReader {
       $query->condition('job', $active->id, '<>');
     }
     $placements = [];
-    foreach ($storage->loadMultiple($query->execute()) as $placement) {
+    $loaded = $storage->loadMultiple($query->execute());
+    // Placements moved by hand (#130): the explorer marks them.
+    $moved = [];
+    // Only once update 11006 installed it (the code may be deployed first).
+    if ($loaded !== [] && $this->installed?->getLastInstalledDefinition('ancora_placement_change') !== NULL) {
+      $changes = $this->entityTypeManager->getStorage('ancora_placement_change')->getAggregateQuery()->accessCheck(FALSE)
+        ->condition('placement', array_keys($loaded), 'IN')
+        ->groupBy('placement')
+        ->execute();
+      $moved = array_fill_keys(array_map('intval', array_column($changes, 'placement')), TRUE);
+    }
+    foreach ($loaded as $placement) {
       assert($placement instanceof Placement);
       $template = $placement->getTemplate();
       $teacher = $placement->get('teacher')->entity;
@@ -204,6 +220,8 @@ final class TimetableReader {
         'teacher_id' => $teacher === NULL ? NULL : (int) $teacher->id(),
         'room_id' => $room === NULL ? NULL : (int) $room->id(),
         'resource_ids' => array_map(static fn ($r): int => (int) $r->id(), $resources),
+        'placement_id' => (int) $placement->id(),
+        'moved' => isset($moved[(int) $placement->id()]),
       ];
     }
     return $placements;

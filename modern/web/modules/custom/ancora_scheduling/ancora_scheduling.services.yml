@@ -37,12 +37,24 @@ services:
 
   ancora_scheduling.timetable:
     class: Drupal\ancora_scheduling\Timetable\TimetableReader
-    arguments: ['@ancora_engine.job_repository', '@ancora_engine.engine_client', '@ancora_engine.settings', '@Drupal\ancora_academic\Export\AcademicExport', '@Drupal\ancora_academic\Export\LegacyRows', '@logger.channel.ancora_scheduling', '@entity_type.manager']
+    arguments: ['@ancora_engine.job_repository', '@ancora_engine.engine_client', '@ancora_engine.settings', '@Drupal\ancora_academic\Export\AcademicExport', '@Drupal\ancora_academic\Export\LegacyRows', '@logger.channel.ancora_scheduling', '@entity_type.manager', '@entity.last_installed_schema.repository']
   Drupal\ancora_scheduling\Timetable\TimetableReader: '@ancora_scheduling.timetable'
 
   # The legacy timetable explorer (#119, D14).
   Drupal\ancora_scheduling\Timetable\TimetableExplorer:
     arguments: ['@entity_type.manager', '@ancora_scheduling.timetable']
+
+  # Moving one saved placement (#130): the destination checks the worker runs
+  # in workspaces (not generation jobs), and the move command.
+  ancora_engine.check_runner:
+    class: Drupal\ancora_scheduling\Timetable\PlacementCheckRunner
+    arguments: ['@database', '@entity_type.manager', '@ancora_engine.workspace_client', '@ancora_engine.engine_client', '@ancora_engine.workspace_input', '@datetime.time', '@logger.channel.ancora_scheduling']
+  Drupal\ancora_scheduling\Timetable\PlacementCheckRunner: '@ancora_engine.check_runner'
+
+  ancora_scheduling.placement_modification:
+    class: Drupal\ancora_scheduling\Timetable\PlacementModification
+    arguments: ['@database', '@entity_type.manager', '@ancora_engine.settings', '@ancora_engine.job_repository', '@ancora_engine.workspace_input', '@account_switcher', '@datetime.time']
+  Drupal\ancora_scheduling\Timetable\PlacementModification: '@ancora_scheduling.placement_modification'
 
   logger.channel.ancora_scheduling:
     parent: logger.channel_base
