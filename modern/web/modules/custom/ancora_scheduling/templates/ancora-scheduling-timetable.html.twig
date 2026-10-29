@@ -131,6 +131,8 @@
                           <span class="ancora-placement__group">{{ p.group }}</span>
                           <span class="ancora-placement__teacher">{{ p.teacher }}</span>
                           <span class="ancora-placement__room">{{ p.room }}</span>
+                          {% if p.moved %}<em class="ancora-placement__moved">{{ 'Moved by hand'|t }}</em>{% endif %}
+                          {% if p.move_url and slot.number == p.slot %}<a class="ancora-placement__move" href="{{ p.move_url }}" aria-label="{{ 'Move @activity of @group'|t({'@activity': p.activity, '@group': p.group}) }}">{{ 'Move'|t }}</a>{% endif %}
                         </div>
                       {% endfor %}
                     </td>
@@ -153,6 +155,8 @@
                     <span>{{ 'Group'|t }}: {{ p.group }}</span>
                     {% if p.teacher %}<span>{{ 'Teacher'|t }}: {{ p.teacher }}</span>{% endif %}
                     {% if p.room %}<span>{{ 'Room'|t }}: {{ p.room }}</span>{% endif %}
+                    {% if p.moved %}<em class="ancora-placement__moved">{{ 'Moved by hand'|t }}</em>{% endif %}
+                    {% if p.move_url %}<a class="ancora-placement__move" href="{{ p.move_url }}" aria-label="{{ 'Move @activity of @group'|t({'@activity': p.activity, '@group': p.group}) }}">{{ 'Move'|t }}</a>{% endif %}
                   </li>
                 {% endfor %}
               </ul>

@@ -287,5 +287,52 @@ check "the worker role holds no privilege on any Drupal table (it cannot write p
 check "the worker role cannot read the engine templates" bash -c "! psql -X -At -U ancora_ws_worker -d ancora_ws -c 'SELECT count(*) FROM scheduler.actividad' >/dev/null 2>&1"
 check "the worker role cannot create workspaces by hand (no CREATE on the database)" bash -c "! psql -X -At -U ancora_ws_worker -d ancora_ws -c 'CREATE SCHEMA x' >/dev/null 2>&1"
 
+step "11. moving one saved placement (#130): a real check in a workspace, the move, the next run, undo"
+move() { drush php:script "$lib/move.php" -- "$@" 2>>"$work/move.err" | tail -1; }
+reasons() { jq -r --arg c "$2" '.cells[$c] // "missing"' <<<"$1"; }
+has() { case ",$1," in *",$2,"*) return 0 ;; *) return 1 ;; esac; }
+fixture=$(move setup)
+p=$(move placement A1 G1); q=$(move placement A1 G2); b1=$(move placement B1 G1)
+p_from=$(move cell "$p"); q_cell=$(move cell "$q"); b1_cell=$(move cell "$b1")
+block=$(jq -r .block <<<"$fixture"); block_day=$(jq -r .block_cell <<<"$fixture" | cut -d. -f1)
+c1=$(move request "$p"); cb=$(move request "$block")
+drush ancora-engine:work --once >"$work/w15.log" 2>&1
+s1=$(move state "$c1"); sb=$(move state "$cb")
+check "the worker ran both checks without a generation job" eq "$(jq -r .state <<<"$s1")/$(jq -r .state <<<"$sb")" "done/done"
+check "its own cell is a valid destination (its occupancy excluded)" eq "$(reasons "$s1" "$p_from")" ok
+check "the cell of A1/G2 is refused: the shared teacher TA teaches there" has "$(reasons "$s1" "$q_cell")" teacher
+check "the cell of B1/G1 is refused: its cohort is busy there" has "$(reasons "$s1" "$b1_cell")" cohort
+check "the manual restriction of TA refuses its cell" has "$(reasons "$s1" "$(jq -r .teacher_cell <<<"$fixture")")" teacher
+check "the period restriction refuses its cell" has "$(reasons "$s1" "$(jq -r .period_cell <<<"$fixture")")" period
+check "the 2-slot activity may not start in the last slot (overflow)" has "$(reasons "$sb" "$block_day.4")" overflow
+check "the checks left no workspace and no job role" eq "$(workspaces)/$(job_roles)" "0/0"
+check "a check is not a generation job" eq "$(site "SELECT count(*) FROM ancora_engine_job WHERE state IN ('queued', 'running')")" 0
+dest=$(jq -r --arg f "$p_from" '[.cells | to_entries[] | select(.value == "ok" and .key != $f) | .key][0]' <<<"$s1")
+change=$(move commit "$p" "$c1" "${dest%.*}" "${dest#*.}")
+check "the move to $dest is committed and audited (change $change)" eq "$(move cell "$p")/${change//[0-9]/}" "$dest/"
+n_before=$(count)
+id15=$(enqueue)
+drush ancora-engine:work --once >"$work/w16.log" 2>&1
+check "the next run (job $id15) loads it and keeps it: succeeded, nothing new published" eq \
+  "$(field "$id15" '.state + "/" + (.result.input.publication.published | tostring)')" "succeeded/0"
+check "the moved placement is still at $dest, no placement duplicated" eq "$(move cell "$p")/$(count)" "$dest/$n_before"
+c2=$(move request "$q")
+drush ancora-engine:work --once >"$work/w17.log" 2>&1
+s2=$(move state "$c2")
+check "the next workspace books it at its new cell (TA is busy at $dest for A1/G2)" has "$(reasons "$s2" "$dest")" teacher
+check "and no longer at its old cell $p_from" bash -c "! case ',$(reasons "$s2" "$p_from"),' in *,teacher,*) true ;; *) false ;; esac"
+c3=$(move request "$p")
+drush ancora-engine:work --once >"$work/w18.log" 2>&1
+id16=$(enqueue)
+c4=$(move request "$q")
+check "a generation job queued after the check refuses its commit" eq "$(move commit "$p" "$c3" "${p_from%.*}" "${p_from#*.}")" "refused:job"
+drush ancora-engine:work --once >"$work/w19.log" 2>&1
+check "a queued generation job does not block a check: both ran in one cycle" eq "$(jq -r .state <<<"$(move state "$c4")")/$(field "$id16" .state)" "done/succeeded"
+c5=$(move request "$p")
+drush ancora-engine:work --once >"$work/w20.log" 2>&1
+undo=$(move undo "$change" "$c5")
+check "undo (change $undo) returns it to $p_from" eq "$(move cell "$p")/${undo//[0-9]/}" "$p_from/"
+check "nothing of the checks is left: no workspace, no job role" eq "$(workspaces)/$(job_roles)" "0/0"
+
 step "workspace journey: $pass passed, $fail failed ($((SECONDS - started)) s)"
 [ "$fail" -eq 0 ]

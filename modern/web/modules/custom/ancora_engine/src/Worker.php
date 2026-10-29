@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\ancora_engine;
 
+use Drupal\ancora_engine\Engine\CheckRunnerInterface;
 use Drupal\ancora_engine\Engine\EngineClient;
 use Drupal\ancora_engine\Engine\JobInputInterface;
 use Drupal\ancora_engine\Engine\JobOutputInterface;
@@ -67,7 +68,13 @@ final class Worker {
     private readonly ?WorkspaceClient $workspace = NULL,
     private readonly ?JobInputInterface $workspaceInput = NULL,
     private readonly ?JobOutputInterface $output = NULL,
+    private readonly ?CheckRunnerInterface $checks = NULL,
   ) {}
+
+  /**
+   * The most read-only checks (#130) run per cycle, before a job is claimed.
+   */
+  public const CHECKS_PER_CYCLE = 5;
 
   /**
    * A worker id: host, process and a random part.
@@ -92,6 +99,16 @@ final class Worker {
       }
       catch (\RuntimeException $e) {
         $this->logger->warning('Workspace cleanup failed: @message', ['@message' => $e->getMessage()]);
+      }
+    }
+    // Read-only destination checks (#130): not generation jobs, never
+    // queued as such, and never blocked by a queued generation job.
+    if ($this->settings->isWorkspace() && $this->checks !== NULL) {
+      try {
+        $this->checks->runPending(self::CHECKS_PER_CYCLE);
+      }
+      catch (\RuntimeException $e) {
+        $this->logger->warning('Placement checks failed: @message', ['@message' => $e->getMessage()]);
       }
     }
     $job = $this->jobs->claim($workerId);

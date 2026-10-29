@@ -105,3 +105,57 @@ function ancora_scheduling_update_11005(): string {
   \Drupal::logger('ancora_scheduling')->notice($message);
   return $message;
 }
+
+/**
+ * Implements hook_schema().
+ *
+ * The destination checks of placement moves (#130). A check is not a
+ * generation job: it has its own table and lifecycle (queued, running,
+ * done, failed), the worker runs it in a workspace that is dropped after
+ * it, and its result is only read by PlacementModification::commit(). It is
+ * not part of the generation input, so it never makes a job's input stale.
+ */
+function ancora_scheduling_schema(): array {
+  return [
+    'ancora_placement_check' => [
+      'description' => 'Destination checks of placement moves (#130).',
+      'fields' => [
+        'id' => ['type' => 'serial', 'not null' => TRUE],
+        'placement_id' => ['type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE],
+        'requested_by' => ['type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE],
+        'state' => ['type' => 'varchar_ascii', 'length' => 16, 'not null' => TRUE],
+        'version' => ['type' => 'varchar_ascii', 'length' => 64, 'not null' => FALSE],
+        'signature' => ['type' => 'varchar_ascii', 'length' => 64, 'not null' => FALSE],
+        'result' => ['type' => 'text', 'size' => 'big', 'not null' => FALSE],
+        'error' => ['type' => 'varchar', 'length' => 1024, 'not null' => FALSE],
+        'created' => ['type' => 'int', 'not null' => TRUE],
+        'changed' => ['type' => 'int', 'not null' => TRUE],
+      ],
+      'primary key' => ['id'],
+      'indexes' => [
+        'state' => ['state', 'id'],
+        'placement' => ['placement_id'],
+      ],
+    ],
+  ];
+}
+
+/**
+ * Adds the placement checks and the placement changes (#130).
+ *
+ * Both are new and empty: no data is migrated.
+ */
+function ancora_scheduling_update_11006(): string {
+  $done = [];
+  $schema = \Drupal::database()->schema();
+  if (!$schema->tableExists('ancora_placement_check')) {
+    $schema->createTable('ancora_placement_check', ancora_scheduling_schema()['ancora_placement_check']);
+    $done[] = 'the placement check table';
+  }
+  $manager = \Drupal::entityDefinitionUpdateManager();
+  if ($manager->getEntityType('ancora_placement_change') === NULL) {
+    $manager->installEntityType(\Drupal::entityTypeManager()->getDefinition('ancora_placement_change'));
+    $done[] = 'the placement change entity type';
+  }
+  return $done === [] ? 'The placement checks and changes are already installed.' : 'Installed ' . implode(' and ', $done) . '.';
+}

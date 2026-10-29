@@ -57,7 +57,7 @@ final class PlacementPublisher implements JobOutputInterface {
   /**
    * The advisory lock of the publication (one at a time per site).
    */
-  private const LOCK = 2026095;
+  public const LOCK = 2026095;
 
   public function __construct(
     private readonly EntityTypeManagerInterface $entityTypeManager,

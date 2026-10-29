@@ -67,6 +67,25 @@ final class WorkspaceSync implements JobInputInterface {
    * {@inheritdoc}
    */
   public function prepare(Job $job, PgConnection $connection, EngineClient $engine): array {
+    return $this->load($job, $connection, $engine, TRUE);
+  }
+
+  /**
+   * Loads the whole site, without the closure prune, for a check (#130).
+   *
+   * A destination check of a placement must see every activity of the
+   * period, also those of other specialties and levels that share a
+   * teacher, a room or a cohort, so nothing is pruned. Same snapshot and
+   * version as prepare().
+   */
+  public function loadForCheck(Job $job, PgConnection $connection, EngineClient $engine): array {
+    return $this->load($job, $connection, $engine, FALSE);
+  }
+
+  /**
+   * Loads the input into the workspace; prunes it to the closure or not.
+   */
+  private function load(Job $job, PgConnection $connection, EngineClient $engine, bool $prune): array {
     $source = $job->source;
     if ($source === NULL) {
       throw new \LogicException('Only a job with a source is synced.');
@@ -113,8 +132,11 @@ final class WorkspaceSync implements JobInputInterface {
       $input_rows = (int) $engine->rows($connection, 'SELECT scheduler_control.ws_rows() AS n')[0]['n'];
       [$e, $l, $p] = $job->scope->toParameters();
       $closure = [$e, $l, $p, $job->options->buscalugar ? 't' : 'f'];
-      $kept = (int) $engine->rows($connection, 'SELECT scheduler_control.closure_keep($1, $2, $3, $4) AS n', $closure)[0]['n'];
-      $pruned = (int) $engine->rows($connection, 'SELECT scheduler_control.prune() AS n')[0]['n'];
+      $kept = $pruned = 0;
+      if ($prune) {
+        $kept = (int) $engine->rows($connection, 'SELECT scheduler_control.closure_keep($1, $2, $3, $4) AS n', $closure)[0]['n'];
+        $pruned = (int) $engine->rows($connection, 'SELECT scheduler_control.prune() AS n')[0]['n'];
+      }
       $engine->affected($connection, 'COMMIT');
     }
     catch (\Throwable $e) {

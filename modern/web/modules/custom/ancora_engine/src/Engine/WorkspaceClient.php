@@ -129,6 +129,47 @@ final class WorkspaceClient {
   }
 
   /**
+   * Runs read-only work in a new workspace, then drops it (#130 checks).
+   *
+   * The workspace is opened and the connection set up as for a job attempt
+   * (job role, search_path, statement_timeout); $work receives the
+   * connection, loads what it needs and must leave nothing committed that
+   * matters: the workspace is closed (dropped) in every case.
+   *
+   * @param \Drupal\ancora_engine\Job\Job $job
+   *   A job value naming the scope and source; its id and attempt give the
+   *   workspace key and the application name (the cleanup finds the
+   *   backend by it).
+   * @param callable $work
+   *   Called with the connection; its return value is returned.
+   */
+  public function withWorkspace(Job $job, callable $work): mixed {
+    $key = self::key($job);
+    $control = $this->engine->connect('ancora_engine_ws_control');
+    try {
+      $ws = $this->engine->rows($control, 'SELECT schema_name, job_role FROM scheduler_control.open_job_workspace($1)', [$key])[0];
+    }
+    finally {
+      pg_close($control);
+    }
+    try {
+      $conn = $this->engine->connect(EngineClient::applicationName($job->id, $job->attempts));
+      try {
+        $this->engine->affected($conn, 'SET ROLE ' . pg_escape_identifier($conn, $ws['job_role']));
+        $this->engine->affected($conn, 'SET search_path TO ' . pg_escape_identifier($conn, $ws['schema_name']) . ', scheduler, pg_temp');
+        $this->engine->rows($conn, "SELECT set_config('statement_timeout', $1, false)", [($job->timeLimit * 1000) . 'ms']);
+        return $work($conn);
+      }
+      finally {
+        pg_close($conn);
+      }
+    }
+    finally {
+      $this->close($key);
+    }
+  }
+
+  /**
    * Forwards a soft cancellation to the running attempt of a job.
    */
   public function signalSoftCancel(Job $job): bool {

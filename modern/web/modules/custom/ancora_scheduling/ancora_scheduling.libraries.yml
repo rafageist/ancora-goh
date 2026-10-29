@@ -7,3 +7,13 @@ workspace:
   css:
     component:
       css/workspace.css: {}
+
+placement_move:
+  css:
+    component:
+      css/placement-move.css: {}
+  js:
+    js/placement-move.js: {}
+  dependencies:
+    - core/drupal
+    - core/once

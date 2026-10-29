@@ -1,0 +1,91 @@
+/**
+ * @file
+ * The move page of a placement (#130), and the move marks on the grids.
+ */
+
+.ancora-move__note,
+.ancora-move__job,
+.ancora-move__unavailable {
+  padding: 0.5rem 0.75rem;
+  border-left: 4px solid var(--ancora-accent, #1f5f8b);
+  background: var(--ancora-canvas, #f4f6f8);
+}
+
+.ancora-move__feedback--status,
+.ancora-move__feedback--error,
+.ancora-move__error {
+  margin: 0.5rem 0;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--ancora-line, #d9dee4);
+  border-radius: var(--ancora-radius, 6px);
+}
+
+.ancora-move__feedback--error,
+.ancora-move__error {
+  border-color: var(--ancora-danger, #a4262c);
+  color: var(--ancora-danger, #a4262c);
+}
+
+.ancora-move__pending {
+  padding: 0.75rem;
+  border: 1px dashed var(--ancora-line, #d9dee4);
+}
+
+.ancora-move__grid-wrapper {
+  overflow-x: auto;
+}
+
+.ancora-move__grid td {
+  min-width: 9rem;
+  vertical-align: top;
+}
+
+.ancora-move__grid td.is-valid {
+  background: var(--ancora-canvas, #f4f6f8);
+}
+
+.ancora-move__cell {
+  display: block;
+  width: 100%;
+  min-height: 2.75rem;
+}
+
+.ancora-move__cell[disabled] {
+  border: 1px dashed var(--ancora-line, #d9dee4);
+  background: transparent;
+  color: var(--ancora-muted, #5b6878);
+  box-shadow: none;
+  cursor: not-allowed;
+}
+
+.ancora-move__why {
+  display: block;
+  margin-top: 0.25rem;
+  color: var(--ancora-muted, #5b6878);
+  font-size: 0.85rem;
+}
+
+.ancora-move__warning {
+  color: var(--ancora-danger, #a4262c);
+}
+
+.ancora-move__drag {
+  display: inline-block;
+  padding: 0.25rem 0.5rem;
+  border: 1px solid var(--ancora-accent, #1f5f8b);
+  border-radius: var(--ancora-radius, 6px);
+  cursor: grab;
+}
+
+.ancora-move .is-drop-target {
+  outline: 3px solid var(--ancora-accent, #1f5f8b);
+  outline-offset: -3px;
+}
+
+.ancora-move[aria-busy="true"] {
+  opacity: 0.7;
+}
+
+.ancora-move [tabindex="-1"]:focus {
+  outline: 3px solid var(--ancora-accent, #1f5f8b);
+}
