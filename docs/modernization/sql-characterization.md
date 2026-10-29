@@ -79,6 +79,15 @@ After the #70 D9a slice (61 cases): **50 PASS, 11 XFAIL, 0 FAIL / XPASS / XWRONG
 
 After the #70 D9b slice (62 cases): **51 PASS, 11 XFAIL, 0 FAIL / XPASS / XWRONG**. Case 140 records that a break changes only the slot hours, that priority zones change the cells only with `parche1`, the effect of teacher and brigade daily load limits, and their keys. Every earlier result is unchanged.
 
+After the #133 characterization of the calendar (73 cases): **62 PASS, 11 XFAIL, 0 FAIL / XPASS / XWRONG**. Every earlier result is unchanged. Case 151 records the calendar that the legacy real-date rows encode, as evidence for `temporal-semantics.md`:
+- day numbers are consecutive days since 1999-12-31;
+- a periodicity row starts a repetition of `cant_dias` days;
+- the date is `fecha_inicial + dia − 1 + pdia − 1`, with no weekday logic and no clipping at the plan's end;
+- there is one row per slot, `[start, start + slot length)`, with breaks before the slot shifting it;
+- a period without periodicity gets no row;
+- a missing date is dated 1999-12-31;
+- hours are built from the number of days under Q-20.
+
 After the #123 characterization of placement moves (72 cases): **61 PASS, 11 XFAIL, 0 FAIL / XPASS / XWRONG**. Every earlier result is unchanged.
 - Case 148 records a move by UPDATE of `dia`/`turno`: no rule fires, the occupancy stays at the old cell, and nothing is validated.
 - Case 149 records a move by DELETE + INSERT:
