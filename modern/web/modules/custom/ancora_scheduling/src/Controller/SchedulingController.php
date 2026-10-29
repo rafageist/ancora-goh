@@ -10,6 +10,8 @@ use Drupal\ancora_academic\Entity\Plan;
 use Drupal\ancora_engine\Job\Job;
 use Drupal\ancora_engine\Job\JobState;
 use Drupal\ancora_engine\JobRepository;
+use Drupal\ancora_scheduling\Timetable\CrossPlanConflictDetector;
+use Drupal\ancora_scheduling\Timetable\CrossPlanConflictView;
 use Drupal\ancora_scheduling\Timetable\PlacementModification;
 use Drupal\ancora_scheduling\Timetable\TimetableReader;
 use Drupal\Core\Access\AccessResult;
@@ -48,6 +50,9 @@ final class SchedulingController extends ControllerBase {
     private readonly PeriodInputs $inputs,
     #[Autowire(service: 'ancora_scheduling.placement_modification')]
     private readonly PlacementModification $modification,
+    #[Autowire(service: 'ancora_scheduling.cross_plan_conflicts')]
+    private readonly CrossPlanConflictDetector $conflicts,
+    private readonly CrossPlanConflictView $conflictView,
   ) {}
 
   /**
@@ -274,8 +279,14 @@ final class SchedulingController extends ControllerBase {
       '#explorer_url' => Url::fromRoute('ancora_scheduling.explorer', [], ['query' => ['period' => $period->id()]])->toString(),
       '#attached' => ['library' => ['ancora_scheduling/timetable']],
     ];
-    $cache->applyTo($build);
-    return $build;
+    // Read-only cross-plan conflict warnings (#133); never "no conflict"
+    // for an unknown calendar.
+    $page = [
+      'timetable' => $build,
+      'cross_plan' => $this->conflictView->section($this->conflicts->forPlan($plan, $this->currentUser(), $period)),
+    ];
+    $cache->merge($this->conflicts->cacheability())->addCacheContexts(['user'])->applyTo($page);
+    return $page;
   }
 
   /**

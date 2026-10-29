@@ -89,3 +89,9 @@
 .ancora-move [tabindex="-1"]:focus {
   outline: 3px solid var(--ancora-accent, #1f5f8b);
 }
+
+.ancora-move__cross-plan {
+  padding: 0.5rem 0.75rem;
+  border-left: 4px solid var(--ancora-danger, #a4262c);
+  background: var(--ancora-canvas, #f4f6f8);
+}

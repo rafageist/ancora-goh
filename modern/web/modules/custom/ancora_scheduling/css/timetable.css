@@ -164,3 +164,21 @@
   margin-top: 0.25rem;
   min-height: 1.75rem;
 }
+
+/* Cross-plan conflict warnings (#133): neutral, never a green "all clear". */
+.ancora-cross-plan {
+  margin-top: var(--ancora-space, 1rem);
+  padding: 0.75rem;
+  border: 1px solid var(--ancora-line, #d9dee4);
+  border-left: 4px solid var(--ancora-danger, #a4262c);
+  border-radius: var(--ancora-radius, 6px);
+}
+
+.ancora-cross-plan__help {
+  color: var(--ancora-muted, #5b6878);
+  font-size: 0.9rem;
+}
+
+.ancora-cross-plan__unknown {
+  font-weight: 600;
+}

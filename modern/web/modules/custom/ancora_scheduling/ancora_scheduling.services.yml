@@ -56,6 +56,13 @@ services:
     arguments: ['@database', '@entity_type.manager', '@ancora_engine.settings', '@ancora_engine.job_repository', '@ancora_engine.workspace_input', '@account_switcher', '@datetime.time']
   Drupal\ancora_scheduling\Timetable\PlacementModification: '@ancora_scheduling.placement_modification'
 
+  # Read-only cross-plan conflict warnings (#133): Drupal data only.
+  ancora_scheduling.cross_plan_conflicts:
+    class: Drupal\ancora_scheduling\Timetable\CrossPlanConflictDetector
+    arguments: ['@entity_type.manager', '@ancora_scheduling.timetable', '@Drupal\ancora_academic\PeriodInputs']
+  Drupal\ancora_scheduling\Timetable\CrossPlanConflictDetector: '@ancora_scheduling.cross_plan_conflicts'
+  Drupal\ancora_scheduling\Timetable\CrossPlanConflictView: ~
+
   logger.channel.ancora_scheduling:
     parent: logger.channel_base
     arguments: ['ancora_scheduling']

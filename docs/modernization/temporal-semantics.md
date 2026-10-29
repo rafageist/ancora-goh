@@ -1,6 +1,6 @@
 # When a placement happens: the temporal semantics (#133, phase 1)
 
-Status: characterization only. It decides whether cross-plan conflict warnings (#133 phase 2) can be computed reliably from Drupal data.
+Status: phase 1 (characterization, §1–§5) accepted; phase 2 (the warnings) implemented, §6.
 
 Evidence:
 - the legacy sources (cited by file and line);
@@ -77,3 +77,36 @@ The model is **reliable for plans with a first day and periods with repetitions*
 - unknowns are explicit.
 
 The phase 2 detector can implement §2 and §3 as they stand. The open questions in §4 need a maintainer decision, or the proposed defaults.
+
+## 6. Implemented: cross-plan conflict warnings (#133, phase 2)
+
+The model of §1–§3 is implemented with the maintainer's decisions on §4. Occurrences after the plan's last day count and are marked. Overlapping repetitions give both occurrences. The placements compared are those the timetables show.
+
+**Detector:** `CrossPlanConflictDetector` (`ancora_scheduling.cross_plan_conflicts`). It is read-only and uses Drupal data only: no worker, no engine SQL, no legacy change.
+- `forPlan(plan, account, ?period)` returns:
+  - `evaluated`: FALSE when no period of the plan has a known calendar;
+  - `unknown`: the owner's undated periods, named only where visible;
+  - `conflicts`: one entry per pair of placements and resource, with the resource, both placements, and the common parts by date with `after_end` flags.
+- `forCandidates(placement, cells, account)` assesses each prospective destination of a move against the owner's other periods. Nothing is committed.
+- `cacheability()` returns the list tags of placements, plans, periods, breaks, activity types, templates, teachers and rooms, plus the run tag.
+- **Scope:** only the plans of one owner (owner catalogues, D1), and only for a user who may view that owner's plan. Another plan is named only when the user may view it. Other owners' teachers and rooms are other entities. The viewer shows nothing of it.
+- **Source:** the placements are read through `TimetableReader`, so both engine modes are covered: the final or draft placements of each scope, never those of a running job.
+
+**Where it shows**
+- The plan timetable and the explorer (not the viewer) have a "Cross-plan conflicts" section.
+  - An undated plan reads "Dates unknown / cross-plan conflicts not evaluated", never "no conflicts".
+  - A dated plan without overlap reads "No overlap found with the dated periods of your plans", and lists the undated periods that were not evaluated.
+  - At most 50 overlaps are listed, followed by the count of the rest.
+- The #130 move grid and preview:
+  - a valid cell that would overlap another of the owner's dated periods says so ("Cross-plan warning: teacher … busy in plan …, period … on …");
+  - **the cell stays selectable and the move stays allowed**;
+  - the preview lists the overlaps;
+  - an undated placement shows "Dates unknown / cross-plan conflicts not evaluated (reason)".
+
+**Not detected**
+- Other owners' resources (separate entities), other sites, and cohorts or other resources (only teachers and rooms are compared).
+- Undated plans or periods: the plan has no first day, the period has no days of the plan, or the period has no slot length.
+- Placements of a running job.
+- Any blocking: no move or run is refused.
+
+**Measured:** 600 placements of two overlapping plans, each with 2 repetitions and sharing 10 teachers and 10 rooms, give 6000 overlaps in 1.4 s (Kernel `testPerformanceBound`, bound 15 s). It is computed once per request and cached by the tags above.
