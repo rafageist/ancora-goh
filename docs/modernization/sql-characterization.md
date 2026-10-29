@@ -79,6 +79,13 @@ After the #70 D9a slice (61 cases): **50 PASS, 11 XFAIL, 0 FAIL / XPASS / XWRONG
 
 After the #70 D9b slice (62 cases): **51 PASS, 11 XFAIL, 0 FAIL / XPASS / XWRONG**. Case 140 records that a break changes only the slot hours, that priority zones change the cells only with `parche1`, the effect of teacher and brigade daily load limits, and their keys. Every earlier result is unchanged.
 
+After the #136 characterization of swaps (74 cases): **63 PASS, 11 XFAIL, 0 FAIL / XPASS / XWRONG**. Every earlier result is unchanged. Case 152 records what a swap of two placed activities needs:
+- the pair check removes both rows and checks each activity at the other's cell, plus the mutual check;
+- two moves checked one at a time, each refused because the target is the other's cell, can make a valid swap (A);
+- each candidate can be valid with both rows removed while the two collide (B, E, F);
+- a 2-slot activity is swapped across a break (C), and an overflow is refused only by the check (C2);
+- manual and period restrictions behave as for a move (D).
+
 After the #133 characterization of the calendar (73 cases): **62 PASS, 11 XFAIL, 0 FAIL / XPASS / XWRONG**. Every earlier result is unchanged. Case 151 records the calendar that the legacy real-date rows encode, as evidence for `temporal-semantics.md`:
 - day numbers are consecutive days since 1999-12-31;
 - a periodicity row starts a repetition of `cant_dias` days;
