@@ -265,3 +265,107 @@ Authorized by the maintainer and implemented as specified in §5, with the check
 - On mobile the grid scrolls inside its wrapper.
 
 **Deploy:** `drush updatedb` runs `ancora_scheduling_update_11006`, which creates the check table and the change entity type. Then `drush cr`. The worker must run, as it already does for generation.
+
+## 10. Atomic swap of two saved placements: characterization and design (#136)
+
+Status: **characterization and design only**. The implementation is the separate issue "[UI-TIMETABLE-3a]", and it needs maintainer approval.
+
+### 10.1 Characterization
+
+- **VB6 `TAncora.permuta`** (`cls/ancora_goh_traditional_TAncora.cls:7339-7564`, `rafageist/ancora-vb6@6c7038d`).
+  - What it does:
+    - It refuses a fixed (`fija`) activity (`:7358`).
+    - It checks the `RespetarOrden` day range of each new day (`:7389-7458`, `rango` at `:7413`, `:7451`).
+    - It moves every activity of each one's brigade group to the other's day and slot (`moveAsignacion` at `:7546`, `:7550`). Teacher and room are kept.
+  - Its checks are **vacuous**:
+    - It passes `listaidbrg` to `AND_MPI` (`:7521`, `:7526`), but only `listaidbrg1` and `listaidbrg2` (declared with it at `:7353`) are ever assigned. `AND_MPI` then loops `For i = 1 To brgs.cant` over zero brigades and returns all true (`bas/ancora_goh_traditional_modDataGenerator.bas:671`, loop at `:683`).
+    - The teacher check reads only the first slot (`:7535`, `:7541`), with each activity still occupying its own slot, so two activities with the same teacher always fail it.
+    - Rooms are never checked.
+  - Its caller is not in the repository.
+  - **It is not reproduced**, only used as a reference.
+- **PHP** has no swap and no wired manual edit (§1). The generated `set_Actividad` is an unwired UPDATE (case 148).
+- **Classification:** a net-new Drupal enhancement, with 0 LBR and 0 parity credit.
+- **SQL (case 152, characterization).** A swap is DELETE of both rows plus INSERT of both at the swapped cells.
+  - The unique keys refuse every collision (23505) all or nothing. They trust period restrictions and overflow (as for a move, case 149).
+  - The pair check removes **both** rows in one rolled-back subtransaction. It then checks:
+    - each activity at the other's cell over its whole duration, with the case-150 functions: bounds, period, activity type, subject, every brigade, teacher, room and resources, including manual restrictions;
+    - the two activities against each other at their new cells, the **mutual check**: a shared teacher, room, cohort or resource with overlapping slots on the same day.
+  - Results:
+    - **A:** two activities of one teacher on two days: each move alone is refused, because the target is the other's cell, yet the swap is valid and accepted. *Individually invalid moves can make a valid swap.*
+    - **B, E, F:** one teacher (B), one cohort (E) or one resource (F); different durations on one day. Each candidate is valid with both rows removed, yet the two collide at their new cells, and the database refuses. *Removing both rows is not enough: the mutual check is required.*
+    - **C:** a 2-slot activity swapped across a break books both slots (real hours 480–570 and 600–690). C2: its last slot would pass the period, so the check refuses and the database accepts.
+    - **D:** a manual teacher restriction at a destination is refused by both. A period restriction is refused by the check only.
+    - **G:** with nothing shared, the swap equals two moves alone.
+
+### 10.2 Design
+
+**Pair check** (reuses the #130 architecture)
+- `ancora_placement_check` gets a `kind` column: `move`, or `swap` with a second `partner_id`. A new update hook adds both columns, with `move` as the default.
+- `PlacementCheckRunner` runs a swap check in **one** workspace:
+  1. load the whole site (`loadForCheck()`, no prune);
+  2. in a rolled-back transaction, DELETE both engine rows;
+  3. evaluate X at Y's cell and Y at X's cell with the case-150 grid query for one cell each;
+  4. run the mutual check of case 152 (same day, overlapping `[slot, slot + duration)`, a shared teacher, room, brigade from `dame_lista_id_brigadas_de_grupo`, or resource from `otros_recursos_usados`);
+  5. store the verdict, with reasons per side (`x`, `y`, `mutual`), the site version, and both signatures.
+- It is still not a generation job. It is never blocked by one and never blocks one.
+
+**Commands** (`PlacementModification`)
+- `requestSwapCheck(x, y, account): int`:
+  - same plan, same period and the same owner; update access to both;
+  - x ≠ y, and their cells differ;
+  - it reuses an open check of the same pair by the same user, in either order.
+- `swap(x, y, checkId, account): array{PlacementChange, PlacementChange}`:
+  - one Drupal transaction under the publication advisory lock;
+  - it refuses while any generation job is queued or running, when the site version differs from the check's, when either signature differs, when the check is not a done, unexpired swap check of exactly this pair, or when its verdict is not valid;
+  - it sets X to Y's (day, slot) and Y to X's, validates and saves both as the plan's creator, and writes two `ancora_placement_change` records with one shared `pair` id;
+  - any exception rolls both back;
+  - ids, engine ids, job, status, group, teacher, room and resources are kept, and no engine row is written.
+- `undoSwap(pair, checkId, account)`:
+  - a **new validated atomic swap** back, with a fresh check of the same pair;
+  - allowed only while both records of the pair are the last change of their placement;
+  - never half an undo: both go back or neither does.
+- Refusal codes: those of `commit()`, plus `pair` (not the same plan or period, or the same placement), `cell` (identical starting cells) and `partner` (the second placement is missing or forged).
+
+**Decisions**
+
+| Case | Decision | Reason |
+|---|---|---|
+| Different durations | Allowed when each new end fits the period and the two do not overlap each other (mutual check) | case 152 B, C2 |
+| Identical starting cells | Refused (`cell`) | Nothing would change; two placements of one cell do not share resources anyway |
+| Draft and final | Allowed for the placements the timetable shows; the status stays that of each placement's job | as for a move (§9) |
+| Stale check | Refused (version or signature); duplicate requests reuse the open check, and `requestSwapCheck(y, x)` is the same pair | as for a move |
+| Scope | Same plan and same period only; never across plans in this slice | the engine checks one period |
+| #133 warnings | `forCandidates()` for X at Y's cell and Y at X's cell are shown in the preview, non-blocking | as for a move |
+| Linked entities | Kept: group, cohorts, teacher, room, resources, duration, template, engine id, job | time-only, like the move |
+
+**Audit:** `ancora_placement_change` gets a nullable `pair` field (a UUID shared by the two records) and `reason` `swap` or `undo_swap`. Each record keeps its own from and to. The history shows both placements of a pair.
+
+**Access:** both placements belong to one owner's plan, and the user has update access to both. Forged, missing or cross-owner ids give 404 or `partner`. Other sites are separate databases.
+
+**UI** (#128 and #130 conventions)
+- A "Swap with…" button on the move page opens a list of the period's other placements as buttons: label, group, day and slot; the keyboard and mobile path.
+- Choosing one requests the pair check (loading state).
+- The preview shows both destinations ("X: day a, slot b → day c, slot d" and the reverse), any engine refusal per side or mutual, and the #133 warnings for both.
+- An explicit "Swap them" confirm.
+- Errors go to `role="alert"` with zero writes. "Undo the swap" sits in the history.
+- Dragging one placement onto another in the grid is an optional convenience that presses the same button.
+
+**Continuation:** the next run loads both placements at their swapped cells, and the legacy rules rebuild their occupancy. Continuation keeps both, nothing is duplicated, and no other placement changes.
+
+### 10.3 Regression test plan
+
+- **Kernel** (`PlacementModificationTest` and a new `PlacementSwapTest`):
+  - a reciprocal swap with the same teacher (case 152 A);
+  - all refusals with zero writes: the generation-job guard, version, either signature, a stale or expired check, a check of another pair, a forged or missing partner, another owner, a viewer, different periods or plans, identical cells, an invalid verdict (x, y, mutual);
+  - linked entities kept;
+  - the pair audit (two records, one `pair`) and the undo swap; a refused half-undo when one placement moved since;
+  - **rollback of both on a partial error**: a failure injected in the second save, e.g. a test-only hook that throws on the second entity's presave, leaves both placements unchanged and writes no change record;
+  - the #133 warnings for both destinations.
+- **Functional:** the swap flow by buttons (pick, preview with both destinations and warnings, confirm); the refusal alerts; access 403 and 404; the two-database explanation.
+- **workspace-journey:** real pair checks on the case-152 fixture:
+  - A is valid, B/E/F mutual, C2 overflow, D manual and period restrictions;
+  - a committed swap;
+  - the next run keeps both at the swapped cells, books their occupancy there (a check of a third placement sees them), publishes nothing new and duplicates nothing;
+  - the queued-job refusal; the undo swap; no workspace left.
+- **Real browser:** pick, swap preview and confirm by keyboard; the optional drag; the undo; mobile overflow.
+- **SQL:** case 152 stays as characterization.
