@@ -7,6 +7,8 @@ namespace Drupal\ancora_scheduling\Form;
 use Drupal\ancora_engine\JobRepository;
 use Drupal\ancora_scheduling\Entity\Placement;
 use Drupal\ancora_scheduling\Entity\PlacementChange;
+use Drupal\ancora_scheduling\Timetable\CrossPlanConflictDetector;
+use Drupal\ancora_scheduling\Timetable\CrossPlanConflictView;
 use Drupal\ancora_scheduling\Timetable\PlacementModification;
 use Drupal\ancora_scheduling\Timetable\PlacementModificationException;
 use Drupal\Core\Datetime\DateFormatterInterface;
@@ -61,12 +63,24 @@ final class PlacementMoveForm extends FormBase {
    */
   protected EntityTypeManagerInterface $entityTypeManager;
 
-  public function __construct(PlacementModification $modification, JobRepository $jobs, PrivateTempStoreFactory $temp_store_factory, DateFormatterInterface $date_formatter, EntityTypeManagerInterface $entity_type_manager) {
+  /**
+   * The cross-plan conflict detector (#133).
+   */
+  protected CrossPlanConflictDetector $conflicts;
+
+  /**
+   * The cross-plan conflict texts.
+   */
+  protected CrossPlanConflictView $conflictView;
+
+  public function __construct(PlacementModification $modification, JobRepository $jobs, PrivateTempStoreFactory $temp_store_factory, DateFormatterInterface $date_formatter, EntityTypeManagerInterface $entity_type_manager, CrossPlanConflictDetector $conflicts, CrossPlanConflictView $conflict_view) {
     $this->modification = $modification;
     $this->jobs = $jobs;
     $this->tempStoreFactory = $temp_store_factory;
     $this->dateFormatter = $date_formatter;
     $this->entityTypeManager = $entity_type_manager;
+    $this->conflicts = $conflicts;
+    $this->conflictView = $conflict_view;
   }
 
   /**
@@ -79,6 +93,8 @@ final class PlacementMoveForm extends FormBase {
       $container->get('tempstore.private'),
       $container->get('date.formatter'),
       $container->get('entity_type.manager'),
+      $container->get(CrossPlanConflictDetector::class),
+      $container->get(CrossPlanConflictView::class),
     );
   }
 
@@ -117,7 +133,7 @@ final class PlacementMoveForm extends FormBase {
     $form['feedback'] = $this->feedback((int) $placement->id());
     $form['summary'] = $this->summary($placement);
     $form['note'] = [
-      '#markup' => '<p class="ancora-move__note" role="note"><strong>' . $this->t('What is checked:') . '</strong> ' . $this->t('the destinations are valid within this period, as the scheduler sees it: the period, the activity type, the subject and their restrictions, and every activity of the period for the cohorts of the group, the teacher, the room and the other resources. They are <strong>not</strong> checked against other plans whose dates overlap: a teacher or room shared with another plan may still be busy there.') . '</p>',
+      '#markup' => '<p class="ancora-move__note" role="note"><strong>' . $this->t('What is checked:') . '</strong> ' . $this->t('the destinations are valid within this period, as the scheduler sees it: the period, the activity type, the subject and their restrictions, and every activity of the period for the cohorts of the group, the teacher, the room and the other resources. The scheduler does <strong>not</strong> check them against your other plans whose dates overlap: when the dates are known, a teacher or room busy there at the same time is shown as a cross-plan warning, which does not block the move.') . '</p>',
     ];
     if (($job = $this->jobs->activeForSite()) !== NULL) {
       $form['job'] = [
@@ -269,6 +285,12 @@ final class PlacementMoveForm extends FormBase {
       $from['day'],
       $from['slot'],
     ]));
+    // Read-only cross-plan warnings for every prospective destination
+    // (#133); a warned cell stays selectable.
+    $cross = $this->conflicts->forCandidates($placement, array_map(static fn (array $c): array => [
+      $c['day'],
+      $c['slot'],
+    ], $cells), $this->currentUser());
     $grid = [
       '#type' => 'container',
       '#attributes' => ['class' => ['ancora-move__grid-wrapper'], 'id' => 'ancora-move-grid', 'tabindex' => '-1'],
@@ -284,6 +306,11 @@ final class PlacementMoveForm extends FormBase {
             '@slot' => $undo->get('from_slot')->value,
           ])
           : $this->formatPlural($valid, 'One cell is a valid destination. Choose it to see the move before it is made.', '@count cells are valid destinations. Choose one to see the move before it is made.')) . '</p>',
+      ],
+      'cross_plan' => [
+        '#markup' => '<p class="ancora-move__cross-plan" role="note">' . ($cross['evaluated']
+          ? $this->t('Cross-plan conflicts are evaluated: a cell where the teacher or the room is busy in another of your dated periods at the same time says so. It stays allowed.')
+          : '<strong>' . $this->t('Dates unknown / cross-plan conflicts not evaluated') . '</strong> (' . $this->conflictView->reason($cross['reason']) . ').') . '</p>',
       ],
       'drag' => [
         '#markup' => '<p class="ancora-move__drag" draggable="true" data-ancora-move-drag="1" hidden>' . $this->t('Or drag this activity onto a valid cell.') . '</p>',
@@ -312,6 +339,8 @@ final class PlacementMoveForm extends FormBase {
           default => [],
         };
         $warnings = array_map($this->modification->label(...), $cell['warnings']);
+        $conflicts = $cross['cells']["$day.$slot"] ?? [];
+        $cross_text = $conflicts !== [] && !$here ? ' <span class="ancora-move__warning">' . $this->conflictView->cellWarning($conflicts) . '</span>' : '';
         $row[$id] = [
           '#wrapper_attributes' => [
             'data-day' => $day,
@@ -330,6 +359,7 @@ final class PlacementMoveForm extends FormBase {
             '#markup' => '<span class="ancora-move__why" id="' . $id . '-why">'
             . ($why === [] ? $this->t('Valid.') : $this->t('Not a destination: @why.', ['@why' => implode('; ', array_map('strval', $why))]))
             . ($warnings === [] ? '' : ' <span class="ancora-move__warning">' . $this->t('Warning: @warnings.', ['@warnings' => implode('; ', array_map('strval', $warnings))]) . '</span>')
+            . $cross_text
             . '</span>',
           ],
         ];
@@ -346,6 +376,8 @@ final class PlacementMoveForm extends FormBase {
     $cell = PlacementModification::cell($check, $day, $slot);
     $from = $check['result']['from'];
     $warnings = array_map($this->modification->label(...), $cell['warnings'] ?? []);
+    $cross = $this->conflicts->forCandidates($placement, [[$day, $slot]], $this->currentUser());
+    $conflicts = $cross['cells']["$day.$slot"] ?? [];
     return [
       '#type' => 'container',
       '#attributes' => [
@@ -373,8 +405,16 @@ final class PlacementMoveForm extends FormBase {
       'warnings' => $warnings === [] ? [] : [
         '#markup' => '<p class="ancora-move__warning" role="note">' . $this->t('Warning: @warnings. The scheduler would avoid this, but the move is allowed.', ['@warnings' => implode('; ', array_map('strval', $warnings))]) . '</p>',
       ],
+      'cross_plan' => $conflicts === [] ? [] : [
+        '#theme' => 'item_list',
+        '#title' => $this->t('Cross-plan warnings (the move is still allowed)'),
+        '#items' => array_map(fn (array $c): array => ['#markup' => (string) $this->conflictView->conflict($c)], $conflicts),
+        '#attributes' => ['class' => ['ancora-move__cross-plan-list'], 'role' => 'note'],
+      ],
       'scope' => [
-        '#markup' => '<p>' . $this->t('Valid within this period; not checked against other plans whose dates overlap.') . '</p>',
+        '#markup' => '<p>' . ($cross['evaluated']
+          ? $this->t('Valid within this period. Overlaps with your other dated periods are shown as warnings; they do not block the move.')
+          : $this->t('Valid within this period. Dates unknown / cross-plan conflicts not evaluated.')) . '</p>',
       ],
       'confirm' => $this->button($undo ? $this->t('Move it back here') : $this->t('Move here'), 'commit', $day, $slot) + [
         '#attributes' => ['class' => ['button--primary'], 'autofocus' => 'autofocus'],

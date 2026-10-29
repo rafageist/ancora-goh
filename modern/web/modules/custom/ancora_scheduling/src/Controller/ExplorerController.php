@@ -6,8 +6,11 @@ namespace Drupal\ancora_scheduling\Controller;
 
 use Drupal\ancora_academic\AcademicEntityTypes;
 use Drupal\ancora_academic\Entity\Period;
+use Drupal\ancora_academic\Entity\Plan;
 use Drupal\ancora_academic\PeriodInputs;
 use Drupal\ancora_engine\JobRepository;
+use Drupal\ancora_scheduling\Timetable\CrossPlanConflictDetector;
+use Drupal\ancora_scheduling\Timetable\CrossPlanConflictView;
 use Drupal\ancora_scheduling\Timetable\PlacementModification;
 use Drupal\ancora_scheduling\Timetable\TimetableExplorer;
 use Drupal\Core\Cache\CacheableMetadata;
@@ -38,6 +41,8 @@ final class ExplorerController extends ControllerBase {
     private readonly RequestStack $requestStack,
     private readonly PeriodInputs $inputs,
     private readonly PlacementModification $modification,
+    private readonly CrossPlanConflictDetector $conflicts,
+    private readonly CrossPlanConflictView $conflictView,
   ) {}
 
   /**
@@ -111,6 +116,13 @@ final class ExplorerController extends ControllerBase {
         '#attributes' => ['class' => ['ancora-timetable__grid-wrapper']],
         'table' => $this->grid($result['period'], $result['placements'], $result['record']['label'], $viewer),
       ];
+      // Cross-plan conflicts of the period (#133): the explorer only; the
+      // viewer's read-only scope does not grow.
+      $plan = $result['period']->get('plan')->entity;
+      if (!$viewer && $plan instanceof Plan) {
+        $build['cross_plan'] = $this->conflictView->section($this->conflicts->forPlan($plan, $this->currentUser(), $result['period']));
+        $cache = $cache->merge($this->conflicts->cacheability());
+      }
     }
     $build['#attached']['library'][] = 'ancora_scheduling/timetable';
     $cache->applyTo($build);

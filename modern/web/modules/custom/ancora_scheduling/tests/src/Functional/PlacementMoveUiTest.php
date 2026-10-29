@@ -159,7 +159,7 @@ final class PlacementMoveUiTest extends AncoraBrowserTestBase {
     $this->drupalGet("/ancora/planning/{$plan->id()}/timetable", ['query' => ['period' => $period]]);
     $this->assertSession()->elementExists('css', 'a.ancora-placement__move[href$="/placements/' . $g1->id() . '/move"]');
     $this->drupalGet("/ancora/timetables/placements/{$g1->id()}/move");
-    $this->assertSession()->pageTextContains('not checked against other plans whose dates overlap');
+    $this->assertSession()->pageTextContains('does not check them against your other plans whose dates overlap');
     $this->assertSession()->pageTextContains('Only the day and the first slot change');
     $this->assertSession()->pageTextNotContains('conflict-free');
     $this->assertSession()->pageTextContains('It was not moved by hand');
@@ -180,7 +180,7 @@ final class PlacementMoveUiTest extends AncoraBrowserTestBase {
     // Preview, then move.
     $this->getSession()->getPage()->pressButton('op_preview_2_1');
     $this->assertSession()->pageTextContains('to day 2, slot 1');
-    $this->assertSession()->pageTextContains('Valid within this period; not checked against other plans whose dates overlap.');
+    $this->assertSession()->pageTextContains('Valid within this period. Dates unknown / cross-plan conflicts not evaluated.');
     $this->getSession()->getPage()->pressButton('Move here');
     $this->assertSession()->elementTextContains('css', '#ancora-move-feedback[role="status"]', 'Moved it to day 2, slot 1.');
     $storage = \Drupal::entityTypeManager()->getStorage('ancora_placement');
