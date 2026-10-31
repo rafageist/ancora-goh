@@ -1,12 +1,16 @@
 # Integrated planning workspace: audit, blueprint and frontend decision (#139)
 
-**Status: design only.** This document proposes a design. Nothing here is authorized for implementation.
-- Each slice in §5 needs the maintainer's approval first. The first slice is filed as a planned pilot issue.
-- Where it differs from #66 or #74, it is written as a **proposed amendment** (§4.6), not an override.
+**Status: design only.** Nothing here is authorized for implementation.
+- The blueprint was merged in PR #140.
+- The maintainer decided amendments A1–A4 on 2026-10-30/31. They are recorded in §4.6, and the text below follows them.
+- Each slice in §5 still needs the maintainer's approval first. The refined first slice is §7 and the pilot issue #141, which is **not authorized**.
 
 **Parents and related issues**
-- Parents: #74 (Drupal UI) and #66 (architecture).
+- Parents: #74 (Drupal UI), #66 (architecture), and #142 (product vision and GOH scope, D3 "rich web experience").
 - Related: #105 (planning journey), #122 (assignments), #123 / #130 (move), #133 (cross-plan warnings), and #136 / #138 (swap; #138 is **not authorized**).
+- **Context, not prerequisites of S1:**
+  - #143: workload evidence. It supplies the representative fixtures that turn the measured criteria of §5.3 into thresholds.
+  - #144: interoperability. The workspace only reads Drupal's read model and calls existing commands, so it adds no contract that #144 would have to absorb.
 
 **The rule this design keeps.** The legacy code is the specification for business rules. This document changes how the planner reaches those rules, not the rules themselves.
 - No academic rule, generator behaviour or validation is redefined.
@@ -20,6 +24,7 @@
 4. [Frontend decision](#4-frontend-decision)
 5. [Roadmap: vertical slices, dependencies, risks, acceptance](#5-roadmap)
 6. [Open questions for the maintainer](#6-open-questions-for-the-maintainer)
+7. [S1 refined: one complete scheduling workflow (#141)](#7-s1-refined-one-complete-scheduling-workflow-141)
 
 ---
 
@@ -265,14 +270,24 @@ Counted from the captured links and from the move flow documented in `timetable-
    - Every action is a real link or a form button that works without JavaScript, with a full page load.
    - With JavaScript the same request returns a partial and the page is updated in place.
    - Drag remains a shortcut that presses the same button.
-4. **One canvas.** The plan timetable, the explorer and the viewer become **lenses** of one workspace. The existing routes stay as fallbacks and permalinks.
-5. **Context is visible.** A context bar is always on screen. It is never re-entered after a write.
+4. **One canvas.** The plan timetable, the explorer and the viewer become **perspectives** ("lenses") of one workspace.
+   - Their existing URLs keep working.
+   - Read-only access and the viewer's least privilege are preserved: a viewer gets the read-only perspectives and never an edit action.
+5. **Context is visible and survives everything.** A context bar is always on screen. Plan, period, selected resource and selected activity are preserved through navigation, writes, reload and browser history.
+6. **Shared resources stay visible.** The workspace is plan-centric, but teachers and rooms are shared across plans.
+   - The #133 cross-plan information is shown in the canvas, the inspector and the move overlay.
+   - When dates are unknown, that is shown too, so a plan never looks conflict-free when it was simply not evaluated.
+7. **Durations are drawn truthfully.**
+   - A multi-slot activity is one block across the slots it occupies.
+   - A break between two of its slots is shown inside the block.
+   - Every perspective reflects the real occupancy of the teacher, room, group and resources over the whole duration.
 
 ### 3.2 Information architecture
 
 ```
 Áncora (shell)
-├─ Plans (list, create)                        ← entry; "recent plans" first
+├─ Overview  /ancora                           ← stays the entry point; obvious "Resume <last plan>"
+├─ Plans (list, create)
 └─ Plan workspace  /ancora/planning/{plan}/workspace?period=&lens=&obj=&sel=
    ├─ Context bar: Plan ▾ · Period ▾ · Scope (specialty/level) ▾ · state badge · Run ▸
    ├─ Left rail (collapsible): Groups · Teachers · Rooms · Resources · Templates (search)
@@ -324,7 +339,10 @@ Each parameter is validated server-side against the user's access, exactly as th
 ```
 
 Annotations:
-- ① **Shell.** Three top-level destinations instead of six admin sections. Catalogues stays a section, because its records serve all plans.
+- ① **Shell.**
+  - The Overview stays the entry point (decision of 2026-10-30), with an obvious **Resume <last plan>** action.
+  - Plans, Catalogues and Runs replace the six admin-style sections. Catalogues stays a section because its records serve all plans.
+  - Drupal admin remains for configuration and catalogues (A2).
 - ② **Context bar.**
   - It is sticky.
   - Changing the plan or period replaces the canvas in place and pushes the URL.
@@ -336,11 +354,14 @@ Annotations:
   - Search filters the list client-side; it is only a display filter.
 - ④ **Canvas.**
   - It is the existing timetable grid, rendered by `TimetableReader` and `TimetableExplorer`, as an SDC component.
-  - Each placement is a button (`aria-pressed` for the selection). A multi-slot activity spans the slots it occupies as one card (`rowspan`), instead of a card repeated in every slot.
+  - Each placement is a button (`aria-pressed` for the selection).
+  - A multi-slot activity is **one block** across the slots it occupies (`rowspan`), instead of a card repeated in every slot.
+    - A break between two of its slots is drawn inside the block.
+    - In every perspective the block occupies the same slots, so the occupancy of the teacher, room, group and resources is visible.
   - A colour token per subject is stable across sessions, derived from the subject id, with a legend.
-  - Markers: ✎ moved by hand; ⚠ cross-plan warning (n). The selected cell is outlined and scrolled into view.
+  - Markers: ✎ moved by hand; ⚠ cross-plan warning (n); ◌ cross-plan not evaluated (dates unknown). The selected block is outlined and scrolled into view.
 - ⑤ **Inspector.**
-  - It is Drupal core's off-canvas dialog (`drupal.dialog.off_canvas`), or a server-rendered aside when JavaScript is off.
+  - It is a server-rendered aside (§7.3). Drupal core's off-canvas dialog is a reasonable first option, not a mandatory one (A4).
   - It shows the selected activity, its history (the existing `ancora_placement_change` list) and its warnings.
   - It holds the actions the user may take.
 - ⑥ **Status region.** Every server write reports here (`role=status`, or `role=alert` for refusals), with Undo where the domain allows it (only the last change, §9 of `timetable-editing.md`).
@@ -466,13 +487,13 @@ The request is the existing `RequestRunForm` with the same validation. The statu
 
 | Component | Kind | Built from | Notes |
 |---|---|---|---|
-| `app-shell` | Theme `page.html.twig` | Existing theme | 3 destinations; admin links only for admins |
+| `app-shell` | Theme `page.html.twig` | Existing theme | Overview (with "Resume <last plan>"), Plans, Catalogues, Runs; admin links only for admins |
 | `context-bar` | SDC + small behavior | Plan, period and scope pickers (links or GET form) | Sticky; GET fallback |
 | `object-rail` | SDC | Explorer's object lists | Links; client-side text filter |
 | `lens-switch` | SDC | Radios in a GET form | Enhanced to update in place |
 | `timetable-canvas` | SDC (Twig) | `TimetableReader` / `TimetableExplorer` render arrays | Cells as buttons, spans, markers, legend |
 | `placement-card` | SDC | Existing placement markup | Subject token, ✎ and ⚠ markers |
-| `inspector` | Core off-canvas dialog / aside | Drupal `drupal.dialog.off_canvas` | Tabs: Activity, Conflicts, Template, Run |
+| `inspector` | Server-rendered aside (off-canvas is a first option, A4) | Its own partial endpoint (§7.3) | Tabs: Activity, Conflicts, Template, Run |
 | `move-panel` | Existing form | `PlacementMoveForm` (unchanged contract) | AJAX-wrapped; full page fallback stays |
 | `destination-overlay` | SDC | The move form's grid | Same buttons, rendered over the canvas |
 | `history-list` | Existing render | `ancora_placement_change` | — |
@@ -480,7 +501,7 @@ The request is the existing `RequestRunForm` with the same validation. The statu
 | `assignment-panel` | Existing form | `AssignmentEditorForm` (#122) | Narrow layout variant |
 | `run-panel` | Existing form and page | `RequestRunForm` + run status | Bounded polling |
 | `status-region` | Behavior | `Drupal.announce` + a visible toast | Undo button where allowed |
-| `ancora-workspace` behavior | One Drupal behavior library | `core/drupal`, `core/once`, `core/drupal.ajax` | URL sync, focus management, roving tabindex |
+| `ancora-workspace` controller | One client module (§7.4) | Drupal behaviors and AJAX for writes, plus GET region fetches | URL and history sync, focus management, roving tabindex, progress feedback |
 
 ---
 
@@ -506,10 +527,10 @@ The request is the existing `RequestRunForm` with the same validation. The statu
 | CSRF and forms | Native form tokens | **Native**: the same `FormBase` forms over `#ajax`; tokens unchanged | Native | Custom token handling for every action | Custom everywhere |
 | JSON/action API needed | No | **No** (HTML partials) | No | **Yes**: read model and commands | Yes, complete |
 | Domain logic duplication risk | None | **None** | Low | Medium: validity tempted into JS | High |
-| Bundle, build and deploy | None | **None** (core libraries) | None (one ES module, no build) | npm build, lockfile, CI step, bundle on the droplet | Same, plus routing and auth |
+| Bundle, build and deploy | None | **None** (core libraries) | None, or a small build if one is justified | npm build, lockfile, CI step, bundle on the droplet | Same, plus routing and auth |
 | Tests | PHPUnit Functional | **Functional + FunctionalJavascript + Playwright E2E** | Same, plus element unit tests | Plus JS unit tests and API contract tests | Everything twice |
 | Responsiveness on a 1 vCPU host | Full page per action | **Small HTML fragments** | Same | JSON plus client render | Same as D |
-| Fits #66 / #74 | Yes | **Yes, with amendment A1** (§4.6) | Yes, with A1 | Needs A1 + A2 | Contradicts #66 |
+| Fits #66 / #74 (decisions of §4.6) | Yes | **Yes** (A1 approved) | Yes (A1 approved) | Allowed only with evidence (A3 provisional) | Not now (A3) |
 | Effort for slice 1 | — | **Medium** | Medium+ | High | Very high |
 
 **Notes on the options**
@@ -518,13 +539,17 @@ The request is the existing `RequestRunForm` with the same validation. The statu
 
 ### 4.3 Recommendation
 
-**Option B: Twig/SDC components, Drupal behaviors, and Drupal AJAX partials, with strict progressive enhancement.** Keep C (a light-DOM Web Component for the canvas keyboard grid) as an **optional refinement inside B**, adopted only if the behavior becomes unwieldy.
+**Option B: Twig/SDC components, Drupal behaviors, and Drupal AJAX partials, with strict progressive enhancement.**
+- C (a light-DOM Web Component) remains an **option inside B**, adopted where it is simpler.
+- The S1-specific choice, with its deciding experiment, is in §7.4.
+- Following A1, the choice is made from the interaction requirements, not from a size budget. A build step is allowed when a PR justifies it.
 
-**Rejected for now**
-- D (a React, Vue or Preact island) and E (a SPA). They would require a JSON command layer, a build pipeline and client-side state. None of the measured problems requires them, and they would invite validity logic into JS.
+**Not chosen for now (A3, provisional)**
+- D (a React, Vue or Preact island) and E (a SPA). They would require a JSON command layer and client-side state. None of the measured problems requires them, and they would invite validity logic into JS.
+- They are **not permanently excluded**. The trigger below says what evidence would reopen them.
 
 **Revisit trigger for D**, recorded here so the decision is falsifiable. Revisit only if one of these is measured on a real fixture:
-- a lens switch partial exceeds 500 ms p95 server-side at realistic size (≥ 40 groups × 6 days × 10 slots);
+- a lens switch partial is measured as too slow at representative size (#143 fixtures) and the cause is the HTML round-trip, not the read model;
 - a needed interaction cannot be expressed as "server returns HTML for a region", such as continuous client-side what-if editing of many cells before a commit.
 
 ### 4.4 Reusable contracts (no domain rewrite)
@@ -544,8 +569,8 @@ The request is the existing `RequestRunForm` with the same validation. The statu
 - **#130 move/undo.**
   - No change to `PlacementModification`, the check runner, the worker or the tables.
   - The form gains an AJAX wrapper and a `destination` parameter so that "Back" and success return to the workspace URL. The check-pending reload becomes an AJAX poll of the inspector region.
-  - Kernel and functional tests stay as they are. FunctionalJavascript tests are added for the in-place path.
-- **#133 warnings.** No change to the detector. Its output is rendered in three places instead of one, and the "unknown" semantics stay ("not evaluated", never "none").
+  - Kernel and functional tests stay as they are. Browser tests (Playwright on disposable fixtures, §7.6) are added for the in-place path.
+- **#133 warnings.** No change to the detector. Its output is rendered in three places instead of one: the canvas, the inspector and the move overlay. The "unknown" semantics stay ("not evaluated", never "none").
 - **#122 assignments.** No change to the form's actions or services. A narrow template variant is used in the inspector, and the drag shortcut stays a button press.
 - **#138 swap (when authorized).** Its command follows the #136 design. The workspace gets an inspector action and a second selection mode on the canvas. No other workspace change is needed. **Nothing in this document authorizes #138.**
 
@@ -561,17 +586,35 @@ The request is the existing `RequestRunForm` with the same validation. The statu
 - **Cache metadata**
   - Partials carry the cache metadata of their render arrays: `user`, `url.query_args:<name>`, and the placement, plan and period cache tags.
   - The workspace page varies by `url.query_args`.
-- **Escaping.** No `innerHTML` with client-built strings. The client only inserts server-rendered HTML through Drupal AJAX commands.
+- **Escaping.** No `innerHTML` with client-built strings. The client only inserts server-rendered HTML, through Drupal AJAX commands or the region loader chosen in §7.4.
 - **Logging.** No academic data is written to the browser console or to `drupalSettings` beyond the ids already in the URL.
 
-### 4.6 Proposed amendments to #66 / #74 (for the maintainer's decision)
+### 4.6 Decisions on the amendments to #66 / #74
 
-| # | Current text | Proposed amendment | Why |
+The maintainer decided A1–A4 on 2026-10-30/31, within the product direction of #142. The proposals as written in PR #140 are kept in its history.
+
+| # | Topic | Decision (2026-10-30/31) | What changes in this document |
 |---|---|---|---|
-| A1 | #66 §4 and #74: "only limited JavaScript for highly interactive scheduling" and "JavaScript … only for interactive schedule grid and necessary dynamic controls" | Allow **one workspace behavior library**, plus Drupal AJAX partials across the planning workspace (shell, context bar, rail, inspector, canvas). It is bounded: no build step, no npm runtime dependency, first-party JavaScript at most 25 KB minified and gzipped, and progressive enhancement mandatory. | Context loss happens *between* pages, not only inside the grid. Fixing it requires in-place updates of the shell regions. |
-| A2 | #74: "Use Drupal admin/menu, Views…" as the UI frame | The **planner's primary frame is the plan workspace**. Drupal admin pages and Views remain for catalogue CRUD and administrators, linked from the workspace and returning to it. | The audit shows the admin-first frame causes the re-entries. #105 already asks for this. |
-| A3 | Implicit in #66: no client framework | Unchanged for now: **no SPA, no React/Vue island.** Record the revisit trigger of §4.3 so that a later decision is evidence-based. | Prevents a framework by default, without forbidding one forever. |
-| A4 | (new) | Use Drupal core's off-canvas dialog for the inspector. Use no contrib UI framework unless separately justified. | Keeps the dependency surface at core. |
+| A1 | JavaScript scope (#66 §4, #74) | **Approved with modifications.** A coherent interactive frontend with partial page updates and shared workspace state is allowed. There is **no arbitrary size limit** (the proposed 25 KB is dropped), and **build tools are not prohibited**. Pick the simplest maintainable solution from the actual interaction requirements. | U9 becomes "dependencies and build justified in the PR; no unused framework". §7.4 chooses the S1 frontend from the S1 interactions. |
+| A2 | Primary frame (#74) | **Approved.** The integrated workspace is the planner's primary interface. Drupal admin stays for configuration and catalogues. | §3.2. The Overview stays the entry point, with "Resume <last plan>". |
+| A3 | Client framework | **Provisional.** Progressive enhancement without a SPA comes first. React, Vue or other component approaches are not permanently excluded if evidence justifies them. | §4.3 keeps the revisit trigger, now tied to measurements on representative fixtures (#143). |
+| A4 | Inspector container | **Provisional.** Drupal's off-canvas dialog is a reasonable first option, not mandatory. | §3.3, §3.7 and §7.3: the inspector is a server-rendered region. Its container is chosen in S1. |
+
+**Product decisions recorded with them (2026-10-30/31, #142)**
+- **Entry point.** The Overview stays the entry point, with an obvious "Resume <last plan>".
+- **Perspectives.** Timetable, explorer and viewer become workspace perspectives.
+  - Their existing URLs keep working.
+  - Read-only and viewer permissions are preserved, including the viewer's least privilege.
+- **Shared resources.** Resources are shared across plans. The plan-centric workspace must not hide cross-plan availability or conflicts:
+  - the #133 information, "unknown" included, is surfaced in the canvas, the inspector and the move overlay.
+- **Multi-slot activities** are drawn as one block, with breaks between slots shown and real resource occupancy reflected.
+- **Context.** Plan, period, selected resource and activity are preserved through navigation, reload and browser history.
+- **Check latency.**
+  - The worker's validation latency is **measured on representative fixtures before any threshold is set**.
+  - Progress feedback is immediate.
+  - Latency criteria are "measured and reported; threshold set afterwards".
+- **Reuse.** Move/undo, assignment editing and cross-plan warnings are reused, with **no** validation logic duplicated in JavaScript.
+- **Related work.** #143 (workload evidence) and #144 (interoperability) are cross-referenced. Neither is a prerequisite of S1.
 
 ---
 
@@ -581,8 +624,8 @@ The request is the existing `RequestRunForm` with the same validation. The statu
 
 | Slice | Content | Depends on | Ships value alone? |
 |---|---|---|---|
-| **S1: Pilot: plan workspace + in-place move/undo** | Workspace route. Context bar (plan, period). Lens switch and object rail (teacher, group, room). Canvas from the existing read model. Inspector for one activity (detail, history, cross-plan list). **#130 move/undo in place.** Status region with Undo. Full page fallbacks. A journey E2E test measuring page loads. | #130, #133 (both deployed) | Yes: T1 and T2 end to end |
-| S2: Lenses for all objects; retire duplicate entries | Resource lens. Explorer and viewer routes redirect to the workspace lens (kept as permalinks). The timetable's "Explore…" link goes away. The `all` lens replaces the plan timetable page. | S1 | Yes |
+| **S1: Pilot: one complete scheduling workflow** (refined in §7, issue #141) | From the Overview, resume the plan. In the workspace, use the teacher perspective. Multi-slot blocks and cross-plan state are visible. Inspector. Validated move in place with progress, the result and the cross-plan impact. Undo. Reload and back restore everything. Full page fallbacks. Latency measured. | #130, #133 (both deployed) | Yes: T1 end to end |
+| S2: All perspectives; one entry per view | Group, room and resource perspectives. The explorer, viewer and plan timetable become workspace perspectives. Their URLs keep working (rendered as perspectives, or kept as pages), and the viewer's least privilege is preserved. The timetable's "Explore…" link goes away. | S1 | Yes |
 | S3: Cross-plan in place, complete | Bar count, cell badges, "Open there" links into the other plan's workspace | S1 | Yes |
 | S4: Template assignments in the inspector | #122 form in the inspector, with "stale" feedback in the bar | S1, #122 | Yes: T3 part 1 |
 | S5: Run drawer | Request and status in the inspector, scope prefilled, "Show the new timetable" keeps the lens | S1 | Yes: T3 part 2 |
@@ -599,36 +642,295 @@ The request is the existing `RequestRunForm` with the same validation. The statu
 | Cache leaks across users or tenants in partials | S1+ | Low | **Critical** | Cache contexts `user` and `url.query_args`, plus tags. A two-user test of the same partial URL. Run the multisite tenant E2E (#75). |
 | URL state accepts forged ids | S1 | Medium | High | Server-side validation as in the explorer. 403/404 tests for every parameter. |
 | Polling load on the 1 vCPU host | S1, S5 | Medium | Medium | The existing bounded poll (2 s, at most 30 tries). Only the small region is returned. Backoff on the run drawer. |
-| Destination check latency feels broken in place | S1 | Medium | Medium | Visible busy state with the time waited and a Cancel link. The latency comes from the worker cycle. Measure it, and document it if it exceeds a target (an open question for the maintainer). |
+| Destination check latency feels broken in place | S1 | Medium | Medium | Immediate progress feedback: the queued or running state, the time waited, and Cancel. The latency is measured on representative fixtures (§7.7) **before** any threshold is set. |
 | Focus loss after partial replacement (accessibility regression) | S1+ | Medium | High | A focus target is defined for every response. An axe-core scan and keyboard-only E2E in CI. |
-| Scope creep into a framework | all | Medium | Medium | Amendment A1's budget. The revisit trigger in §4.3 is the only path to D. |
+| Scope creep into a framework | all | Medium | Medium | A1: every dependency and any build step is justified in its PR, and no framework goes unused. The revisit trigger in §4.3 is the path to D. |
 | Real-size grids too dense | S1, S9 | High | Medium | A realistic-size fixture in E2E. A compact density mode (S9). Lens filtering by default (one object, not "all"). |
 | #138 pressure | S8 | — | — | S8 stays blocked until the maintainer authorizes #138. The UI shows no disabled "Swap" before then. |
 
 ### 5.3 Measurable UX acceptance criteria
 
-The criteria below are measured by a Playwright journey test on a **disposable fixture site** (the #130/#133 fixtures plus a realistic-size generator fixture), run in CI.
+The criteria below are measured by a Playwright journey test on a **disposable fixture site**: the #130/#133 fixtures, plus a representative-size fixture when #143 provides one. Criteria marked *measured* are reported first; their threshold is set afterwards by the maintainer.
 
 | # | Criterion | Target | Today (baseline) |
 |---|---|---|---|
-| U1 | Full page loads to complete T1 (open workspace, choose teacher, move an activity, undo) with JS | **1** | ≥ 13 |
+| U1 | Full page loads to complete the S1 workflow (§7.1) with JS, after the Overview | **1** (the workspace) | ≥ 13 |
 | U2 | Context re-entries during T1, T2 and T3 (pick plan, period, object or scope again) | **0** | 2 / ≥ 2 / 3 |
 | U3 | Reload or back at any step restores plan, period, lens, object and selection | **100 %** of steps | Partial (selection never restored) |
 | U4 | T1 is completed with keyboard only (no pointer events in the test) | Pass | Pass (but page by page) |
 | U5 | axe-core on workspace states (default, selected, move overlay, inspector open, alert) | 0 serious or critical | Not measured |
 | U6 | Every write is also possible with JavaScript disabled (Functional tests on fallback routes) | 100 % of write actions | 100 % |
-| U7 | Server time of a lens-switch partial on the realistic fixture | p95 ≤ 500 ms | n/a |
+| U7 | Server time of a perspective-switch partial, and destination-check latency (queue wait plus run, §7.7) | **Measured and reported**; threshold set afterwards | n/a |
 | U8 | Horizontal page overflow at 390 px | 0 px | 0 px |
-| U9 | First-party workspace JavaScript (minified, gzip) and build step | ≤ 25 KB, no build | 261 lines over 2 files, no build |
-| U10 | Visual consistency: every workspace region is an SDC component or a core dialog; no inline styles | 100 % | n/a |
+| U9 | Frontend dependencies and build | **Each dependency and any build step justified in the PR; no unused framework** (A1) | 2 scripts, no dependencies, no build |
+| U10 | Visual consistency: every workspace region is an SDC component (or the chosen inspector container); no inline styles | 100 % | n/a |
 | U11 | Security parity: every access, refusal and CSRF test of #122, #130 and #133 still passes. New partial routes have 403/404 tests for viewer, anonymous and another owner. | Pass | Pass |
+| U12 | Multi-slot truth: on a fixture with 2- and 3-slot activities, one of them crossing a break, each is one block in every perspective, the break is visible, and the occupied slots match the engine's occupancy | Pass | Fails (repeated cards, no break) |
+| U13 | Cross-plan visibility: on the #133 fixture, the warning appears on the block, in the inspector and in the move overlay. On a period with unknown dates, "not evaluated" appears in all three. | Pass | Bottom section only |
 
 ---
 
 ## 6. Open questions for the maintainer
 
-1. **Amendments.** Approve, change or reject A1–A4 (§4.6). S1 depends on A1 and A2.
-2. **Default landing.** Should the planner's landing be "last opened plan workspace" instead of the Overview page?
-3. **Retiring routes.** Should the explorer and viewer routes become redirects to workspace lenses (S2)? Or should they stay as separate pages for read-only users? The viewer's least-privilege role from the earlier task must keep its narrower access in either case.
-4. **Check latency.** Is a target acceptable for the destination check, such as "valid cells within N seconds on the demo host"? That would be a worker-cycle setting, not a UI change.
+Answered on 2026-10-30/31 (§4.6):
+- the amendments;
+- the default landing (the Overview, with "Resume");
+- the retiring of routes (they become perspectives, the URLs keep working, and the viewer keeps its least privilege);
+- the check latency (measure first).
+
+Still open:
+1. **S1 frontend experiment.** Accept the experiment of §7.4 as the way to decide between core AJAX partials and a small client component.
+2. **Browser test infrastructure.** Playwright on disposable fixtures in CI needs a new CI job, a fixture site and a worker. Is a new workflow acceptable?
+3. **Latency thresholds.** Set them after the §7.7 report.
+4. **"Resume <last plan>".** It needs a per-user "last plan" (user data or a cookie-free server record). Confirm that storing it is acceptable.
 5. **#138.** Swap stays out of every slice until it is authorized.
+
+---
+
+## 7. S1 refined: one complete scheduling workflow (#141)
+
+**Status:** planned and **not authorized** (#141 keeps the maintainer's hold).
+- It reflects the decisions of §4.6 and the D3 gate of #142.
+- #143 and #144 are context, not prerequisites.
+- #138 (swap) is not part of it.
+
+### 7.1 The workflow
+
+S1 delivers one workflow end to end, and nothing it does not need. The **URL** column is what the address bar holds after each step.
+
+| # | User step | What the server does | URL after the step |
+|---|---|---|---|
+| 1 | Overview › **Resume "Plan P"** | Renders the Overview with the user's last opened plan (owner-checked) | `/ancora` |
+| 2 | The workspace opens (the only full page load) | Renders shell, context bar, rail, canvas (default perspective: all of the period), inspector (empty) and status region | `…/planning/1/workspace?period=1` |
+| 3 | Pick **Teacher** perspective › **Teacher Alpha** | Returns the canvas and rail for that teacher | `…&lens=teacher&obj=1` (pushState) |
+| 4 | **Spot** an activity: a 2-slot block crossing a break, with its cross-plan marker (⚠ n or ◌ not evaluated) | — (already rendered) | — |
+| 5 | Select it › the **inspector** opens | Returns the inspector: detail, occupancy (slots, teacher, room, group, resources), history, the cross-plan list or "not evaluated" | `…&sel=5` (pushState) |
+| 6 | **Move…** | `PlacementModification::requestCheck()` through `PlacementMoveForm`. The inspector shows **queued** at once, then **running**, with the time waited and Cancel. Cancel only leaves move mode: there is no cancel command, and the check row expires as it does today. | `…&panel=move` (replaceState) |
+| 7 | The check is done: the destination overlay appears on the canvas | Returns the overlay: valid, refused (with reasons) and valid-with-cross-plan-warning cells, plus the list alternative | — |
+| 8 | Pick a cell › **preview** › **Move here** | `commit()` through the same form, with the same token and refusals | `…&sel=5` (replaceState; `panel` cleared) |
+| 9 | See the **result** | Re-renders the canvas (block at its new place, ✎), the inspector (history, **new cross-plan state**) and the status region ("Moved … [Undo]"). A new cross-plan warning is announced. | — |
+| 10 | **Undo** | `undo()` through the form, with its own check: steps 6–8 again, prefilled with the origin cell | — |
+| 11 | **Reload**, then **Back ×3**, then **Forward ×3** | Each URL renders the same state server-side; back and forward re-request only the regions that changed | Restored exactly at every step |
+
+**Without JavaScript**
+- Steps 3, 5 and 11 are links and GET forms that do full page loads.
+- Steps 6–10 use today's move page. Its "Back" and its success redirect return to the workspace URL with `lens`, `obj` and `sel`.
+
+### 7.2 Scope
+
+**In S1**
+- Overview "Resume".
+- The workspace route.
+- The context bar (plan, period, publication state).
+- The **teacher** perspective, plus the default "all of the period" view.
+- The object rail for teachers.
+- The canvas with multi-slot blocks, breaks and cross-plan markers.
+- The inspector (activity tab and conflicts tab).
+- Move and undo in place, with progress feedback.
+- The status region.
+- URL and history state.
+- No-JS fallbacks.
+- The latency measurement (§7.7).
+
+**Not in S1**
+- Group, room and resource perspectives, and turning the explorer, viewer and timetable routes into perspectives (S2).
+- Assignments in the inspector (S4) and the run drawer (S5).
+- The narrow-screen agenda (S6). In S1, narrow screens get the current list layout plus the inspector below.
+- Swap (#138).
+- Any change to the domain, the engine, the worker or the tables.
+
+### 7.3 Component boundaries
+
+**Regions.** Each region is server-rendered, with one partial endpoint each. All of them are GET and read-only.
+
+| Region | Source (existing) | Partial | Re-rendered after |
+|---|---|---|---|
+| Context bar | Plan and period entities, publication state from `TimetableReader` | `…/workspace/region/bar` | plan or period change; a commit (the state badge) |
+| Rail | `TimetableExplorer` object lists, with the explorer's access rules | `…/workspace/region/rail` | perspective change |
+| Canvas | `TimetableReader` / `TimetableExplorer` scope, plus `CrossPlanConflictView` per placement | `…/workspace/region/canvas` | perspective or object change; a commit or undo |
+| Inspector | Placement, `ancora_placement_change` history, `CrossPlanConflictView` | `…/workspace/region/inspector` | selection; a commit or undo; check progress |
+| Move overlay | `PlacementModification::check()` grid, as `PlacementMoveForm` renders it | part of the move form's response | check progress or completion |
+| Status region | The form's messages | carried in each write response | every write |
+
+**Endpoints and writes**
+- All region endpoints share **one access callback**: the workspace's.
+  - Each endpoint validates `period`, `lens`, `obj` and `sel` exactly as the explorer validates its query.
+  - An invalid value falls back to the default view. A forged id of another owner gets 403 or 404.
+- **Writes are not endpoints.** They are `PlacementMoveForm` submits, unchanged, rendered inside the inspector and submitted with AJAX.
+- The form gains only:
+  - a validated `destination` back to the workspace URL;
+  - an AJAX callback that returns the affected regions.
+
+**Inspector container (A4).** Two candidates:
+- a fixed right-hand aside region in the workspace layout;
+- core off-canvas.
+
+The aside is the default proposal, because it stays in the document flow, keeps focus order simple and works without JavaScript. Off-canvas is kept for narrow screens if S6 prefers it.
+
+**Client state model**
+
+| State | Where it lives | Why |
+|---|---|---|
+| plan, period, lens, obj, sel, panel | **URL** (path and query) | Reload, back, bookmarks and shared links restore it. The server validates it on every request. |
+| Last opened plan (for "Resume") | Server, per user (an open question, §6) | Survives devices and sessions. Never a client-side record. |
+| Pending check id, poll timer, time waited | **Memory** (and the server's check row) | Transient. Losing it on reload is safe: the server still knows the check, and the inspector re-renders its state. |
+| Focus target and scroll position | Memory and `history.state` | Restored on back and forward. Not shareable. |
+| Text filter in the rail | Memory | A display filter only |
+| Validity of any cell | **Never on the client** | Comes only from the server's check (#130) |
+
+### 7.4 Frontend choice for S1
+
+The S1 interactions are:
+- (a) replace one or more regions together after a read or a write;
+- (b) push and replace the URL, and restore on popstate;
+- (c) a keyboard grid with a selection;
+- (d) poll a check and show progress;
+- (e) submit the existing form in place and show the refusals;
+- (f) move focus after each update;
+- (g) drag as a shortcut that presses a button.
+
+| Interaction | **P: Drupal AJAX partials + behaviors** | **Q: Small component layer** (light-DOM custom elements; optionally a minimal library with a build) |
+|---|---|---|
+| (a) Several regions from one response | **Native**: one `AjaxResponse` with several `ReplaceCommand`s. `#attached` libraries and settings are attached automatically. | Custom: fetch HTML, split it, insert it, then call `Drupal.attachBehaviors` by hand |
+| Read requests as GET (cacheable) | Supported for links: `data-ajax-http-method="GET"` (`core/misc/ajax.js`:330). The default is POST. | Native `fetch` GET |
+| (b) URL, history and popstate | Needs a custom AJAX command plus a popstate handler | Natural in an element's own code |
+| (c) Keyboard grid | A behavior with roving tabindex | A custom element is a natural home for it |
+| (d) Progress polling | A timed AJAX request of the inspector region | A timed fetch |
+| (e) Existing form in place, CSRF, form state, refusals | **Native** (`#ajax` on `PlacementMoveForm`; token and form cache unchanged) | Would have to post the Drupal form by hand (form build id, token) and parse the result: **re-implements Form API plumbing** |
+| (f) Focus after update | Custom code in either option | Custom code in either option |
+| (g) Drag shortcut | Exists (#130 behavior) | Exists |
+| Dependencies and build | Core only (it pulls in jQuery through `core/drupal.ajax`) | None for plain custom elements. A library adds a build. |
+
+**Recommendation for S1: P for every request and every write, plus one light-DOM custom element (`<ancora-timetable-canvas>`) for the keyboard grid and focus.**
+- Writes must stay Drupal forms, which decides (e) for P.
+- One response updating canvas, inspector and status together, with libraries attached, decides (a).
+- The parts that P does not provide, (b), (c) and (f), are custom code in either option.
+- A minimal library with a build adds nothing for S1, because every region is server HTML. Under A1 it is allowed, but it is not justified by these interactions.
+
+**It is close on the read side**, between P's GET AJAX links with a custom history command and Q's plain `fetch`. The **deciding experiment** is the first step of S1, on a disposable site:
+- implement the perspective switch, the selection and popstate restore both ways;
+- run 20 scripted back and forward transitions (Playwright);
+- for each way, count:
+  - state mismatches,
+  - focus-target misses,
+  - axe violations,
+  - first-party lines of code;
+- check that the GET partial is served from Drupal's dynamic page cache on a repeat.
+
+Keep the variant with zero mismatches and misses and fewer lines. On a tie, keep P, which has less code to own.
+
+### 7.5 Accessibility
+
+**Grid and actions**
+- The canvas is a `grid`.
+  - It uses a roving tabindex: arrows move, Home and End go to the day's edges, Enter selects, and Esc clears the selection.
+  - A multi-slot block is one grid cell, `aria-rowspan`, labelled with its full time range, including the break.
+- Every action is a real button, and keyboard paths equal pointer paths. Drag stays a shortcut.
+
+**Inspector and focus**
+- The inspector is a labelled region (`aside`, `aria-labelledby`). Selecting a block moves focus to its heading, and Esc returns focus to the block.
+
+**Announcements**
+- Progress: `role=status`, with "Checking destinations… 4 s".
+- Results: `role=status`, with Undo as a button.
+- Refusals: `role=alert`.
+- A new cross-plan warning after a move is announced in words, not by colour.
+- Busy regions carry `aria-busy`. Old content stays visible until it is replaced.
+
+**Markers and tooling**
+- Markers (✎ ⚠ ◌) have text equivalents.
+- axe-core runs in the browser tests (§7.6).
+
+### 7.6 Security, tests and regression
+
+**Access by perspective and role**
+
+| Who | Workspace and regions | Move and undo | Notes |
+|---|---|---|---|
+| Plan owner (editor) | Yes: own plans | Yes | As the plan timetable and move routes today |
+| Another editor | 403/404 for this plan and its ids | 403 | Forged `sel`, `obj` or `period` tested |
+| Administrator | Yes | Yes | As today |
+| Viewer only (`view timetable viewer`) | **Not the editing workspace.** The viewer perspective (S2) stays read-only with the viewer's own data scope, and `view academic data` still does not imply it. | Never | S1 must not widen the viewer: `ViewerTest` and `TimetableExplorerTest::testViewer*` stay green |
+| Anonymous | 403 | 403 | — |
+
+**Security rules**
+- **CSRF.** Writes are only `PlacementMoveForm` submits, with the Drupal form token. Region endpoints are GET and write nothing, including the "last plan" record. That record is written by the full workspace page, or by a token-protected route if it is ever needed elsewhere.
+- **Cache contexts.**
+  - Every region declares `user`, `url.query_args` (or the specific args) and the placement, plan and period cache tags.
+  - A two-user test requests the same partial URL as two owners and asserts different, correct content.
+
+**Browser tests: Playwright on a disposable fixture site**
+- It is built like the #130/#133 fixture runs: an ephemeral PostgreSQL and a local PHP server with the worker.
+- The fixture includes 2- and 3-slot activities, one crossing a break, and a dated cross-plan overlap plus an undated period.
+- It covers the workflow of §7.1 with JavaScript, the same with JavaScript disabled, and keyboard only.
+- It runs axe in every state and records the measurements for U1–U3 and U7.
+
+**Regression.** Every existing test must stay green:
+- `PlacementModificationTest`, `PlacementMoveUiTest`, `PlacementPublisherTest`;
+- `CrossPlanConflictDetectorTest`, `CrossPlanConflictUiTest`;
+- `TemplateAssignmentsTest`, `AssignmentEditorUiTest`;
+- `TimetableExplorerTest`, `ExplorerTest`, `ViewerTest`, `WorkspacePagesTest`;
+- `workspace-journey.sh` step 11 (real engine);
+- the engine, characterization and e2e workflows.
+
+### 7.7 Latency measurement plan (no threshold before the report)
+
+**What is measured.** A destination check's latency, as the user sees it, has four parts:
+1. **request**: the form submit, until the check row is created;
+2. **queue wait**: until the worker picks up the check. Checks run at the start of every worker cycle, and the idle sleep is 5 s by default (`ancora-engine:work --idle-sleep`);
+3. **run**: the workspace load of the whole site plus the evaluation of every cell (`PlacementCheckRunner`);
+4. **detection**: until the client's poll sees "done" (2 s interval today).
+
+**How it is measured**
+- The check table records only `created` and `changed`, in whole seconds, so the harness measures from outside:
+  - browser timestamps for the click, the first "running" and "done" rendered;
+  - the worker's log lines per check.
+- Nothing is added to the schema in S1. A `started` column would be a separate proposal.
+- Fixtures:
+  - the #130 fixture (small);
+  - the #133 fixture (two plans);
+  - a representative fixture from #143 when it exists. The report says which ones were used and never extrapolates.
+- Each fixture gets 20 checks, with p50, p95 and max per part.
+- The report records the worker settings (`--idle-sleep`, `--max-runtime`), the host and the PostgreSQL version.
+- The same harness measures the server time of the perspective-switch partial (U7).
+
+**What follows from it**
+- The S1 PR reports the numbers in `timetable-editing.md` and in this document.
+- The maintainer sets thresholds afterwards. A change to the worker cycle, if one is needed, is a separate decision.
+
+### 7.8 S1 acceptance (for #141)
+
+The workflow of §7.1 passes in Playwright on the disposable fixture, with JavaScript, without it, and keyboard only. In addition:
+
+| # | Criterion | Target |
+|---|---|---|
+| U1 | Full page loads after the Overview | **1** |
+| U2 | Context re-entries | 0 |
+| U3 | Reload, back and forward restore every step | 100 % |
+| U4 | Keyboard only | Pass |
+| U5 | axe | 0 serious or critical |
+| U6 | No-JS fallback for every write | Pass |
+| U7 | Latency report (§7.7) | Delivered; no threshold |
+| U9 | Dependencies and build | Justified in the PR; no unused framework |
+| U10 | Visual consistency | Pass |
+| U11 | Security parity and the access table of §7.6 | Pass |
+| U12 | Multi-slot blocks and breaks | Pass |
+| U13 | Cross-plan in canvas, inspector and overlay, including "not evaluated" | Pass |
+| — | The §7.4 experiment result is recorded in the PR | Delivered |
+
+### 7.9 Recommended first coding slice (smaller than S1)
+
+**S1a: the read-only workspace, plus the frontend experiment and the latency harness.**
+- Overview "Resume".
+- The workspace route and its regions.
+- The teacher perspective.
+- Multi-slot blocks with breaks.
+- Cross-plan markers and "not evaluated".
+- The inspector (read-only: detail, occupancy, history, conflicts).
+- URL and history state.
+- The §7.4 experiment.
+- The Playwright fixture and harness, including the latency measurement of today's move page.
+
+**It writes nothing**, so it carries no CSRF or domain risk, and it settles the frontend question before any write is wrapped.
+
+**S1b** then adds move and undo in place with progress feedback, completing §7.1.

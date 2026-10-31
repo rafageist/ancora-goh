@@ -266,6 +266,16 @@ Authorized by the maintainer and implemented as specified in §5, with the check
 
 **Deploy:** `drush updatedb` runs `ancora_scheduling_update_11006`, which creates the check table and the change entity type. Then `drush cr`. The worker must run, as it already does for generation.
 
+**Planned reuse in the planning workspace** (#141; planned and **not authorized**; see `docs/ux/planning-workspace.md` §7)
+- The workspace would run this same flow in place: the same command contract, the same `PlacementMoveForm` and token, and the same refusals.
+- The only planned form changes are:
+  - a validated `destination` back to the workspace URL;
+  - an AJAX callback that returns the affected regions.
+- Nothing changes in `PlacementModification`, the check runner, the worker or the tables. No validation moves to JavaScript.
+- **Check latency is unmeasured.** It is the request, plus the queue wait (one worker cycle, idle sleep 5 s by default), plus the run, plus the client's 2 s poll.
+  - It will be measured on representative fixtures (§7.7 of the UX document) before any threshold is set.
+  - Until then the UI must give immediate progress feedback.
+
 ## 10. Atomic swap of two saved placements: characterization and design (#136)
 
 Status: **characterization and design only**. The implementation is the separate issue "[UI-TIMETABLE-3a]", and it needs maintainer approval.
