@@ -17,3 +17,17 @@ placement_move:
   dependencies:
     - core/drupal
     - core/once
+
+# The integrated planning workspace (#141): regions in place, history,
+# focus and keys; progressive enhancement over plain GET links.
+plan_workspace:
+  css:
+    component:
+      css/plan-workspace.css: {}
+  js:
+    js/plan-workspace.js: {}
+    js/plan-workspace-fetch.js: {}
+  dependencies:
+    - core/drupal
+    - core/drupalSettings
+    - core/once

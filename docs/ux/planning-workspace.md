@@ -1,9 +1,10 @@
 # Integrated planning workspace: audit, blueprint and frontend decision (#139)
 
-**Status: design only.** Nothing here is authorized for implementation.
+**Status.**
 - The blueprint was merged in PR #140.
 - The maintainer decided amendments A1–A4 on 2026-10-30/31. They are recorded in §4.6, and the text below follows them.
-- Each slice in §5 still needs the maintainer's approval first. The refined first slice is §7 and the pilot issue #141, which is **not authorized**.
+- **S1a (the read-only workspace, §7.9) was authorized on 2026-10-31 and is implemented: §8.**
+- Every other slice, S1b included, still needs the maintainer's approval first.
 
 **Parents and related issues**
 - Parents: #74 (Drupal UI), #66 (architecture), and #142 (product vision and GOH scope, D3 "rich web experience").
@@ -25,6 +26,7 @@
 5. [Roadmap: vertical slices, dependencies, risks, acceptance](#5-roadmap)
 6. [Open questions for the maintainer](#6-open-questions-for-the-maintainer)
 7. [S1 refined: one complete scheduling workflow (#141)](#7-s1-refined-one-complete-scheduling-workflow-141)
+8. [Implemented: S1a, the read-only workspace (#141)](#8-implemented-s1a-the-read-only-workspace-141)
 
 ---
 
@@ -689,7 +691,7 @@ Still open:
 
 ## 7. S1 refined: one complete scheduling workflow (#141)
 
-**Status:** planned and **not authorized** (#141 keeps the maintainer's hold).
+**Status:** S1a (§7.9) authorized on 2026-10-31 and implemented (§8). S1b is planned and **not authorized**.
 - It reflects the decisions of §4.6 and the D3 gate of #142.
 - #143 and #144 are context, not prerequisites.
 - #138 (swap) is not part of it.

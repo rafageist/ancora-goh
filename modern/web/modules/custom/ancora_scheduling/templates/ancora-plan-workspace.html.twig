@@ -1,0 +1,29 @@
+{#
+/**
+ * @file
+ * The integrated planning workspace of a plan (#141): its regions.
+ *
+ * Each region is its own server-rendered element ([data-ancora-region]):
+ * the page renders them all, and the workspace script replaces them in
+ * place from the regions endpoint. Every link works without the script.
+ *
+ * Available variables:
+ * - bar: The context bar region.
+ * - nav: The perspectives and the record list.
+ * - canvas: The timetable canvas.
+ * - inspector: The contextual inspector.
+ * - regions_url: The regions endpoint of this plan.
+ * - status: The first status message.
+ */
+#}
+<div class="ancora-ws" data-ancora-workspace data-ancora-regions-url="{{ regions_url }}">
+  {{ bar }}
+  <div class="ancora-ws__body">
+    {{ nav }}
+    <div class="ancora-ws__main">
+      {{ canvas }}
+    </div>
+    {{ inspector }}
+  </div>
+  <p class="ancora-ws__status" role="status" aria-live="polite" data-ancora-status>{{ status }}</p>
+</div>

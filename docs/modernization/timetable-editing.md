@@ -266,15 +266,16 @@ Authorized by the maintainer and implemented as specified in §5, with the check
 
 **Deploy:** `drush updatedb` runs `ancora_scheduling_update_11006`, which creates the check table and the change entity type. Then `drush cr`. The worker must run, as it already does for generation.
 
-**Planned reuse in the planning workspace** (#141; planned and **not authorized**; see `docs/ux/planning-workspace.md` §7)
+**Planned reuse in the planning workspace** (#141 S1b; planned and **not authorized**; see `docs/ux/planning-workspace.md` §7 and §8.5. S1a, the read-only workspace, links to this move page and changes nothing in it)
 - The workspace would run this same flow in place: the same command contract, the same `PlacementMoveForm` and token, and the same refusals.
 - The only planned form changes are:
   - a validated `destination` back to the workspace URL;
   - an AJAX callback that returns the affected regions.
 - Nothing changes in `PlacementModification`, the check runner, the worker or the tables. No validation moves to JavaScript.
-- **Check latency is unmeasured.** It is the request, plus the queue wait (one worker cycle, idle sleep 5 s by default), plus the run, plus the client's 2 s poll.
-  - It will be measured on representative fixtures (§7.7 of the UX document) before any threshold is set.
-  - Until then the UI must give immediate progress feedback.
+- **Check latency, measured (S1a, `docs/ux/planning-workspace.md` §8.3).** It is the request, plus the queue wait (one worker cycle, idle sleep 5 s by default), plus the run, plus the client's 2 s poll.
+  - On the disposable browser site, with the default worker, the move page took **6.8 s at p50 and about 9 s at p95** (20 runs each on the #133 fixture and the #130 E2E organization), click to grid.
+  - With a 1 s idle sleep, it took 4.8 s at p50: most of the wait is the worker's cycle, and the check itself takes about 2–3 s.
+  - Nothing was changed, and no threshold is set before #143's representative fixtures exist. The UI must give immediate progress feedback.
 
 ## 10. Atomic swap of two saved placements: characterization and design (#136)
 

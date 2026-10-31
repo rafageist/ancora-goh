@@ -1,0 +1,83 @@
+{#
+/**
+ * @file
+ * The timetable canvas of the planning workspace (#141).
+ *
+ * One column per day and one row per slot, plus a row for each break
+ * between two slots. Each placement is ONE block (a link that selects it)
+ * from its first to its last slot; a block across a break shows the break
+ * inside it. Blocks that overlap in a day are side by side (lanes). On a
+ * narrow screen the same markup reads as a list per day.
+ *
+ * The block's grid position is passed as CSS custom properties only
+ * (--r1, --r2, --lane, --br; --days, --rows and --lanes on the
+ * containers); all
+ * presentation is in plan-workspace.css.
+ *
+ * Available variables:
+ * - heading: What the canvas shows.
+ * - empty: TRUE when there is nothing to draw.
+ * - message: An optional explanation for an empty canvas.
+ * - rows: The time rows: type (slot, break), line, number, start, end.
+ * - days: Each day: number, lanes, blocks (see CanvasLayout::build() and
+ *   PlanWorkspace::canvas(): url, selected, warnings, not_evaluated).
+ * - template: The grid row sizes (the day header, then each row).
+ * - status: The text announced after the canvas changes.
+ */
+#}
+<section class="ancora-canvas" data-ancora-region="canvas" id="ancora-workspace-canvas" aria-labelledby="ancora-canvas-title" data-ancora-status-text="{{ status }}">
+  <h2 class="ancora-canvas__title" id="ancora-canvas-title" tabindex="-1">{{ heading }}</h2>
+  {% if empty %}
+    {% if message %}<p class="ancora-canvas__message">{{ message }}</p>{% endif %}
+  {% else %}
+    <div class="ancora-canvas__legend">
+      <span><span aria-hidden="true">✎</span> {{ 'moved by hand'|t }}</span>
+      <span><span aria-hidden="true">⚠</span> {{ 'cross-plan warning'|t }}</span>
+      <span><span aria-hidden="true">◌</span> {{ 'cross-plan not evaluated (dates unknown)'|t }}</span>
+      <span><span class="ancora-canvas__swatch" aria-hidden="true"></span> {{ 'break'|t }}</span>
+    </div>
+    <div class="ancora-canvas__grid" style="--days: {{ days|length }}; --rows: {{ template }};" data-ancora-canvas>
+      <div class="ancora-canvas__axis" aria-hidden="true">
+        <span class="ancora-canvas__corner"></span>
+        {% for row in rows %}
+          <span class="ancora-canvas__time ancora-canvas__time--{{ row.type }}" style="--r1: {{ row.line }};">
+            {% if row.type == 'slot' %}<strong>{{ row.number }}</strong> {{ row.start }}{% else %}{{ 'break'|t }}{% endif %}
+          </span>
+        {% endfor %}
+      </div>
+      {% for day in days %}
+        <section class="ancora-canvas__day" aria-labelledby="ancora-canvas-day-{{ day.number }}" style="--lanes: {{ day.lanes }};">
+          <h3 class="ancora-canvas__day-title" id="ancora-canvas-day-{{ day.number }}">{{ 'Day @day'|t({'@day': day.number}) }}</h3>
+          {% for row in rows %}
+            <span class="ancora-canvas__cell ancora-canvas__cell--{{ row.type }}" style="--r1: {{ row.line }};" aria-hidden="true"></span>
+          {% endfor %}
+          {% if not day.blocks %}
+            <p class="ancora-canvas__free">{{ 'No activity.'|t }}</p>
+          {% endif %}
+          {% for block in day.blocks %}
+            <a class="ancora-block{{ block.selected ? ' is-selected' }}{{ block.draft ? ' is-draft' }}{{ block.warnings and not block.not_evaluated ? ' has-warning' }}"
+               href="{{ block.url }}" data-ancora-nav="select" data-ancora-placement="{{ block.placement_id }}" data-ancora-row="{{ block.row_start }}"
+               style="--r1: {{ block.row_start }}; --r2: {{ block.row_end }}; --lane: {{ block.lane }};"{% if block.selected %} aria-current="true"{% endif %}>
+              {% for break in block.breaks %}
+                <span class="ancora-block__break" style="--br: {{ break.row }};" aria-hidden="true"></span>
+              {% endfor %}
+              <span class="ancora-block__body">
+                <span class="ancora-block__time"><span class="visually-hidden">{{ 'Day @day,'|t({'@day': block.day}) }} </span>{{ block.start }}–{{ block.end }}{% if block.slots > 1 %} · {{ '@n slots'|t({'@n': block.slots}) }}{% endif %}</span>
+                <span class="ancora-block__title">{{ block.activity }}</span>
+                <span class="ancora-block__meta">{{ block.group }}{% if block.teacher %} · {{ block.teacher }}{% endif %}{% if block.room %} · {{ block.room }}{% endif %}</span>
+                {% for break in block.breaks %}
+                  <span class="ancora-block__note">{{ 'break @start–@end'|t({'@start': break.start, '@end': break.end}) }}</span>
+                {% endfor %}
+                <span class="ancora-block__marks">
+                  {% if block.draft %}<span class="ancora-block__mark">{{ 'Draft'|t }}</span>{% endif %}
+                  {% if block.moved %}<span class="ancora-block__mark"><span aria-hidden="true">✎</span><span class="visually-hidden">{{ 'moved by hand'|t }}</span></span>{% endif %}
+                  {% if block.not_evaluated %}<span class="ancora-block__mark ancora-block__mark--unknown"><span aria-hidden="true">◌</span><span class="visually-hidden">{{ 'cross-plan conflicts not evaluated'|t }}</span></span>{% elseif block.warnings %}<span class="ancora-block__mark ancora-block__mark--warning"><span aria-hidden="true">⚠</span> {{ block.warnings }}<span class="visually-hidden"> {{ block.warnings == 1 ? 'cross-plan warning'|t : 'cross-plan warnings'|t }}</span></span>{% endif %}
+                </span>
+              </span>
+            </a>
+          {% endfor %}
+        </section>
+      {% endfor %}
+    </div>
+  {% endif %}
+</section>

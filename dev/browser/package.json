@@ -1,0 +1,12 @@
+{
+  "name": "ancora-browser-tests",
+  "private": true,
+  "description": "Playwright browser tests of the Drupal planning workspace (#141). Test-only tooling: never part of the Drupal build or of a deployment.",
+  "scripts": {
+    "test": "playwright test"
+  },
+  "devDependencies": {
+    "@axe-core/playwright": "4.14.0",
+    "@playwright/test": "1.64.1"
+  }
+}
