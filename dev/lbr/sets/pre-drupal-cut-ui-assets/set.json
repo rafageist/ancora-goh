@@ -1,0 +1,5 @@
+{
+    "description": "Binary UI assets at the pre-Drupal cut (#67 review): first-party images of the legacy desktop UI, measured separately from the source-code set and never combined with it.",
+    "baseline_commit": "f532e9170f34bd59fdde3d8898caba6dc8415489",
+    "origin_commit": null
+}

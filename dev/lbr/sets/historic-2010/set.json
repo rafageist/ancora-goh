@@ -1,0 +1,5 @@
+{
+    "description": "Historical comparator (#38): first-party legacy source that already existed in the July 2010 import (origin b42aa03), measured at the recovery/containerization commit eca8aa7.",
+    "baseline_commit": "eca8aa77bb433d995f46a80ab4776ca72b37c4ac",
+    "origin_commit": "b42aa03"
+}

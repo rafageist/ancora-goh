@@ -1,15 +1,59 @@
-# Legacy Bytes Remanufacturing: baseline and measurement (issue #38)
+# Legacy Bytes Remanufacturing: baselines and measurement (issues #38, #67, #77)
 
 Method: [2026.014 — Legacy Bytes Remanufacturing](https://github.com/rafageist/blog-reflections/wiki/2026.014.-Legacy-Bytes-Remanufacturing). LBR is a **progress metric**. It shows how much of a fixed legacy baseline has been retired with verified evidence. It does **not** measure security, quality, effort or technical debt, which are tracked separately (#40–#62, CI test suites).
 
-## 1. Frozen baseline
+## 0. Two independent baselines (sets)
+
+After the Drupal decision (#66) the tool measures **named sets**, each with its own commit, rules, frozen inventory and retirement records (`dev/lbr/sets/NAME/`). **Their percentages are never combined.**
+
+| Set | Scope | Status |
+| --- | --- | --- |
+| `historic-2010` | First-party legacy source that already existed in the July 2010 import, measured at `eca8aa7`. It is a **historical comparator** (§1–§2 below). | frozen: B = 854,831 bytes, 572 files |
+| `pre-drupal-cut` | **Comprehensive source-code cut** (#67): every maintained first-party implementation file at the transition commit, including the 2026 recovery work (tests, tooling, Docker, CI, codegen), before the move into `legacy/` (#68). Excluded, each with a recorded reason: `modern/`, docs, archival dumps, derived and generated outputs, third-party code, **binary UI images**. | frozen at `f532e91`, **revision 2**, a proposal awaiting the maintainer's explicit approval of the cut |
+| `pre-drupal-cut-ui-assets` | The binary UI images at the same commit (`www/images/**`), measured separately and **never combined** with the source-code set (#67 review) | frozen at `f532e91`, revision 1 |
+
+Revision history of `pre-drupal-cut`:
+- **revision 1** (not approved): B = 4,795,406 bytes / 843 files, images included.
+- **revision 2**: per the maintainer's review on #67, the images move to their own set.
+
+| Set at `f532e91` | Files | B (bytes) |
+| --- | ---: | ---: |
+| **pre-drupal-cut (source code), revision 2** | **726** | **1,349,580** |
+| pre-drupal-cut-ui-assets | 117 | 3,445,826 |
+
+| `pre-drupal-cut` stream | Files | Bytes |
+| --- | ---: | ---: |
+| legacy-ui | 145 | 299,395 |
+| codegen (cogePHP + Divengine Codegen at the cut) | 70 | 249,378 |
+| sql-domain | 246 | 196,229 |
+| verification (tests, E2E) | 54 | 156,607 |
+| tooling (CI checks, SQL tools) | 20 | 130,471 |
+| application-php | 140 | 121,642 |
+| mpi-prioriza | 24 | 107,749 |
+| operations (Docker, CI workflows) | 20 | 47,613 |
+| scripts-config | 7 | 40,496 |
+
+The cut commit is the merge of the last in-flight PR (#80, Divengine Codegen). The standalone portal (PR #78) is a draft outside `master`, so it is not part of the cut.
+
+**Relocation.** `dev/lbr/relocations.tsv` maps moved directories (for example `control/` → `legacy/control/`). A relocated file is still found at HEAD, still counted in C and listed as relocated. A move never retires anything.
+
+**Archive (`dev/lbr/archive.json`, prefix `legacy/`).** The archived legacy implementation may stay in the repository as historical evidence. A baseline file can then be retired while its copy remains under `legacy/`, but only by a **verified record**:
+- the active responsibility is replaced or eliminated, with test evidence, a reviewer, a PR and a merged commit;
+- the file and its content no longer exist anywhere **outside** the archive;
+- **no active file references** the archived path, the original path, or the archived parent directories below the second level (a runner may load a whole directory).
+
+  "Active" means every tracked file outside the archive. The exempt paths are listed in `archive.json`: docs, the LBR records, `.gitignore`, `.dockerignore`. So archived code still imported, executed, shipped or loaded by CI blocks the retirement.
+
+A file relocated anywhere other than an archive prefix can never be retired while it exists.
+
+## 1. Historical baseline (`historic-2010`)
 
 | | |
 | --- | --- |
 | Baseline commit | `eca8aa7` (merge of PR #33: recovery #2–#31 + local containerization #32). This is the last commit before remanufacturing: it builds, installs and passes the HTTP and Docker E2E. |
 | Origin commit | `b42aa03`, historical import of the July 2010 snapshot |
-| Rule | A file is in B if it exists at the baseline commit, **existed in the origin commit** and is included by `dev/lbr/rules.tsv` (first match wins; an unclassified file is an error). It is measured as its blob size at the baseline commit. |
-| **B** | **854,831 bytes in 572 files** (`dev/lbr/baseline.tsv`, revision 1) |
+| Rule | A file is in B if it exists at the baseline commit, **existed in the origin commit** and is included by `dev/lbr/sets/historic-2010/rules.tsv` (first match wins; an unclassified file is an error). It is measured as its blob size at the baseline commit. |
+| **B** | **854,831 bytes in 572 files** (`dev/lbr/sets/historic-2010/baseline.tsv`, revision 1) |
 
 Notes on the rule:
 - The **origin rule** keeps the recovery work out of B. Docker, CI, tests, the SQL installer, `PasswordUtil`, `SessionUtil` and `setpassword.php` are new code, not legacy, even where they sit in legacy directories.
@@ -80,7 +124,7 @@ The per-component breakdown is in `php dev/lbr/lbr.php report`. CI prints the re
 
 1. In the PR that replaces or eliminates a responsibility:
    - remove the old files;
-   - add a row to `dev/lbr/retirements.tsv` (one file, or a baseline directory `dir/`), with status `in-transition` until merge;
+   - add a row to the set's `retirements.tsv` (one file, or a baseline directory `dir/`), with status `in-transition` until merge;
    - give the evidence: tests, E2E, security checks.
 2. After review and merge, set the status to `verified`, with the PR number, the merged commit and the reviewer.
 3. `php dev/lbr/lbr.php check` enforces each record:
@@ -100,4 +144,7 @@ The baseline is frozen:
 
 A scope change needs an explicit revision (`freeze --force-revision`, a new `revision=` number, and a documented reason in this file), reported next to the original B, never instead of it.
 
-Tests: `dev/tests/lbr/run.sh` (21 checks, run in a throwaway clone).
+Tests: `dev/tests/lbr/run.sh` (41 checks, run in a throwaway clone). The archive cases simulate the #68 move:
+- (a) a move only → 0 retired;
+- (b) archived, inactive, complete record → retired, with C reduced exactly;
+- (c) blocked when the evidence or the reviewer is missing, when an active file references the archived path, the original path or the directory, when a copy exists outside the archive, and when a file was relocated outside the archive.
