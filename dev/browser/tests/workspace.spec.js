@@ -123,8 +123,19 @@ test('Without JavaScript: the same state through plain links', async ({ browser 
   await page.click('.ancora-inspector__close');
   await expect(page).not.toHaveURL(/sel=/);
   await shot(page, '06-no-javascript');
-  await clean(page, 'no javascript');
+  const url = page.url();
   await context.close();
+  // axe runs in the page, which a context without JavaScript cannot do: scan
+  // the same URL with every script request refused instead (the same
+  // server markup, no enhancement).
+  const scan = await browser.newContext();
+  await scan.route('**/*', (route) => (route.request().resourceType() === 'script' ? route.abort() : route.continue()));
+  const plain = await scan.newPage();
+  await login(plain, 'planner');
+  await plain.goto(url);
+  await expect(plain.locator('[data-ancora-filter]')).toBeHidden();
+  await clean(plain, 'no javascript');
+  await scan.close();
 });
 
 test('Keyboard only: perspective, record, roving focus, inspector, Escape', async ({ page }) => {

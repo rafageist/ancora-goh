@@ -274,7 +274,7 @@ Authorized by the maintainer and implemented as specified in §5, with the check
 - Nothing changes in `PlacementModification`, the check runner, the worker or the tables. No validation moves to JavaScript.
 - **Check latency, measured (S1a, `docs/ux/planning-workspace.md` §8.3).** It is the request, plus the queue wait (one worker cycle, idle sleep 5 s by default), plus the run, plus the client's 2 s poll.
   - On the disposable browser site, with the default worker, the move page took **6.8 s at p50 and about 9 s at p95** (20 runs each on the #133 fixture and the #130 E2E organization), click to grid.
-  - With a 1 s idle sleep, it took 4.8 s at p50: most of the wait is the worker's cycle, and the check itself takes about 2–3 s.
+  - With a 1 s idle sleep, it took 4.7 s at p50: most of the wait is the worker's cycle, and the check itself takes about 2–3 s on these small fixtures.
   - Nothing was changed, and no threshold is set before #143's representative fixtures exist. The UI must give immediate progress feedback.
 
 ## 10. Atomic swap of two saved placements: characterization and design (#136)
