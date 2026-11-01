@@ -1,0 +1,70 @@
+{
+  "schema": "ancora.parity.scenario.v1",
+  "id": "s13-delete-cascades",
+  "title": "Delete cascades (D5): the legacy delete handlers and their ON DELETE CASCADE foreign keys",
+  "notes": [
+    "Issue #70, D5 (legacy-parity-inventory.md PAR-100..103; SQL cases 114, 145). One plan and period; two activity types; specialties E and F; groups, cohorts, subjects, templates, teachers and rooms, some of them deleted before the run.",
+    "Legacy side: the generated del_<Class> handlers (a direct DELETE by id; every foreign key cascades). Drupal side: the entity deletes, which apply the same cascade (ReferenceGuard).",
+    "Deletes: group G2 (the teacher assignments keep G1), cohort B3 (G1 keeps B1), activity type C2 (its group GL and template AL with its assignment), specialty F (its cohort, group, subject and template), subject X (its template and assignments), room L2 (its room assignments). The run then places A1 and A2 for G1."
+  ],
+  "users": [
+    {"key": "admin", "name": "Administrator", "legacy": "seeded-admin"},
+    {"key": "alice", "name": "Alice Planner"}
+  ],
+  "records": [
+    {"type": "plan", "key": "P", "as": "alice", "label": "Semester", "starts_on": "2026-09-07", "duration_days": 30},
+    {"type": "period", "key": "W", "as": "alice", "plan": "P", "label": "Week", "days": 5, "slots_per_day": 3, "start_hour": 8, "slot_duration": 1, "plan_days": [1]},
+    {"type": "activity_type", "key": "C1", "as": "alice", "label": "Lecture", "duration_slots": 1, "priority": 1, "cost": 1},
+    {"type": "activity_type", "key": "C2", "as": "alice", "label": "Lab", "duration_slots": 1, "priority": 2, "cost": 1},
+    {"type": "specialty", "key": "E", "as": "alice", "label": "Program E"},
+    {"type": "specialty", "key": "F", "as": "alice", "label": "Program F"},
+    {"type": "level", "key": "N", "as": "alice", "label": "Year 1"},
+    {"type": "cohort", "key": "B1", "as": "alice", "label": "Cohort 1", "specialty": "E", "level": "N", "enrollment": 20},
+    {"type": "cohort", "key": "B2", "as": "alice", "label": "Cohort 2", "specialty": "E", "level": "N", "enrollment": 20},
+    {"type": "cohort", "key": "B3", "as": "alice", "label": "Cohort 3", "specialty": "E", "level": "N", "enrollment": 10},
+    {"type": "cohort", "key": "BF", "as": "alice", "label": "Cohort F", "specialty": "F", "level": "N", "enrollment": 20},
+    {"type": "student_group", "key": "G1", "as": "alice", "plan": "P", "label": "Group 1", "activity_type": "C1", "specialty": "E", "level": "N", "cohorts": ["B1", "B3"]},
+    {"type": "student_group", "key": "G2", "as": "alice", "plan": "P", "label": "Group 2", "activity_type": "C1", "specialty": "E", "level": "N", "cohorts": ["B2"]},
+    {"type": "student_group", "key": "GL", "as": "alice", "plan": "P", "label": "Lab group", "activity_type": "C2", "specialty": "E", "level": "N", "cohorts": ["B1"]},
+    {"type": "student_group", "key": "GF", "as": "alice", "plan": "P", "label": "Group F", "activity_type": "C1", "specialty": "F", "level": "N", "cohorts": ["BF"]},
+    {"type": "subject", "key": "A", "as": "alice", "label": "Subject A", "specialty": "E", "level": "N"},
+    {"type": "subject", "key": "X", "as": "alice", "label": "Subject X", "specialty": "E", "level": "N"},
+    {"type": "subject", "key": "S", "as": "alice", "label": "Subject F", "specialty": "F", "level": "N"},
+    {"type": "activity_template", "key": "A1", "as": "alice", "subject": "A", "period": "W", "sequence": 1, "activity_type": "C1"},
+    {"type": "activity_template", "key": "A2", "as": "alice", "subject": "A", "period": "W", "sequence": 2, "activity_type": "C1"},
+    {"type": "activity_template", "key": "AL", "as": "alice", "subject": "A", "period": "W", "sequence": 3, "activity_type": "C2"},
+    {"type": "activity_template", "key": "X1", "as": "alice", "subject": "X", "period": "W", "sequence": 1, "activity_type": "C1"},
+    {"type": "activity_template", "key": "S1", "as": "alice", "subject": "S", "period": "W", "sequence": 1, "activity_type": "C1"},
+    {"type": "teacher", "key": "TA", "as": "alice", "label": "Teacher A"},
+    {"type": "teacher", "key": "TB", "as": "alice", "label": "Teacher B"},
+    {"type": "room", "key": "L1", "as": "alice", "label": "Room 1", "capacity": 50},
+    {"type": "room", "key": "L2", "as": "alice", "label": "Room 2", "capacity": 50},
+    {"type": "teacher_assignment", "key": "A1@TA", "as": "alice", "template": "A1", "teacher": "TA", "priority": 1, "groups": ["G1", "G2"]},
+    {"type": "teacher_assignment", "key": "A2@TB", "as": "alice", "template": "A2", "teacher": "TB", "priority": 1, "groups": ["G1", "G2"]},
+    {"type": "teacher_assignment", "key": "AL@TA", "as": "alice", "template": "AL", "teacher": "TA", "priority": 1, "groups": ["GL"]},
+    {"type": "teacher_assignment", "key": "X1@TB", "as": "alice", "template": "X1", "teacher": "TB", "priority": 1, "groups": ["G1", "G2"]},
+    {"type": "teacher_assignment", "key": "S1@TA", "as": "alice", "template": "S1", "teacher": "TA", "priority": 1, "groups": ["GF"]},
+    {"type": "room_assignment", "key": "A1@L1", "as": "alice", "template": "A1", "room": "L1", "priority": 1},
+    {"type": "room_assignment", "key": "A1@L2", "as": "alice", "template": "A1", "room": "L2", "priority": 2},
+    {"type": "room_assignment", "key": "A2@L2", "as": "alice", "template": "A2", "room": "L2", "priority": 1},
+    {"type": "room_assignment", "key": "A2@L1", "as": "alice", "template": "A2", "room": "L1", "priority": 2},
+    {"type": "room_assignment", "key": "AL@L1", "as": "alice", "template": "AL", "room": "L1", "priority": 1},
+    {"type": "room_assignment", "key": "X1@L1", "as": "alice", "template": "X1", "room": "L1", "priority": 1},
+    {"type": "room_assignment", "key": "S1@L2", "as": "alice", "template": "S1", "room": "L2", "priority": 1}
+  ],
+  "edits": [
+    {"op": "delete", "record": "G2", "as": "alice"},
+    {"op": "delete", "record": "B3", "as": "alice"},
+    {"op": "delete", "record": "C2", "as": "alice"},
+    {"op": "delete", "record": "F", "as": "alice"},
+    {"op": "delete", "record": "X", "as": "alice"},
+    {"op": "delete", "record": "L2", "as": "alice"}
+  ],
+  "runs": [
+    {"key": "E", "as": "alice", "plan": "P", "period": "W", "specialty": "E", "level": "N",
+     "options": {"forma": 1, "parche": false, "compactar": 1, "parche1": false, "buscalugar": true}}
+  ],
+  "visibility": [
+    {"as": "alice", "type": "room", "visible": ["L1"]}
+  ]
+}

@@ -59,6 +59,66 @@ After #23 (35 cases): **23 PASS, 12 XFAIL, 0 FAIL / XPASS / XWRONG**. Cases 023,
 
 After #24 (36 cases): **26 PASS, 10 XFAIL, 0 FAIL / XPASS / XWRONG**. Cases 081 and 082 now pass, case 083 was added and case 080 records the repaired booking (`sql-other-resource-occupancy.md`). Every other result and every METRIC line is unchanged.
 
+After #70 (46 cases): **36 PASS, 10 XFAIL, 0 FAIL / XPASS / XWRONG**. Cases 110–114 and 120–124 were added by the legacy parity inventory (`legacy-parity-inventory.md`). They record current behaviour only (`expect: pass`, `HISTORICAL:` where the behaviour looks defective). Every earlier result and METRIC line is unchanged.
+
+After #92 (53 cases): **43 PASS, 10 XFAIL, 0 FAIL / XPASS / XWRONG**. Cases 125–131 were added by the dependency-closure audit (`engine-dependency-closure.md`): the input closure of `generar()` for one request and for two requests in sequence (positive and negative), continuation, the inert real-date branch, the NULL start hour with periodicity, and the heap order of room ties. They record current behaviour only (`expect: pass`). Every earlier result and METRIC line is unchanged.
+
+After #95 characterization (56 cases): **46 PASS, 10 XFAIL, 0 FAIL / XPASS / XWRONG**. Three cases characterize the run semantics that the Drupal promotion must keep (D7, D8, D11, D12):
+
+| Case | What it shows |
+| --- | --- |
+| 132 | A cancellation that arrives mid-run keeps the placements made so far. The next run keeps them, with the same ids and cells, and places the rest. The continued timetable differs from a single uncancelled run (B1/G2 at day 1 slot 1, not slot 3). A request for another scope does not stop the run. |
+| 133 | A request left over after its run stops the next run of that scope at its first check. That run places nothing and consumes the row (D12 quirk). A row of another scope does not stop the run. |
+| 134 | The legacy window's default options give the E2E digest. A second run with Drupal's options keeps every placement and adds nothing (D7). |
+
+After the #70 breakdown slice (D4, 57 cases): **47 PASS, 10 XFAIL, 0 FAIL / XPASS / XWRONG**. Case 135 records the effect of every breakdown option (`desglose`) on `generar()`: the defaults, `mismo_dia` with and without `respetar_orden`, Q-04, `min_dias` 0, 2, 3 and negative (Q-24: the first template starts at day `min_dias`), a minimum above the maximum, `max_dias` with blocked days, and the template order after the legacy move (`legacy-parity-inventory.md` PAR-032..035). Every earlier result and METRIC line is unchanged.
+
+After the #70 D6/D10 slice (60 cases): **49 PASS, 11 XFAIL, 0 FAIL / XPASS / XWRONG**. Case 136 records the column rules of brigade, group and subject (any integer enrolment, nullable subject specialty), that `dame_grupos()` follows the brigades' specialty, the "no group" list and the unguarded removal. Case 137 (xfail 57014) records that a zero-duration classification, which the legacy form accepts, makes `generar()` loop until the timeout (quirk Q-27, an availability exception: not reproduced). Case 138 records that the cost takes any integer with the same placements, and that a duration above the slots of a day is placed and overflows. Every earlier result is unchanged.
+
+After the #70 D9a slice (61 cases): **50 PASS, 11 XFAIL, 0 FAIL / XPASS / XWRONG**. Case 139 records the effect of a manual restriction of each kind on `generar()`, that a specialty restriction is never read, that a restriction of another period or without a period is inert, the keys (no id default, UNIQUE with the occupancy rows) and the real-date rows. Every earlier result is unchanged.
+
+After the #70 D9b slice (62 cases): **51 PASS, 11 XFAIL, 0 FAIL / XPASS / XWRONG**. Case 140 records that a break changes only the slot hours, that priority zones change the cells only with `parche1`, the effect of teacher and brigade daily load limits, and their keys. Every earlier result is unchanged.
+
+After the #136 characterization of swaps (74 cases): **63 PASS, 11 XFAIL, 0 FAIL / XPASS / XWRONG**. Every earlier result is unchanged. Case 152 records what a swap of two placed activities needs:
+- the pair check removes both rows and checks each activity at the other's cell, plus the mutual check;
+- two moves checked one at a time, each refused because the target is the other's cell, can make a valid swap (A);
+- each candidate can be valid with both rows removed while the two collide (B, E, F);
+- a 2-slot activity is swapped across a break (C), and an overflow is refused only by the check (C2);
+- manual and period restrictions behave as for a move (D).
+
+After the #133 characterization of the calendar (73 cases): **62 PASS, 11 XFAIL, 0 FAIL / XPASS / XWRONG**. Every earlier result is unchanged. Case 151 records the calendar that the legacy real-date rows encode, as evidence for `temporal-semantics.md`:
+- day numbers are consecutive days since 1999-12-31;
+- a periodicity row starts a repetition of `cant_dias` days;
+- the date is `fecha_inicial + dia − 1 + pdia − 1`, with no weekday logic and no clipping at the plan's end;
+- there is one row per slot, `[start, start + slot length)`, with breaks before the slot shifting it;
+- a period without periodicity gets no row;
+- a missing date is dated 1999-12-31;
+- hours are built from the number of days under Q-20.
+
+After the #123 characterization of placement moves (72 cases): **61 PASS, 11 XFAIL, 0 FAIL / XPASS / XWRONG**. Every earlier result is unchanged.
+- Case 148 records a move by UPDATE of `dia`/`turno`: no rule fires, the occupancy stays at the old cell, and nothing is validated.
+- Case 149 records a move by DELETE + INSERT:
+  - the rules rebuild teacher, room and brigade occupancy, with real-date rows;
+  - the other resources must be inserted again;
+  - the unique keys refuse collisions and manual restrictions, and the move rolls back as a whole;
+  - period restrictions, duration overflow and capacity are trusted;
+  - continuation keeps the moved row.
+- Case 150 compares a destination check built from the `valor_restriccion_*` functions with what the database accepts:
+  - `posible_inicio()` is not usable as a move check (6.2);
+  - a teacher shared with another plan's period is invisible to both.
+
+After #119, the timetable explorer (69 cases): **58 PASS, 11 XFAIL, 0 FAIL / XPASS / XWRONG**. Case 147 runs the explorer's activity queries (`get_minibrowser_horarios.php`) on two plans and two users. Every earlier result is unchanged.
+
+After the #70 time-input slice (68 cases): **57 PASS, 11 XFAIL, 0 FAIL / XPASS / XWRONG**. Case 146 records the period hours as the legacy UI stores them (Q-20) and that they never change a placement. Every earlier result is unchanged.
+
+After the #70 D5 slice (67 cases): **56 PASS, 11 XFAIL, 0 FAIL / XPASS / XWRONG**. Case 145 records what every delete removes through the `ON DELETE CASCADE` foreign keys, link tables included. Every earlier result is unchanged.
+
+After the #70 D13 slice (66 cases): **55 PASS, 11 XFAIL, 0 FAIL / XPASS / XWRONG**. Case 144 records the down moves of classifications and templates and the global-count defect of `baja_prioridad_clasif` (Q-34). Every earlier result is unchanged.
+
+After the #70 D9d and D11 slice (65 cases): **54 PASS, 11 XFAIL, 0 FAIL / XPASS / XWRONG**. Case 142 records the resources `generar()` gives a placed activity (every group but the last, the first group's `necesarios`, priority then use, no availability check: a chosen restricted resource fails the run; Q-31, Q-32); case 143 records `forma` and `compactar` (D11). Every earlier result is unchanged.
+
+After the #70 D9c slice (63 cases): **52 PASS, 11 XFAIL, 0 FAIL / XPASS / XWRONG**. Case 141 records the room strategy (`buscalugar` with and without travel costs), the fixed room, that forbidden rooms never apply in `generar()` (Q-30), and the priority upkeep of `lugar_para_actividad`. Every earlier result is unchanged.
+
 A negative run confirmed that the runner exits non-zero. It used a temporary copy of the suite with three cases modified to give one FAIL, one XPASS and one XWRONG.
 
 ### Coverage against the issue
@@ -119,7 +179,7 @@ This keeps every behavior change explicit in review. Exact placement cells (060)
 
 ## Not covered (stated limits)
 
-- Real-date restrictions (6.10, 6.11). These are hypotheses that need the date/slot mapping of `restriccion_real_*` to be characterized first.
+- Real-date restrictions (6.10, 6.11): case 129 shows that the branch has no effect (6.11: the period lookup by object id finds nothing), so 6.10 cannot happen except for an object whose id equals the period id. The intended behaviour is not characterized.
 - `zpriori` zones, `parche` / `parche1` / `compactar` / `buscalugar` options (6.15, 6.16), workload hygiene (6.21) and the teacher-load heuristic (6.14).
 - Performance and scale. The fixtures are tiny on purpose. Generation time on realistic datasets is unknown (historically 7 activities took 212 s).
 - Concurrency between two sessions generating at the same time (assessment §7).

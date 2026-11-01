@@ -1,0 +1,52 @@
+{
+  "schema": "ancora.parity.scenario.v1",
+  "id": "s11-shared-resources",
+  "title": "Shared resources (D9d): other resources, resource groups, the resources generar() gives, continuation",
+  "notes": [
+    "Issue #70, D9d (legacy-parity-inventory.md PAR-057..059; SQL case 142). One plan with two periods (2 days x 3 slots each), one run per period: run W1 first, then run W2, which continues from W1's placements and resource uses.",
+    "Legacy side: the resources through add_OtroRecurso; the resource window of each template: add_OtroGrupoDeRecursosParaActividad (priority 1, needed 1, essential), get_form_add_rxact for the hidden max_prioridad, one add_OtroRecursoParaActividad per checked resource, custom_set_PrioridadRxact and set_GrupoRecursos_imprescindibles on the template's LAST group only (an UPDATE moves a row to the end of the table, and generar() reads the groups in physical order, D18). Drupal side: SharedResources, the saves of the template's resource editor.",
+    "generar() gives each placed activity resources from every group of its template except the last one, ordered by resource priority, then use, then travel cost (case 142). Run W1: Group 1 gets R1 and Group 2 gets R2 (R1 is then used once). Run W2 (group {R2, R4}): with the uses of run W1 loaded, Group 1 gets R4 (R2 is used once) and Group 2 gets R2 (a tie, physical order); without them it would be R2 and R4. The workspace round trip therefore shows that the published resource uses are loaded into the next workspace."
+  ],
+  "users": [
+    {"key": "admin", "name": "Administrator", "legacy": "seeded-admin"},
+    {"key": "alice", "name": "Alice Planner"}
+  ],
+  "records": [
+    {"type": "plan", "key": "P", "as": "alice", "label": "Semester", "starts_on": "2026-09-07", "duration_days": 30},
+    {"type": "period", "key": "W1", "as": "alice", "plan": "P", "label": "Week 1", "days": 2, "slots_per_day": 3, "start_hour": 8, "slot_duration": 1, "plan_days": [1]},
+    {"type": "period", "key": "W2", "as": "alice", "plan": "P", "label": "Week 2", "days": 2, "slots_per_day": 3, "start_hour": 8, "slot_duration": 1, "plan_days": [8]},
+    {"type": "activity_type", "key": "C1", "as": "alice", "label": "Lecture", "duration_slots": 1, "priority": 1, "cost": 1},
+    {"type": "specialty", "key": "E", "as": "alice", "label": "Program E"},
+    {"type": "level", "key": "N", "as": "alice", "label": "Year 1"},
+    {"type": "cohort", "key": "B1", "as": "alice", "label": "Cohort 1", "specialty": "E", "level": "N", "enrollment": 20},
+    {"type": "cohort", "key": "B2", "as": "alice", "label": "Cohort 2", "specialty": "E", "level": "N", "enrollment": 20},
+    {"type": "student_group", "key": "G1", "as": "alice", "plan": "P", "label": "Group 1", "activity_type": "C1", "specialty": "E", "level": "N", "cohorts": ["B1"]},
+    {"type": "student_group", "key": "G2", "as": "alice", "plan": "P", "label": "Group 2", "activity_type": "C1", "specialty": "E", "level": "N", "cohorts": ["B2"]},
+    {"type": "subject", "key": "A", "as": "alice", "label": "Subject A", "specialty": "E", "level": "N"},
+    {"type": "activity_template", "key": "AW1", "as": "alice", "subject": "A", "period": "W1", "sequence": 1, "activity_type": "C1"},
+    {"type": "activity_template", "key": "AW2", "as": "alice", "subject": "A", "period": "W2", "sequence": 1, "activity_type": "C1"},
+    {"type": "teacher", "key": "TA", "as": "alice", "label": "Teacher A"},
+    {"type": "room", "key": "L1", "as": "alice", "label": "Room 1", "capacity": 50},
+    {"type": "teacher_assignment", "key": "AW1@TA", "as": "alice", "template": "AW1", "teacher": "TA", "priority": 1, "groups": ["G1", "G2"]},
+    {"type": "teacher_assignment", "key": "AW2@TA", "as": "alice", "template": "AW2", "teacher": "TA", "priority": 1, "groups": ["G1", "G2"]},
+    {"type": "room_assignment", "key": "AW1@L1", "as": "alice", "template": "AW1", "room": "L1", "priority": 1},
+    {"type": "room_assignment", "key": "AW2@L1", "as": "alice", "template": "AW2", "room": "L1", "priority": 1},
+    {"type": "other_resource", "key": "R1", "as": "alice", "label": "Projector 1"},
+    {"type": "other_resource", "key": "R2", "as": "alice", "label": "Projector 2"},
+    {"type": "other_resource", "key": "R3", "as": "alice", "label": "Laptop cart"},
+    {"type": "other_resource", "key": "R4", "as": "alice", "label": "Projector 4"},
+    {"type": "resource_group", "key": "AW1-G1", "as": "alice", "template": "AW1", "members": ["R1", "R2"]},
+    {"type": "resource_group", "key": "AW1-G2", "as": "alice", "template": "AW1", "members": ["R3"], "priority": 2, "essential": false},
+    {"type": "resource_group", "key": "AW2-G1", "as": "alice", "template": "AW2", "members": ["R2", "R4"]},
+    {"type": "resource_group", "key": "AW2-G2", "as": "alice", "template": "AW2", "members": ["R3"], "priority": 2}
+  ],
+  "runs": [
+    {"key": "W1", "as": "alice", "plan": "P", "period": "W1", "specialty": "E", "level": "N",
+     "options": {"forma": 1, "parche": false, "compactar": 1, "parche1": false, "buscalugar": true}},
+    {"key": "W2", "as": "alice", "plan": "P", "period": "W2", "specialty": "E", "level": "N",
+     "options": {"forma": 1, "parche": false, "compactar": 1, "parche1": false, "buscalugar": true}}
+  ],
+  "visibility": [
+    {"as": "alice", "type": "other_resource", "visible": ["R1", "R2", "R3", "R4"]}
+  ]
+}

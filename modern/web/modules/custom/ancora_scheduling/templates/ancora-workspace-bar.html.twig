@@ -1,0 +1,67 @@
+{#
+/**
+ * @file
+ * The context bar of the planning workspace (#141): plan, period, the
+ * publication state of each scope and the cross-plan state.
+ *
+ * Available variables:
+ * - plan: The plan label.
+ * - plans: The other plans the user may view: label, url.
+ * - period: The period label, or NULL.
+ * - periods: The plan's periods: label, url, current.
+ * - scopes: Each scope's label, state (final, draft, none, error), text,
+ *   stale, active and job_url.
+ * - cross: evaluated, count, reason (when not evaluated) and url.
+ * - links: The plan page, classic timetable and request links.
+ */
+#}
+<section class="ancora-wsbar" data-ancora-region="bar" id="ancora-workspace-bar" aria-labelledby="ancora-wsbar-title">
+  <div class="ancora-wsbar__context">
+    <h2 class="visually-hidden" id="ancora-wsbar-title">{{ 'Context'|t }}</h2>
+    <p class="ancora-wsbar__plan"><span class="ancora-wsbar__label">{{ 'Plan'|t }}</span> <strong>{{ plan }}</strong></p>
+    {% if plans %}
+      <details class="ancora-wsbar__switch">
+        <summary>{{ 'Other plans'|t }}</summary>
+        <ul>
+          {% for item in plans %}
+            <li><a href="{{ item.url }}">{{ item.label }}</a></li>
+          {% endfor %}
+        </ul>
+      </details>
+    {% endif %}
+  </div>
+  {% if periods %}
+    <nav class="ancora-wsbar__periods" aria-label="{{ 'Periods'|t }}">
+      <span class="ancora-wsbar__label">{{ 'Period'|t }}</span>
+      <ul>
+        {% for item in periods %}
+          <li><a href="{{ item.url }}" data-ancora-nav="period"{% if item.current %} aria-current="page" class="is-current"{% endif %}>{{ item.label }}</a></li>
+        {% endfor %}
+      </ul>
+    </nav>
+  {% endif %}
+  {% if scopes %}
+    <ul class="ancora-wsbar__scopes" aria-label="{{ 'Timetable state'|t }}">
+      {% for scope in scopes %}
+        <li class="ancora-wsbar__scope ancora-wsbar__scope--{{ scope.state }}">
+          {{ scope.label }}:
+          {% if scope.job_url %}<a href="{{ scope.job_url }}">{{ scope.text }}</a>{% else %}{{ scope.text }}{% endif %}
+          {% if scope.stale %}<span class="ancora-wsbar__note">{{ 'inputs changed since this run'|t }}</span>{% endif %}
+          {% if scope.active %}<span class="ancora-wsbar__note">{{ scope.active }}</span>{% endif %}
+        </li>
+      {% endfor %}
+    </ul>
+  {% endif %}
+  {% if period %}
+    <p class="ancora-wsbar__cross{{ cross.evaluated ? (cross.count ? ' is-warning' : ' is-clear') : ' is-unknown' }}">
+      {% if not cross.evaluated %}
+        <span aria-hidden="true">◌</span> {{ 'Cross-plan conflicts not evaluated: dates unknown (@reason).'|t({'@reason': cross.reason}) }}
+      {% elseif cross.count %}
+        <span aria-hidden="true">⚠</span> <a href="{{ cross.url }}" data-ancora-nav="select">{{ cross.count == 1 ? 'One cross-plan overlap in this period.'|t : '@count cross-plan overlaps in this period.'|t({'@count': cross.count}) }}</a>
+      {% else %}
+        {{ 'No cross-plan overlap with the dated periods of your plans.'|t }}
+      {% endif %}
+    </p>
+  {% endif %}
+  {{ links }}
+</section>

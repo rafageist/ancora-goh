@@ -1,0 +1,35 @@
+{#
+/**
+ * @file
+ * The planning overview.
+ *
+ * Available variables:
+ * - intro: An introductory sentence.
+ * - steps: The academic lists in data entry order. Each has:
+ *   - label: The list name.
+ *   - description: What the records are.
+ *   - count: The number of records the user may see.
+ *   - url: The list URL.
+ *   - add_url: The add form URL, or NULL without permission.
+ *   - add_label: The add link text.
+ */
+#}
+<section class="ancora-planning">
+  {% if intro %}
+    <p class="ancora-planning__intro">{{ intro }}</p>
+  {% endif %}
+  <ol class="ancora-planning__steps">
+    {% for step in steps %}
+      <li class="ancora-planning__step">
+        <h2 class="ancora-planning__title">
+          <a href="{{ step.url }}">{{ step.label }}</a>
+          <span class="ancora-planning__count">({{ step.count }})</span>
+        </h2>
+        <p class="ancora-planning__description">{{ step.description }}</p>
+        {% if step.add_url %}
+          <a class="ancora-planning__add" href="{{ step.add_url }}">{{ step.add_label }}</a>
+        {% endif %}
+      </li>
+    {% endfor %}
+  </ol>
+</section>

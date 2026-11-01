@@ -1,0 +1,527 @@
+/**
+ * @file
+ * The integrated planning workspace (#141): context bar, perspectives,
+ * timetable canvas and contextual inspector.
+ *
+ * Wide screens: perspectives | canvas | inspector. Medium screens: the
+ * inspector becomes a drawer (with the workspace script) or goes below the
+ * canvas (without it). Narrow screens: one column, and the canvas reads as
+ * a list of activities per day.
+ */
+
+.ancora-is-workspace .site-main {
+  max-width: none;
+}
+
+.ancora-ws {
+  --ancora-ws-warning: #8a4b00;
+  --ancora-ws-break: #e7ebef;
+  --ancora-ws-block: #eef4f9;
+  --ancora-ws-selected: #1f5f8b;
+}
+
+@media (prefers-color-scheme: dark) {
+  .ancora-ws {
+    --ancora-ws-warning: #ffc072;
+    --ancora-ws-break: #26313c;
+    --ancora-ws-block: #1e2a36;
+    --ancora-ws-selected: #7db7e0;
+  }
+}
+
+.ancora-ws[aria-busy="true"] [data-ancora-region] {
+  opacity: 0.6;
+  transition: opacity 0.15s;
+}
+
+/* The context bar. */
+.ancora-wsbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  margin-block: 0 1rem;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--ancora-line);
+  border-radius: var(--ancora-radius);
+  background: var(--ancora-surface);
+  gap: 0.5rem 1.5rem;
+}
+
+.ancora-wsbar p,
+.ancora-wsbar ul {
+  margin: 0;
+}
+
+.ancora-wsbar__context {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.ancora-wsbar__label {
+  margin-inline-end: 0.35rem;
+  color: var(--ancora-muted);
+  font-size: 0.875rem;
+}
+
+.ancora-wsbar__switch summary {
+  cursor: pointer;
+  font-size: 0.875rem;
+}
+
+.ancora-wsbar__switch ul {
+  position: absolute;
+  z-index: 20;
+  padding: 0.5rem 1rem;
+  list-style: none;
+  border: 1px solid var(--ancora-line);
+  border-radius: var(--ancora-radius);
+  background: var(--ancora-surface);
+}
+
+.ancora-wsbar__periods {
+  display: flex;
+  align-items: center;
+}
+
+.ancora-wsbar__periods ul,
+.ancora-wsbar__scopes,
+.ancora-wsbar__links {
+  display: flex;
+  flex-wrap: wrap;
+  padding: 0;
+  list-style: none;
+  gap: 0.25rem 0.75rem;
+}
+
+.ancora-wsbar__periods a.is-current,
+.ancora-wsnav a.is-current {
+  font-weight: 700;
+  text-decoration: none;
+  box-shadow: inset 0 -3px 0 var(--ancora-accent);
+}
+
+.ancora-wsbar__scope {
+  font-size: 0.9rem;
+}
+
+.ancora-wsbar__scope--final::before,
+.ancora-wsbar__scope--draft::before {
+  content: "";
+  display: inline-block;
+  width: 0.6rem;
+  height: 0.6rem;
+  margin-inline-end: 0.35rem;
+  border-radius: 50%;
+  background: #2e7d32;
+}
+
+.ancora-wsbar__scope--draft::before {
+  background: var(--ancora-ws-warning);
+}
+
+.ancora-wsbar__note {
+  margin-inline-start: 0.35rem;
+  color: var(--ancora-muted);
+}
+
+.ancora-wsbar__cross {
+  font-size: 0.9rem;
+}
+
+.ancora-wsbar__cross.is-warning {
+  color: var(--ancora-ws-warning);
+  font-weight: 600;
+}
+
+.ancora-wsbar__cross.is-unknown {
+  font-weight: 600;
+}
+
+.ancora-wsbar__links {
+  margin-inline-start: auto;
+  font-size: 0.875rem;
+}
+
+/* Body: perspectives, canvas, inspector. */
+.ancora-ws__body {
+  display: grid;
+  align-items: start;
+  grid-template-columns: 13rem minmax(0, 1fr) 22rem;
+  gap: 1rem;
+}
+
+.ancora-ws__status {
+  margin-block: 1rem 0;
+  color: var(--ancora-muted);
+  font-size: 0.875rem;
+}
+
+/* Perspectives and records. */
+.ancora-wsnav {
+  padding: 0.75rem;
+  border: 1px solid var(--ancora-line);
+  border-radius: var(--ancora-radius);
+  background: var(--ancora-surface);
+}
+
+.ancora-wsnav__title,
+.ancora-wsnav__subtitle {
+  margin: 0 0 0.5rem;
+  font-size: 1rem;
+}
+
+.ancora-wsnav__subtitle {
+  margin-block-start: 1rem;
+}
+
+.ancora-wsnav__lenses,
+.ancora-wsnav__list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ancora-wsnav__lenses a,
+.ancora-wsnav__list a {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.3rem 0.4rem;
+  border-radius: var(--ancora-radius);
+  gap: 0.5rem;
+}
+
+.ancora-wsnav__count {
+  color: var(--ancora-muted);
+  font-size: 0.8rem;
+}
+
+.ancora-wsnav__filter {
+  display: grid;
+  margin-block-end: 0.5rem;
+  font-size: 0.875rem;
+  gap: 0.25rem;
+}
+
+.ancora-wsnav__filter[hidden] {
+  display: none;
+}
+
+.ancora-wsnav__filter input {
+  width: 100%;
+}
+
+.ancora-wsnav__list li[hidden] {
+  display: none;
+}
+
+/* The canvas. */
+.ancora-canvas {
+  min-width: 0;
+}
+
+.ancora-canvas__title {
+  margin: 0 0 0.5rem;
+  font-size: 1.15rem;
+}
+
+.ancora-canvas__legend {
+  display: flex;
+  flex-wrap: wrap;
+  margin-block-end: 0.5rem;
+  color: var(--ancora-muted);
+  font-size: 0.8rem;
+  gap: 0.25rem 1rem;
+}
+
+.ancora-canvas__swatch {
+  display: inline-block;
+  width: 1.5rem;
+  height: 0.6rem;
+  vertical-align: middle;
+  background: repeating-linear-gradient(45deg, var(--ancora-ws-break), var(--ancora-ws-break) 3px, transparent 3px, transparent 6px);
+}
+
+.ancora-canvas__grid {
+  display: grid;
+  overflow-x: auto;
+  border: 1px solid var(--ancora-line);
+  border-radius: var(--ancora-radius);
+  background: var(--ancora-surface);
+  grid-template-columns: 4.5rem repeat(var(--days), minmax(8.5rem, 1fr));
+  grid-template-rows: var(--rows);
+}
+
+.ancora-canvas__axis,
+.ancora-canvas__day {
+  display: grid;
+  grid-row: 1 / -1;
+  grid-template-rows: subgrid;
+}
+
+.ancora-canvas__day {
+  grid-template-columns: repeat(var(--lanes), minmax(0, 1fr));
+  border-inline-start: 1px solid var(--ancora-line);
+}
+
+.ancora-canvas__time {
+  padding: 0.25rem;
+  color: var(--ancora-muted);
+  font-size: 0.8rem;
+  grid-row: var(--r1);
+}
+
+.ancora-canvas__time--break {
+  font-size: 0.7rem;
+  font-style: italic;
+}
+
+.ancora-canvas__day-title {
+  margin: 0;
+  padding: 0.4rem;
+  text-align: center;
+  font-size: 0.9rem;
+  border-bottom: 1px solid var(--ancora-line);
+  grid-column: 1 / -1;
+  grid-row: 1;
+}
+
+.ancora-canvas__cell {
+  border-top: 1px solid var(--ancora-line);
+  grid-column: 1 / -1;
+  grid-row: var(--r1);
+}
+
+.ancora-canvas__cell--break {
+  background: repeating-linear-gradient(45deg, var(--ancora-ws-break), var(--ancora-ws-break) 3px, transparent 3px, transparent 6px);
+}
+
+.ancora-canvas__free {
+  margin: 0.5rem;
+  color: var(--ancora-muted);
+  font-size: 0.8rem;
+  grid-column: 1 / -1;
+  grid-row: 2;
+}
+
+/* A placement: one block from its first to its last slot. */
+.ancora-block {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  overflow: hidden;
+  margin: 2px;
+  color: inherit;
+  border: 1px solid var(--ancora-line);
+  border-inline-start: 4px solid var(--ancora-accent);
+  border-radius: var(--ancora-radius);
+  background: var(--ancora-ws-block);
+  text-decoration: none;
+  grid-column: var(--lane);
+  grid-row: var(--r1) / var(--r2);
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: subgrid;
+}
+
+.ancora-block:hover {
+  border-color: var(--ancora-accent);
+}
+
+.ancora-block:focus-visible {
+  outline: 3px solid var(--ancora-accent);
+  outline-offset: 1px;
+}
+
+.ancora-block.is-selected {
+  border-color: var(--ancora-ws-selected);
+  box-shadow: 0 0 0 3px var(--ancora-ws-selected);
+}
+
+.ancora-block.has-warning {
+  border-inline-start-color: var(--ancora-ws-warning);
+}
+
+.ancora-block.is-draft {
+  border-style: dashed;
+}
+
+.ancora-block__body {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 0.3rem 0.4rem;
+  font-size: 0.8rem;
+  line-height: 1.25;
+  grid-column: 1;
+  grid-row: 1 / -1;
+  gap: 0.1rem;
+}
+
+.ancora-block__break {
+  background: repeating-linear-gradient(45deg, var(--ancora-ws-break), var(--ancora-ws-break) 3px, transparent 3px, transparent 6px);
+  border-block: 1px dashed var(--ancora-line);
+  grid-column: 1;
+  grid-row: var(--br);
+}
+
+.ancora-block__time {
+  color: var(--ancora-muted);
+  font-size: 0.75rem;
+}
+
+.ancora-block__title {
+  font-weight: 700;
+}
+
+.ancora-block__note {
+  font-style: italic;
+  font-size: 0.75rem;
+}
+
+.ancora-block__marks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.ancora-block__mark--warning {
+  color: var(--ancora-ws-warning);
+  font-weight: 700;
+}
+
+/* The inspector. */
+.ancora-inspector {
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--ancora-line);
+  border-radius: var(--ancora-radius);
+  background: var(--ancora-surface);
+}
+
+.ancora-inspector__head {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.ancora-inspector__title {
+  margin: 0 0 0.75rem;
+  font-size: 1.1rem;
+}
+
+.ancora-inspector__kicker {
+  display: block;
+  color: var(--ancora-muted);
+  font-size: 0.8rem;
+  font-weight: 400;
+}
+
+.ancora-inspector h3 {
+  margin: 1rem 0 0.4rem;
+  font-size: 0.95rem;
+}
+
+.ancora-inspector .ancora-cross-plan h2 {
+  font-size: 1rem;
+}
+
+.ancora-inspector__facts {
+  display: grid;
+  margin: 0;
+  font-size: 0.875rem;
+  grid-template-columns: max-content 1fr;
+  gap: 0.25rem 0.75rem;
+}
+
+.ancora-inspector__facts dt {
+  color: var(--ancora-muted);
+}
+
+.ancora-inspector__facts dd {
+  margin: 0;
+}
+
+.ancora-inspector__conflicts,
+.ancora-inspector__history {
+  padding-inline-start: 1.1rem;
+  font-size: 0.875rem;
+}
+
+.ancora-inspector__conflicts {
+  color: var(--ancora-ws-warning);
+}
+
+.ancora-inspector__pivots,
+.ancora-inspector__actions {
+  display: flex;
+  flex-wrap: wrap;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 0.875rem;
+  gap: 0.25rem 1rem;
+}
+
+.ancora-inspector__note,
+.ancora-inspector__hint {
+  color: var(--ancora-muted);
+  font-size: 0.875rem;
+}
+
+/* Medium screens: the inspector leaves the row. */
+@media (max-width: 74.99rem) {
+  .ancora-ws__body {
+    grid-template-columns: 12rem minmax(0, 1fr);
+  }
+
+  .ancora-inspector {
+    grid-column: 1 / -1;
+  }
+
+  /* With the script: a drawer over the page while an activity is selected. */
+  html.js .ancora-inspector.has-selection {
+    position: fixed;
+    z-index: 100;
+    inset-block: 0;
+    inset-inline-end: 0;
+    overflow-y: auto;
+    width: min(26rem, 100%);
+    border-radius: 0;
+    box-shadow: -4px 0 16px rgb(0 0 0 / 25%);
+  }
+}
+
+/* Narrow screens: one column; the canvas reads as a list per day. */
+@media (max-width: 47.99rem) {
+  .ancora-ws__body {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .ancora-canvas__grid {
+    display: block;
+    border: 0;
+    background: none;
+  }
+
+  .ancora-canvas__axis,
+  .ancora-canvas__cell,
+  .ancora-block__break {
+    display: none;
+  }
+
+  .ancora-canvas__day {
+    display: block;
+    margin-block-end: 1rem;
+    border: 0;
+  }
+
+  .ancora-canvas__day-title {
+    text-align: start;
+  }
+
+  .ancora-block {
+    display: block;
+    margin: 0.4rem 0;
+  }
+}

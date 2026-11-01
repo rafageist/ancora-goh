@@ -1,0 +1,130 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Drupal\Tests\ancora_scheduling\Functional;
+
+use Drupal\ancora_academic\Fixture\SyntheticFixture;
+use Drupal\ancora_engine\Job\JobState;
+use Drupal\Tests\ancora\Functional\AncoraBrowserTestBase;
+use PHPUnit\Framework\Attributes\Group;
+
+/**
+ * The request form, the status page and the timetable page over HTTP.
+ */
+#[Group('ancora_scheduling')]
+final class SchedulingPagesTest extends AncoraBrowserTestBase {
+
+  /**
+   * {@inheritdoc}
+   */
+  protected static $modules = ['ancora_scheduling'];
+
+  /**
+   * Access, queueing without running, validation, and the timetable states.
+   */
+  public function testRequestAndTimetable(): void {
+    // The planner owns the plan (legacy creador): only the planner sees it.
+    $planner = $this->drupalCreateUser([
+      'view academic data',
+      'view ancora engine jobs',
+      'request ancora engine jobs',
+    ]);
+    $plan = \Drupal::service(SyntheticFixture::class)->load(TRUE, $planner);
+    $storage = fn (string $type) => \Drupal::entityTypeManager()->getStorage($type);
+    $one = fn (string $type, array $properties) => current($storage($type)->loadByProperties($properties));
+    $period = $one('ancora_period', ['plan' => $plan->id(), 'code' => 'PER']);
+    $specialty = $one('ancora_specialty', ['uid' => $planner->id(), 'code' => 'E']);
+    $level = $one('ancora_level', ['uid' => $planner->id(), 'code' => 'N']);
+    // A second plan of the planner, with a period of its own.
+    $other = $storage('ancora_plan')->create(['label' => 'Other plan', 'code' => 'Q', 'uid' => $planner->id()]);
+    $other->save();
+    $other_period = $storage('ancora_period')->create([
+      'plan' => $other->id(),
+      'label' => 'Other week',
+      'code' => 'QW',
+      'plan_days' => [1],
+    ]);
+    $other_period->save();
+
+    $timetable = '/ancora/planning/' . $plan->id() . '/timetable';
+    foreach (['/ancora/scheduling/request', $timetable, '/ancora/scheduling/jobs/1'] as $path) {
+      $this->drupalGet($path);
+      $this->assertSession()->statusCodeEquals(403);
+    }
+
+    // Another user of the site does not see the planner's plan.
+    $viewer = $this->drupalCreateUser(['view academic data']);
+    $this->drupalLogin($viewer);
+    $this->drupalGet('/ancora/scheduling/request');
+    $this->assertSession()->statusCodeEquals(403);
+    $this->drupalGet($timetable);
+    $this->assertSession()->statusCodeEquals(403);
+    $this->drupalGet('/ancora/planning/999/timetable');
+    $this->assertSession()->statusCodeEquals(404);
+
+    $this->drupalLogin($planner);
+    $this->drupalGet($timetable);
+    $this->assertSession()->statusCodeEquals(200);
+    $this->assertSession()->pageTextContains('No timetable has been requested for Week yet.');
+    $values = [
+      'plan' => $plan->id(),
+      'period' => $other_period->id(),
+      'specialty' => $specialty->id(),
+      'level' => $level->id(),
+    ];
+    $this->drupalGet('/ancora/scheduling/request');
+    $this->submitForm($values, 'Request the timetable');
+    $this->assertSession()->pageTextContains('Other week is not part of plan Plan.');
+    $jobs = \Drupal::service('ancora_engine.job_repository');
+    $this->assertSame([], $jobs->recent());
+
+    $values['period'] = $period->id();
+    $this->submitForm($values, 'Request the timetable');
+    $this->assertSession()->pageTextContains('Timetable requested (job 1).');
+    $this->assertSession()->addressEquals('/ancora/scheduling/jobs/1');
+    $this->assertSession()->pageTextContains('Queued');
+    $job = $jobs->load(1);
+    $this->assertSame(JobState::Queued, $job->state, 'nothing runs in the request');
+    $this->assertSame((int) $plan->id(), $job->source->planId);
+    $this->assertSame([
+      sprintf('%010d:E', $specialty->id()),
+      sprintf('%010d:N', $level->id()),
+      sprintf('%010d:PER', $period->id()),
+    ], $job->scope->toParameters());
+    // The room choice defaults to the nearest room: buscalugar = TRUE, what
+    // the legacy generator window posts by default (D9c, A-2).
+    $this->assertTrue($job->options->buscalugar);
+    // The other strategy options, with the legacy window's defaults (D11):
+    // priorizar (forma) 1 and compactar 1.
+    $this->assertSame([1, 1], [$job->options->forma, $job->options->compactar]);
+
+    $this->drupalGet('/ancora/scheduling/request');
+    $this->assertSession()->fieldValueEquals('compactar', '1');
+    $this->assertSession()->optionExists('compactar', '10');
+    $this->assertSession()->optionNotExists('compactar', '0');
+    $this->assertSession()->checkboxChecked('edit-forma-1');
+    $this->submitForm($values, 'Request the timetable');
+    $this->assertSession()->pageTextContains('A run for this period, specialty and level is already queued (job 1).');
+    $this->assertCount(1, $jobs->recent());
+
+    $this->drupalGet($timetable);
+    $this->assertSession()->statusCodeEquals(200);
+    $this->assertSession()->pageTextContains('Job 1 is queued.');
+    $this->assertSession()->pageTextContains('No timetable yet.');
+    $this->assertSession()->responseNotContains('data-timetable="final"');
+
+    // A finished run is shown as soon as it ends (the job cache tag); with
+    // no engine database configured, the page says so without details.
+    $jobs->finish($jobs->claim('test'), JobState::Succeeded, ['kept' => 'placements']);
+    $this->drupalGet($timetable);
+    $this->assertSession()->pageTextContains('Final timetable, generated by job 1.');
+    $this->assertSession()->pageTextContains('The scheduling engine could not be reached; try again later.');
+    $this->assertSession()->pageTextContains('The planning data changed after this run');
+
+    $this->drupalLogin($viewer);
+    $this->drupalGet('/ancora/scheduling/jobs/1');
+    $this->assertSession()->statusCodeEquals(403);
+  }
+
+}

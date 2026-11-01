@@ -1,0 +1,78 @@
+services:
+  # The optional job input service of the engine worker (ancora_engine):
+  # syncs a job's plan into the engine database inside the run.
+  ancora_engine.job_input:
+    class: Drupal\ancora_scheduling\Sync\EngineSync
+    arguments: ['@entity_type.manager', '@Drupal\ancora_academic\Export\AcademicExport', '@entity.memory_cache', '@ancora_scheduling.site_rows']
+  Drupal\ancora_scheduling\Sync\EngineSync: '@ancora_engine.job_input'
+
+  ancora_scheduling.site_rows:
+    class: Drupal\ancora_scheduling\Sync\SiteRows
+    arguments: ['@entity_type.manager', '@Drupal\ancora_academic\Export\AcademicExport', '@Drupal\ancora_academic\Export\LegacyRows']
+  Drupal\ancora_scheduling\Sync\SiteRows: '@ancora_scheduling.site_rows'
+
+  # Workspace mode (#95): the input of a job workspace (records and stored
+  # placements) and the publication of its output as placement entities.
+  ancora_engine.workspace_input:
+    class: Drupal\ancora_scheduling\Sync\WorkspaceSync
+    arguments: ['@entity_type.manager', '@Drupal\ancora_academic\Export\AcademicExport', '@entity.memory_cache', '@ancora_scheduling.site_rows', '@database']
+  Drupal\ancora_scheduling\Sync\WorkspaceSync: '@ancora_engine.workspace_input'
+
+  ancora_engine.job_output:
+    class: Drupal\ancora_scheduling\Timetable\PlacementPublisher
+    arguments: ['@entity_type.manager', '@database', '@ancora_engine.job_repository', '@ancora_engine.workspace_input', '@logger.channel.ancora_scheduling', '@account_switcher', '@ancora_scheduling.placement_mapper']
+  Drupal\ancora_scheduling\Timetable\PlacementPublisher: '@ancora_engine.job_output'
+
+  ancora_scheduling.placement_mapper:
+    class: Drupal\ancora_scheduling\Timetable\PlacementMapper
+    arguments: ['@entity_type.manager', '@account_switcher']
+  Drupal\ancora_scheduling\Timetable\PlacementMapper: '@ancora_scheduling.placement_mapper'
+
+  # Migration of a two-database site to the single-database layout (#96):
+  # the engine database's placements as placement entities.
+  ancora_scheduling.two_database_import:
+    class: Drupal\ancora_scheduling\Migration\TwoDatabaseImport
+    arguments: ['@entity_type.manager', '@database', '@ancora_engine.job_repository', '@ancora_engine.engine_client', '@ancora_engine.settings', '@account_switcher', '@ancora_scheduling.placement_mapper']
+  Drupal\ancora_scheduling\Migration\TwoDatabaseImport: '@ancora_scheduling.two_database_import'
+
+  ancora_scheduling.timetable:
+    class: Drupal\ancora_scheduling\Timetable\TimetableReader
+    arguments: ['@ancora_engine.job_repository', '@ancora_engine.engine_client', '@ancora_engine.settings', '@Drupal\ancora_academic\Export\AcademicExport', '@Drupal\ancora_academic\Export\LegacyRows', '@logger.channel.ancora_scheduling', '@entity_type.manager', '@entity.last_installed_schema.repository']
+  Drupal\ancora_scheduling\Timetable\TimetableReader: '@ancora_scheduling.timetable'
+
+  # The legacy timetable explorer (#119, D14).
+  Drupal\ancora_scheduling\Timetable\TimetableExplorer:
+    arguments: ['@entity_type.manager', '@ancora_scheduling.timetable']
+
+  # Moving one saved placement (#130): the destination checks the worker runs
+  # in workspaces (not generation jobs), and the move command.
+  ancora_engine.check_runner:
+    class: Drupal\ancora_scheduling\Timetable\PlacementCheckRunner
+    arguments: ['@database', '@entity_type.manager', '@ancora_engine.workspace_client', '@ancora_engine.engine_client', '@ancora_engine.workspace_input', '@datetime.time', '@logger.channel.ancora_scheduling']
+  Drupal\ancora_scheduling\Timetable\PlacementCheckRunner: '@ancora_engine.check_runner'
+
+  ancora_scheduling.placement_modification:
+    class: Drupal\ancora_scheduling\Timetable\PlacementModification
+    arguments: ['@database', '@entity_type.manager', '@ancora_engine.settings', '@ancora_engine.job_repository', '@ancora_engine.workspace_input', '@account_switcher', '@datetime.time']
+  Drupal\ancora_scheduling\Timetable\PlacementModification: '@ancora_scheduling.placement_modification'
+
+  # Read-only cross-plan conflict warnings (#133): Drupal data only.
+  ancora_scheduling.cross_plan_conflicts:
+    class: Drupal\ancora_scheduling\Timetable\CrossPlanConflictDetector
+    arguments: ['@entity_type.manager', '@ancora_scheduling.timetable', '@Drupal\ancora_academic\PeriodInputs']
+  Drupal\ancora_scheduling\Timetable\CrossPlanConflictDetector: '@ancora_scheduling.cross_plan_conflicts'
+  Drupal\ancora_scheduling\Timetable\CrossPlanConflictView: ~
+
+  # The integrated planning workspace (#141, S1a): read-only regions, and
+  # the last plan of each account for "Resume" (user.data).
+  Drupal\ancora_scheduling\Workspace\PlanWorkspace:
+    arguments: ['@entity_type.manager', '@ancora_scheduling.timetable', '@Drupal\ancora_academic\PeriodInputs', '@ancora_scheduling.cross_plan_conflicts', '@Drupal\ancora_scheduling\Timetable\CrossPlanConflictView', '@ancora_scheduling.placement_modification', '@date.formatter', '@entity.last_installed_schema.repository']
+  Drupal\ancora_scheduling\Workspace\ResumeStore:
+    arguments: ['@user.data', '@entity_type.manager']
+  ancora_scheduling.workspace_resume:
+    class: Drupal\ancora_scheduling\Workspace\ResumeBuilder
+    arguments: ['@Drupal\ancora_scheduling\Workspace\ResumeStore', '@current_user']
+
+  logger.channel.ancora_scheduling:
+    parent: logger.channel_base
+    arguments: ['ancora_scheduling']

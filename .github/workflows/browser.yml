@@ -1,0 +1,107 @@
+# The planning workspace in a real browser (#141, S1a): Playwright (Chromium)
+# against a disposable workspace-mode Drupal site with synthetic scheduling
+# fixtures (2- and 3-slot activities, one across a break, a dated cross-plan
+# overlap and an undated period), the real engine worker beside it, and axe
+# in every state. It also measures today's destination-check latency of the
+# move page (reported, never asserted).
+#
+# Dependencies (A1: justified here): Node is used for the TESTS only, never in
+# the Drupal build or a deployment. dev/browser/package-lock.json pins
+# @playwright/test (the browser driver and runner) and @axe-core/playwright
+# (the accessibility scan). The workspace itself has no build step and no npm
+# runtime dependency.
+name: Browser (workspace)
+
+on:
+  push:
+    paths:
+      - 'modern/**'
+      - 'dev/browser/**'
+      - 'dev/workspace/**'
+      - 'dev/sql/tools/**'
+      - '.github/workflows/browser.yml'
+  pull_request:
+    paths:
+      - 'modern/**'
+      - 'dev/browser/**'
+      - 'dev/workspace/**'
+      - 'dev/sql/tools/**'
+      - '.github/workflows/browser.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  browser:
+    name: Playwright + axe, PHP 8.4 + PostgreSQL 16
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    env:
+      PG_BINDIR: /usr/lib/postgresql/16/bin
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: pdo_pgsql, pgsql, gd, mbstring, xml, curl, zip, opcache
+          coverage: none
+          tools: composer:v2
+
+      - name: PostgreSQL 16 server binaries (PGDG when missing)
+        run: |
+          if [ ! -x "$PG_BINDIR/initdb" ]; then
+            sudo install -d /usr/share/postgresql-common/pgdg
+            sudo curl -fsSL -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc \
+              https://www.postgresql.org/media/keys/ACCC4CF8.asc
+            . /etc/os-release
+            echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] https://apt.postgresql.org/pub/repos/apt ${VERSION_CODENAME}-pgdg main" \
+              | sudo tee /etc/apt/sources.list.d/pgdg.list >/dev/null
+            sudo apt-get update -q
+            sudo apt-get install -y -q postgresql-16
+          fi
+          # Only disposable clusters are used; stop any packaged server.
+          sudo systemctl stop postgresql || true
+          "$PG_BINDIR/postgres" --version
+
+      - name: Composer cache directory
+        id: composer-cache
+        working-directory: modern
+        run: echo "dir=$(composer config cache-files-dir)" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/cache@v4
+        with:
+          path: ${{ steps.composer-cache.outputs.dir }}
+          key: composer-${{ runner.os }}-php8.4-${{ hashFiles('modern/composer.lock') }}
+          restore-keys: composer-${{ runner.os }}-php8.4-
+
+      - name: composer install (locked)
+        working-directory: modern
+        run: composer install --no-interaction --no-progress
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: dev/browser/package-lock.json
+
+      - name: npm ci (test tooling only) and Chromium
+        working-directory: dev/browser
+        run: |
+          npm ci --no-audit --no-fund
+          npx playwright install --with-deps chromium
+
+      - name: Workspace journey, history, keyboard, no-JS, access, axe and latency
+        timeout-minutes: 30
+        env:
+          ANCORA_BROWSER_OUT: ${{ github.workspace }}/browser-results
+        run: dev/sql/tools/with-ephemeral-pg.sh modern/scripts/browser-journey.sh
+
+      - name: Latency, history and screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: browser-results
+          path: browser-results
+          if-no-files-found: ignore
+          retention-days: 14

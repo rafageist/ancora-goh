@@ -220,7 +220,7 @@ USUARIOS ──→ ROLES ──→ PERMISOS
 
 ## Licencia
 
-GPL v3 (heredado de la versión VB6)
+GPL v3 (heredado de la versión VB6): **GNU GPL, versión 3 únicamente** (SPDX `GPL-3.0-only`). Texto completo en [`LICENSE`](LICENSE); procedencia y componentes de terceros en [`docs/licensing.md`](docs/licensing.md).
 
 ## Autores
 

@@ -1,0 +1,10 @@
+view academic data:
+  title: 'View academic data'
+  description: 'See the planning overview, the academic record lists and each record.'
+edit academic data:
+  title: 'Edit academic data'
+  description: 'Create, edit and delete periods, activity types, groups, subjects, activity templates, rooms, teachers and assignments, and edit plans. Grant together with "View academic data".'
+administer academic data:
+  title: 'Administer academic data'
+  description: 'Everything above, plus creating and deleting plans.'
+  restrict access: true

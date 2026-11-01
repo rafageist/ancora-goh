@@ -1,0 +1,53 @@
+{
+  "schema": "ancora.parity.scenario.v1",
+  "id": "s10-room-constraints",
+  "title": "Room constraints (D9c): a fixed and a forbidden room, travel costs, the nearest-room strategy",
+  "notes": [
+    "Issue #70, D9c (legacy-parity-inventory.md PAR-055, 056, 060, 061, 063, A-2, Q-30; SQL case 141). One plan and period (2 days x 3 slots); both templates of subject A may use rooms L1, L2 and L3 with priority 1 and share a day (breakdown without order, same day allowed).",
+    "Legacy side: the travel costs through the room's travel cost editor (get_form_edit_lugar_costos_de_traslado, then one custom_set_costotraslado per other room, 0 included, as ancoragoh_client_forms_costotraslado.js posts them); the fixed and forbidden rooms, which no screen wrote (A-4), through add_LugarFijo and add_AccesoProhibido. Drupal side: RoomConstraints, the save of the editors.",
+    "Group 1 has the fixed room L3 and the forbidden room L1 (which generar() never applies, Q-30). Run E uses buscalugar = TRUE, the legacy window's default (A-2): Group 2 gets the room with the least travel cost from the rooms used around its slot."
+  ],
+  "users": [
+    {"key": "admin", "name": "Administrator", "legacy": "seeded-admin"},
+    {"key": "alice", "name": "Alice Planner"}
+  ],
+  "records": [
+    {"type": "plan", "key": "P", "as": "alice", "label": "Semester", "starts_on": "2026-09-07", "duration_days": 30},
+    {"type": "period", "key": "W", "as": "alice", "plan": "P", "label": "Week", "days": 2, "slots_per_day": 3, "start_hour": 8, "slot_duration": 1, "plan_days": [1]},
+    {"type": "activity_type", "key": "C1", "as": "alice", "label": "Lecture", "duration_slots": 1, "priority": 1, "cost": 1},
+    {"type": "specialty", "key": "E", "as": "alice", "label": "Program E"},
+    {"type": "level", "key": "N", "as": "alice", "label": "Year 1"},
+    {"type": "cohort", "key": "B1", "as": "alice", "label": "Cohort 1", "specialty": "E", "level": "N", "enrollment": 20},
+    {"type": "cohort", "key": "B2", "as": "alice", "label": "Cohort 2", "specialty": "E", "level": "N", "enrollment": 20},
+    {"type": "student_group", "key": "G1", "as": "alice", "plan": "P", "label": "Group 1", "activity_type": "C1", "specialty": "E", "level": "N", "cohorts": ["B1"]},
+    {"type": "student_group", "key": "G2", "as": "alice", "plan": "P", "label": "Group 2", "activity_type": "C1", "specialty": "E", "level": "N", "cohorts": ["B2"]},
+    {"type": "subject", "key": "A", "as": "alice", "label": "Subject A", "specialty": "E", "level": "N"},
+    {"type": "activity_template", "key": "A1", "as": "alice", "subject": "A", "period": "W", "sequence": 1, "activity_type": "C1"},
+    {"type": "activity_template", "key": "A2", "as": "alice", "subject": "A", "period": "W", "sequence": 2, "activity_type": "C1"},
+    {"type": "teacher", "key": "TA", "as": "alice", "label": "Teacher A"},
+    {"type": "teacher", "key": "TB", "as": "alice", "label": "Teacher B"},
+    {"type": "room", "key": "L1", "as": "alice", "label": "Room 1", "capacity": 50},
+    {"type": "room", "key": "L2", "as": "alice", "label": "Room 2", "capacity": 50},
+    {"type": "room", "key": "L3", "as": "alice", "label": "Room 3", "capacity": 50},
+    {"type": "teacher_assignment", "key": "A1@TA", "as": "alice", "template": "A1", "teacher": "TA", "priority": 1, "groups": ["G1", "G2"]},
+    {"type": "teacher_assignment", "key": "A2@TB", "as": "alice", "template": "A2", "teacher": "TB", "priority": 1, "groups": ["G1", "G2"]},
+    {"type": "room_assignment", "key": "A1@L1", "as": "alice", "template": "A1", "room": "L1", "priority": 1},
+    {"type": "room_assignment", "key": "A1@L2", "as": "alice", "template": "A1", "room": "L2", "priority": 1},
+    {"type": "room_assignment", "key": "A1@L3", "as": "alice", "template": "A1", "room": "L3", "priority": 1},
+    {"type": "room_assignment", "key": "A2@L1", "as": "alice", "template": "A2", "room": "L1", "priority": 1},
+    {"type": "room_assignment", "key": "A2@L2", "as": "alice", "template": "A2", "room": "L2", "priority": 1},
+    {"type": "room_assignment", "key": "A2@L3", "as": "alice", "template": "A2", "room": "L3", "priority": 1},
+    {"type": "breakdown", "key": "A@W", "as": "alice", "subject": "A", "period": "W", "min_days": 1, "max_days": 5, "respect_order": false, "same_day": true},
+    {"type": "group_rooms", "key": "GR-G1", "as": "alice", "group": "G1", "fixed": "L3", "forbidden": ["L1"]},
+    {"type": "travel_costs", "key": "TC-L1", "as": "alice", "origin": "L1", "costs": {"L2": 9, "L3": 1}},
+    {"type": "travel_costs", "key": "TC-L2", "as": "alice", "origin": "L2", "costs": {"L1": 9, "L3": 1}},
+    {"type": "travel_costs", "key": "TC-L3", "as": "alice", "origin": "L3", "costs": {"L1": 1, "L2": 1}}
+  ],
+  "runs": [
+    {"key": "E", "as": "alice", "plan": "P", "period": "W", "specialty": "E", "level": "N",
+     "options": {"forma": 1, "parche": false, "compactar": 0, "parche1": false, "buscalugar": true}}
+  ],
+  "visibility": [
+    {"as": "alice", "type": "room", "visible": ["L1", "L2", "L3"]}
+  ]
+}

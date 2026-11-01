@@ -1,0 +1,72 @@
+ancora_academic.planning:
+  title: 'Planning'
+  description: 'Enter the plans, periods, groups, subjects, rooms, teachers and assignments that the scheduling engine needs.'
+  route_name: ancora_academic.planning
+  parent: system.admin
+  weight: -8
+ancora_academic.collection:
+  deriver: '\Drupal\ancora_academic\Plugin\Derivative\AcademicMenuLinks'
+
+# The planner navigation (#105), in the main menu: one link per section and
+# one child per list (AcademicEntityTypes::SECTIONS).
+ancora_academic.main.plans:
+  title: 'Plans & periods'
+  route_name: ancora_academic.section.plans
+  # The section is a route default; the active trail matches it too.
+  route_parameters:
+    section: plans
+  menu_name: main
+  weight: -40
+ancora_academic.main.catalogues:
+  title: 'Academic catalogues'
+  route_name: ancora_academic.section.catalogues
+  # The section is a route default; the active trail matches it too.
+  route_parameters:
+    section: catalogues
+  menu_name: main
+  weight: -30
+ancora_academic.main.assignments:
+  title: 'Assignments & templates'
+  route_name: ancora_academic.section.assignments
+  # The section is a route default; the active trail matches it too.
+  route_parameters:
+    section: assignments
+  menu_name: main
+  weight: -20
+ancora_academic.main:
+  deriver: '\Drupal\ancora_academic\Plugin\Derivative\AcademicMainMenuLinks'
+ancora_academic.main.restrictions:
+  title: 'Time restrictions'
+  description: 'The cells of a period that a period, activity type, subject, cohort, teacher or room cannot use.'
+  route_name: ancora_academic.restrictions
+  menu_name: main
+  parent: ancora_academic.main.plans
+  weight: 10
+ancora_academic.main.breaks:
+  title: 'Breaks'
+  description: 'Breaks between the slots of a period.'
+  route_name: ancora_academic.period_inputs.breaks
+  menu_name: main
+  parent: ancora_academic.main.plans
+  weight: 11
+ancora_academic.main.limits:
+  title: 'Daily load limits'
+  description: 'The largest daily load of each teacher and cohort in a period.'
+  route_name: ancora_academic.period_inputs.limits
+  menu_name: main
+  parent: ancora_academic.main.plans
+  weight: 12
+ancora_academic.main.zones:
+  title: 'Priority zones'
+  description: 'The priority zone of each cell of a period for an activity type.'
+  route_name: ancora_academic.period_inputs.zones
+  menu_name: main
+  parent: ancora_academic.main.plans
+  weight: 13
+ancora_academic.main.assignment_editor:
+  title: 'Assignment editor'
+  description: 'Assign the teachers, groups and rooms of each activity template, and set their priorities.'
+  route_name: ancora_academic.assignment_editor
+  menu_name: main
+  parent: ancora_academic.main.assignments
+  weight: -10

@@ -1,0 +1,8 @@
+{
+  "schema": "ancora.parity.known-deviations.v1",
+  "notes": [
+    "Differences the parity harness reports as KNOWN instead of FAIL. Each entry names the deviation, quirk or open question of docs/modernization/legacy-parity-inventory.md that explains it, the table and the only columns allowed to differ, and the scenarios it applies to ('*': all).",
+    "An entry is evidence, not a decision: it stays until its deviation is reconciled by a focused slice, or the maintainer rules on it. A difference in any other column, or in row counts, still FAILs."
+  ],
+  "deviations": []
+}

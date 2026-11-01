@@ -26,18 +26,81 @@
  * - ANCORA_REVERSE_PROXY_ADDRESSES: comma-separated proxy IPs, for example
  *   127.0.0.1 behind a local Caddy.
  *
+ * - ANCORA_DB_OWNER_USER, ANCORA_DB_OWNER_PASSWORD_FILE: the role that owns
+ *   the schema. Used only on the command line with ANCORA_DB_AS_OWNER=1
+ *   (install, database updates, configuration import); never by the web
+ *   server, which always connects with the runtime role ANCORA_DB_USER.
+ * - ANCORA_EXPECT_SITE_PATH: on the command line, the site directory the
+ *   operator means (for example sites/org-alpha); any other site stops.
+ *
  * The site fails closed: a missing database name, user or hash salt (or, in
  * production, missing trusted hosts) stops the request instead of falling
  * back to the interactive installer.
  *
+ * Organization sites (issue #72) include this file from
+ * ancora.org.settings.php with two more variables:
+ * - $ancora_site_values: values read from the site's own settings file
+ *   outside the web root. They take precedence over the environment.
+ * - $ancora_site_only: names that must come from $ancora_site_values. The
+ *   environment of the web server is never consulted for them, so an
+ *   organization site can never pick up the control site's database, salt or
+ *   files.
+ * - $ancora_site_base_path: the site's base path, for example /o/alpha. The
+ *   control site has ''.
+ *
  * @see docs/modernization/drupal-foundation.md
+ * @see docs/modernization/drupal-multisite.md
  */
 
 if (!isset($ancora_env_prefix)) {
   $ancora_env_prefix = 'ANCORA_';
 }
+if (!isset($ancora_site_values)) {
+  $ancora_site_values = [];
+}
+if (!isset($ancora_site_only)) {
+  $ancora_site_only = [];
+}
+if (!isset($ancora_site_base_path)) {
+  $ancora_site_base_path = '';
+}
 
-$ancora_env = static function (string $name, ?string $default = NULL) use ($ancora_env_prefix): ?string {
+// Only the site's front controller may serve a web request, and only for
+// paths under the site's base path. The control site never serves /o/...: an
+// unknown organization falls back to sites/default in Drupal's site discovery,
+// and this is where that fallback ends with a 404 instead of the control
+// site. Command-line requests (Drush) are checked against the site directory
+// the operator expects.
+if (PHP_SAPI === 'cli') {
+  $ancora_expected = getenv('ANCORA_EXPECT_SITE_PATH');
+  if ($ancora_expected !== FALSE && $ancora_expected !== '' && $ancora_expected !== $site_path) {
+    throw new \RuntimeException(sprintf('Áncora settings: this command resolved %s, but ANCORA_EXPECT_SITE_PATH is %s.', $site_path, $ancora_expected));
+  }
+}
+else {
+  $ancora_script = $_SERVER['SCRIPT_NAME'] ?? '';
+  $ancora_path = (string) parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH);
+  $ancora_decoded = preg_replace('@/+@', '/', rawurldecode($ancora_path));
+  $ancora_routed = $ancora_site_base_path === ''
+    ? $ancora_script === '/index.php' && preg_match('@^/o(/|$)@i', $ancora_decoded) !== 1
+    : $ancora_script === $ancora_site_base_path . '/index.php' && str_starts_with($ancora_path, $ancora_site_base_path . '/');
+  if (!$ancora_routed) {
+    http_response_code(404);
+    header('Content-Type: text/plain; charset=utf-8');
+    header('Cache-Control: no-store');
+    print "Not found\n";
+    exit;
+  }
+  unset($ancora_script, $ancora_path, $ancora_decoded, $ancora_routed);
+}
+
+$ancora_env = static function (string $name, ?string $default = NULL) use ($ancora_env_prefix, $ancora_site_values, $ancora_site_only): ?string {
+  if (isset($ancora_site_values[$name]) && $ancora_site_values[$name] !== '') {
+    return $ancora_site_values[$name];
+  }
+  if (in_array($name, $ancora_site_only, TRUE)) {
+    return $default;
+  }
   $value = getenv($ancora_env_prefix . $name);
   return ($value === FALSE || $value === '') ? $default : $value;
 };
@@ -86,6 +149,12 @@ $databases['default']['default'] = [
   'password' => $ancora_secret('DB_PASSWORD') ?? '',
   'prefix' => '',
 ];
+// Schema changes (install, updatedb, config:import) run as the owner role, on
+// the command line only. The web server never reads the owner's secret.
+if (PHP_SAPI === 'cli' && getenv('ANCORA_DB_AS_OWNER') === '1') {
+  $databases['default']['default']['username'] = $ancora_require('DB_OWNER_USER');
+  $databases['default']['default']['password'] = $ancora_secret('DB_OWNER_PASSWORD') ?? '';
+}
 
 $settings['hash_salt'] = $ancora_secret('HASH_SALT') ?? '';
 if ($settings['hash_salt'] === '') {
@@ -135,4 +204,4 @@ if (file_exists($app_root . '/' . $site_path . '/services.yml')) {
   $settings['container_yamls'][] = $app_root . '/' . $site_path . '/services.yml';
 }
 
-unset($ancora_env, $ancora_require, $ancora_secret, $ancora_list, $ancora_proxies, $ancora_project_root);
+unset($ancora_env, $ancora_require, $ancora_secret, $ancora_list, $ancora_proxies, $ancora_project_root, $ancora_expected);

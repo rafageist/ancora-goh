@@ -21,9 +21,15 @@
 !/web/themes/custom/
 !/web/sites/
 /web/sites/*
+!/web/sites/sites.php
 !/web/sites/default/
 /web/sites/default/*
 !/web/sites/default/settings.php
+
+# Organization sites (#72) are runtime data written by scripts/ancora-site.sh:
+# web/sites/org-<slug>/ and the web/o/<slug> links are already excluded by the
+# web root whitelist above, and their settings and secrets live outside the
+# project (ANCORA_SITES_DIR).
 
 # Local overrides and secrets, wherever they are.
 settings.local.php

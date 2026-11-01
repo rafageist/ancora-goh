@@ -1,0 +1,8 @@
+name: 'Áncora scheduling'
+type: module
+description: 'The R1 scheduling journey: request a timetable for a plan and period, sync the academic records into the engine database inside the run, and read the timetable back.'
+package: Áncora
+core_version_requirement: ^11.4
+dependencies:
+  - ancora_academic:ancora_academic
+  - ancora_engine:ancora_engine

@@ -6,6 +6,7 @@
   <file>web/modules/custom</file>
   <file>web/themes/custom</file>
   <file>web/sites/default/settings.php</file>
+  <file>web/sites/sites.php</file>
   <file>settings</file>
   <file>scripts</file>
 

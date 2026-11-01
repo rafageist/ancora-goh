@@ -1,0 +1,20 @@
+{#
+/**
+ * @file
+ * The landing page for visitors who cannot plan: the way to log in, or why
+ * there is nothing to show.
+ *
+ * Available variables:
+ * - login_url: The login page (anonymous visitors), or NULL.
+ * - no_access: TRUE for a logged-in user without access to planning data.
+ */
+#}
+<section class="ancora-workspace ancora-workspace--welcome">
+  {% if no_access %}
+    <p>{{ 'Your account has no access to the planning data of this organization. Ask the site administrator for the planner role.'|t }}</p>
+  {% else %}
+    <p>{{ 'Áncora builds the weekly timetables of this organization from its plans, groups, subjects, teachers and rooms.'|t }}</p>
+    <p>{{ 'Log in with your planner account to see your plans and timetables.'|t }}</p>
+    <p><a class="button button--primary" href="{{ login_url }}">{{ 'Log in'|t }}</a></p>
+  {% endif %}
+</section>

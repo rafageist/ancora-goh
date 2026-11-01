@@ -1,0 +1,161 @@
+<?php
+
+/**
+ * @file
+ * Install and update functions for the Áncora scheduling module.
+ */
+
+declare(strict_types=1);
+
+/**
+ * Adds the placement entity type (#95, workspace mode).
+ *
+ * It only creates the empty table "ancora_placement". The two-database mode
+ * does not use it, and no data is migrated.
+ */
+function ancora_scheduling_update_11001(): string {
+  $manager = \Drupal::entityDefinitionUpdateManager();
+  if ($manager->getEntityType('ancora_placement') === NULL) {
+    $manager->installEntityType(\Drupal::entityTypeManager()->getDefinition('ancora_placement'));
+    return 'Installed the placement entity type.';
+  }
+  return 'The placement entity type is already installed.';
+}
+
+/**
+ * Stores the placement moment in double precision (#96).
+ *
+ * The engine's momento_de_colocacion is double precision. Stored as a
+ * single precision "float" it lost its hour part (8463176.47 became
+ * 8463176). The column is widened in place; existing values cannot regain
+ * the lost digits.
+ */
+function ancora_scheduling_update_11002(): string {
+  $key_value = \Drupal::keyValue('entity.storage_schema.sql');
+  $key = 'ancora_placement.field_schema_data.placed_at';
+  $installed = $key_value->get($key);
+  if (($installed['ancora_placement']['fields']['placed_at']['size'] ?? NULL) === 'big') {
+    return 'The placement moment is already double precision.';
+  }
+  $spec = $installed['ancora_placement']['fields']['placed_at'];
+  $spec['size'] = 'big';
+  \Drupal::database()->schema()->changeField('ancora_placement', 'placed_at', 'placed_at', $spec);
+  $installed['ancora_placement']['fields']['placed_at'] = $spec;
+  $key_value->set($key, $installed);
+  return 'The placement moment is now double precision.';
+}
+
+/**
+ * Implements hook_update_dependencies().
+ */
+function ancora_scheduling_update_dependencies(): array {
+  // The other resources of a placement reference the entity type that
+  // ancora_academic_update_11008() installs.
+  return ['ancora_scheduling' => [11003 => ['ancora_academic' => 11008]]];
+}
+
+/**
+ * Adds the other resources of a placement (#70, D9d).
+ *
+ * Legacy otros_recursos_usados: the resources the engine gave a placed
+ * activity. Existing placements have none: no other resource existed in
+ * Drupal before.
+ */
+function ancora_scheduling_update_11003(): string {
+  $manager = \Drupal::entityDefinitionUpdateManager();
+  if ($manager->getFieldStorageDefinition('other_resources', 'ancora_placement') !== NULL) {
+    return 'The other resources of placements are already installed.';
+  }
+  $definitions = \Drupal::service('entity_field.manager')->getFieldStorageDefinitions('ancora_placement');
+  $manager->installFieldStorageDefinition('other_resources', 'ancora_placement', 'ancora_scheduling', $definitions['other_resources']);
+  return 'Installed the other resources of placements.';
+}
+
+/**
+ * Formerly granted the timetable viewer to the academic roles (#121).
+ *
+ * "View academic data" does not imply the organization-wide viewer, so this
+ * update grants nothing any more (least privilege, #121 review). It stays so
+ * that a site that already ran it sees no change; update 11005 reports the
+ * grants a site holds.
+ */
+function ancora_scheduling_update_11004(): string {
+  return 'Nothing to grant: the timetable viewer is granted explicitly.';
+}
+
+/**
+ * Reports the roles holding the timetable viewer (#121), revoking nothing.
+ *
+ * Administrators reach the viewer without it (user 1, and the route accepts
+ * "administer academic data"); any other role needs an explicit grant of
+ * "view timetable viewer". Grants made earlier, by update 11004 or by an
+ * administrator, are kept and listed here and in the log for review.
+ */
+function ancora_scheduling_update_11005(): string {
+  $roles = [];
+  foreach (\Drupal::entityTypeManager()->getStorage('user_role')->loadMultiple() as $role) {
+    if ($role->hasPermission('view timetable viewer') || $role->isAdmin()) {
+      $roles[] = $role->id() . ($role->isAdmin() ? ' (administrator role)' : '');
+    }
+  }
+  sort($roles);
+  $message = $roles === []
+    ? 'No role holds the timetable viewer permission.'
+    : 'Roles holding the timetable viewer permission (kept): ' . implode(', ', $roles) . '.';
+  \Drupal::logger('ancora_scheduling')->notice($message);
+  return $message;
+}
+
+/**
+ * Implements hook_schema().
+ *
+ * The destination checks of placement moves (#130). A check is not a
+ * generation job: it has its own table and lifecycle (queued, running,
+ * done, failed), the worker runs it in a workspace that is dropped after
+ * it, and its result is only read by PlacementModification::commit(). It is
+ * not part of the generation input, so it never makes a job's input stale.
+ */
+function ancora_scheduling_schema(): array {
+  return [
+    'ancora_placement_check' => [
+      'description' => 'Destination checks of placement moves (#130).',
+      'fields' => [
+        'id' => ['type' => 'serial', 'not null' => TRUE],
+        'placement_id' => ['type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE],
+        'requested_by' => ['type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE],
+        'state' => ['type' => 'varchar_ascii', 'length' => 16, 'not null' => TRUE],
+        'version' => ['type' => 'varchar_ascii', 'length' => 64, 'not null' => FALSE],
+        'signature' => ['type' => 'varchar_ascii', 'length' => 64, 'not null' => FALSE],
+        'result' => ['type' => 'text', 'size' => 'big', 'not null' => FALSE],
+        'error' => ['type' => 'varchar', 'length' => 1024, 'not null' => FALSE],
+        'created' => ['type' => 'int', 'not null' => TRUE],
+        'changed' => ['type' => 'int', 'not null' => TRUE],
+      ],
+      'primary key' => ['id'],
+      'indexes' => [
+        'state' => ['state', 'id'],
+        'placement' => ['placement_id'],
+      ],
+    ],
+  ];
+}
+
+/**
+ * Adds the placement checks and the placement changes (#130).
+ *
+ * Both are new and empty: no data is migrated.
+ */
+function ancora_scheduling_update_11006(): string {
+  $done = [];
+  $schema = \Drupal::database()->schema();
+  if (!$schema->tableExists('ancora_placement_check')) {
+    $schema->createTable('ancora_placement_check', ancora_scheduling_schema()['ancora_placement_check']);
+    $done[] = 'the placement check table';
+  }
+  $manager = \Drupal::entityDefinitionUpdateManager();
+  if ($manager->getEntityType('ancora_placement_change') === NULL) {
+    $manager->installEntityType(\Drupal::entityTypeManager()->getDefinition('ancora_placement_change'));
+    $done[] = 'the placement change entity type';
+  }
+  return $done === [] ? 'The placement checks and changes are already installed.' : 'Installed ' . implode(' and ', $done) . '.';
+}

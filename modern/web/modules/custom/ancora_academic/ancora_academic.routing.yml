@@ -1,0 +1,131 @@
+ancora_academic.planning:
+  path: '/ancora/planning'
+  defaults:
+    _controller: '\Drupal\ancora_academic\Controller\PlanningController::overview'
+    _title: 'Planning'
+  requirements:
+    _permission: 'view academic data+administer academic data'
+
+# The section pages of the planner navigation (#105).
+ancora_academic.section.plans:
+  path: '/ancora/planning/plans-periods'
+  defaults:
+    _controller: '\Drupal\ancora_academic\Controller\PlanningController::section'
+    _title_callback: '\Drupal\ancora_academic\Controller\PlanningController::sectionTitle'
+    section: plans
+  requirements:
+    _permission: 'view academic data+administer academic data'
+
+ancora_academic.section.catalogues:
+  path: '/ancora/planning/catalogues'
+  defaults:
+    _controller: '\Drupal\ancora_academic\Controller\PlanningController::section'
+    _title_callback: '\Drupal\ancora_academic\Controller\PlanningController::sectionTitle'
+    section: catalogues
+  requirements:
+    _permission: 'view academic data+administer academic data'
+
+ancora_academic.section.assignments:
+  path: '/ancora/planning/assignments-templates'
+  defaults:
+    _controller: '\Drupal\ancora_academic\Controller\PlanningController::section'
+    _title_callback: '\Drupal\ancora_academic\Controller\PlanningController::sectionTitle'
+    section: assignments
+  requirements:
+    _permission: 'view academic data+administer academic data'
+
+# The day x slot restriction grid (D9a): ?period=, ?kind=, ?target=.
+ancora_academic.restrictions:
+  path: '/ancora/planning/restrictions'
+  defaults:
+    _form: '\Drupal\ancora_academic\Form\RestrictionGridForm'
+    _title: 'Time restrictions'
+  requirements:
+    _permission: 'edit academic data+administer academic data'
+
+# The other resources of an activity template (D9d): ?template=.
+ancora_academic.template_resources:
+  path: '/ancora/planning/template-resources'
+  defaults:
+    _form: '\Drupal\ancora_academic\Form\SharedResourcesForm'
+    _title: 'Other resources of a template'
+  requirements:
+    _permission: 'edit academic data+administer academic data'
+
+# The room constraints (D9c): ?group= and ?room=.
+ancora_academic.room_constraints.group_rooms:
+  path: '/ancora/planning/group-rooms'
+  defaults:
+    _form: '\Drupal\ancora_academic\Form\RoomConstraintsForm'
+    _title: 'Fixed and forbidden rooms'
+    input: group_rooms
+  requirements:
+    _permission: 'edit academic data+administer academic data'
+
+ancora_academic.room_constraints.travel_costs:
+  path: '/ancora/planning/travel-costs'
+  defaults:
+    _form: '\Drupal\ancora_academic\Form\RoomConstraintsForm'
+    _title: 'Travel costs'
+    input: travel_costs
+  requirements:
+    _permission: 'edit academic data+administer academic data'
+
+# The other inputs of a period (D9b): ?period= (and ?activity_type=).
+ancora_academic.period_inputs.breaks:
+  path: '/ancora/planning/breaks'
+  defaults:
+    _form: '\Drupal\ancora_academic\Form\PeriodInputsForm'
+    _title: 'Breaks'
+    input: breaks
+  requirements:
+    _permission: 'edit academic data+administer academic data'
+
+ancora_academic.period_inputs.zones:
+  path: '/ancora/planning/priority-zones'
+  defaults:
+    _form: '\Drupal\ancora_academic\Form\PeriodInputsForm'
+    _title: 'Priority zones'
+    input: zones
+  requirements:
+    _permission: 'edit academic data+administer academic data'
+
+ancora_academic.period_inputs.limits:
+  path: '/ancora/planning/load-limits'
+  defaults:
+    _form: '\Drupal\ancora_academic\Form\PeriodInputsForm'
+    _title: 'Daily load limits'
+    input: limits
+  requirements:
+    _permission: 'edit academic data+administer academic data'
+
+# The legacy up/down arrows of classifications and templates (D13).
+ancora_academic.order.move:
+  path: '/ancora/planning/order/{type}/{id}/{direction}'
+  defaults:
+    _controller: '\Drupal\ancora_academic\Controller\OrderController::move'
+  requirements:
+    _permission: 'edit academic data+administer academic data'
+    _csrf_token: 'TRUE'
+    type: 'activity-type|template'
+    id: '\d+'
+    direction: 'up|down'
+
+# The visual assignment editor of templates (#122): ?template= and ?q=.
+ancora_academic.assignment_editor:
+  path: '/ancora/planning/assignment-editor'
+  defaults:
+    _controller: '\Drupal\ancora_academic\Controller\AssignmentEditorController::page'
+    _title_callback: '\Drupal\ancora_academic\Controller\AssignmentEditorController::title'
+  requirements:
+    _permission: 'edit academic data+administer academic data'
+
+# The details of one teacher or room assignment (a dialog of the editor).
+ancora_academic.assignment_details:
+  path: '/ancora/planning/assignment-editor/details/{kind}/{id}'
+  defaults:
+    _controller: '\Drupal\ancora_academic\Controller\AssignmentEditorController::details'
+  requirements:
+    _permission: 'edit academic data+administer academic data'
+    kind: 'teacher|room'
+    id: '\d+'

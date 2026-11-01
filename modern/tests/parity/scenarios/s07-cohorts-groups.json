@@ -1,0 +1,70 @@
+{
+  "schema": "ancora.parity.scenario.v1",
+  "id": "s07-cohorts-groups",
+  "title": "Cohort and group membership (D6, D10): moves within a slot, other slots, a cohort of another specialty, a negative enrolment, groups of another plan",
+  "notes": [
+    "Issue #70, D6 and D10 (legacy-parity-inventory.md PAR-014..018, Q-02, Q-14; SQL cases 113, 121, 136). Both sides enter the same records; each group's cohorts go in with custom_MoverBrigadaDeGrupo on the legacy side (the drag and drop of the group browser) and with the group's cohorts field in Drupal.",
+    "Moves: G1 gets B1 and B2; G3, of the same plan, activity type, specialty and level, then gets B1, which MOVES it out of G1. Other slots: G4 (plan P2) and GL (activity type C2) get B3, which G2 keeps: they are added, not moved.",
+    "A cohort of another specialty: GF (specialty F) gets B2 (specialty E). Legacy has no check (Drupal used to refuse it: GroupCohorts, D6). dame_grupos() goes by the cohorts, so GF is a group of the E run, and so is G4 of plan P2 (Q-02). Neither has a teacher for the template (the teacher's groups are limited to the template's own groups, DameGruposDePlantilla), so both stay unplaced, on both sides.",
+    "B1 has the enrolment -5: the legacy form posts free text and stores any integer (Drupal used to require >= 0, D6).",
+    "The characterization steps (legacy only, after the comparison) record the guard of a move into a placed group, the unguarded removal, and the re-homing of a cohort by set_Brigada (Q-14)."
+  ],
+  "users": [
+    {"key": "admin", "name": "Administrator", "legacy": "seeded-admin"},
+    {"key": "alice", "name": "Alice Planner"}
+  ],
+  "records": [
+    {"type": "plan", "key": "P", "as": "alice", "label": "Semester", "starts_on": "2026-09-07", "duration_days": 30},
+    {"type": "plan", "key": "P2", "as": "alice", "label": "Other semester", "starts_on": "2026-09-07", "duration_days": 30},
+    {"type": "period", "key": "W", "as": "alice", "plan": "P", "label": "Week", "days": 5, "slots_per_day": 2, "start_hour": 8, "slot_duration": 1, "plan_days": [1]},
+    {"type": "activity_type", "key": "C1", "as": "alice", "label": "Lecture", "duration_slots": 1, "priority": 1, "cost": 1},
+    {"type": "activity_type", "key": "C2", "as": "alice", "label": "Lab", "duration_slots": 1, "priority": 2, "cost": 1},
+    {"type": "specialty", "key": "E", "as": "alice", "label": "Program E"},
+    {"type": "specialty", "key": "F", "as": "alice", "label": "Program F"},
+    {"type": "level", "key": "N", "as": "alice", "label": "Year 1"},
+    {"type": "cohort", "key": "B1", "as": "alice", "label": "Cohort 1", "specialty": "E", "level": "N", "enrollment": -5},
+    {"type": "cohort", "key": "B2", "as": "alice", "label": "Cohort 2", "specialty": "E", "level": "N", "enrollment": 20},
+    {"type": "cohort", "key": "B3", "as": "alice", "label": "Cohort 3", "specialty": "E", "level": "N", "enrollment": 20},
+    {"type": "student_group", "key": "G1", "as": "alice", "plan": "P", "label": "Group 1", "activity_type": "C1", "specialty": "E", "level": "N", "cohorts": ["B1", "B2"]},
+    {"type": "student_group", "key": "G2", "as": "alice", "plan": "P", "label": "Group 2", "activity_type": "C1", "specialty": "E", "level": "N", "cohorts": ["B3"]},
+    {"type": "student_group", "key": "G3", "as": "alice", "plan": "P", "label": "Group 3", "activity_type": "C1", "specialty": "E", "level": "N", "cohorts": ["B1"]},
+    {"type": "student_group", "key": "G4", "as": "alice", "plan": "P2", "label": "Group 4", "activity_type": "C1", "specialty": "E", "level": "N", "cohorts": ["B3"]},
+    {"type": "student_group", "key": "GL", "as": "alice", "plan": "P", "label": "Lab group", "activity_type": "C2", "specialty": "E", "level": "N", "cohorts": ["B3"]},
+    {"type": "student_group", "key": "GF", "as": "alice", "plan": "P", "label": "Group F", "activity_type": "C1", "specialty": "F", "level": "N", "cohorts": ["B2"]},
+    {"type": "subject", "key": "A", "as": "alice", "label": "Subject A", "specialty": "E", "level": "N"},
+    {"type": "activity_template", "key": "A1", "as": "alice", "subject": "A", "period": "W", "sequence": 1, "activity_type": "C1"},
+    {"type": "teacher", "key": "T", "as": "alice", "label": "Teacher"},
+    {"type": "room", "key": "L1", "as": "alice", "label": "Room 1", "capacity": 0},
+    {"type": "teacher_assignment", "key": "A1@T", "as": "alice", "template": "A1", "teacher": "T", "priority": 1, "groups": ["G1", "G2", "G3"]},
+    {"type": "room_assignment", "key": "A1@L1", "as": "alice", "template": "A1", "room": "L1", "priority": 1}
+  ],
+  "runs": [
+    {"key": "E", "as": "alice", "plan": "P", "period": "W", "specialty": "E", "level": "N",
+     "options": {"forma": 1, "parche": false, "compactar": 0, "parche1": false, "buscalugar": false}}
+  ],
+  "visibility": [
+    {"as": "alice", "type": "specialty", "visible": ["E", "F"]}
+  ],
+  "characterize": [
+    {"kind": "event", "as": "alice", "label": "move B3 into the placed group G3", "event": "custom_MoverBrigadaDeGrupo",
+     "fields": {"brigada": "@B3", "grupo": "@G3"},
+     "query": "SELECT g.descripcion AS grupo FROM brigada_de_grupo bg JOIN grupo g ON g.id = bg.grupo WHERE bg.brigada = $1 ORDER BY 1", "params": ["@B3"],
+     "legacy_expect": {"http": 200, "rows": [{"grupo": "Group 2"}, {"grupo": "Group 4"}, {"grupo": "Lab group"}]}, "ref": "PAR-018 guard (target)"},
+    {"kind": "event", "as": "alice", "label": "move B1 out of the placed group G3 into G2", "event": "custom_MoverBrigadaDeGrupo",
+     "fields": {"brigada": "@B1", "grupo": "@G2"},
+     "query": "SELECT g.descripcion AS grupo FROM brigada_de_grupo bg JOIN grupo g ON g.id = bg.grupo WHERE bg.brigada = $1 ORDER BY 1", "params": ["@B1"],
+     "legacy_expect": {"http": 200, "rows": [{"grupo": "Group 3"}]}, "ref": "PAR-018 guard (source)"},
+    {"kind": "event", "as": "alice", "label": "remove B1 from its group of (P, C1, E, N), placed", "event": "custom_EliminaBrigadaDeGrupo",
+     "fields": {"brigada": "@B1", "especialidad": "@E", "nivel": "@N", "clasificacion": "@C1", "planificacion": "@P"},
+     "query": "SELECT (SELECT count(*) FROM brigada_de_grupo WHERE brigada = $1) AS memberships, (SELECT count(*) FROM actividad WHERE grupo = $2) AS activities", "params": ["@B1", "@G3"],
+     "legacy_expect": {"http": 200, "rows": [{"memberships": "0", "activities": "1"}]}, "ref": "PAR-018 removal without guard"},
+    {"kind": "event", "as": "alice", "label": "edit B2 with specialty F selected in the browser", "event": "set_Brigada",
+     "fields": {"field_Brigada_id": "@B2", "field_Brigada_descripcion": "Cohort 2", "field_Brigada_matricula": "20", "field_Brigada_especialidad": "@F", "field_Brigada_nivel": "@N"},
+     "query": "SELECT e.descripcion AS especialidad, (SELECT string_agg(g.descripcion, ', ' ORDER BY g.descripcion) FROM brigada_de_grupo bg JOIN grupo g ON g.id = bg.grupo WHERE bg.brigada = b.id) AS grupos FROM brigada b JOIN especialidad e ON e.id = b.especialidad WHERE b.id = $1", "params": ["@B2"],
+     "legacy_expect": {"http": 200, "rows": [{"especialidad": "Program F", "grupos": "Group 1, Group F"}]}, "ref": "Q-14 re-home on edit"},
+    {"kind": "event", "as": "alice", "label": "add a cohort with an empty enrolment", "event": "add_Brigada",
+     "fields": {"field_Brigada_descripcion": "Cohort empty", "field_Brigada_matricula": "", "field_Brigada_especialidad": "@E", "field_Brigada_nivel": "@N"},
+     "query": "SELECT matricula FROM brigada WHERE descripcion = 'Cohort empty'", "params": [],
+     "legacy_expect": {"http": 500, "rows": []}, "ref": "PAR-015 enrolment text"}
+  ]
+}

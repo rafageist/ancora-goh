@@ -1,0 +1,39 @@
+ancora_engine.jobs:
+  path: '/admin/ancora/engine'
+  defaults:
+    _controller: '\Drupal\ancora_engine\Controller\JobController::list'
+    _title: 'Scheduling engine jobs'
+  requirements:
+    _permission: 'view ancora engine jobs'
+  options:
+    no_cache: TRUE
+
+ancora_engine.job_add:
+  path: '/admin/ancora/engine/add'
+  defaults:
+    _form: '\Drupal\ancora_engine\Form\EnqueueJobForm'
+    _title: 'Queue a timetable generation'
+  requirements:
+    _permission: 'request ancora engine jobs'
+
+ancora_engine.job:
+  path: '/admin/ancora/engine/{job}'
+  defaults:
+    _controller: '\Drupal\ancora_engine\Controller\JobController::view'
+    _title_callback: '\Drupal\ancora_engine\Controller\JobController::title'
+  requirements:
+    _permission: 'view ancora engine jobs'
+    job: '\d+'
+  options:
+    no_cache: TRUE
+
+ancora_engine.job_cancel:
+  path: '/admin/ancora/engine/{job}/cancel'
+  defaults:
+    _form: '\Drupal\ancora_engine\Form\CancelJobForm'
+    _title: 'Cancel generation job'
+  requirements:
+    _custom_access: '\Drupal\ancora_engine\Form\CancelJobForm::access'
+    job: '\d+'
+  options:
+    no_cache: TRUE

@@ -1,0 +1,161 @@
+langcode: en
+status: true
+dependencies:
+  module:
+    - ancora_academic
+    - user
+id: ancora_academic_templates
+label: 'Weekly activities'
+module: views
+description: 'The weekly activity templates of every plan: the demand the scheduling engine places.'
+tag: ancora
+base_table: ancora_activity_template
+base_field: id
+display:
+  default:
+    id: default
+    display_title: Default
+    display_plugin: default
+    position: 0
+    display_options:
+      title: 'Weekly activities'
+      access:
+        type: perm
+        options:
+          perm: 'view academic data'
+      cache:
+        type: tag
+        options: {  }
+      query:
+        type: views_query
+        options: {  }
+      exposed_form:
+        type: basic
+        options: {  }
+      pager:
+        type: full
+        options:
+          items_per_page: 100
+      style:
+        type: table
+        options:
+          grouping: {  }
+          columns:
+            plan: plan
+            subject: subject
+            sequence: sequence
+            period: period
+            activity_type: activity_type
+          default: ''
+          info: {  }
+          override: true
+          sticky: false
+          summary: ''
+          empty_table: true
+      row:
+        type: fields
+        options: {  }
+      fields:
+        plan:
+          id: plan
+          table: ancora_activity_template
+          field: plan
+          entity_type: ancora_activity_template
+          entity_field: plan
+          plugin_id: field
+          label: Plan
+          type: entity_reference_label
+          settings:
+            link: false
+        subject:
+          id: subject
+          table: ancora_activity_template
+          field: subject
+          entity_type: ancora_activity_template
+          entity_field: subject
+          plugin_id: field
+          label: Subject
+          type: entity_reference_label
+          settings:
+            link: false
+        sequence:
+          id: sequence
+          table: ancora_activity_template
+          field: sequence
+          entity_type: ancora_activity_template
+          entity_field: sequence
+          plugin_id: field
+          label: Number
+          type: number_integer
+          settings:
+            thousand_separator: ''
+            prefix_suffix: false
+        period:
+          id: period
+          table: ancora_activity_template
+          field: period
+          entity_type: ancora_activity_template
+          entity_field: period
+          plugin_id: field
+          label: Period
+          type: entity_reference_label
+          settings:
+            link: false
+        activity_type:
+          id: activity_type
+          table: ancora_activity_template
+          field: activity_type
+          entity_type: ancora_activity_template
+          entity_field: activity_type
+          plugin_id: field
+          label: 'Activity type'
+          type: entity_reference_label
+          settings:
+            link: false
+      sorts:
+        plan:
+          id: plan
+          table: ancora_activity_template
+          field: plan
+          entity_type: ancora_activity_template
+          entity_field: plan
+          plugin_id: standard
+          order: ASC
+        subject:
+          id: subject
+          table: ancora_activity_template
+          field: subject
+          entity_type: ancora_activity_template
+          entity_field: subject
+          plugin_id: standard
+          order: ASC
+        sequence:
+          id: sequence
+          table: ancora_activity_template
+          field: sequence
+          entity_type: ancora_activity_template
+          entity_field: sequence
+          plugin_id: standard
+          order: ASC
+      empty:
+        area_text_custom:
+          id: area_text_custom
+          table: views
+          field: area_text_custom
+          plugin_id: text_custom
+          empty: true
+          content: 'No weekly activities yet.'
+      arguments: {  }
+      filters: {  }
+      relationships: {  }
+      header: {  }
+      footer: {  }
+      display_extenders: {  }
+  page_1:
+    id: page_1
+    display_title: Page
+    display_plugin: page
+    position: 1
+    display_options:
+      path: ancora/planning/activities
+      display_extenders: {  }

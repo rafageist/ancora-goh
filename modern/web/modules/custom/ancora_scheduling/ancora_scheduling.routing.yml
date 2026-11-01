@@ -1,0 +1,156 @@
+# The landing page of an organization site (the front page, #105). Anonymous
+# users get the way to log in; the page varies by user.
+ancora_scheduling.workspace:
+  path: '/ancora'
+  defaults:
+    _controller: '\Drupal\ancora_scheduling\Controller\WorkspaceController::landing'
+    _title: 'Overview'
+  requirements:
+    # Open on purpose: it is the front page. Anonymous visitors only get the
+    # login link; every list on it is access-checked.
+    _access: 'TRUE'
+
+ancora_scheduling.plan:
+  path: '/ancora/planning/{ancora_plan}'
+  defaults:
+    _controller: '\Drupal\ancora_scheduling\Controller\WorkspaceController::plan'
+    _title_callback: '\Drupal\ancora_scheduling\Controller\WorkspaceController::planTitle'
+  requirements:
+    _permission: 'view academic data+administer academic data'
+    _entity_access: 'ancora_plan.view'
+    ancora_plan: '\d+'
+  options:
+    parameters:
+      ancora_plan:
+        type: 'entity:ancora_plan'
+
+ancora_scheduling.timetables:
+  path: '/ancora/timetables'
+  defaults:
+    _controller: '\Drupal\ancora_scheduling\Controller\WorkspaceController::timetables'
+    _title: 'Timetables'
+  requirements:
+    _permission: 'view academic data+administer academic data'
+
+ancora_scheduling.jobs:
+  path: '/ancora/scheduling/jobs'
+  defaults:
+    _controller: '\Drupal\ancora_scheduling\Controller\WorkspaceController::jobs'
+    _title: 'Timetable runs'
+  requirements:
+    _permission: 'view ancora engine jobs,view academic data'
+  options:
+    no_cache: TRUE
+
+ancora_scheduling.request:
+  path: '/ancora/scheduling/request'
+  defaults:
+    _form: '\Drupal\ancora_scheduling\Form\RequestRunForm'
+    _title: 'Request a timetable'
+  requirements:
+    # Both: queueing a job, and seeing the records to pick from.
+    _permission: 'request ancora engine jobs,view academic data'
+  options:
+    no_cache: TRUE
+
+ancora_scheduling.job:
+  path: '/ancora/scheduling/jobs/{job}'
+  defaults:
+    _controller: '\Drupal\ancora_scheduling\Controller\SchedulingController::job'
+    _title_callback: '\Drupal\ancora_scheduling\Controller\SchedulingController::jobTitle'
+  requirements:
+    _permission: 'view ancora engine jobs,view academic data'
+    # And the plan of the job is one the user may view.
+    _custom_access: '\Drupal\ancora_scheduling\Controller\SchedulingController::jobAccess'
+    job: '\d+'
+  options:
+    no_cache: TRUE
+
+ancora_scheduling.timetable:
+  path: '/ancora/planning/{ancora_plan}/timetable'
+  defaults:
+    _controller: '\Drupal\ancora_scheduling\Controller\SchedulingController::timetable'
+    _title_callback: '\Drupal\ancora_scheduling\Controller\SchedulingController::timetableTitle'
+  requirements:
+    _permission: 'view academic data'
+    _entity_access: 'ancora_plan.view'
+    ancora_plan: '\d+'
+  options:
+    parameters:
+      ancora_plan:
+        type: 'entity:ancora_plan'
+
+# The legacy timetable explorer (#119, D14, PAR-091): ?period=<id> and
+# brigade, teacher, room or resource=<id> (TimetableExplorer). Read-only.
+ancora_scheduling.explorer:
+  path: '/ancora/timetables/explorer'
+  defaults:
+    _controller: '\Drupal\ancora_scheduling\Controller\ExplorerController::page'
+    _title: 'Timetable explorer'
+  requirements:
+    _permission: 'view academic data+administer academic data'
+
+# The timetable viewer (#121, PAR-092): the legacy public viewer, for
+# logged-in users only. The anonymous viewer is not provided (#62); no
+# request value, header or setting turns it on. Administrators ("administer
+# academic data", user 1) see it; any other role needs an explicit grant.
+ancora_scheduling.viewer:
+  path: '/ancora/timetables/viewer'
+  defaults:
+    _controller: '\Drupal\ancora_scheduling\Controller\ExplorerController::viewer'
+    _title: 'Timetable viewer'
+  requirements:
+    _permission: 'view timetable viewer+administer academic data'
+    _user_is_logged_in: 'TRUE'
+
+# Moving one saved placement (#130, time only, workspace mode): its checked
+# destinations, the preview, the move and its undo. ?check=<id>[&undo=<id>].
+ancora_scheduling.placement_move:
+  path: '/ancora/timetables/placements/{ancora_placement}/move'
+  defaults:
+    _form: '\Drupal\ancora_scheduling\Form\PlacementMoveForm'
+    _title: 'Move an activity'
+  requirements:
+    _permission: 'edit academic data+administer academic data'
+    _entity_access: 'ancora_placement.update'
+    ancora_placement: '\d+'
+  options:
+    no_cache: TRUE
+    parameters:
+      ancora_placement:
+        type: 'entity:ancora_placement'
+
+# The integrated planning workspace of a plan (#141, S1a): no academic or
+# scheduling writes. The plan timetable's access. ?period, ?lens (all,
+# teacher, group, room), ?obj and ?sel are checked by PlanWorkspace::state():
+# anything this plan does not offer is a 404. Both GETs (the page and the
+# regions fragment) record the per-user "Resume" preference (user.data, the
+# plan and period only), so neither is cached.
+ancora_scheduling.plan_workspace:
+  path: '/ancora/planning/{ancora_plan}/workspace'
+  defaults:
+    _controller: '\Drupal\ancora_scheduling\Controller\PlanWorkspaceController::page'
+    _title_callback: '\Drupal\ancora_scheduling\Controller\PlanWorkspaceController::title'
+  requirements:
+    _permission: 'view academic data'
+    _entity_access: 'ancora_plan.view'
+    ancora_plan: '\d+'
+  options:
+    no_cache: TRUE
+    parameters:
+      ancora_plan:
+        type: 'entity:ancora_plan'
+
+ancora_scheduling.plan_workspace.regions:
+  path: '/ancora/planning/{ancora_plan}/workspace/regions'
+  defaults:
+    _controller: '\Drupal\ancora_scheduling\Controller\PlanWorkspaceController::regions'
+  methods: [GET]
+  requirements:
+    _permission: 'view academic data'
+    _entity_access: 'ancora_plan.view'
+    ancora_plan: '\d+'
+  options:
+    parameters:
+      ancora_plan:
+        type: 'entity:ancora_plan'

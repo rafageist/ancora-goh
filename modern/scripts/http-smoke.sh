@@ -90,5 +90,19 @@ check "term in the administrative list" body_has "$code"
 fetch /ancora/terms
 check "term in the Views listing" body_has "$code"
 
+# Academic planning (#70); install-disposable.sh loads the synthetic fixture.
+fetch /ancora/planning
+check "planning overview allowed to the administrator (200)" status_is 200
+check "planning overview lists the academic records" body_has 'ancora-planning__step'
+fetch /admin/ancora/teachers
+check "teacher list shows the fixture teacher" body_has 'Teacher Alpha'
+fetch /ancora/planning/activities
+check "weekly activities Views listing shows the fixture subjects" body_has 'Subject Beta'
+anonymous
+for path in /ancora/planning /ancora/planning/activities /admin/ancora/teachers /admin/ancora/teachers/add; do
+  fetch "$path"
+  check "$path denied to anonymous (403)" status_is 403
+done
+
 echo "http-smoke: $pass passed, $fail failed"
 [ "$fail" -eq 0 ]
