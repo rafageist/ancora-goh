@@ -7,8 +7,8 @@ Issue: #70, under #66. This is a research and documentation deliverable. No prod
 ## How to read the rows
 
 - **Source.** Paths are repo-relative.
-  - `B` marks a file of the frozen LBR baseline `dev/lbr/baseline.tsv` (revision 1, on master).
-  - The `pre-drupal-cut` set (`dev/lbr/sets/pre-drupal-cut/baseline.tsv`, revision 2) is not on master yet. It exists only on branch `feat/issue-67-lbr-sets` (commit `c5fede5`).
+  - `B` marks a file of the frozen `historic-2010` comparator baseline `dev/lbr/sets/historic-2010/baseline.tsv` (revision 1, commit `eca8aa7`).
+  - The `pre-drupal-cut` set (`dev/lbr/sets/pre-drupal-cut/baseline.tsv`, revision 2, commit `f532e91`) is the separate frozen source-code baseline. Its UI images are in their own set, `dev/lbr/sets/pre-drupal-cut-ui-assets/`. The `B` marks do not refer to it.
   - Both sets use the same repo-relative path key (`path<TAB>stream<TAB>component<TAB>bytes<TAB>blob`). In both sets the generated code is counted once, through its generator, and has no rows of its own: `model/**`, `control/data/**`, `control/view/**`, `view/{combo,grid,gallery}/**`. Generated handlers below are therefore cited without `B`.
   - Hand-written handlers (`control/custom/**`), templates (`view/custom/**`), client code (`www/js/app/**`) and `dev/sql/**` are baseline files.
   - Every blob under `control/`, `view/` and `www/js/app/` in the pre-drupal-cut set matches the current HEAD.
