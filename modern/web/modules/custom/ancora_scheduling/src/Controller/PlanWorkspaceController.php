@@ -17,13 +17,21 @@ use Drupal\Core\Url;
 use Symfony\Component\HttpFoundation\RequestStack;
 
 /**
- * The integrated planning workspace of a plan (#141, S1a): read-only.
+ * The integrated planning workspace of a plan (#141, S1a).
  *
- * The page: the whole workspace, one full page; it records the plan for the
- * Overview's "Resume" (user.data, ResumeStore), so it is not cached.
- * The regions endpoint: the same regions as an HTML fragment for the workspace
- * script, with the same access, the same query validation and the cache
- * metadata of its content (user, permissions, query arguments, tags).
+ * Read-only for academic and scheduling data: nothing here writes a plan,
+ * a placement or any other academic record. Both GET routes write ONE
+ * per-user preference, deliberately: the plan and period the account is
+ * looking at, for the Overview's "Resume" (ResumeStore, user.data). It is
+ * recorded only after the URL state was validated (a foreign or forged value
+ * is a 404 and records nothing), and access is checked again whenever it is
+ * read, so a forged link can at most point an account's Resume at a plan it
+ * may already view.
+ *
+ * The page: the whole workspace, one full page. The regions endpoint: the
+ * same regions as an HTML fragment for the workspace script, with the same
+ * access and the same query validation. Neither response is cached (they
+ * record the preference); both carry the metadata of their content.
  */
 final class PlanWorkspaceController extends ControllerBase {
 
@@ -58,10 +66,14 @@ final class PlanWorkspaceController extends ControllerBase {
   }
 
   /**
-   * The regions of the workspace as an HTML fragment (GET, read-only).
+   * The regions of the workspace as an HTML fragment (GET).
+   *
+   * It records the Resume preference like the page, so that an in-place
+   * change of period (or Back and Forward) is what Resume offers next.
    */
   public function regions(Plan $ancora_plan): CacheableResponse {
     $state = $this->workspace->state($ancora_plan, $this->currentUser(), $this->requestStack->getCurrentRequest()->query);
+    $this->resume->record($this->currentUser(), $ancora_plan, $state['period']);
     $build = $this->workspace->regions($state);
     $this->workspace->cacheability($ancora_plan)->applyTo($build);
     $html = (string) $this->renderer->renderInIsolation($build);
@@ -69,7 +81,8 @@ final class PlanWorkspaceController extends ControllerBase {
       'Content-Type' => 'text/html; charset=utf-8',
       'X-Robots-Tag' => 'noindex',
     ]);
-    $response->addCacheableDependency(CacheableMetadata::createFromRenderArray($build));
+    // Never served from a cache: every request records the preference.
+    $response->addCacheableDependency(CacheableMetadata::createFromRenderArray($build)->setCacheMaxAge(0));
     return $response;
   }
 

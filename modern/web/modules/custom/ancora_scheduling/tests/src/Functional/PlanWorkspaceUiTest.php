@@ -77,6 +77,13 @@ final class PlanWorkspaceUiTest extends AncoraBrowserTestBase {
     $session->elementsCount('css', "$a2 .ancora-block__break", 1);
     $this->assertStringContainsString('--r1: 2; --r2: 5;', $this->getSession()->getPage()->find('css', $a2)->getAttribute('style'));
     $session->elementTextContains('css', '[data-ancora-placement="' . $r['A1']->id() . '"]', '1 cross-plan warning');
+    // U10's accepted exception: inline styles hold only CSS custom
+    // properties (the dynamic grid geometry), never a presentation rule.
+    $styled = $this->getSession()->getPage()->findAll('css', '[data-ancora-workspace] [style]');
+    $this->assertNotEmpty($styled);
+    foreach ($styled as $element) {
+      $this->assertMatchesRegularExpression('/^(\s*--[a-z0-9-]+:\s*[^;:]+;)+\s*$/', (string) $element->getAttribute('style'));
+    }
     // The 3-slot workshop of teacher TB is one block of three slot rows.
     $this->drupalGet($this->path($r['plan:A']), ['query' => ['lens' => 'teacher', 'obj' => $r['TB']->id()]]);
     $a3 = '[data-ancora-placement="' . $r['A3']->id() . '"]';
@@ -108,6 +115,8 @@ final class PlanWorkspaceUiTest extends AncoraBrowserTestBase {
     $contexts = (string) $this->getSession()->getResponseHeader('X-Drupal-Cache-Contexts');
     $this->assertStringContainsString('user', $contexts);
     $this->assertStringContainsString('url.query_args', $contexts);
+    // It records the Resume preference, so it is never cached.
+    $this->assertStringStartsWith('0', (string) $this->getSession()->getResponseHeader('X-Drupal-Cache-Max-Age'));
 
     // The legacy routes keep working, and link to the workspace.
     foreach ([
@@ -223,6 +232,28 @@ final class PlanWorkspaceUiTest extends AncoraBrowserTestBase {
     $r['plan:B']->delete();
     $this->drupalGet('/ancora');
     $session->elementNotExists('css', '[data-ancora-resume]');
+
+    // The regions endpoint (the in-place loader) records it too.
+    $this->drupalGet($this->path($r['plan:A'], '/regions'), ['query' => ['period' => $r['period:A2']->id()]]);
+    $session->statusCodeEquals(200);
+    $this->drupalGet('/ancora');
+    $session->elementTextEquals('css', '[data-ancora-resume]', 'Resume Autumn A, Week A2');
+    // A foreign or forged value is a 404 and records nothing.
+    $forgeries = [
+      ['period' => $r['period:U']->id()],
+      ['period' => 'abc'],
+      ['lens' => 'resource'],
+      ['sel' => $r['U1']->id()],
+    ];
+    foreach ($forgeries as $forged) {
+      $this->drupalGet($this->path($r['plan:A'], '/regions'), ['query' => $forged]);
+      $session->statusCodeEquals(404);
+    }
+    // Another owner's plan (now plan U): 403, and nothing recorded.
+    $this->drupalGet($this->path($r['plan:U'], '/regions'));
+    $session->statusCodeEquals(403);
+    $this->drupalGet('/ancora');
+    $session->elementTextEquals('css', '[data-ancora-resume]', 'Resume Autumn A, Week A2');
   }
 
 }

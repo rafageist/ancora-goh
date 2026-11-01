@@ -32,7 +32,7 @@ $o = $builder->workspaceFixture($uid('other'), 'O');
 $ids = static fn (array $records, array $keys): array => array_map(static fn (string $k): int => (int) $records[$k]->id(), array_combine($keys, $keys));
 echo json_encode([
   'planner' => $ids($r, [
-    'plan:A', 'plan:B', 'plan:U', 'period:A', 'period:U', 'TA', 'TB', 'TC', 'L1', 'L2',
+    'plan:A', 'plan:B', 'plan:U', 'period:A', 'period:A2', 'period:U', 'TA', 'TB', 'TC', 'L1', 'L2',
     'GA1', 'GA2', 'GA3', 'A1', 'A2', 'A3', 'A4', 'U1', 'U2',
   ]),
   'other' => $ids($o, ['plan:A', 'period:A', 'TA', 'A1']),

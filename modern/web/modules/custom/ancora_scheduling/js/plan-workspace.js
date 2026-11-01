@@ -6,10 +6,10 @@
  * workspace is a plain GET link that loads the whole page, and the URL
  * holds the whole state (period, perspective, record, selection).
  *
- * With it, a workspace link ([data-ancora-nav]) loads only the regions
- * (Drupal.ancoraWorkspace.transport, the region loader), replaces them,
- * pushes the link's URL into the history and moves the focus to a defined
- * target. Back and forward load the regions of the URL they arrive at.
+ * With it, a workspace link ([data-ancora-nav]) pushes its URL into the
+ * history, loads only the regions (Drupal.ancoraWorkspace.fetchRegions and
+ * applyRegions, the region loader), replaces them and moves the focus to a
+ * defined target; a newer navigation aborts an older one. Back and forward load the regions of the URL they arrive at.
  * The canvas gets a roving focus (arrow keys, Home and End); Escape closes
  * the inspector drawer. Nothing here decides anything: the server renders
  * every region, and validates every value.
@@ -34,24 +34,52 @@
   };
 
   /**
+   * The latest navigation: its number, and the controller that aborts it.
+   */
+  let latest = 0;
+  let controller = null;
+
+  /**
    * Loads the regions of a URL in place.
+   *
+   * Navigations can overlap (a slow response, a fast second click, quick
+   * Back and Forward), so each one gets a number and aborts the one before
+   * it. Only the latest navigation's response is ever applied, and only it
+   * moves the focus or clears the busy state. A link's URL is pushed into
+   * the history when it is followed, so the history keeps the order of the
+   * user's actions, whatever order the responses arrive in.
    */
   ws.navigate = async (root, url, kind, push) => {
+    const id = ++latest;
+    if (controller) {
+      controller.abort();
+    }
+    controller = new AbortController();
+    const { signal } = controller;
     const selected = root.querySelector('.ancora-block.is-selected');
     const previous = selected ? selected.dataset.ancoraPlacement : null;
-    root.setAttribute('aria-busy', 'true');
-    try {
-      await ws.transport(root, url);
-    } catch (e) {
-      // Anything unexpected (a 404, a lost session): the full page says it.
-      window.location.assign(url);
-      return;
-    } finally {
-      root.removeAttribute('aria-busy');
-    }
     if (push) {
       window.history.pushState({ ancoraWorkspace: true, kind }, '', url);
     }
+    root.setAttribute('aria-busy', 'true');
+    let fresh;
+    try {
+      fresh = await ws.fetchRegions(root, url, signal);
+    }
+    catch (e) {
+      if (id !== latest || signal.aborted) {
+        // Replaced by a newer navigation: nothing to do.
+        return;
+      }
+      // Anything unexpected (a 404, a lost session): the full page says it.
+      window.location.assign(url);
+      return;
+    }
+    if (id !== latest) {
+      return;
+    }
+    ws.applyRegions(root, fresh);
+    root.removeAttribute('aria-busy');
     const canvas = root.querySelector('[data-ancora-status-text]');
     const status = root.querySelector('[data-ancora-status]');
     if (canvas && status) {

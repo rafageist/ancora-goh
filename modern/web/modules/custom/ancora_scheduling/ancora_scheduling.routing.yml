@@ -120,11 +120,12 @@ ancora_scheduling.placement_move:
       ancora_placement:
         type: 'entity:ancora_placement'
 
-# The integrated planning workspace of a plan (#141, S1a): read-only. The
-# plan timetable's access. ?period, ?lens (all, teacher, group, room), ?obj
-# and ?sel are checked by PlanWorkspace::state(): anything this plan does
-# not offer is a 404. The page records the plan for "Resume" (user.data),
-# so it is not cached; the regions endpoint is a cacheable GET fragment.
+# The integrated planning workspace of a plan (#141, S1a): no academic or
+# scheduling writes. The plan timetable's access. ?period, ?lens (all,
+# teacher, group, room), ?obj and ?sel are checked by PlanWorkspace::state():
+# anything this plan does not offer is a 404. Both GETs (the page and the
+# regions fragment) record the per-user "Resume" preference (user.data, the
+# plan and period only), so neither is cached.
 ancora_scheduling.plan_workspace:
   path: '/ancora/planning/{ancora_plan}/workspace'
   defaults:

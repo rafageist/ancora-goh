@@ -18,6 +18,9 @@ use Drupal\ancora_scheduling\ScopeMapper;
  * - plan B, "Intensive B", the week of 2026-09-14 (08:30, 1 h slots);
  * - plan U, "Undated U", without a first day (cross-plan: not evaluated).
  *
+ * Plan A also has a second period, "Week A2" (plan day 15), without
+ * activities.
+ *
  * Plan A's placements:
  * - A1: Lecture (1 slot), Group GA1, teacher TA, room L1, day 2 slot 2: TA
  *   is also in B1 (plan B, day 2 slot 2) on 2026-09-15 10:00-10:30;
@@ -38,7 +41,7 @@ trait WorkspaceFixtureTrait {
    *
    * @return array<string, \Drupal\Core\Entity\EntityInterface>
    *   Records by key: TA, TB, TC, L1, L2, C1, C2, C3, E, N, S, B, plan:A,
-   *   period:A (and B, U), the groups and the placements by code.
+   *   period:A (and A2, B, U), the groups and the placements by code.
    */
   protected function workspaceFixture(int $uid, string $prefix = ''): array {
     $etm = \Drupal::entityTypeManager();
@@ -116,6 +119,17 @@ trait WorkspaceFixtureTrait {
       $r["plan:$code"] = $plan;
       $r["period:$code"] = $period;
     }
+    // A second period of plan A, without activities (period switching).
+    $r['period:A2'] = $make('ancora_period', [
+      'plan' => $r['plan:A']->id(),
+      'label' => 'Week A2',
+      'code' => "{$prefix}PA2",
+      'days' => 5,
+      'slots_per_day' => 6,
+      'start_hour' => 8,
+      'slot_duration' => 1.5,
+      'plan_days' => [15],
+    ]);
     $placements = [
       'A1' => ['A', 'C1', 'GA1', 'TA', 'L1', 2, 2],
       'A2' => ['A', 'C2', 'GA2', 'TA', 'L2', 1, 1],

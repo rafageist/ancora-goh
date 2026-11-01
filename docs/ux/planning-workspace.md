@@ -580,7 +580,7 @@ The request is the existing `RequestRunForm` with the same validation. The statu
 
 - **Writes**
   - Every write stays a Drupal form submit with its form token. There are no new write endpoints.
-  - Partial endpoints are **GET, read-only**.
+  - Partial endpoints are **GET** and write no academic or scheduling data. In S1a they record one per-user preference, the "Resume" context (§8.1).
 - **Access**
   - Partial routes declare the same `_permission`, `_custom_access` and entity access as the pages they compose.
   - A partial never returns data that the full page would not show to that user.
@@ -665,7 +665,7 @@ The criteria below are measured by a Playwright journey test on a **disposable f
 | U7 | Server time of a perspective-switch partial, and destination-check latency (queue wait plus run, §7.7) | **Measured and reported**; threshold set afterwards | n/a |
 | U8 | Horizontal page overflow at 390 px | 0 px | 0 px |
 | U9 | Frontend dependencies and build | **Each dependency and any build step justified in the PR; no unused framework** (A1) | 2 scripts, no dependencies, no build |
-| U10 | Visual consistency: every workspace region is an SDC component (or the chosen inspector container); no inline styles | 100 % | n/a |
+| U10 | Visual consistency: every workspace region is an SDC component (or the chosen inspector container); no inline presentation rules. **Accepted exception:** dynamic layout values (the canvas's grid geometry) set as CSS custom properties on the element | 100 % | n/a |
 | U11 | Security parity: every access, refusal and CSRF test of #122, #130 and #133 still passes. New partial routes have 403/404 tests for viewer, anonymous and another owner. | Pass | Pass |
 | U12 | Multi-slot truth: on a fixture with 2- and 3-slot activities, one of them crossing a break, each is one block in every perspective, the break is visible, and the occupied slots match the engine's occupancy | Pass | Fails (repeated cards, no break) |
 | U13 | Cross-plan visibility: on the #133 fixture, the warning appears on the block, in the inspector and in the move overlay. On a period with unknown dates, "not evaluated" appears in all three. | Pass | Bottom section only |
@@ -743,7 +743,7 @@ S1 delivers one workflow end to end, and nothing it does not need. The **URL** c
 
 ### 7.3 Component boundaries
 
-**Regions.** Each region is server-rendered, with one partial endpoint each. All of them are GET and read-only.
+**Regions.** Each region is server-rendered, with one partial endpoint each. All of them are GET and write no academic or scheduling data (S1a: one regions endpoint, which records only the per-user "Resume" preference, §8.1).
 
 | Region | Source (existing) | Partial | Re-rendered after |
 |---|---|---|---|
@@ -914,7 +914,7 @@ The workflow of §7.1 passes in Playwright on the disposable fixture, with JavaS
 | U6 | No-JS fallback for every write | Pass |
 | U7 | Latency report (§7.7) | Delivered; no threshold |
 | U9 | Dependencies and build | Justified in the PR; no unused framework |
-| U10 | Visual consistency | Pass |
+| U10 | Visual consistency (custom-property geometry is the accepted exception) | Pass |
 | U11 | Security parity and the access table of §7.6 | Pass |
 | U12 | Multi-slot blocks and breaks | Pass |
 | U13 | Cross-plan in canvas, inspector and overlay, including "not evaluated" | Pass |
@@ -943,6 +943,10 @@ The workflow of §7.1 passes in Playwright on the disposable fixture, with JavaS
 
 The maintainer authorized S1a on 2026-10-31. It is the read-only slice of §7.9.
 
+**"Read-only" here means no academic or scheduling writes.**
+- The workspace never writes a plan, period, placement, run, check or any other academic or scheduling record.
+- Its GET requests are **not** free of side effects: both the page and the regions endpoint record one per-user preference, the "Resume" context (§8.1).
+
 **What S1a does not do**
 - No in-place move or undo. That is S1b, and the "1 page load" move journey (U1 for the move workflow) is an S1b criterion, not claimed here.
 - No #138 (swap), no scheduler change, no ERP function and no deployment.
@@ -952,8 +956,8 @@ The maintainer authorized S1a on 2026-10-31. It is the read-only slice of §7.9.
 
 | Route | Path | Access | Cache |
 |---|---|---|---|
-| `ancora_scheduling.plan_workspace` | `/ancora/planning/{plan}/workspace?period&lens&obj&sel` | The plan timetable's: `view academic data` and view access to the plan | `no_cache` (the page records "Resume") |
-| `ancora_scheduling.plan_workspace.regions` | `…/workspace/regions?…` (GET only) | The same | A `CacheableResponse` with the regions' metadata: `user`, `user.permissions`, `url.query_args`, the list tags of the academic records, placements, moves and runs, and the cross-plan tags |
+| `ancora_scheduling.plan_workspace` | `/ancora/planning/{plan}/workspace?period&lens&obj&sel` | The plan timetable's: `view academic data` and view access to the plan | `no_cache`: it records "Resume" |
+| `ancora_scheduling.plan_workspace.regions` | `…/workspace/regions?…` (GET only) | The same | max-age 0: it records "Resume" too. It still carries the regions' metadata: `user`, `user.permissions`, `url.query_args`, the list tags of the academic records, placements, moves and runs, and the cross-plan tags |
 
 **Validating the URL state.** `PlanWorkspace::state()` validates every query value against what the plan offers.
 - **`period`**: one of the plan's periods. The default is the first by code.
@@ -987,8 +991,12 @@ Anything else is a **404**: a foreign or forged id, an array, or a record withou
 - Without the script, it sits below the canvas.
 - Below 768 px, the canvas reads as a list per day.
 
-**"Resume" (`ResumeStore`, `ResumeBuilder`).**
-- Opening a workspace stores `{plan, period}` for the account in `user.data` (module `ancora_scheduling`, name `workspace_last_plan`).
+**"Resume" (`ResumeStore`, `ResumeBuilder`): a deliberate preference-write contract.**
+- Both workspace GETs, the page and the regions endpoint, store `{plan, period}` for the account in `user.data` (module `ancora_scheduling`, name `workspace_last_plan`).
+  - The regions endpoint records too (a correction after the #147 review), so a period changed in place, or reached with Back and Forward, is the one Resume offers.
+  - That record is the only write of the workspace. It is per user and per site, and holds two ids.
+- It is recorded only after `state()` validated the URL. A foreign or forged value is a 404 and records nothing; another owner's plan is a 403 before the controller runs.
+- A forged link can therefore at most point an account's Resume at a plan that account may already view.
 - The Overview shows **"Resume <plan>, <period>"** through a lazy builder (a placeholder with max-age 0), so the rest of the Overview stays cacheable.
 - Every read checks the plan's view access again:
   - a deleted or no longer visible plan is not offered, and its record is dropped;
@@ -1007,6 +1015,8 @@ Both region loaders were built and run on the same disposable site with the same
 - **P:** Drupal AJAX: a GET `Drupal.ajax` request, an `AjaxResponse` with one `ReplaceCommand` per region, and a custom command.
 
 Everything around them was shared: the history handling (`pushState` and `popstate`), the focus targets, the roving focus and the drawer.
+
+The experiment's script waits for each transition to settle, so it does not cover overlapping navigations; §8.6 does.
 
 The script runs 20 transitions:
 - perspective, record, selection and close;
@@ -1028,7 +1038,7 @@ After each transition it compares the page with a **full load of the same URL** 
 | Dynamic page cache on the region response | `UNCACHEABLE (poor cacheability)`: it carries its metadata, and per-user content is not cached (as on the plan timetable) | `UNCACHEABLE (no cacheability)`: an `AjaxResponse` carries none |
 | Loader code (variant-specific) | **32 lines JS + 17 lines PHP** | 27 lines JS + 25 lines PHP + 1 route |
 
-**Choice: Q, the GET fetch loader. It is the only loader shipped**, and variant P was removed.
+**Choice: Q, the GET fetch loader. It is the only loader shipped**, and variant P was removed. (Since the #147 review, the regions response is max-age 0: §8.6.)
 - Both variants were equally correct.
 - Q has less variant code.
 - Q needs a tenth of the page's JavaScript (no jQuery), and its requests are a quarter of the URL length and two thirds of the size.
@@ -1103,6 +1113,7 @@ These are local runs: a Linux workstation with nothing else running. The CI work
   - access and the legacy routes;
   - axe in every state.
 - **`latency.spec.js`**: §8.3. It records `latency.json`, and the script records `checks.json`.
+- **`review.spec.js`**: the #147 review cases (§8.6): Resume after an in-place period change, and overlapping navigations (a slow older response, rapid record changes, fast Back and Forward).
 
 **Regression.** Every existing suite stays green: the #122, #130 and #133 tests, the explorer, viewer and workspace page tests, and the engine and characterization workflows.
 
@@ -1124,3 +1135,53 @@ These are local runs: a Linux workstation with nothing else running. The CI work
 - The S1b criteria: U1 (1 full load for the whole move workflow), and U6 for the in-place writes.
 - The decision on submitting the form (§8.2), measured the same way.
 - Latency: show it honestly. Any change to the worker cycle or the client poll is a separate decision, after #143.
+
+### 8.6 Corrections after the #147 review
+
+Each finding was reproduced in a real browser **before** it was fixed, with `dev/browser/tests/review.spec.js` on the disposable site. All four cases failed before the fix and pass after it.
+
+**Resume after an in-place period change**
+- **Reproduced.** The case opens period Week A, switches to Week A2 in place, then opens the Overview. Resume offered **"Autumn A, Week A"** (the first period), not Week A2.
+- **Cause.** Only the full page recorded the preference.
+- **Fix: the preference-write contract of §8.1.**
+  - The regions endpoint records the context through the same `ResumeStore::record()`, after the same validation.
+  - Its responses are max-age 0.
+  - Read access is checked again in `ResumeStore::resume()`, as before.
+- **Why not a narrower design.** Recording only on full loads, plus a client-side history sync, would need a write endpoint, with its own CSRF token, for a two-id preference. Recording in the GET that already validated the state is simpler, and is documented as the one write.
+- **Cache impact, measured.** The regions response was already per user, so the dynamic page cache never stored it (`UNCACHEABLE (poor cacheability)` before and after). The 20-transition history run, alone on the machine, gave:
+
+  | | p50 | p95 | Median response |
+  |---|---|---|---|
+  | Before the fix | 438–468 ms | 500–560 ms | 15,270 B |
+  | After the fix | 442 ms | 510 ms | 15,396 B |
+
+  The response is 126 B larger because the fixture's second period adds a link. There is no measurable cost.
+
+**Overlapping navigations**
+
+The three overlap cases were each reproduced before the fix, with region responses delayed by route interception:
+
+| Case | What happened before the fix |
+|---|---|
+| A slow "Teachers" response (1.5 s), then an immediate "Rooms" click | It ended on **`lens=teacher`**. The older response was applied last and pushed its URL after the newer one. |
+| Rapid record changes TA → TB → TC, with TA slowest | It ended on **TA**, not TC. |
+| Two fast Back steps, the first one slow | The URL showed TA but the page showed **TB**: the URL and the page disagreed. |
+
+**Fix (`plan-workspace.js`).**
+- Each navigation gets a monotonically increasing number and an `AbortController`. A new navigation aborts the previous request.
+- Only the latest response is applied. Only it clears the busy state, updates the status and moves the focus.
+- A link's URL is pushed into the history when it is followed, so the history keeps the order of the user's actions. Back and Forward never push.
+- An aborted or superseded request never triggers the full-page fallback. A real failure of the latest request still falls back to a full page load.
+- Without JavaScript nothing changes: every link is a plain GET.
+- The loader now has two parts: `fetchRegions()`, abortable, and `applyRegions()`.
+
+**Accepted exception to U10: inline custom properties**
+- The canvas sets its dynamic grid geometry as CSS custom properties on the elements: `--r1`, `--r2`, `--lane` and `--br` on blocks and rows, and `--days`, `--rows` and `--lanes` on the containers.
+- Every presentation rule stays in `plan-workspace.css`.
+- `PlanWorkspaceUiTest` asserts that every `style` attribute in the workspace holds only custom properties.
+
+**Tests added**
+- Functional: the regions endpoint records the context, sends max-age 0, and records nothing for a foreign or forged period, an unknown lens, a foreign selection, or another owner's plan.
+- Browser: the four `review.spec.js` cases.
+- The 20-transition history test still passes: 0 mismatches, 0 focus misses, 0 axe issues, 0 full loads.
+- The fixture's plan A has a second period, "Week A2", for the period-change case.
