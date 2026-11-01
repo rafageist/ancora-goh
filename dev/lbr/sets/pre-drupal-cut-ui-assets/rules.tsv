@@ -1,0 +1,5 @@
+# LBR rules, set pre-drupal-cut-ui-assets (#67 review): only the binary UI images.
+#
+# pattern	action	stream	component	reason
+www/images/**	include	ui-assets	ui.images	first-party icons, logos and wallpapers of the desktop UI
+**	exclude	-	-	outside the UI assets inventory (measured by pre-drupal-cut or excluded there)

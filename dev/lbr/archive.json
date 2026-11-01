@@ -1,0 +1,5 @@
+{
+    "description": "Archival copies of the legacy implementation (#66, #68). A baseline file may be retired while an identical or edited copy remains under an archive prefix, but only if no active file references it (see docs/modernization/lbr.md). Moving into the archive alone retires nothing.",
+    "archive_prefixes": ["legacy/"],
+    "reference_scan_exempt": ["docs/", "dev/lbr/", "dev/tests/lbr/", "README.md", ".gitignore", ".dockerignore"]
+}

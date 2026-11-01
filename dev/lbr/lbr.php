@@ -1,31 +1,38 @@
 <?php
 
 /**
- * Legacy Bytes Remanufacturing (LBR) inventory and report (issue #38).
+ * Legacy Bytes Remanufacturing (LBR) inventory and report (issues #38, #67, #77).
  *
  * Method: https://github.com/rafageist/blog-reflections/wiki/2026.014.-Legacy-Bytes-Remanufacturing
  *
- *   php dev/lbr/lbr.php freeze    write dev/lbr/baseline.tsv from the baseline commit (once)
- *   php dev/lbr/lbr.php verify    recompute the inventory; it must equal baseline.tsv
- *   php dev/lbr/lbr.php perimeter  included and excluded bytes at the baseline, by reason
- *   php dev/lbr/lbr.php check     validate dev/lbr/retirements.tsv against the baseline and HEAD
- *   php dev/lbr/lbr.php report [--json]   B, C, retired bytes, percentages by stream/component
+ * Each baseline is a named, independent SET in dev/lbr/sets/NAME/:
+ *   set.json          baseline commit (and optional origin commit), description
+ *   rules.tsv         classification of every file at the baseline commit
+ *   baseline.tsv      the frozen inventory (written once by `freeze`)
+ *   retirements.tsv   verified retirement records
+ * Sets are never combined into one percentage.
  *
- * B  = bytes of the included baseline files (frozen).
- * C  = baseline bytes not yet retired with verified evidence.
- * Remaining % = 100 C / B; Completion % = 100 (B - C) / B.
+ *   php dev/lbr/lbr.php preview   --set=S [--at=REV]   inventory of REV under S's rules (not frozen)
+ *   php dev/lbr/lbr.php freeze    --set=S --at=REV     freeze S at REV (once)
+ *   php dev/lbr/lbr.php verify    [--set=S]            the frozen baseline reproduces from git
+ *   php dev/lbr/lbr.php perimeter [--set=S]            included and excluded bytes, by reason
+ *   php dev/lbr/lbr.php check     [--set=S]            validate the retirement records against HEAD
+ *   php dev/lbr/lbr.php report    [--set=S] [--json]   B, C, retired, % by stream/component
  *
- * Only a "verified" retirement record lowers C. Deleting, moving or renaming
- * a baseline file without a record does not: such files are listed as
- * "missing without retirement" and stay in C. Everything is read from git
- * objects, so the result does not depend on the working tree.
+ * B = bytes of the included baseline files (frozen); C = baseline bytes not yet
+ * retired with verified evidence; Remaining % = 100 C / B; Completion % = 100 (B - C) / B.
+ *
+ * Only a "verified" record lowers C. Deleting, moving or renaming a baseline
+ * file retires nothing. dev/lbr/relocations.tsv maps moved directories (for
+ * example the move into legacy/, #68) so a relocated file is still found at
+ * HEAD and still counted. A verified record may retire a file whose only
+ * remaining copy is under an archive prefix (dev/lbr/archive.json), provided
+ * no active file references the archived copy, its original path or its
+ * directories. Everything is read from git objects.
  * Exit status: 0 ok, 1 validation failure, 2 usage error.
  */
 
 declare(strict_types=1);
-
-const BASELINE_COMMIT = 'eca8aa7';   // recovery + containerization merge (#33), pre-remanufacturing
-const ORIGIN_COMMIT = 'b42aa03';     // historical import: July 2010 snapshot
 
 $dir = __DIR__;
 $repo = dirname($dir, 2);
@@ -51,11 +58,11 @@ function git(string $repo, array $args): string
     return implode("\n", $out);
 }
 
-/** @return array<string, array{blob: string, bytes: int}> path => entry, for regular files */
+/** @return array<string, array{blob: string, bytes: int}> path => entry, regular files */
 function tree(string $repo, string $commit): array
 {
-    $raw = shell_exec('git -C ' . escapeshellarg($repo) . ' ls-tree -r -l -z --full-tree ' . escapeshellarg($commit));
-    if (!is_string($raw)) {
+    $raw = shell_exec('git -C ' . escapeshellarg($repo) . ' ls-tree -r -l -z --full-tree ' . escapeshellarg($commit) . ' 2>/dev/null');
+    if (!is_string($raw) || $raw === '') {
         throw new RuntimeException("cannot list $commit");
     }
     $files = [];
@@ -66,7 +73,7 @@ function tree(string $repo, string $commit): array
         [$meta, $path] = explode("\t", $rec, 2);
         $f = preg_split('/\s+/', trim($meta));
         if ($f[1] !== 'blob') {
-            continue; // submodules
+            continue;
         }
         $files[$path] = ['blob' => $f[2], 'bytes' => (int) $f[3]];
     }
@@ -94,9 +101,37 @@ function globRegex(string $glob): string
     return '#^' . $re . '$#';
 }
 
-/** @return list<array{pattern: string, re: string, action: string, stream: string, component: string, reason: string, line: int}> */
+/** @return array{name: string, dir: string, baseline_commit: ?string, origin_commit: ?string, description: string} */
+function loadSet(string $dir, string $name): array
+{
+    if (!preg_match('/^[a-z0-9][a-z0-9-]*$/', $name) || !is_file("$dir/sets/$name/set.json")) {
+        fail("unknown set '$name'");
+    }
+    $c = json_decode((string) file_get_contents("$dir/sets/$name/set.json"), true);
+    if (!is_array($c)) {
+        fail("sets/$name/set.json is not valid JSON");
+    }
+    return ['name' => $name, 'dir' => "$dir/sets/$name", 'baseline_commit' => $c['baseline_commit'] ?? null,
+        'origin_commit' => $c['origin_commit'] ?? null, 'description' => (string) ($c['description'] ?? '')];
+}
+
+/** @return list<string> */
+function setNames(string $dir): array
+{
+    $names = [];
+    foreach (glob("$dir/sets/*/set.json") as $f) {
+        $names[] = basename(dirname($f));
+    }
+    sort($names);
+    return $names;
+}
+
+/** @return list<array{re: string, action: string, stream: string, component: string, reason: string}> */
 function rules(string $file): array
 {
+    if (!is_file($file)) {
+        fail("missing $file");
+    }
     $rules = [];
     foreach (file($file, FILE_IGNORE_NEW_LINES) as $i => $line) {
         if (trim($line) === '' || $line[0] === '#') {
@@ -104,26 +139,22 @@ function rules(string $file): array
         }
         $c = explode("\t", $line);
         if (count($c) !== 5 || !in_array($c[1], ['include', 'exclude'], true)) {
-            fail("rules.tsv line " . ($i + 1) . ": expected 5 tab-separated columns with include|exclude");
+            fail(basename(dirname($file)) . "/rules.tsv line " . ($i + 1) . ": expected 5 tab-separated columns with include|exclude");
         }
         if ($c[1] === 'include' && ($c[2] === '-' || $c[3] === '-')) {
-            fail("rules.tsv line " . ($i + 1) . ": an include rule needs a stream and a component");
+            fail(basename(dirname($file)) . "/rules.tsv line " . ($i + 1) . ": an include rule needs a stream and a component");
         }
-        $rules[] = ['pattern' => $c[0], 're' => globRegex($c[0]), 'action' => $c[1],
-            'stream' => $c[2], 'component' => $c[3], 'reason' => $c[4], 'line' => $i + 1];
+        $rules[] = ['re' => globRegex($c[0]), 'action' => $c[1], 'stream' => $c[2], 'component' => $c[3], 'reason' => $c[4]];
     }
     return $rules;
 }
 
-/**
- * Classify every file of the baseline commit.
- * @return array{included: array<string, array>, excluded: array<string, array{bytes: int, files: int}>, unmatched: list<string>}
- */
-function inventory(string $repo, string $dir): array
+/** Classify every file of $commit with the set's rules (and origin filter, if any). */
+function inventory(string $repo, array $set, string $commit): array
 {
-    $rules = rules("$dir/rules.tsv");
-    $base = tree($repo, BASELINE_COMMIT);
-    $origin = tree($repo, ORIGIN_COMMIT);
+    $rules = rules($set['dir'] . '/rules.tsv');
+    $base = tree($repo, $commit);
+    $origin = $set['origin_commit'] === null ? null : tree($repo, $set['origin_commit']);
     $included = [];
     $excluded = [];
     $unmatched = [];
@@ -140,7 +171,7 @@ function inventory(string $repo, string $dir): array
             continue;
         }
         $reason = $rule['reason'];
-        if ($rule['action'] === 'include' && !isset($origin[$path])) {
+        if ($rule['action'] === 'include' && $origin !== null && !isset($origin[$path])) {
             $reason = 'added after the historical import (recovery work), not legacy';
         } elseif ($rule['action'] === 'include') {
             $included[$path] = $e + ['stream' => $rule['stream'], 'component' => $rule['component']];
@@ -154,16 +185,14 @@ function inventory(string $repo, string $dir): array
     return ['included' => $included, 'excluded' => $excluded, 'unmatched' => $unmatched];
 }
 
-function baselineText(string $repo, string $dir, array $inv): string
+function baselineText(string $repo, array $set, string $sha, array $inv, int $revision): string
 {
-    $sha = git($repo, ['rev-parse', BASELINE_COMMIT . '^{commit}']);
-    $origin = git($repo, ['rev-parse', ORIGIN_COMMIT . '^{commit}']);
     $b = array_sum(array_column($inv['included'], 'bytes'));
-    $out = "# LBR frozen baseline (issue #38). Generated by `php dev/lbr/lbr.php freeze`; do not edit.\n"
-        . "# revision=1\n"
+    $out = "# LBR frozen baseline, set {$set['name']} (issues #38, #67). Generated by `php dev/lbr/lbr.php freeze`; do not edit.\n"
+        . "# revision=$revision\n"
         . "# baseline_commit=$sha\n"
-        . "# origin_commit=$origin\n"
-        . '# rules_sha256=' . hash_file('sha256', "$dir/rules.tsv") . "\n"
+        . ($set['origin_commit'] !== null ? '# origin_commit=' . git($repo, ['rev-parse', $set['origin_commit'] . '^{commit}']) . "\n" : '')
+        . '# rules_sha256=' . hash_file('sha256', $set['dir'] . '/rules.tsv') . "\n"
         . '# files=' . count($inv['included']) . "\n"
         . "# B=$b\n"
         . "# path\tstream\tcomponent\tbytes\tblob\n";
@@ -173,12 +202,11 @@ function baselineText(string $repo, string $dir, array $inv): string
     return $out;
 }
 
-/** @return array{meta: array<string, string>, files: array<string, array>} */
-function loadBaseline(string $dir): array
+function loadBaseline(array $set, string $name = 'baseline.tsv'): array
 {
-    $file = "$dir/baseline.tsv";
+    $file = $set['dir'] . '/' . $name;
     if (!is_file($file)) {
-        fail('dev/lbr/baseline.tsv is missing: run `php dev/lbr/lbr.php freeze` once');
+        return ['meta' => [], 'files' => [], 'frozen' => false];
     }
     $meta = [];
     $files = [];
@@ -193,29 +221,134 @@ function loadBaseline(string $dir): array
         [$path, $stream, $component, $bytes, $blob] = explode("\t", $line);
         $files[$path] = ['stream' => $stream, 'component' => $component, 'bytes' => (int) $bytes, 'blob' => $blob];
     }
-    return ['meta' => $meta, 'files' => $files];
+    return ['meta' => $meta, 'files' => $files, 'frozen' => true];
 }
 
 const RETIREMENT_COLUMNS = ['id', 'path', 'status', 'responsibility', 'replacement', 'evidence', 'pr', 'commit', 'reviewed_by'];
 
-/** @return list<array<string, string>> */
-function loadRetirements(string $dir): array
+function loadRetirements(array $set): array
 {
     $rows = [];
-    foreach (file("$dir/retirements.tsv", FILE_IGNORE_NEW_LINES) as $i => $line) {
+    $file = $set['dir'] . '/retirements.tsv';
+    foreach (is_file($file) ? file($file, FILE_IGNORE_NEW_LINES) : [] as $i => $line) {
         if (trim($line) === '' || $line[0] === '#') {
             continue;
         }
         $c = explode("\t", $line);
         if (count($c) !== count(RETIREMENT_COLUMNS)) {
-            fail('retirements.tsv line ' . ($i + 1) . ': expected ' . count(RETIREMENT_COLUMNS) . ' tab-separated columns');
+            fail("{$set['name']}/retirements.tsv line " . ($i + 1) . ': expected ' . count(RETIREMENT_COLUMNS) . ' tab-separated columns');
         }
         $rows[] = array_combine(RETIREMENT_COLUMNS, $c) + ['line' => (string) ($i + 1)];
     }
     return $rows;
 }
 
-/** Baseline paths covered by a record: one file, or every file under "dir/". */
+/** @return list<array{0: string, 1: string}> old prefix => new prefix */
+function relocations(string $dir): array
+{
+    $map = [];
+    $file = "$dir/relocations.tsv";
+    foreach (is_file($file) ? file($file, FILE_IGNORE_NEW_LINES) : [] as $i => $line) {
+        if (trim($line) === '' || $line[0] === '#') {
+            continue;
+        }
+        $c = explode("\t", $line);
+        if (count($c) !== 2 || $c[0] === '' || $c[1] === '') {
+            fail('relocations.tsv line ' . ($i + 1) . ': expected "old/prefix<TAB>new/prefix"');
+        }
+        $map[] = [$c[0], $c[1]];
+    }
+    return $map;
+}
+
+/** @return array{prefixes: list<string>, exempt: list<string>} */
+function archiveConfig(string $dir): array
+{
+    $file = "$dir/archive.json";
+    if (!is_file($file)) {
+        return ['prefixes' => [], 'exempt' => []];
+    }
+    $c = json_decode((string) file_get_contents($file), true);
+    if (!is_array($c) || !is_array($c['archive_prefixes'] ?? null)) {
+        fail('archive.json: archive_prefixes must be a list');
+    }
+    foreach ($c['archive_prefixes'] as $a) {
+        if (!is_string($a) || !preg_match('#^[A-Za-z0-9._-]+/$#', $a)) {
+            fail("archive.json: invalid archive prefix '$a' (top-level directory ending in /)");
+        }
+    }
+    return ['prefixes' => $c['archive_prefixes'], 'exempt' => array_values($c['reference_scan_exempt'] ?? [])];
+}
+
+function inArchive(string $path, array $archive): bool
+{
+    foreach ($archive['prefixes'] as $a) {
+        if (str_starts_with($path, $a)) {
+            return true;
+        }
+    }
+    return false;
+}
+
+/**
+ * Strings whose presence in an active file means the archived file is still
+ * used: its archived path and its original path, plus the archived parent
+ * directories below the second level (a runner may load a whole directory).
+ * @return list<string>
+ */
+function referenceNeedles(string $original, string $archived): array
+{
+    $needles = [$archived, $original];
+    $parts = explode('/', $archived);
+    for ($n = count($parts) - 1; $n >= 3; $n--) {
+        $needles[] = implode('/', array_slice($parts, 0, $n));
+    }
+    return array_values(array_unique($needles));
+}
+
+/**
+ * Active files (outside the archive and the exempt paths) that mention any
+ * needle. The scan reads blob contents from git, so it matches what is
+ * committed. @return list<string> "file: needle"
+ */
+function activeReferences(string $repo, array $head, array $archive, array $needles): array
+{
+    static $cache = [];
+    $hits = [];
+    foreach ($head as $path => $e) {
+        if (inArchive($path, $archive)) {
+            continue;
+        }
+        foreach ($archive['exempt'] as $x) {
+            if ($path === $x || (str_ends_with($x, '/') && str_starts_with($path, $x))) {
+                continue 2;
+            }
+        }
+        if ($e['bytes'] > 2000000) {
+            continue;
+        }
+        $cache[$e['blob']] ??= (string) shell_exec('git -C ' . escapeshellarg($repo) . ' cat-file blob ' . escapeshellarg($e['blob']));
+        foreach ($needles as $n) {
+            if (strpos($cache[$e['blob']], $n) !== false) {
+                $hits[] = "$path: $n";
+            }
+        }
+    }
+    return $hits;
+}
+
+/** Where a baseline path may be at HEAD: itself and every relocation of it. @return list<string> */
+function locations(string $path, array $map): array
+{
+    $paths = [$path];
+    foreach ($map as [$old, $new]) {
+        if (str_starts_with($path, $old)) {
+            $paths[] = $new . substr($path, strlen($old));
+        }
+    }
+    return $paths;
+}
+
 function covered(array $files, string $path): array
 {
     if (str_ends_with($path, '/')) {
@@ -224,14 +357,12 @@ function covered(array $files, string $path): array
     return isset($files[$path]) ? [$path] : [];
 }
 
-/**
- * Validate the retirement records. Returns [errors, retired path => record id].
- * @return array{0: list<string>, 1: array<string, string>, 2: array<string, string>}
- */
-function checkRetirements(string $repo, array $baseline, array $records): array
+/** @return array{0: list<string>, 1: array<string, string>, 2: array<string, string>} errors, retired, in transition */
+function checkRetirements(string $repo, string $dir, array $set, array $baseline, array $head): array
 {
     $files = $baseline['files'];
-    $head = tree($repo, 'HEAD');
+    $map = relocations($dir);
+    $archive = archiveConfig($dir);
     $headBlobs = [];
     foreach ($head as $p => $e) {
         $headBlobs[$e['blob']][] = $p;
@@ -240,8 +371,8 @@ function checkRetirements(string $repo, array $baseline, array $records): array
     $retired = [];
     $transition = [];
     $ids = [];
-    foreach ($records as $r) {
-        $at = "retirements.tsv line {$r['line']} ({$r['id']})";
+    foreach (loadRetirements($set) as $r) {
+        $at = "{$set['name']}/retirements.tsv line {$r['line']} ({$r['id']})";
         if (!preg_match('/^LBR-[0-9]{3,}$/', $r['id']) || isset($ids[$r['id']])) {
             $errors[] = "$at: id must be unique and look like LBR-001";
         }
@@ -280,11 +411,26 @@ function checkRetirements(string $repo, array $baseline, array $records): array
             $errors[] = "$at: commit '{$r['commit']}' is not an ancestor of HEAD";
         }
         foreach ($paths as $p) {
-            if (isset($head[$p])) {
-                $errors[] = "$at: $p is still present at HEAD; the old implementation must be gone";
+            $archived = [];
+            foreach (locations($p, $map) as $loc) {
+                if (!isset($head[$loc])) {
+                    continue;
+                }
+                if (inArchive($loc, $archive)) {
+                    $archived[] = $loc; // archival copy: allowed if nothing active uses it
+                } else {
+                    $errors[] = "$at: $p is still present at HEAD" . ($loc === $p ? '' : " as $loc (relocated outside the archive)") . '; the active implementation must be gone';
+                }
             }
-            if (isset($headBlobs[$files[$p]['blob']])) {
-                $errors[] = "$at: the content of $p still exists at HEAD as " . implode(', ', $headBlobs[$files[$p]['blob']]) . ' (a move is not a retirement)';
+            $copies = array_filter($headBlobs[$files[$p]['blob']] ?? [], fn ($c) => !inArchive($c, $archive));
+            if ($copies !== []) {
+                $errors[] = "$at: the content of $p still exists outside the archive as " . implode(', ', $copies) . ' (a move or copy is not a retirement)';
+            }
+            foreach ($archived as $loc) {
+                $refs = activeReferences($repo, $head, $archive, referenceNeedles($p, $loc));
+                if ($refs !== []) {
+                    $errors[] = "$at: the archived copy $loc is still referenced by active files: " . implode('; ', array_slice($refs, 0, 5));
+                }
             }
             $retired[$p] = $r['id'];
         }
@@ -297,125 +443,234 @@ function pct(int $part, int $total): string
     return $total > 0 ? sprintf('%.2f', 100 * $part / $total) : 'n/a';
 }
 
+function perimeterTable(array $inv, string $at): string
+{
+    $inc = $inv['included'];
+    $out = "| Perimeter at $at | Files | Bytes |\n| --- | ---: | ---: |\n";
+    $out .= '| **included (B)** | ' . count($inc) . ' | ' . number_format(array_sum(array_column($inc, 'bytes'))) . " |\n";
+    $streams = [];
+    foreach ($inc as $e) {
+        $streams[$e['stream']] ??= [0, 0];
+        $streams[$e['stream']][0]++;
+        $streams[$e['stream']][1] += $e['bytes'];
+    }
+    ksort($streams);
+    foreach ($streams as $s => [$n, $b]) {
+        $out .= "| &nbsp;&nbsp;included: $s | $n | " . number_format($b) . " |\n";
+    }
+    foreach ($inv['excluded'] as $reason => $a) {
+        $out .= "| excluded: $reason | {$a['files']} | " . number_format($a['bytes']) . " |\n";
+    }
+    return $out;
+}
+
+/** @return array<string, mixed> */
+function setReport(string $repo, string $dir, array $set, array $head): array
+{
+    $baseline = loadBaseline($set);
+    if (!$baseline['frozen']) {
+        return ['set' => $set['name'], 'frozen' => false, 'description' => $set['description']];
+    }
+    [$errors, $retired, $transition] = checkRetirements($repo, $dir, $set, $baseline, $head);
+    $map = relocations($dir);
+    $B = 0;
+    $C = 0;
+    $transitionBytes = 0;
+    $relocated = 0;
+    $streams = [];
+    $components = [];
+    $missing = [];
+    foreach ($baseline['files'] as $p => $e) {
+        $B += $e['bytes'];
+        $isRetired = isset($retired[$p]) && $errors === [];
+        foreach ([[&$streams, $e['stream']], [&$components, $e['stream'] . ' / ' . $e['component']]] as [&$agg, $key]) {
+            $agg[$key] ??= ['B' => 0, 'C' => 0, 'files' => 0];
+            $agg[$key]['B'] += $e['bytes'];
+            $agg[$key]['files']++;
+            if (!$isRetired) {
+                $agg[$key]['C'] += $e['bytes'];
+            }
+        }
+        unset($agg);
+        if ($isRetired) {
+            continue;
+        }
+        $C += $e['bytes'];
+        $where = array_values(array_filter(locations($p, $map), fn ($l) => isset($head[$l])));
+        if ($where === []) {
+            $missing[] = $p;
+        } elseif ($where[0] !== $p) {
+            $relocated++;
+        }
+        if (isset($transition[$p])) {
+            $transitionBytes += $e['bytes'];
+        }
+    }
+    ksort($streams, SORT_STRING);
+    ksort($components, SORT_STRING);
+    return ['set' => $set['name'], 'frozen' => true, 'description' => $set['description'],
+        'baseline_commit' => $baseline['meta']['baseline_commit'] ?? '', 'revision' => $baseline['meta']['revision'] ?? '',
+        'B' => $B, 'C' => $C, 'retired' => $B - $C, 'remaining_pct' => pct($C, $B), 'completion_pct' => pct($B - $C, $B),
+        'in_transition_bytes' => $transitionBytes, 'relocated_files' => $relocated, 'streams' => $streams,
+        'components' => $components, 'missing_without_retirement' => $missing, 'record_errors' => $errors];
+}
+
+function markdown(array $d): string
+{
+    if (!$d['frozen']) {
+        return "## LBR set `{$d['set']}`\n\n{$d['description']}\n\nNot frozen yet: no metric is reported until its cut commit is frozen.\n";
+    }
+    $row = fn ($name, $a) => sprintf("| %s | %d | %s | %s | %s | %s |\n", $name, $a['files'], number_format($a['B']),
+        number_format($a['C']), number_format($a['B'] - $a['C']), pct($a['B'] - $a['C'], $a['B']));
+    $o = "## LBR set `{$d['set']}`\n\n{$d['description']} Baseline `" . substr($d['baseline_commit'], 0, 10)
+        . "` (revision {$d['revision']}). Progress metric only: it does not measure security, quality or technical debt.\n\n";
+    $o .= "| | Bytes |\n| --- | ---: |\n| B (baseline) | " . number_format($d['B']) . " |\n| C (remaining) | " . number_format($d['C'])
+        . " |\n| Retired (B − C) | " . number_format($d['retired']) . " |\n| Remaining | {$d['remaining_pct']} % |\n| Completion | {$d['completion_pct']} % |\n"
+        . '| In transition (still counted in C) | ' . number_format($d['in_transition_bytes']) . " |\n"
+        . "| Relocated files (still counted in C) | {$d['relocated_files']} |\n\n";
+    $o .= "| Stream | Files | B | C | Retired | Completion % |\n| --- | ---: | ---: | ---: | ---: | ---: |\n";
+    foreach ($d['streams'] as $k => $a) {
+        $o .= $row($k, $a);
+    }
+    $o .= "\n<details><summary>By component</summary>\n\n| Component | Files | B | C | Retired | Completion % |\n| --- | ---: | ---: | ---: | ---: | ---: |\n";
+    foreach ($d['components'] as $k => $a) {
+        $o .= $row($k, $a);
+    }
+    $o .= "\n</details>\n";
+    if ($d['missing_without_retirement'] !== []) {
+        $o .= "\n**" . count($d['missing_without_retirement']) . " baseline file(s) are gone from HEAD without a verified retirement record; they stay in C:**\n\n";
+        foreach ($d['missing_without_retirement'] as $p) {
+            $o .= "- `$p`\n";
+        }
+    }
+    if ($d['record_errors'] !== []) {
+        $o .= "\n**Invalid retirement records (nothing is credited until fixed):**\n\n";
+        foreach ($d['record_errors'] as $e) {
+            $o .= "- $e\n";
+        }
+    }
+    return $o;
+}
+
+// ------------------------------------------------------------------ main
 $cmd = $argv[1] ?? 'help';
+$opts = [];
+foreach (array_slice($argv, 2) as $a) {
+    if (preg_match('/^--([a-z-]+)(?:=(.*))?$/', $a, $m)) {
+        $opts[$m[1]] = $m[2] ?? '1';
+    } else {
+        fail("unexpected argument '$a'", 2);
+    }
+}
+$sets = isset($opts['set']) ? [loadSet($dir, $opts['set'])] : array_map(fn ($n) => loadSet($dir, $n), setNames($dir));
+
 try {
     switch ($cmd) {
-        case 'freeze':
-            if (is_file("$dir/baseline.tsv") && !in_array('--force-revision', $argv, true)) {
-                fail('baseline.tsv already exists; the baseline is frozen (a revision needs --force-revision and a documented reason)');
+        case 'preview':
+            if (!isset($opts['set'])) {
+                fail('preview needs --set', 2);
             }
-            $inv = inventory($repo, $dir);
+            $set = $sets[0];
+            $at = $opts['at'] ?? 'HEAD';
+            $inv = inventory($repo, $set, $at);
             if ($inv['unmatched'] !== []) {
-                fail("unclassified files at the baseline:\n  " . implode("\n  ", $inv['unmatched']));
+                fail("unclassified files at $at:\n  " . implode("\n  ", $inv['unmatched']));
             }
-            file_put_contents("$dir/baseline.tsv", baselineText($repo, $dir, $inv));
-            echo 'frozen ' . count($inv['included']) . ' files, B=' . array_sum(array_column($inv['included'], 'bytes')) . "\n";
+            echo perimeterTable($inv, $at . ' (' . substr(git($repo, ['rev-parse', $at . '^{commit}']), 0, 10) . ', preview, not frozen)');
+            break;
+
+        case 'freeze':
+            if (!isset($opts['set'], $opts['at'])) {
+                fail('freeze needs --set and --at', 2);
+            }
+            $set = $sets[0];
+            $old = loadBaseline($set);
+            if ($old['frozen'] && !isset($opts['force-revision'])) {
+                fail("set {$set['name']} is already frozen (a revision needs --force-revision and a documented reason)");
+            }
+            $sha = git($repo, ['rev-parse', $opts['at'] . '^{commit}']);
+            $inv = inventory($repo, $set, $sha);
+            if ($inv['unmatched'] !== []) {
+                fail("unclassified files at {$opts['at']}:\n  " . implode("\n  ", $inv['unmatched']));
+            }
+            $config = json_decode((string) file_get_contents($set['dir'] . '/set.json'), true);
+            $config['baseline_commit'] = $sha;
+            file_put_contents($set['dir'] . '/set.json', json_encode($config, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) . "\n");
+            $revision = $old['frozen'] ? ((int) ($old['meta']['revision'] ?? 1)) + 1 : 1;
+            file_put_contents($set['dir'] . '/baseline.tsv', baselineText($repo, $set, $sha, $inv, $revision));
+            echo "frozen {$set['name']} at " . substr($sha, 0, 10) . ': ' . count($inv['included']) . ' files, B=' . array_sum(array_column($inv['included'], 'bytes')) . "\n";
             break;
 
         case 'verify':
-            $inv = inventory($repo, $dir);
-            if ($inv['unmatched'] !== []) {
-                fail("unclassified files at the baseline:\n  " . implode("\n  ", $inv['unmatched']));
+            foreach ($sets as $set) {
+                $baseline = loadBaseline($set);
+                if (!$baseline['frozen']) {
+                    echo "verify: {$set['name']} not frozen yet (skipped)\n";
+                    continue;
+                }
+                if (($set['baseline_commit'] ?? '') !== ($baseline['meta']['baseline_commit'] ?? '')) {
+                    fail("{$set['name']}: set.json baseline_commit differs from baseline.tsv");
+                }
+                $inv = inventory($repo, $set, $set['baseline_commit']);
+                if ($inv['unmatched'] !== []) {
+                    fail("{$set['name']}: unclassified files at the baseline:\n  " . implode("\n  ", $inv['unmatched']));
+                }
+                // compare the frozen data (commits, rules hash, counts, every row), not the comment text
+                $tmp = tempnam(sys_get_temp_dir(), 'lbr');
+                file_put_contents($tmp, baselineText($repo, $set, $set['baseline_commit'], $inv, (int) ($baseline['meta']['revision'] ?? 1)));
+                $expected = loadBaseline(['dir' => dirname($tmp), 'name' => $set['name']] + $set, basename($tmp));
+                unlink($tmp);
+                if ($expected['meta'] != $baseline['meta'] || $expected['files'] !== $baseline['files']) {
+                    fail("{$set['name']}: baseline.tsv differs from the inventory recomputed from its commit and rules.tsv (the baseline is frozen)");
+                }
+                echo "verify: {$set['name']} reproduced from " . substr($set['baseline_commit'], 0, 10) . ' (' . count($inv['included']) . " files)\n";
             }
-            if (baselineText($repo, $dir, $inv) !== file_get_contents("$dir/baseline.tsv")) {
-                fail('baseline.tsv differs from the inventory recomputed from ' . BASELINE_COMMIT . ' and rules.tsv (the baseline is frozen)');
-            }
-            echo 'verify: baseline reproduced from ' . BASELINE_COMMIT . ' (' . count($inv['included']) . " files)\n";
+            relocations($dir);
             break;
 
         case 'perimeter':
-            $inv = inventory($repo, $dir);
-            $inc = $inv['included'];
-            echo "| Perimeter at " . BASELINE_COMMIT . " | Files | Bytes |\n| --- | ---: | ---: |\n";
-            echo '| **included (B)** | ' . count($inc) . ' | ' . number_format(array_sum(array_column($inc, 'bytes'))) . " |\n";
-            foreach ($inv['excluded'] as $reason => $a) {
-                echo "| excluded: $reason | {$a['files']} | " . number_format($a['bytes']) . " |\n";
+            foreach ($sets as $set) {
+                if ($set['baseline_commit'] === null) {
+                    echo "## {$set['name']}: not frozen (use preview)\n";
+                    continue;
+                }
+                echo "## {$set['name']}\n\n" . perimeterTable(inventory($repo, $set, $set['baseline_commit']), substr($set['baseline_commit'], 0, 10)) . "\n";
             }
             break;
 
         case 'check':
-            [$errors] = checkRetirements($repo, loadBaseline($dir), loadRetirements($dir));
-            if ($errors !== []) {
-                fail("invalid retirement records:\n  " . implode("\n  ", $errors));
+            $head = tree($repo, 'HEAD');
+            foreach ($sets as $set) {
+                $baseline = loadBaseline($set);
+                if (!$baseline['frozen']) {
+                    if (loadRetirements($set) !== []) {
+                        fail("{$set['name']}: retirement records exist for a set that is not frozen");
+                    }
+                    continue;
+                }
+                [$errors] = checkRetirements($repo, $dir, $set, $baseline, $head);
+                if ($errors !== []) {
+                    fail("{$set['name']}: invalid retirement records:\n  " . implode("\n  ", $errors));
+                }
+                echo "check: {$set['name']} retirement records valid\n";
             }
-            echo "check: retirement records valid\n";
             break;
 
         case 'report':
-            $baseline = loadBaseline($dir);
-            [$errors, $retired, $transition] = checkRetirements($repo, $baseline, loadRetirements($dir));
             $head = tree($repo, 'HEAD');
-            $B = 0;
-            $C = 0;
-            $byStream = [];
-            $byComponent = [];
-            $missing = [];
-            $transitionBytes = 0;
-            foreach ($baseline['files'] as $p => $e) {
-                $B += $e['bytes'];
-                $isRetired = isset($retired[$p]) && $errors === [];
-                foreach ([[&$byStream, $e['stream']], [&$byComponent, $e['stream'] . ' / ' . $e['component']]] as [&$agg, $key]) {
-                    $agg[$key] ??= ['B' => 0, 'C' => 0, 'files' => 0];
-                    $agg[$key]['B'] += $e['bytes'];
-                    $agg[$key]['files']++;
-                    if (!$isRetired) {
-                        $agg[$key]['C'] += $e['bytes'];
-                    }
-                }
-                unset($agg);
-                if (!$isRetired) {
-                    $C += $e['bytes'];
-                    if (!isset($head[$p])) {
-                        $missing[] = $p;
-                    }
-                }
-                if (isset($transition[$p])) {
-                    $transitionBytes += $e['bytes'];
-                }
-            }
-            ksort($byStream, SORT_STRING);
-            ksort($byComponent, SORT_STRING);
-            $data = ['baseline_commit' => $baseline['meta']['baseline_commit'] ?? '', 'revision' => $baseline['meta']['revision'] ?? '',
-                'B' => $B, 'C' => $C, 'retired' => $B - $C, 'remaining_pct' => pct($C, $B), 'completion_pct' => pct($B - $C, $B),
-                'in_transition_bytes' => $transitionBytes, 'streams' => $byStream, 'components' => $byComponent,
-                'missing_without_retirement' => $missing, 'record_errors' => $errors];
-            if (in_array('--json', $argv, true)) {
-                echo json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) . "\n";
+            $all = array_map(fn ($s) => setReport($repo, $dir, $s, $head), $sets);
+            if (isset($opts['json'])) {
+                echo json_encode(isset($opts['set']) ? $all[0] : $all, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) . "\n";
                 break;
             }
-            $row = fn ($name, $a) => sprintf("| %s | %d | %s | %s | %s | %s |\n", $name, $a['files'], number_format($a['B']),
-                number_format($a['C']), number_format($a['B'] - $a['C']), pct($a['B'] - $a['C'], $a['B']));
-            echo "## Legacy Bytes Remanufacturing\n\n";
-            echo "Baseline `" . substr($data['baseline_commit'], 0, 7) . "` (revision {$data['revision']}). Progress metric only: it does not measure security, quality or technical debt.\n\n";
-            echo "| | Bytes |\n| --- | ---: |\n";
-            echo '| B (baseline) | ' . number_format($B) . " |\n| C (remaining) | " . number_format($C) . " |\n| Retired (B − C) | " . number_format($B - $C) . " |\n";
-            echo "| Remaining | {$data['remaining_pct']} % |\n| Completion | {$data['completion_pct']} % |\n";
-            echo '| In transition (still counted in C) | ' . number_format($transitionBytes) . " |\n\n";
-            echo "| Stream | Files | B | C | Retired | Completion % |\n| --- | ---: | ---: | ---: | ---: | ---: |\n";
-            foreach ($byStream as $k => $a) {
-                echo $row($k, $a);
-            }
-            echo "\n<details><summary>By component</summary>\n\n| Component | Files | B | C | Retired | Completion % |\n| --- | ---: | ---: | ---: | ---: | ---: |\n";
-            foreach ($byComponent as $k => $a) {
-                echo $row($k, $a);
-            }
-            echo "\n</details>\n";
-            if ($missing !== []) {
-                echo "\n**" . count($missing) . " baseline file(s) are gone from HEAD without a verified retirement record; they stay in C:**\n\n";
-                foreach ($missing as $p) {
-                    echo "- `$p`\n";
-                }
-            }
-            if ($errors !== []) {
-                echo "\n**Invalid retirement records (nothing is credited until fixed):**\n\n";
-                foreach ($errors as $e) {
-                    echo "- $e\n";
-                }
+            echo "# Legacy Bytes Remanufacturing\n\nEach set is an independent baseline; their percentages are never combined.\n\n";
+            foreach ($all as $d) {
+                echo markdown($d) . "\n";
             }
             break;
 
         default:
-            fwrite(STDERR, "usage: php dev/lbr/lbr.php freeze|verify|check|report [--json]\n");
+            fwrite(STDERR, "usage: php dev/lbr/lbr.php preview|freeze|verify|perimeter|check|report [--set=S] [--at=REV] [--json]\n");
             exit(2);
     }
 } catch (RuntimeException $e) {
