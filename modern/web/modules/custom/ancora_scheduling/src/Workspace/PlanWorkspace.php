@@ -10,6 +10,7 @@ use Drupal\ancora_academic\Entity\Plan;
 use Drupal\ancora_academic\PeriodInputs;
 use Drupal\ancora_engine\JobRepository;
 use Drupal\ancora_scheduling\Entity\Placement;
+use Drupal\ancora_scheduling\Form\PlacementMoveForm;
 use Drupal\ancora_scheduling\Timetable\CrossPlanConflictDetector;
 use Drupal\ancora_scheduling\Timetable\CrossPlanConflictView;
 use Drupal\ancora_scheduling\Timetable\PlacementModification;
@@ -21,8 +22,10 @@ use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\StringTranslation\StringTranslationTrait;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
+use Drupal\Core\Form\FormBuilderInterface;
 use Drupal\Core\Url;
 use Symfony\Component\HttpFoundation\InputBag;
+use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 /**
@@ -66,6 +69,7 @@ final class PlanWorkspace {
     private readonly PlacementModification $modification,
     private readonly DateFormatterInterface $dateFormatter,
     private readonly EntityLastInstalledSchemaRepositoryInterface $installed,
+    private readonly FormBuilderInterface $formBuilder,
   ) {}
 
   /**
@@ -74,7 +78,7 @@ final class PlanWorkspace {
    * @throws \Symfony\Component\HttpKernel\Exception\NotFoundHttpException
    *   A period, perspective, record or placement this plan does not offer.
    */
-  public function state(Plan $plan, AccountInterface $account, InputBag $query): array {
+  public function state(Plan $plan, AccountInterface $account, InputBag $query, ?InputBag $post = NULL): array {
     $storage = $this->entityTypeManager->getStorage('ancora_period');
     $periods = $storage->loadByProperties(['plan' => $plan->id()]);
     uasort($periods, static fn (Period $a, Period $b): int => strcmp($a->getCode(), $b->getCode()) ?: $a->id() <=> $b->id());
@@ -133,7 +137,39 @@ final class PlanWorkspace {
       $sel = (int) $requested;
     }
 
+    // The move of the selected placement (S1b): its check and the change an
+    // undo goes back from. The form validates them against the placement
+    // (a check of another placement is no check); here they must be ids,
+    // with a selection, of a placement this account may move.
+    $move = [];
+    foreach (['check', 'undo'] as $key) {
+      $requested = $value($key);
+      if ($requested !== '') {
+        if (!ctype_digit($requested) || $sel === NULL) {
+          throw new NotFoundHttpException();
+        }
+        $move[$key] = (int) $requested;
+      }
+    }
+    $entity = $sel === NULL ? NULL : $this->entityTypeManager->getStorage('ancora_placement')->load($sel);
+    $movable = $entity instanceof Placement && $this->modification->isAvailable() && $entity->access('update', $account);
+    if ($move !== [] && !$movable) {
+      throw new AccessDeniedHttpException();
+    }
+    // The cell a preview step chose (display only; the form decides).
+    $preview = NULL;
+    foreach (array_keys($post?->all() ?? []) as $name) {
+      if (preg_match('/^op_preview_(\d+)_(\d+)$/', (string) $name, $m)) {
+        $preview = [(int) $m[1], (int) $m[2]];
+      }
+    }
+
     return [
+      'check' => $move['check'] ?? NULL,
+      'undo' => $move['undo'] ?? NULL,
+      'movable' => $movable,
+      'placement' => $entity,
+      'preview' => $preview,
       'plan' => $plan,
       'account' => $account,
       'periods' => $periods,
@@ -195,13 +231,17 @@ final class PlanWorkspace {
    * The workspace URL of a state, with some values changed.
    */
   public function url(array $state, array $changes = []): Url {
+    // A move belongs to its selection and period: changing either ends it.
+    $keep = !array_key_exists('sel', $changes) && !array_key_exists('period', $changes);
     // Always in this order: one state, one URL.
     $values = array_replace([
       'period' => $state['period']?->id(),
       'lens' => $state['lens'],
       'obj' => $state['obj'],
       'sel' => $state['sel'],
-    ], array_intersect_key($changes, array_flip(['period', 'lens', 'obj', 'sel'])));
+      'check' => $keep ? ($state['check'] ?? NULL) : NULL,
+      'undo' => $keep ? ($state['undo'] ?? NULL) : NULL,
+    ], array_intersect_key($changes, array_flip(['period', 'lens', 'obj', 'sel', 'check', 'undo'])));
     if ($values['lens'] === 'all') {
       $values['lens'] = NULL;
       $values['obj'] = NULL;
@@ -418,14 +458,96 @@ final class PlanWorkspace {
       unset($block);
     }
     unset($day);
+    $overlay = $this->overlay($state, $layout);
+    if ($overlay !== NULL) {
+      foreach ($layout['days'] as &$day) {
+        $day['overlay'] = $overlay['days'][$day['number']] ?? [];
+      }
+      unset($day);
+    }
     return [
       '#theme' => 'ancora_workspace_canvas',
       '#heading' => $heading,
+      '#overlay' => $overlay,
       '#rows' => $layout['rows'],
       '#days' => $layout['days'],
       '#template' => 'auto ' . implode(' ', array_map(static fn (array $row): string => $row['type'] === 'slot' ? 'minmax(4.75rem, auto)' : '1.75rem', $layout['rows'])),
       '#empty' => $shown === [] && $state['lens'] !== 'all' && $object === NULL,
       '#status' => $heading,
+    ];
+  }
+
+  /**
+   * The destinations of the move in progress, drawn on the canvas (S1b).
+   *
+   * Only a finished, current check of the selected placement, as the move
+   * form shows it: valid cells (a submit button of the inspector's move
+   * form, by its form attribute), refused cells with their reasons, the
+   * scheduler's warnings, and the #133 cross-plan warnings per cell, or
+   * "not evaluated" for an unknown calendar. Nothing is decided here: the
+   * cells and reasons are the check's (PlacementModification::check()).
+   */
+  private function overlay(array $state, array $layout): ?array {
+    if ($state['check'] === NULL || !$state['movable']) {
+      return NULL;
+    }
+    $placement = $state['placement'];
+    $check = $this->modification->check($placement, $state['check']);
+    if ($check === NULL || $check['state'] !== 'done' || $check['expired']) {
+      return NULL;
+    }
+    $undo = NULL;
+    if ($state['undo'] !== NULL && ($last = $this->modification->lastChange($placement)) !== NULL && (int) $last->id() === $state['undo']) {
+      $undo = [(int) $last->get('from_day')->value, (int) $last->get('from_slot')->value];
+    }
+    $lines = [];
+    foreach ($layout['rows'] as $row) {
+      if ($row['type'] === 'slot') {
+        $lines[$row['number']] = $row['line'];
+      }
+    }
+    $cells = $check['result']['cells'] ?? [];
+    $from = $check['result']['from'];
+    $candidates = array_map(static fn (array $c): array => [$c['day'], $c['slot']], $cells);
+    $cross = $this->conflicts->forCandidates($placement, $candidates, $state['account']);
+    $days = [];
+    $valid = 0;
+    foreach ($cells as $cell) {
+      [$day, $slot] = [(int) $cell['day'], (int) $cell['slot']];
+      if (!isset($lines[$slot])) {
+        continue;
+      }
+      $here = [$day, $slot] === [(int) $from['day'], (int) $from['slot']];
+      $allowed = $cell['ok'] && !$here && ($undo === NULL || [$day, $slot] === $undo);
+      $valid += $allowed ? 1 : 0;
+      $conflicts = $here ? [] : ($cross['cells']["$day.$slot"] ?? []);
+      $days[$day][] = [
+        'day' => $day,
+        'slot' => $slot,
+        'line' => $lines[$slot],
+        'allowed' => $allowed,
+        'here' => $here,
+        'preview' => $state['preview'] === [$day, $slot],
+        'reasons' => match (TRUE) {
+          $here => [(string) $this->t('it is here now')],
+          !$cell['ok'] => array_map(fn (string $r): string => (string) $this->modification->label($r), $cell['reasons']),
+          !$allowed => [(string) $this->t('an undo goes back to where it was')],
+          default => [],
+        },
+        'warnings' => array_map(fn (string $w): string => (string) $this->modification->label($w), $cell['warnings'] ?? []),
+        'cross' => $conflicts === [] ? NULL : (string) $this->conflictView->cellWarning($conflicts),
+        'cross_count' => count($conflicts),
+        'name' => "op_preview_{$day}_{$slot}",
+        'value' => (string) $this->t('Day @day, slot @slot', ['@day' => $day, '@slot' => $slot]),
+      ];
+    }
+    return [
+      'days' => $days,
+      'valid' => $valid,
+      'undo' => $undo !== NULL,
+      'evaluated' => $cross['evaluated'],
+      'reason' => $cross['evaluated'] ? NULL : (string) $this->conflictView->reason($cross['reason']),
+      'activity' => $state['by_id'][$state['sel']]['activity'] ?? '',
     ];
   }
 
@@ -534,14 +656,20 @@ final class PlanWorkspace {
         ]);
       }
     }
-    $actions = [];
-    if ($entity instanceof Placement && $this->modification->isAvailable() && $entity->access('update', $state['account'])) {
-      $actions[] = [
-        'title' => $this->t('Move this activity (opens the move page)'),
-        'url' => Url::fromRoute('ancora_scheduling.placement_move', ['ancora_placement' => $state['sel']]),
-      ];
+    // The move, in place (S1b): the move form of #130 with the workspace
+    // context; it posts to, and returns to, this workspace URL.
+    $move = NULL;
+    if ($state['movable']) {
+      $query = $this->url($state, ['check' => NULL, 'undo' => NULL])->getOption('query');
+      $move = $this->formBuilder->getForm(PlacementMoveForm::class, $state['placement'], [
+        'plan' => (int) $state['plan']->id(),
+        'query' => $query,
+      ]);
+      // The form shows the moves and the undo.
+      $history = [];
     }
     $build += [
+      '#move' => $move,
       '#title' => $p['activity'],
       '#facts' => $facts,
       '#pivots' => [
@@ -552,11 +680,6 @@ final class PlanWorkspace {
       '#cross_text' => $cross_text,
       '#conflicts' => array_map(fn (array $c): TranslatableMarkup => $this->conflictView->conflict($c), $conflicts),
       '#history' => $history,
-      '#actions' => $actions === [] ? NULL : [
-        '#theme' => 'links',
-        '#links' => $actions,
-        '#attributes' => ['class' => ['ancora-inspector__actions']],
-      ],
       '#close_url' => $this->url($state, ['sel' => NULL])->toString(),
     ];
     return $build;

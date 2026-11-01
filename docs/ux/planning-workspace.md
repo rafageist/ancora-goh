@@ -4,6 +4,7 @@
 - The blueprint was merged in PR #140.
 - The maintainer decided amendments A1–A4 on 2026-10-30/31. They are recorded in §4.6, and the text below follows them.
 - **S1a (the read-only workspace, §7.9) was authorized on 2026-10-31 and is implemented: §8.**
+- **S1b (move and undo in place) was authorized on 2026-11-01 and is implemented: §9.** Merge and deployment are not authorized.
 - Every other slice, S1b included, still needs the maintainer's approval first.
 
 **Parents and related issues**
@@ -27,6 +28,7 @@
 6. [Open questions for the maintainer](#6-open-questions-for-the-maintainer)
 7. [S1 refined: one complete scheduling workflow (#141)](#7-s1-refined-one-complete-scheduling-workflow-141)
 8. [Implemented: S1a, the read-only workspace (#141)](#8-implemented-s1a-the-read-only-workspace-141)
+9. [Implemented: S1b, move and undo in place (#141)](#9-implemented-s1b-move-and-undo-in-place-141)
 
 ---
 
@@ -691,7 +693,7 @@ Still open:
 
 ## 7. S1 refined: one complete scheduling workflow (#141)
 
-**Status:** S1a (§7.9) authorized on 2026-10-31 and implemented (§8). S1b is planned and **not authorized**.
+**Status:** S1a (§7.9) was authorized on 2026-10-31 and implemented (§8). S1b was authorized on 2026-11-01 and implemented (§9).
 - It reflects the decisions of §4.6 and the D3 gate of #142.
 - #143 and #144 are context, not prerequisites.
 - #138 (swap) is not part of it.
@@ -1185,3 +1187,145 @@ The three overlap cases were each reproduced before the fix, with region respons
 - Browser: the four `review.spec.js` cases.
 - The 20-transition history test still passes: 0 mismatches, 0 focus misses, 0 axe issues, 0 full loads.
 - The fixture's plan A has a second period, "Week A2", for the period-change case.
+
+---
+
+## 9. Implemented: S1b, move and undo in place (#141)
+
+The maintainer authorized S1b on 2026-11-01. Merge and deployment are not authorized.
+
+S1b completes the §7.1 workflow inside the workspace. It is built on the move of #130:
+- **unchanged:** `PlacementModification` (`requestCheck`, `check`, `commit`, `undo`), the check runner, the worker, the tables and the refusals;
+- **barely changed:** `PlacementMoveForm`, which gains a workspace context and nothing else (§9.1).
+
+There is no new write endpoint, no update hook, no migration and no new dependency.
+
+### 9.1 The flow and its states
+
+| # | Step | Server | What the user sees (with JavaScript) |
+|---|---|---|---|
+| 1 | Select an activity | `?sel` | The inspector embeds the **move form of #130** in a workspace context ("Move this activity"). The editor sees "Find the valid destinations" and the moves with their undo. Readers see the details only. |
+| 2 | **Find the valid destinations** | `requestCheck()`, then a redirect to `…&check=<id>` | Immediate progress. **Queued** ("the destination check waits for the scheduler") or **running**, with the **time waited** counted every second. The regions are polled every second, at most 180 times. Focus moves to the move heading. |
+| 3 | The check is done | `check()` | An **overlay on the canvas** shows: the current cell; each refused cell with its reasons (the check's own labels); and each valid cell as a button, with the scheduler's warnings and the **#133 cross-plan warning per cell** (⚠). An unknown calendar is shown once as **"not evaluated" (◌)**, never as "no conflict". The inspector keeps the same destinations as an accessible **list** (the #130 table of buttons). Focus moves to the list. |
+| 4 | Choose a cell | The form's preview step (a rebuild) | The **preview**: from and to, the warnings, and the cross-plan warnings as a list. The chosen cell is marked on the canvas. Focus moves to "Move here". |
+| 5 | **Move here** | `commit()`, then a redirect to the workspace URL | The canvas, the inspector, the bar (cross-plan count) and the status region refresh in place. The result is **announced** ("Moved it to day 2, slot 2. …") and focus moves to it. The URL keeps period, perspective, record and selection. |
+| 6 | **Undo the last move** | `requestCheck()` with `undo`, then the same steps | Only the origin is offered. The confirm button reads "Move it back here". |
+| — | Refused (`job`, `cell`, `same`, …) | The `PlacementModificationException` message | An alert in the inspector, announced and focused. Nothing moves. |
+| — | **Stale check** (`version`, `placement`, `expired`, `check`) | In the workspace only, a **fresh check is requested at once** | "…changed after the destinations were checked. A new check of the destinations has started." and the progress of the new check. |
+| — | Check failed or expired | `check()` | "The check failed: …" or "That check is too old. Check again." No overlay. |
+| — | A generation run queued or running | As in #130 | Checks are allowed. A move is refused, with the run's id, and the form says so beforehand. |
+
+**Without JavaScript.**
+- Every step is the same form submit. It posts to the workspace URL and redirects back to it, as full pages.
+- A pending check has a "Refresh" link to the same URL.
+- The no-JavaScript path **never leaves the workspace**.
+- The standalone move page (`/ancora/timetables/placements/{id}/move`), reached from the classic timetable and the explorer, is unchanged and still returns to the timetable.
+
+**`PlacementMoveForm`: the whole change.** When the form gets a workspace context (`plan` and the workspace query):
+- every redirect and the "Refresh" link point to the workspace URL with that query;
+- `#action` is the workspace URL of the current step;
+- the form gets a stable id (`ancora-move-form`), so the canvas's destination buttons can belong to it through the HTML `form` attribute;
+- the summary and "Back to the timetable" are left out, because the inspector shows them;
+- the table of destinations does not load the responsive-table script (no jQuery in the workspace).
+
+Two further changes apply in both contexts:
+- a **stale refusal** in the workspace starts a fresh check;
+- the progress text says whether the check is **queued or running**, with the time waited.
+
+One small accessibility fix also applies to the move page: the preview's cross-plan list had `role="note"` on the `<ul>`, which hid its items (axe "listitem"). The note is now its wrapper.
+
+**URL and state.**
+- `?check` and `?undo` join `period`, `lens`, `obj` and `sel` in the URL.
+- `PlanWorkspace::state()` accepts them only as ids, with a selection, and only for an account that may move that placement: a 404 for a forged value, a 403 without the right.
+- A check of another placement is no check: `check()` is keyed by the placement.
+- Changing the selection or the period ends a move. Changing the perspective keeps it.
+- Reload, Back and Forward show the state of their URL. A done check redraws its overlay; a stale one says so.
+
+### 9.2 The submit mechanism: measured, one kept
+
+§7.4 left S1b's submit open: Drupal AJAX (`#ajax` on the form's buttons) or a `fetch` of the same form. Both were run on the same disposable site, on the preview step: 10 runs, the same placement and the same check, alone on the machine.
+
+| | **fetch of the same form (kept)** | Drupal AJAX (`#ajax`, prototype, removed) |
+|---|---|---|
+| Preview step, p50 / max | 408 / 1,002 ms | 371 / 926 ms |
+| Response | 30,344 B: the regions (canvas with the marked cell, inspector, bar) | 4,451 B: the form only |
+| Canvas marks the chosen cell, the bar and the status refresh | **yes** | **no**: only the form is replaced |
+| Works after an in-place load (S1a fetch loader) | **yes** | **no**. `#ajax` needs `drupalSettings.ajax` from page attachments, and the first step after an in-place load fell back to a plain submit. |
+| Check, commit and undo steps | **the form's own redirects**, followed by `fetch`, which returns the regions of the redirect target | Core **disables form redirects** for AJAX requests (`FormBuilder` processForm, `disableRedirect()`), so each of these steps would need a second code path rendering the regions. |
+| JavaScript on the workspace page | **17.9 KB, 1 file** (no jQuery) | + `core/drupal.ajax` and jQuery, about +112 KB (§8.2) |
+| New write API | none: the form's own POST, with its build id and CSRF token | none |
+
+**Choice: the `fetch` of the same form.**
+- It is the only mechanism that works with the S1a loader.
+- It refreshes every region with one rule.
+- It keeps the form's redirect flow, so the form needs no second path.
+- It adds no jQuery.
+
+The AJAX prototype was 37 ms faster at p50 on the preview step, only because it replaced less. The fetch request carries `X-Ancora-Regions: 1`, so the workspace route answers with the regions fragment instead of the full page. The header survives the step's redirect, and the route is not cached. Before the header, the fetch answer was the full page (36 KB) and its p50 was about 930 ms, against 420 ms for AJAX in that same run (a busier machine). With the header, the answer is 30 KB and the p50 is 408 ms, against 371 ms for AJAX in the run alone.
+
+**Concurrency** (the S1a guard, extended to writes).
+- Navigations and polls share a sequence number and abort each other.
+- A form step is never aborted, so its server outcome is always shown.
+- While a step is in flight, other steps and workspace links wait; a double submit is ignored.
+- A navigation (Back or Forward) that arrives during a step supersedes its display.
+- A failed request, or a response that is not the workspace (a lost session, a 403), falls back to a full page load of the current URL, which shows the server's state.
+
+### 9.3 Tests
+
+**Kernel: `PlanWorkspaceTest`.** `?check` and `?undo`: ids, only with a selection, forged values 404; the account may move (`movable`); a move ends with a change of selection or period and survives a change of perspective.
+
+**Functional: `PlanWorkspaceMoveTest`.** No JavaScript, with the check finished by the test.
+- **The whole flow**: the form in the inspector posting to the workspace; queued with the time waited; the overlay (current, refused with reasons, valid, the cross-plan warning per cell, the list); preview; move; the bar's cross-plan count going from 1 to 2 and back; undo offering only the origin.
+- **Refusals**: a generation run queued; a stale check (data changed), which starts a fresh check with its id in the URL; an expired check; a failed check.
+- **Access**: forged `check`; another planner (workspace, regions and move page refused; its own workspace ignores a foreign check id); a reader of another's plan; the viewer; anonymous; a **forged form token** ("The form has become outdated", no check created).
+
+**Browser: `dev/browser/tests/move.spec.js`.** On the disposable site, with the real worker, axe in every state, and screenshots `s1b-*`:
+
+| Case | What it shows |
+|---|---|
+| **T1 (U1)** | Workspace, then teacher TC, A4, find, the overlay with the cross-plan warning at day 2 slot 2, preview, move (bar 1 → 2 overlaps, ⚠ on the block), undo (only the origin; 2 → 1), reload restores. **One full page load.** |
+| **2-slot across the break** | A2 moved to day 5 slot 1 as one block (rows 2–5 with the break), then undone. |
+| **Keyboard only** | Tab to "Find", Enter; focus on the list; Tab to a cell, Enter; focus on "Move here", Enter; focus on the result; undo the same way. |
+| **Narrow** | The drawer at 1024 px; at 390 px the destinations are a list of valid cells, with no horizontal overflow. |
+| **No JavaScript** | The same steps as full pages, with Refresh, inside the workspace. |
+| **Stale** | A move in a second tab makes the first tab's check stale: refused, the message, and a fresh check at once. |
+| **Two users** | The other planner gets 403 on the workspace, the regions, a POST step and the move page; its own workspace ignores the first planner's check id. The viewer and anonymous get 403. A POST without a valid token changes nothing. |
+
+**Regression.** All of the following stay green:
+- the S1a specs (history, review, workspace, latency);
+- every Kernel and Functional test, including #122 (`AssignmentEditorUiTest`, `TemplateAssignmentsTest`), #130 (`PlacementMoveUiTest`, `PlacementModificationTest`) and #133 (`CrossPlanConflict*`);
+- `workspace-journey.sh` step 11 (engine workflow).
+
+### 9.4 Latency in the workspace (measured, not changed)
+
+These numbers come from the final local run of the browser suite, alone on the machine, with the worker at its default 5 s idle sleep. Nothing was changed, and no threshold is set.
+
+**In the workspace (S1b): from the click on "Find the valid destinations" (or "Undo the last move") to the destinations drawn.** The regions are polled every second. There are 9 checks across the browser cases (`move-latency.json`):
+
+| Measure | Time |
+|---|---|
+| p50 | 6.6 s |
+| Minimum | 3.5 s |
+| Maximum | 8.0 s |
+
+**On today's move page:** the same check, polled every 2 s by `placement-move.js`, 20 runs per fixture (`latency.json`):
+
+| Fixture | p50 | p95 | Maximum |
+|---|---|---|---|
+| Cross-plan (#133) | 6.87 s | 9.02 s | 9.03 s |
+| E2E (#130) | 6.80 s | 8.76 s | 8.81 s |
+
+Server part p50 is 5.6 s and 5.9 s respectively.
+
+**What this shows**
+- The wait is still the worker's cycle plus the check (§8.3).
+- The workspace's 1 s poll removes up to 1 s of the client's detection delay.
+- Its progress (queued, then running, with the seconds counted) makes the wait visible from the first moment.
+
+### 9.5 Limits and decisions for the maintainer
+
+- **The destination check's latency** is the worker's cycle plus the check. The default idle sleep of 5 s gives about 6–7 s at p50 (§8.3, §9.4). Changing the worker's idle sleep or cycle is a separate decision, after #143.
+- **The no-JavaScript path stays in the workspace.** The standalone move page still returns to the classic timetable (§9.1). Making it return to a workspace URL would need that context in its link: only the timetable and the explorer link to it now.
+- **Move only.** Swap (#138) and fixing activities are out of scope.
+- **One step at a time.** Links are ignored while a step is in flight, which is usually under 1 s. The busy state shows it.
+- **The canvas's destination buttons** add one tab stop per valid cell. The inspector's list is the compact keyboard path (the T1 keyboard test uses it).

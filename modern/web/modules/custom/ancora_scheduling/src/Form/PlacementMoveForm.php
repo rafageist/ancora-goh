@@ -35,6 +35,15 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
  * The destinations are valid within the period as the scheduler sees it;
  * other plans whose dates overlap are not checked (case 150), and the page
  * says so.
+ *
+ * The planning workspace (#141, S1b) embeds the same form in its inspector,
+ * with a workspace context (the plan and the workspace query): every step
+ * then posts to, and returns to, the workspace URL with its context, so the
+ * no-JavaScript path never leaves the workspace and the workspace script
+ * replaces only the regions. The steps, their validation and the commands
+ * (requestCheck, commit, undo) are the same. Only in the workspace, a check
+ * that a refusal made stale (expired, another input version, a changed
+ * placement, no finished check) is replaced by a fresh one at once.
  */
 final class PlacementMoveForm extends FormBase {
 
@@ -108,7 +117,7 @@ final class PlacementMoveForm extends FormBase {
   /**
    * {@inheritdoc}
    */
-  public function buildForm(array $form, FormStateInterface $form_state, ?Placement $ancora_placement = NULL): array {
+  public function buildForm(array $form, FormStateInterface $form_state, ?Placement $ancora_placement = NULL, ?array $workspace = NULL): array {
     $placement = $ancora_placement;
     $form['#cache']['max-age'] = 0;
     $form['#attributes']['class'][] = 'ancora-move';
@@ -117,6 +126,12 @@ final class PlacementMoveForm extends FormBase {
       return $form;
     }
     $form_state->set('placement', (int) $placement->id());
+    // The workspace context: the plan and the workspace query (#141).
+    if ($workspace !== NULL) {
+      $form_state->set('workspace', $workspace);
+      $form['#id'] = 'ancora-move-form';
+      $form['#attributes']['data-ancora-move-form'] = '';
+    }
     if (!$this->modification->isAvailable()) {
       $form['mode'] = [
         '#markup' => '<p class="ancora-move__unavailable" role="note">' . $this->t('Moving placements is offered in the workspace mode of the engine only. This site runs the two-database mode, in which every run deletes the placements of its scope before it starts, so a move would be lost.') . '</p>',
@@ -129,9 +144,16 @@ final class PlacementMoveForm extends FormBase {
     $undo = $this->undoTarget($placement, (string) $query->get('undo', ''));
     $form_state->set('check', $check === NULL ? NULL : (int) $check['id']);
     $form_state->set('undo', $undo === NULL ? NULL : (int) $undo->id());
+    if ($workspace !== NULL) {
+      // Post to the workspace URL of this step (its check and undo).
+      $form['#action'] = $this->url($placement, array_filter(['check' => $check['id'] ?? NULL, 'undo' => $undo?->id()]), NULL, $form_state)->toString();
+    }
 
     $form['feedback'] = $this->feedback((int) $placement->id());
-    $form['summary'] = $this->summary($placement);
+    if ($workspace === NULL) {
+      // The workspace inspector already says what the activity is.
+      $form['summary'] = $this->summary($placement);
+    }
     $form['note'] = [
       '#markup' => '<p class="ancora-move__note" role="note"><strong>' . $this->t('What is checked:') . '</strong> ' . $this->t('the destinations are valid within this period, as the scheduler sees it: the period, the activity type, the subject and their restrictions, and every activity of the period for the cohorts of the group, the teacher, the room and the other resources. The scheduler does <strong>not</strong> check them against your other plans whose dates overlap: when the dates are known, a teacher or room busy there at the same time is shown as a cross-plan warning, which does not block the move.') . '</p>',
     ];
@@ -146,6 +168,7 @@ final class PlacementMoveForm extends FormBase {
       $form['actions']['check'] = $this->button($this->t('Find the valid destinations'), 'check');
     }
     elseif (in_array($check['state'], ['queued', 'running'], TRUE)) {
+      $elapsed = max(0, (int) $this->getRequest()->server->get('REQUEST_TIME') - (int) $check['created']);
       $form['pending'] = [
         '#type' => 'container',
         '#attributes' => [
@@ -153,12 +176,19 @@ final class PlacementMoveForm extends FormBase {
           'role' => 'status',
           'aria-busy' => 'true',
           'data-ancora-check-pending' => $check['id'],
+          'data-ancora-check-state' => $check['state'],
         ],
-        'text' => ['#markup' => '<p>' . $this->t('Checking the destinations with the scheduler… This usually takes a few seconds.') . '</p>'],
+        'text' => [
+          '#markup' => '<p>' . ($check['state'] === 'queued'
+            ? $this->t('Queued: the destination check waits for the scheduler.')
+            : $this->t('Checking the destinations with the scheduler…'))
+          . ' <span class="ancora-move__elapsed" data-ancora-elapsed="' . $elapsed . '">' . $this->t('@s s', ['@s' => $elapsed]) . '</span> '
+          . $this->t('This usually takes a few seconds.') . '</p>',
+        ],
         'refresh' => [
           '#type' => 'link',
           '#title' => $this->t('Refresh'),
-          '#url' => $this->url($placement, ['check' => $check['id']] + ($undo ? ['undo' => $undo->id()] : [])),
+          '#url' => $this->url($placement, ['check' => $check['id']] + ($undo ? ['undo' => $undo->id()] : []), NULL, $form_state),
           '#attributes' => ['class' => ['button']],
         ],
       ];
@@ -176,16 +206,23 @@ final class PlacementMoveForm extends FormBase {
     }
     else {
       $form['grid'] = $this->grid($placement, $check, $undo);
+      // In the workspace the canvas is the wide view: no responsive table
+      // script (and no jQuery) for the list of destinations.
+      if ($workspace !== NULL) {
+        $form['grid']['table']['#responsive'] = FALSE;
+      }
     }
 
     $form['history'] = $this->history($placement);
-    $form['back'] = [
-      '#type' => 'link',
-      '#title' => $this->t('Back to the timetable'),
-      '#url' => Url::fromRoute('ancora_scheduling.timetable', ['ancora_plan' => $placement->get('plan')->target_id], ['query' => ['period' => $placement->get('period')->target_id]]),
-      '#prefix' => '<p>',
-      '#suffix' => '</p>',
-    ];
+    if ($workspace === NULL) {
+      $form['back'] = [
+        '#type' => 'link',
+        '#title' => $this->t('Back to the timetable'),
+        '#url' => Url::fromRoute('ancora_scheduling.timetable', ['ancora_plan' => $placement->get('plan')->target_id], ['query' => ['period' => $placement->get('period')->target_id]]),
+        '#prefix' => '<p>',
+        '#suffix' => '</p>',
+      ];
+    }
     return $form;
   }
 
@@ -208,7 +245,7 @@ final class PlacementMoveForm extends FormBase {
           if ($op[0] === 'undo' && ($last = $this->modification->lastChange($placement)) !== NULL) {
             $query['undo'] = $last->id();
           }
-          $form_state->setRedirectUrl($this->url($placement, $query));
+          $form_state->setRedirectUrl($this->url($placement, $query, NULL, $form_state));
           return;
 
         case 'preview':
@@ -217,7 +254,7 @@ final class PlacementMoveForm extends FormBase {
           return;
 
         case 'cancel':
-          $form_state->setRedirectUrl($this->url($placement, ['check' => $form_state->get('check')] + ($undo ? ['undo' => $undo->id()] : []), 'ancora-move-grid'));
+          $form_state->setRedirectUrl($this->url($placement, ['check' => $form_state->get('check')] + ($undo ? ['undo' => $undo->id()] : []), 'ancora-move-grid', $form_state));
           return;
 
         case 'commit':
@@ -236,16 +273,33 @@ final class PlacementMoveForm extends FormBase {
               ])),
             'change' => (int) $change->id(),
           ]);
-          $form_state->setRedirectUrl($this->url($placement, [], 'ancora-move-feedback'));
+          $form_state->setRedirectUrl($this->url($placement, [], 'ancora-move-feedback', $form_state));
           return;
       }
     }
     catch (PlacementModificationException $e) {
+      $message = (string) $this->modification->message($e);
+      $query = $form_state->get('check') ? ['check' => $form_state->get('check')] : [];
+      // In the workspace, a stale check is replaced by a fresh one at once
+      // (#141): the refusal says why, and the new check is already running.
+      if ($form_state->get('workspace') !== NULL && in_array($e->reason, ['check', 'expired', 'version', 'placement'], TRUE)) {
+        try {
+          $query = ['check' => $this->modification->requestCheck($placement, $this->currentUser())];
+          if ($undo !== NULL && ($last = $this->modification->lastChange($placement)) !== NULL && (int) $last->id() === (int) $undo->id()) {
+            $query['undo'] = $undo->id();
+          }
+          $message .= ' ' . $this->t('A new check of the destinations has started.');
+        }
+        catch (PlacementModificationException $again) {
+          $message .= ' ' . $this->modification->message($again);
+          $query = [];
+        }
+      }
       $this->store()->set('feedback:' . $placement->id(), [
         'type' => 'error',
-        'message' => (string) $this->modification->message($e),
+        'message' => $message,
       ]);
-      $form_state->setRedirectUrl($this->url($placement, $form_state->get('check') ? ['check' => $form_state->get('check')] : [], 'ancora-move-feedback'));
+      $form_state->setRedirectUrl($this->url($placement, $query, 'ancora-move-feedback', $form_state));
     }
   }
 
@@ -409,7 +463,10 @@ final class PlacementMoveForm extends FormBase {
         '#theme' => 'item_list',
         '#title' => $this->t('Cross-plan warnings (the move is still allowed)'),
         '#items' => array_map(fn (array $c): array => ['#markup' => (string) $this->conflictView->conflict($c)], $conflicts),
-        '#attributes' => ['class' => ['ancora-move__cross-plan-list'], 'role' => 'note'],
+        '#attributes' => ['class' => ['ancora-move__cross-plan-list']],
+        // The note is the list's wrapper: a role on the list itself would
+        // hide its items from assistive technology (axe "listitem").
+        '#wrapper_attributes' => ['role' => 'note'],
       ],
       'scope' => [
         '#markup' => '<p>' . ($cross['evaluated']
@@ -499,13 +556,23 @@ final class PlacementMoveForm extends FormBase {
   }
 
   /**
-   * The move page with a query and a fragment.
+   * The move page, or the workspace, with a query and a fragment.
+   *
+   * In the workspace context, the workspace URL of the same plan with its
+   * query (period, perspective, record, selection), then the step's.
    */
-  private function url(Placement $placement, array $query = [], ?string $fragment = NULL): Url {
-    $options = ['query' => array_filter($query, static fn ($v): bool => $v !== NULL)];
+  private function url(Placement $placement, array $query = [], ?string $fragment = NULL, ?FormStateInterface $form_state = NULL): Url {
+    $query = array_filter($query, static fn ($v): bool => $v !== NULL);
+    $workspace = $form_state?->get('workspace');
+    $options = [];
     if ($fragment !== NULL) {
       $options['fragment'] = $fragment;
     }
+    if (is_array($workspace)) {
+      $options['query'] = $workspace['query'] + $query;
+      return Url::fromRoute('ancora_scheduling.plan_workspace', ['ancora_plan' => $workspace['plan']], $options);
+    }
+    $options['query'] = $query;
     return Url::fromRoute('ancora_scheduling.placement_move', ['ancora_placement' => $placement->id()], $options);
   }
 

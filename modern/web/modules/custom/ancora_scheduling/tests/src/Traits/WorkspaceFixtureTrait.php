@@ -27,7 +27,8 @@ use Drupal\ancora_scheduling\ScopeMapper;
  * - A2: Lab (2 slots), Group GA2, TA, L2, day 1 slots 1-2, across the break
  *   (08:00-09:30, break 09:30-10:00, 10:00-11:30);
  * - A3: Workshop (3 slots), Group GA3, TB, L1, day 3 slots 3-5;
- * - A4: Lecture, Group GA1, TC, L2, day 4 slot 1.
+ * - A4: Lecture, Group GA4, TC, L2, day 4 slot 1 (moved to day 2 slot 2,
+ *   its room L2 would meet B1's: a cross-plan warning per cell, S1b).
  * Plan U: U1, Lecture, Group GU1, TA, L1, day 2 slot 2; U2, Lab, Group GU2,
  * TB, L2, day 1 slots 1-2. Every scope has a succeeded run.
  *
@@ -86,6 +87,15 @@ trait WorkspaceFixtureTrait {
       'level' => $r['N']->id(),
       'enrollment' => 20,
     ]);
+    // A second cohort: a cohort is in one group per activity type of a plan
+    // (D6), and GA4 is a second lecture group of plan A.
+    $r['B2'] = $make('ancora_cohort', $own + [
+      'label' => 'Cohort 2',
+      'code' => "{$prefix}B2",
+      'specialty' => $r['E']->id(),
+      'level' => $r['N']->id(),
+      'enrollment' => 20,
+    ]);
     $plans = [
       'A' => ['Autumn A', '2026-09-07', '2026-09-20', 8, 1.5, [1, 8], [1 => 0.5]],
       'B' => ['Intensive B', '2026-09-14', '2026-09-18', 8.5, 1, [1], []],
@@ -134,7 +144,7 @@ trait WorkspaceFixtureTrait {
       'A1' => ['A', 'C1', 'GA1', 'TA', 'L1', 2, 2],
       'A2' => ['A', 'C2', 'GA2', 'TA', 'L2', 1, 1],
       'A3' => ['A', 'C3', 'GA3', 'TB', 'L1', 3, 3],
-      'A4' => ['A', 'C1', 'GA1', 'TC', 'L2', 4, 1],
+      'A4' => ['A', 'C1', 'GA4', 'TC', 'L2', 4, 1],
       'B1' => ['B', 'C1', 'GB1', 'TA', 'L2', 2, 2],
       'U1' => ['U', 'C1', 'GU1', 'TA', 'L1', 2, 2],
       'U2' => ['U', 'C2', 'GU2', 'TB', 'L2', 1, 1],
@@ -148,7 +158,7 @@ trait WorkspaceFixtureTrait {
           'specialty' => $r['E']->id(),
           'level' => $r['N']->id(),
           'activity_type' => $r[$type]->id(),
-          'cohorts' => [$r['B']->id()],
+          'cohorts' => [$r[$group === 'GA4' ? 'B2' : 'B']->id()],
         ]);
       }
       $template = $make('ancora_activity_template', [

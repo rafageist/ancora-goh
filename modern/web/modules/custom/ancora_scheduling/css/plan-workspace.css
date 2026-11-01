@@ -390,6 +390,90 @@
   font-weight: 700;
 }
 
+/* The move in progress (S1b): the destination overlay on the canvas. */
+.ancora-canvas__moving {
+  margin-block-end: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  border-inline-start: 4px solid var(--ancora-accent);
+  border-radius: var(--ancora-radius);
+  background: var(--ancora-surface);
+  font-size: 0.875rem;
+}
+
+.ancora-canvas__moving p {
+  margin: 0.15rem 0;
+}
+
+.ancora-dest {
+  z-index: 3;
+  display: flex;
+  overflow: hidden;
+  flex-direction: column;
+  justify-content: flex-end;
+  margin: 2px;
+  padding: 0.2rem 0.35rem;
+  text-align: start;
+  font: inherit;
+  font-size: 0.75rem;
+  border-radius: var(--ancora-radius);
+  grid-column: 1 / -1;
+  grid-row: var(--r1);
+  gap: 0.1rem;
+}
+
+.ancora-dest.is-valid {
+  cursor: pointer;
+  color: var(--ancora-ink);
+  border: 2px dashed #2e7d32;
+  background: rgb(46 125 50 / 12%);
+}
+
+.ancora-dest.is-valid:hover,
+.ancora-dest.is-valid:focus-visible {
+  border-style: solid;
+  outline: 3px solid var(--ancora-accent);
+  outline-offset: 1px;
+  background: rgb(46 125 50 / 22%);
+}
+
+.ancora-dest.is-valid.has-warning {
+  border-color: var(--ancora-ws-warning);
+}
+
+.ancora-dest.is-preview {
+  border-style: solid;
+  box-shadow: 0 0 0 3px var(--ancora-ws-selected);
+}
+
+.ancora-dest.is-refused {
+  pointer-events: none;
+  color: var(--ancora-muted);
+  background: rgb(164 38 44 / 6%);
+}
+
+.ancora-dest.is-here {
+  color: var(--ancora-ink);
+  outline: 2px solid var(--ancora-ws-selected);
+  background: transparent;
+}
+
+.ancora-dest__label {
+  font-weight: 700;
+}
+
+.ancora-dest__cross {
+  color: var(--ancora-ws-warning);
+  font-weight: 600;
+}
+
+.ancora-inspector__move .ancora-move__grid-wrapper {
+  overflow-x: auto;
+}
+
+.ancora-move__elapsed {
+  font-variant-numeric: tabular-nums;
+}
+
 /* The inspector. */
 .ancora-inspector {
   padding: 0.75rem 1rem;
@@ -523,5 +607,15 @@
   .ancora-block {
     display: block;
     margin: 0.4rem 0;
+  }
+
+  /* The list alternative of the destinations: the valid cells only. */
+  .ancora-dest.is-valid {
+    width: 100%;
+    margin: 0.3rem 0;
+  }
+
+  .ancora-dest.is-refused {
+    display: none;
   }
 }

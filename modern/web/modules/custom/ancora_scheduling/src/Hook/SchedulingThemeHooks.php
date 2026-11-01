@@ -82,6 +82,7 @@ final class SchedulingThemeHooks {
       'ancora_workspace_canvas' => [
         'variables' => [
           'heading' => NULL,
+          'overlay' => NULL,
           'empty' => FALSE,
           'message' => NULL,
           'rows' => [],
@@ -101,7 +102,7 @@ final class SchedulingThemeHooks {
           'cross_text' => NULL,
           'conflicts' => [],
           'history' => [],
-          'actions' => NULL,
+          'move' => NULL,
           'close_url' => NULL,
         ],
       ],

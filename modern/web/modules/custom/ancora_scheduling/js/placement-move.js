@@ -12,6 +12,10 @@
   Drupal.behaviors.ancoraPlacementMove = {
     attach(context) {
       once('ancora-move-pending', '[data-ancora-check-pending]', context).forEach((pending) => {
+        // In the planning workspace, its script polls the regions instead.
+        if (pending.closest('[data-ancora-workspace]')) {
+          return;
+        }
         const key = `ancora-move-poll-${pending.dataset.ancoraCheckPending}`;
         let tries = 0;
         try {

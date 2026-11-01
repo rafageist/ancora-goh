@@ -16,8 +16,10 @@
  * - cross_text: The cross-plan state of the activity, when it has no
  *   warning to list (not evaluated, or no overlap).
  * - conflicts: Its cross-plan warnings, as sentences.
- * - history: Its moves by hand, newest first.
- * - actions: The move page link, for those who may move it.
+ * - history: Its moves by hand, newest first (when it cannot be moved here).
+ * - move: The move form of #130 in the workspace context (S1b): find the
+ *   destinations, progress, preview, move, the moves and the undo. Only for
+ *   those who may move it.
  * - close_url: The URL without the selection.
  */
 #}
@@ -52,15 +54,21 @@
       </ul>
       <p class="ancora-inspector__note">{{ 'Warnings only: the scheduler checks each period on its own, and nothing is blocked.'|t }}</p>
     {% endif %}
-    <h3>{{ 'Moves by hand'|t }}</h3>
-    {% if history %}
-      <ul class="ancora-inspector__history">
-        {% for item in history %}<li>{{ item }}</li>{% endfor %}
-      </ul>
+    {% if move %}
+      <section class="ancora-inspector__move" aria-labelledby="ancora-inspector-move-title">
+        <h3 id="ancora-inspector-move-title" tabindex="-1">{{ 'Move this activity'|t }}</h3>
+        {{ move }}
+      </section>
     {% else %}
-      <p>{{ 'It was not moved by hand: it is where the scheduler placed it.'|t }}</p>
+      <h3>{{ 'Moves by hand'|t }}</h3>
+      {% if history %}
+        <ul class="ancora-inspector__history">
+          {% for item in history %}<li>{{ item }}</li>{% endfor %}
+        </ul>
+      {% else %}
+        <p>{{ 'It was not moved by hand: it is where the scheduler placed it.'|t }}</p>
+      {% endif %}
     {% endif %}
-    {{ actions }}
   {% else %}
     <p class="ancora-inspector__hint">{{ hint }}</p>
     {{ summary }}
