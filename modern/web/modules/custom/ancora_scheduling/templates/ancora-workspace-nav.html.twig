@@ -1,0 +1,40 @@
+{#
+/**
+ * @file
+ * The perspectives of the planning workspace and the records of the
+ * current one (#141).
+ *
+ * Available variables:
+ * - lenses: Each perspective: lens, label, url, current.
+ * - lens_label: The current perspective's label.
+ * - records: The records of the current perspective: label, count, url,
+ *   current.
+ * - all: TRUE in the "all activities" perspective (no record list).
+ */
+#}
+<nav class="ancora-wsnav" data-ancora-region="nav" id="ancora-workspace-nav" aria-labelledby="ancora-wsnav-title">
+  <h2 class="ancora-wsnav__title" id="ancora-wsnav-title">{{ 'Perspective'|t }}</h2>
+  <ul class="ancora-wsnav__lenses">
+    {% for item in lenses %}
+      <li><a href="{{ item.url }}" data-ancora-nav="lens"{% if item.current %} aria-current="page" class="is-current"{% endif %}>{{ item.label }}</a></li>
+    {% endfor %}
+  </ul>
+  {% if not all %}
+    <div class="ancora-wsnav__records">
+      <h3 class="ancora-wsnav__subtitle" id="ancora-wsnav-records">{{ lens_label }}</h3>
+      <label class="ancora-wsnav__filter" data-ancora-filter hidden>
+        <span>{{ 'Filter the list'|t }}</span>
+        <input type="search" autocomplete="off" aria-controls="ancora-wsnav-list">
+      </label>
+      {% if records %}
+        <ul class="ancora-wsnav__list" id="ancora-wsnav-list" aria-labelledby="ancora-wsnav-records">
+          {% for item in records %}
+            <li><a href="{{ item.url }}" data-ancora-nav="record"{% if item.current %} aria-current="page" class="is-current"{% endif %}>{{ item.label }} <span class="ancora-wsnav__count">{{ item.count }}</span></a></li>
+          {% endfor %}
+        </ul>
+      {% else %}
+        <p>{{ 'Nothing to list.'|t }}</p>
+      {% endif %}
+    </div>
+  {% endif %}
+</nav>

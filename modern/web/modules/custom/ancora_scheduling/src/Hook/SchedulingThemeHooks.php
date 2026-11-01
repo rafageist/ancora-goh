@@ -40,12 +40,69 @@ final class SchedulingThemeHooks {
       ],
       'ancora_workspace_landing' => [
         'variables' => [
+          'resume' => NULL,
           'plans' => NULL,
           'create' => NULL,
           'getting_started' => NULL,
           'catalogues' => [],
           'quick_links' => NULL,
           'runs' => NULL,
+        ],
+      ],
+      // The integrated planning workspace (#141): the page and its regions.
+      'ancora_plan_workspace' => [
+        'variables' => [
+          'bar' => NULL,
+          'nav' => NULL,
+          'canvas' => NULL,
+          'inspector' => NULL,
+          'regions_url' => NULL,
+          'status' => NULL,
+        ],
+      ],
+      'ancora_workspace_bar' => [
+        'variables' => [
+          'plan' => NULL,
+          'plans' => [],
+          'period' => NULL,
+          'periods' => [],
+          'scopes' => [],
+          'cross' => [],
+          'links' => NULL,
+        ],
+      ],
+      'ancora_workspace_nav' => [
+        'variables' => [
+          'lenses' => [],
+          'lens_label' => NULL,
+          'records' => [],
+          'all' => TRUE,
+        ],
+      ],
+      'ancora_workspace_canvas' => [
+        'variables' => [
+          'heading' => NULL,
+          'empty' => FALSE,
+          'message' => NULL,
+          'rows' => [],
+          'days' => [],
+          'template' => 'auto',
+          'status' => NULL,
+        ],
+      ],
+      'ancora_workspace_inspector' => [
+        'variables' => [
+          'selected' => FALSE,
+          'title' => NULL,
+          'hint' => NULL,
+          'summary' => NULL,
+          'facts' => [],
+          'pivots' => NULL,
+          'cross_text' => NULL,
+          'conflicts' => [],
+          'history' => [],
+          'actions' => NULL,
+          'close_url' => NULL,
         ],
       ],
       'ancora_workspace_plan' => [
@@ -59,6 +116,18 @@ final class SchedulingThemeHooks {
         ],
       ],
     ];
+  }
+
+  /**
+   * Implements hook_preprocess_HOOK() for html.
+   *
+   * The planning workspace (#141) uses the full width of the window.
+   */
+  #[Hook('preprocess_html')]
+  public function preprocessHtml(array &$variables): void {
+    if (\Drupal::routeMatch()->getRouteName() === 'ancora_scheduling.plan_workspace') {
+      $variables['attributes']['class'][] = 'ancora-is-workspace';
+    }
   }
 
   /**

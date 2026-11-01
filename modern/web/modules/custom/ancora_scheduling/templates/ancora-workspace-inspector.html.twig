@@ -1,0 +1,68 @@
+{#
+/**
+ * @file
+ * The contextual inspector of the planning workspace (#141): read-only.
+ *
+ * Beside the canvas on a wide screen; an accessible drawer on a narrow one
+ * (with the workspace script; without it, below the canvas).
+ *
+ * Available variables:
+ * - selected: TRUE when an activity is selected.
+ * - title: The activity, or the period summary title.
+ * - hint: What to do when nothing is selected.
+ * - summary: The period's cross-plan section (nothing selected).
+ * - facts: Label/value pairs of the selected activity.
+ * - pivots: Links to the same activity in each perspective.
+ * - cross_text: The cross-plan state of the activity, when it has no
+ *   warning to list (not evaluated, or no overlap).
+ * - conflicts: Its cross-plan warnings, as sentences.
+ * - history: Its moves by hand, newest first.
+ * - actions: The move page link, for those who may move it.
+ * - close_url: The URL without the selection.
+ */
+#}
+<aside class="ancora-inspector{{ selected ? ' has-selection' }}" data-ancora-region="inspector" id="ancora-workspace-inspector" aria-labelledby="ancora-inspector-title">
+  <div class="ancora-inspector__head">
+    <h2 class="ancora-inspector__title" id="ancora-inspector-title" tabindex="-1">
+      {% if selected %}<span class="ancora-inspector__kicker">{{ 'Selected activity'|t }}</span>{% endif %}
+      {{ title }}
+    </h2>
+    {% if selected %}
+      <a class="ancora-inspector__close" href="{{ close_url }}" data-ancora-nav="close">{{ 'Close'|t }}<span class="visually-hidden"> {{ 'the selected activity'|t }}</span></a>
+    {% endif %}
+  </div>
+  {% if selected %}
+    <dl class="ancora-inspector__facts">
+      {% for fact in facts %}
+        <dt>{{ fact.0 }}</dt>
+        <dd>{{ fact.1 }}</dd>
+      {% endfor %}
+    </dl>
+    <h3>{{ 'In each perspective'|t }}</h3>
+    {{ pivots }}
+    <h3>{{ 'Cross-plan conflicts'|t }}</h3>
+    {% if cross_text %}
+      <p class="ancora-inspector__cross">{{ cross_text }}</p>
+    {% endif %}
+    {% if conflicts %}
+      <ul class="ancora-inspector__conflicts">
+        {% for item in conflicts %}
+          <li><span aria-hidden="true">⚠</span> {{ item }}</li>
+        {% endfor %}
+      </ul>
+      <p class="ancora-inspector__note">{{ 'Warnings only: the scheduler checks each period on its own, and nothing is blocked.'|t }}</p>
+    {% endif %}
+    <h3>{{ 'Moves by hand'|t }}</h3>
+    {% if history %}
+      <ul class="ancora-inspector__history">
+        {% for item in history %}<li>{{ item }}</li>{% endfor %}
+      </ul>
+    {% else %}
+      <p>{{ 'It was not moved by hand: it is where the scheduler placed it.'|t }}</p>
+    {% endif %}
+    {{ actions }}
+  {% else %}
+    <p class="ancora-inspector__hint">{{ hint }}</p>
+    {{ summary }}
+  {% endif %}
+</aside>

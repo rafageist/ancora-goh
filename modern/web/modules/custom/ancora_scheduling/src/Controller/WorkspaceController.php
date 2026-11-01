@@ -114,6 +114,11 @@ final class WorkspaceController extends ControllerBase {
         '#rows' => $rows,
         '#attributes' => ['class' => ['ancora-workspace__plans']],
       ],
+      // "Resume <last plan>" (#141): per request, revalidated.
+      '#resume' => [
+        '#lazy_builder' => ['ancora_scheduling.workspace_resume:build', []],
+        '#create_placeholder' => TRUE,
+      ],
       '#create' => $create,
       '#getting_started' => $rows === [] ? $this->gettingStarted() : NULL,
       '#catalogues' => $this->catalogueCounts($cache),
@@ -153,6 +158,10 @@ final class WorkspaceController extends ControllerBase {
     if ($request->access()) {
       $actions[] = ['title' => $this->t('Request a timetable'), 'url' => $request];
     }
+    $actions[] = [
+      'title' => $this->t('Open the workspace'),
+      'url' => Url::fromRoute('ancora_scheduling.plan_workspace', ['ancora_plan' => $plan->id()]),
+    ];
     $timetable = Url::fromRoute('ancora_scheduling.timetable', ['ancora_plan' => $plan->id()]);
     $actions[] = ['title' => $this->t('View timetable'), 'url' => $timetable];
 
@@ -421,6 +430,11 @@ final class WorkspaceController extends ControllerBase {
         'title' => $this->t('Open'),
         'url' => Url::fromRoute('ancora_scheduling.plan', ['ancora_plan' => $plan->id()]),
         'attributes' => ['aria-label' => $this->t('Open plan @plan', ['@plan' => $plan->label()])],
+      ],
+      'workspace' => [
+        'title' => $this->t('Workspace'),
+        'url' => Url::fromRoute('ancora_scheduling.plan_workspace', ['ancora_plan' => $plan->id()]),
+        'attributes' => ['aria-label' => $this->t('Planning workspace of @plan', ['@plan' => $plan->label()])],
       ],
       'timetable' => [
         'title' => $this->t('Timetable'),

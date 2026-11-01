@@ -5,6 +5,7 @@
  * and recent runs; a getting-started path when the user has no plan.
  *
  * Available variables:
+ * - resume: The "Resume <last plan>" action (a placeholder; may be empty).
  * - plans: A table of the user's plans, or NULL when there is none.
  * - create: A "Create a plan" link, or NULL without permission.
  * - getting_started: The ordered first steps (only without plans), or NULL.
@@ -14,6 +15,7 @@
  */
 #}
 <div class="ancora-workspace">
+  {{ resume }}
   <section class="ancora-workspace__section" aria-labelledby="ancora-workspace-plans">
     <h2 id="ancora-workspace-plans">{{ 'Your plans'|t }}</h2>
     {% if plans %}

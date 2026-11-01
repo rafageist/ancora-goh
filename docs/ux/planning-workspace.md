@@ -1,9 +1,10 @@
 # Integrated planning workspace: audit, blueprint and frontend decision (#139)
 
-**Status: design only.** Nothing here is authorized for implementation.
+**Status.**
 - The blueprint was merged in PR #140.
 - The maintainer decided amendments A1–A4 on 2026-10-30/31. They are recorded in §4.6, and the text below follows them.
-- Each slice in §5 still needs the maintainer's approval first. The refined first slice is §7 and the pilot issue #141, which is **not authorized**.
+- **S1a (the read-only workspace, §7.9) was authorized on 2026-10-31 and is implemented: §8.**
+- Every other slice, S1b included, still needs the maintainer's approval first.
 
 **Parents and related issues**
 - Parents: #74 (Drupal UI), #66 (architecture), and #142 (product vision and GOH scope, D3 "rich web experience").
@@ -25,6 +26,7 @@
 5. [Roadmap: vertical slices, dependencies, risks, acceptance](#5-roadmap)
 6. [Open questions for the maintainer](#6-open-questions-for-the-maintainer)
 7. [S1 refined: one complete scheduling workflow (#141)](#7-s1-refined-one-complete-scheduling-workflow-141)
+8. [Implemented: S1a, the read-only workspace (#141)](#8-implemented-s1a-the-read-only-workspace-141)
 
 ---
 
@@ -578,7 +580,7 @@ The request is the existing `RequestRunForm` with the same validation. The statu
 
 - **Writes**
   - Every write stays a Drupal form submit with its form token. There are no new write endpoints.
-  - Partial endpoints are **GET, read-only**.
+  - Partial endpoints are **GET** and write no academic or scheduling data. In S1a they record one per-user preference, the "Resume" context (§8.1).
 - **Access**
   - Partial routes declare the same `_permission`, `_custom_access` and entity access as the pages they compose.
   - A partial never returns data that the full page would not show to that user.
@@ -663,7 +665,7 @@ The criteria below are measured by a Playwright journey test on a **disposable f
 | U7 | Server time of a perspective-switch partial, and destination-check latency (queue wait plus run, §7.7) | **Measured and reported**; threshold set afterwards | n/a |
 | U8 | Horizontal page overflow at 390 px | 0 px | 0 px |
 | U9 | Frontend dependencies and build | **Each dependency and any build step justified in the PR; no unused framework** (A1) | 2 scripts, no dependencies, no build |
-| U10 | Visual consistency: every workspace region is an SDC component (or the chosen inspector container); no inline styles | 100 % | n/a |
+| U10 | Visual consistency: every workspace region is an SDC component (or the chosen inspector container); no inline presentation rules. **Accepted exception:** dynamic layout values (the canvas's grid geometry) set as CSS custom properties on the element | 100 % | n/a |
 | U11 | Security parity: every access, refusal and CSRF test of #122, #130 and #133 still passes. New partial routes have 403/404 tests for viewer, anonymous and another owner. | Pass | Pass |
 | U12 | Multi-slot truth: on a fixture with 2- and 3-slot activities, one of them crossing a break, each is one block in every perspective, the break is visible, and the occupied slots match the engine's occupancy | Pass | Fails (repeated cards, no break) |
 | U13 | Cross-plan visibility: on the #133 fixture, the warning appears on the block, in the inspector and in the move overlay. On a period with unknown dates, "not evaluated" appears in all three. | Pass | Bottom section only |
@@ -689,7 +691,7 @@ Still open:
 
 ## 7. S1 refined: one complete scheduling workflow (#141)
 
-**Status:** planned and **not authorized** (#141 keeps the maintainer's hold).
+**Status:** S1a (§7.9) authorized on 2026-10-31 and implemented (§8). S1b is planned and **not authorized**.
 - It reflects the decisions of §4.6 and the D3 gate of #142.
 - #143 and #144 are context, not prerequisites.
 - #138 (swap) is not part of it.
@@ -741,7 +743,7 @@ S1 delivers one workflow end to end, and nothing it does not need. The **URL** c
 
 ### 7.3 Component boundaries
 
-**Regions.** Each region is server-rendered, with one partial endpoint each. All of them are GET and read-only.
+**Regions.** Each region is server-rendered, with one partial endpoint each. All of them are GET and write no academic or scheduling data (S1a: one regions endpoint, which records only the per-user "Resume" preference, §8.1).
 
 | Region | Source (existing) | Partial | Re-rendered after |
 |---|---|---|---|
@@ -912,7 +914,7 @@ The workflow of §7.1 passes in Playwright on the disposable fixture, with JavaS
 | U6 | No-JS fallback for every write | Pass |
 | U7 | Latency report (§7.7) | Delivered; no threshold |
 | U9 | Dependencies and build | Justified in the PR; no unused framework |
-| U10 | Visual consistency | Pass |
+| U10 | Visual consistency (custom-property geometry is the accepted exception) | Pass |
 | U11 | Security parity and the access table of §7.6 | Pass |
 | U12 | Multi-slot blocks and breaks | Pass |
 | U13 | Cross-plan in canvas, inspector and overlay, including "not evaluated" | Pass |
@@ -934,3 +936,252 @@ The workflow of §7.1 passes in Playwright on the disposable fixture, with JavaS
 **It writes nothing**, so it carries no CSRF or domain risk, and it settles the frontend question before any write is wrapped.
 
 **S1b** then adds move and undo in place with progress feedback, completing §7.1.
+
+---
+
+## 8. Implemented: S1a, the read-only workspace (#141)
+
+The maintainer authorized S1a on 2026-10-31. It is the read-only slice of §7.9.
+
+**"Read-only" here means no academic or scheduling writes.**
+- The workspace never writes a plan, period, placement, run, check or any other academic or scheduling record.
+- Its GET requests are **not** free of side effects: both the page and the regions endpoint record one per-user preference, the "Resume" context (§8.1).
+
+**What S1a does not do**
+- No in-place move or undo. That is S1b, and the "1 page load" move journey (U1 for the move workflow) is an S1b criterion, not claimed here.
+- No #138 (swap), no scheduler change, no ERP function and no deployment.
+- The only persistence change is the "Resume" record in Drupal's `user.data`. No academic or scheduling data is modified and there is no schema change.
+
+### 8.1 Routes and regions
+
+| Route | Path | Access | Cache |
+|---|---|---|---|
+| `ancora_scheduling.plan_workspace` | `/ancora/planning/{plan}/workspace?period&lens&obj&sel` | The plan timetable's: `view academic data` and view access to the plan | `no_cache`: it records "Resume" |
+| `ancora_scheduling.plan_workspace.regions` | `…/workspace/regions?…` (GET only) | The same | max-age 0: it records "Resume" too. It still carries the regions' metadata: `user`, `user.permissions`, `url.query_args`, the list tags of the academic records, placements, moves and runs, and the cross-plan tags |
+
+**Validating the URL state.** `PlanWorkspace::state()` validates every query value against what the plan offers.
+- **`period`**: one of the plan's periods. The default is the first by code.
+- **`lens`**: `all`, `teacher`, `group` or `room`.
+- **`obj`**: a record offered for that lens:
+  - teachers and rooms are the plan owner's, plus any that the period's placements use;
+  - groups are the plan's.
+- **`sel`**: a placement of this plan and period that the timetable shows.
+
+Anything else is a **404**: a foreign or forged id, an array, or a record without a lens. Another owner's plan is a **403** from entity access.
+
+**Regions.** Each is a theme hook and a Twig template with `[data-ancora-region]`.
+
+| Region | Template | Built from |
+|---|---|---|
+| Context bar | `ancora-workspace-bar` | Plan, period links, the publication state of each scope (`TimetableReader`), and the cross-plan state (`CrossPlanConflictDetector::forPlan()`): count, none, or "not evaluated" with its reason |
+| Perspectives and records | `ancora-workspace-nav` | `LENSES`, plus the offered records with their activity counts. A text filter is shown only with the script. |
+| Canvas | `ancora-workspace-canvas` | `CanvasLayout` (below) and per-block markers: ✎ moved by hand, ⚠ *n* warnings, ◌ not evaluated. Every marker has text. |
+| Inspector | `ancora-workspace-inspector` | The selected placement's details, its occupancy, the break inside it, the "each perspective" pivots, its cross-plan warnings or "not evaluated", and its moves by hand (#130 history). For editors, there is a link to today's move page. Nothing in it writes. With nothing selected, it shows the period's cross-plan section. |
+
+**Multi-slot blocks.** `CanvasLayout::build()` draws one row per slot, plus one row per break between two slots.
+- A placement is **one block**, from its first slot to its last. A break inside it is drawn inside the block (`breaks`).
+- A block that runs past the last slot is cut there and marked `overflow`.
+- Overlapping blocks get lanes.
+- The same block appears in every perspective, because each perspective filters the same placements.
+- The grid position is passed as CSS custom properties only (`--r1`, `--r2`, `--lane`, `--br`, and `--days`, `--rows` and `--lanes` on the containers). Everything else is in `plan-workspace.css`.
+
+**Inspector placement.**
+- At 1200 px and wider, the inspector sits beside the canvas.
+- Below 1200 px, with the script, it is a drawer while an activity is selected. Focus moves into it, and Escape or "Close" returns focus to the block.
+- Without the script, it sits below the canvas.
+- Below 768 px, the canvas reads as a list per day.
+
+**"Resume" (`ResumeStore`, `ResumeBuilder`): a deliberate preference-write contract.**
+- Both workspace GETs, the page and the regions endpoint, store `{plan, period}` for the account in `user.data` (module `ancora_scheduling`, name `workspace_last_plan`).
+  - The regions endpoint records too (a correction after the #147 review), so a period changed in place, or reached with Back and Forward, is the one Resume offers.
+  - That record is the only write of the workspace. It is per user and per site, and holds two ids.
+- It is recorded only after `state()` validated the URL. A foreign or forged value is a 404 and records nothing; another owner's plan is a 403 before the controller runs.
+- A forged link can therefore at most point an account's Resume at a plan that account may already view.
+- The Overview shows **"Resume <plan>, <period>"** through a lazy builder (a placeholder with max-age 0), so the rest of the Overview stays cacheable.
+- Every read checks the plan's view access again:
+  - a deleted or no longer visible plan is not offered, and its record is dropped;
+  - a period that left the plan is ignored.
+
+**Unchanged routes.** The plan timetable, the explorer, the viewer and the move page all keep working.
+- The plan page and the Overview link to the workspace.
+- The viewer's least privilege is unchanged: `view timetable viewer` alone gives no workspace, and `view academic data` still does not give the viewer.
+
+**One shared read-model change.** `CrossPlanConflictDetector` now returns `placement_id` in each conflict's `mine` and `other` descriptions, so that a block can carry its own warnings. It is NULL when the plan is not visible. The change is additive and has no other effect.
+
+### 8.2 The loader experiment (§7.4) and the choice
+
+Both region loaders were built and run on the same disposable site with the same Playwright script, `dev/browser/tests/history.spec.js`.
+- **Q:** a GET `fetch` of the regions endpoint, then a swap of the `[data-ancora-region]` elements with Drupal's behaviors detached and attached around it.
+- **P:** Drupal AJAX: a GET `Drupal.ajax` request, an `AjaxResponse` with one `ReplaceCommand` per region, and a custom command.
+
+Everything around them was shared: the history handling (`pushState` and `popstate`), the focus targets, the roving focus and the drawer.
+
+The experiment's script waits for each transition to settle, so it does not cover overlapping navigations; §8.6 does.
+
+The script runs 20 transitions:
+- perspective, record, selection and close;
+- the inspector's pivot;
+- 5 × Back and 3 × Forward.
+
+After each transition it compares the page with a **full load of the same URL** (perspective, record, selection, canvas, inspector and period), checks the focus target and runs axe.
+
+| Measure (20 transitions) | **Q: fetch** | P: Drupal AJAX |
+|---|---|---|
+| State mismatches against a full load | **0** | 0 |
+| Focus-target misses | **0** | 0 |
+| axe serious or critical violations (in every state) | **0** | 0 |
+| Full page loads | **0** | 0 |
+| Transition time, p50 / p95 (incl. a fixed 150 ms settle pause) | 468 / 560 ms (final run: 438 / 549 ms) | 470 / 796 ms |
+| Median response | **15,270 B** (HTML) | 23,016 B (JSON-wrapped HTML) |
+| Request URL length | **92** | 369 (`ajax_page_state` in the query) |
+| JavaScript on the workspace page | **12,577 B, 1 file** | 124,900 B, 2 files (jQuery and core AJAX) |
+| Dynamic page cache on the region response | `UNCACHEABLE (poor cacheability)`: it carries its metadata, and per-user content is not cached (as on the plan timetable) | `UNCACHEABLE (no cacheability)`: an `AjaxResponse` carries none |
+| Loader code (variant-specific) | **32 lines JS + 17 lines PHP** | 27 lines JS + 25 lines PHP + 1 route |
+
+**Choice: Q, the GET fetch loader. It is the only loader shipped**, and variant P was removed. (Since the #147 review, the regions response is max-age 0: §8.6.)
+- Both variants were equally correct.
+- Q has less variant code.
+- Q needs a tenth of the page's JavaScript (no jQuery), and its requests are a quarter of the URL length and two thirds of the size.
+- Q keeps a cacheable, metadata-carrying response for a later read that may be shared.
+
+The §7.4 rule ("zero mismatches and misses, then fewer lines") gives the same answer.
+
+**For S1b.** This experiment decided the **read** side only. S1b wraps `PlacementMoveForm`, and the form's tokens, state and refusals must stay Drupal's. Whether S1b submits it with `#ajax` (and so loads core AJAX on that step only) or with `fetch` of the same form is S1b's decision, to be measured the same way.
+
+### 8.3 Today's destination-check latency (measured, not changed)
+
+`dev/browser/tests/latency.spec.js` runs on the disposable site, with the real worker beside it. Each run presses "Find the valid destinations" on today's move page and measures four parts:
+- **request**: the click until the "Checking…" page is shown;
+- **server**: from then until a separate GET, polling every 100 ms, sees the destination grid. This is the worker's queue wait plus the check's run;
+- **detection**: from then until the page itself shows the grid. The page reloads itself every 2 s (`placement-move.js`);
+- **total**: the click until the grid is on screen.
+
+**Setup**
+- 20 runs per fixture, cycling over the fixture's placements.
+- PHP 8.4, PostgreSQL 16, the PHP built-in server with 4 workers, one worker process.
+- Fixtures:
+  - the cross-plan (#133) fixture;
+  - the E2E organization of #130, placed by a real run.
+- #143's representative fixtures do not exist yet, so nothing is extrapolated to larger sites.
+
+**Results**
+
+| Fixture | Worker idle sleep | Request p50 / p95 / max | Server p50 / p95 / max | Detection p50 / p95 / max | **Total p50 / p95 / max** |
+|---|---|---|---|---|---|
+| Cross-plan (#133) | 5 s (the default) | 235 / 271 / 332 ms | 5.64 / 6.53 / 6.65 s | 0.94 / 2.20 / 2.22 s | **6.80 / 8.91 / 8.96 s** |
+| E2E (#130) | 5 s (the default) | 230 / 316 / 329 ms | 5.69 / 6.51 / 6.55 s | 1.01 / 2.02 / 2.02 s | **6.76 / 8.77 / 8.80 s** |
+| Cross-plan (#133) | 1 s | 226 / 271 / 296 ms | 2.84 / 3.23 / 3.38 s | 1.60 / 2.06 / 2.08 s | **4.72 / 4.80 / 4.86 s** |
+| E2E (#130) | 1 s | 242 / 329 / 356 ms | 2.69 / 3.31 / 3.91 s | 1.73 / 2.23 / 2.33 s | **4.75 / 4.83 / 4.89 s** |
+
+These are local runs: a Linux workstation with nothing else running. The CI workflow repeats the measurement on every run and uploads `latency.json`; GitHub's runners give comparable, not identical, numbers.
+
+**Server cross-check.** The server's own record of the 40 checks at the default setting (`changed - created`, whole seconds) runs from 3 to 7 s, with a median of 6 s.
+
+**Reading the numbers**
+- Most of the wait is the worker's cycle. Lowering the idle sleep from 5 s to 1 s cuts the server part by about 3 s at p50 (5.6 s to 2.8 s).
+- What remains is the check itself, about 2–3 s on these small fixtures. It loads the whole site into a workspace and evaluates every cell, so it grows with the site; #143 will tell by how much.
+- The client's 2 s poll adds up to about 2 s more.
+- None of this was changed. These are worker settings and S1b design inputs, so S1b must show immediate, honest progress (§7.1 step 6).
+- **No threshold is set.** The maintainer decides any threshold after #143's fixtures exist.
+
+### 8.4 Tests
+
+**Kernel: `PlanWorkspaceTest`**
+- Layout: rows and breaks, one block per placement across a break, lanes, overflow, and days out of range.
+- URL state: every forged or foreign value is a 404; one state gives one URL.
+- Regions: per-block warnings, "not evaluated" for an undated plan, and the inspector's conflict.
+- Resume: record, revalidation, a period that left the plan, a foreign plan, a deleted plan, and per-account records.
+
+**Functional: `PlanWorkspaceUiTest`**
+- The regions over HTTP, the 2- and 3-slot blocks (grid lines), and the inspector (read-only).
+- The undated plan, and the regions fragment with its cache contexts.
+- The legacy routes, the plan page link, and access:
+  - anonymous;
+  - the viewer;
+  - another owner, including two users on the same URL;
+  - forged values on the page and on the regions.
+- Resume on the Overview, including a revoked and a deleted plan.
+
+**Browser: `dev/browser`, Playwright and axe, on a disposable site with the worker** (`modern/scripts/browser-journey.sh`, workflow `browser.yml`)
+- **`history.spec.js`**: the 20 transitions of §8.2, now a regression guard: no full load, no mismatch, no focus miss, no axe violation.
+- **`workspace.spec.js`**, which covers:
+  - Resume, then the journey in place: the teacher perspective, the A2 block across the break (its geometry spans slot 1 to slot 2), A1's warning, the inspector, and the pivot to the room with the selection kept. There is exactly 1 full load after Resume. Reload, Back and Forward all restore the state;
+  - the undated plan;
+  - the same journey without JavaScript;
+  - keyboard only: Tab, Shift+Tab, the arrows in the canvas, Enter, and Escape back to the block;
+  - narrow screens: the drawer at 1024 px, and no horizontal overflow at 390 px;
+  - access and the legacy routes;
+  - axe in every state.
+- **`latency.spec.js`**: §8.3. It records `latency.json`, and the script records `checks.json`.
+- **`review.spec.js`**: the #147 review cases (§8.6): Resume after an in-place period change, and overlapping navigations (a slow older response, rapid record changes, fast Back and Forward).
+
+**Regression.** Every existing suite stays green: the #122, #130 and #133 tests, the explorer, viewer and workspace page tests, and the engine and characterization workflows.
+
+**A1: dependencies and build.**
+- The workspace adds two first-party scripts: `plan-workspace.js` (history, focus, keys, drawer) and `plan-workspace-fetch.js` (the loader).
+- It depends on `core/drupal`, `core/drupalSettings` and `core/once`.
+- It has no build step and no npm runtime dependency.
+- Node is used only by the browser tests (`dev/browser/package-lock.json`: `@playwright/test` 1.64.1 and `@axe-core/playwright` 4.14.0). It is never part of the Drupal build or a deployment.
+
+### 8.5 What remains for S1b
+
+- Move and undo **in place**, through the unchanged `PlacementMoveForm` and `PlacementModification`:
+  - the check request;
+  - immediate queued and running progress with the time waited;
+  - the destination overlay on the canvas, plus the list alternative and the cross-plan warnings per cell;
+  - the preview, the commit and the undo;
+  - the result and the new cross-plan state, announced.
+- The move page's "Back" and success redirect return to the workspace URL with its context.
+- The S1b criteria: U1 (1 full load for the whole move workflow), and U6 for the in-place writes.
+- The decision on submitting the form (§8.2), measured the same way.
+- Latency: show it honestly. Any change to the worker cycle or the client poll is a separate decision, after #143.
+
+### 8.6 Corrections after the #147 review
+
+Each finding was reproduced in a real browser **before** it was fixed, with `dev/browser/tests/review.spec.js` on the disposable site. All four cases failed before the fix and pass after it.
+
+**Resume after an in-place period change**
+- **Reproduced.** The case opens period Week A, switches to Week A2 in place, then opens the Overview. Resume offered **"Autumn A, Week A"** (the first period), not Week A2.
+- **Cause.** Only the full page recorded the preference.
+- **Fix: the preference-write contract of §8.1.**
+  - The regions endpoint records the context through the same `ResumeStore::record()`, after the same validation.
+  - Its responses are max-age 0.
+  - Read access is checked again in `ResumeStore::resume()`, as before.
+- **Why not a narrower design.** Recording only on full loads, plus a client-side history sync, would need a write endpoint, with its own CSRF token, for a two-id preference. Recording in the GET that already validated the state is simpler, and is documented as the one write.
+- **Cache impact, measured.** The regions response was already per user, so the dynamic page cache never stored it (`UNCACHEABLE (poor cacheability)` before and after). The 20-transition history run, alone on the machine, gave:
+
+  | | p50 | p95 | Median response |
+  |---|---|---|---|
+  | Before the fix | 438–468 ms | 500–560 ms | 15,270 B |
+  | After the fix | 442 ms | 510 ms | 15,396 B |
+
+  The response is 126 B larger because the fixture's second period adds a link. There is no measurable cost.
+
+**Overlapping navigations**
+
+The three overlap cases were each reproduced before the fix, with region responses delayed by route interception:
+
+| Case | What happened before the fix |
+|---|---|
+| A slow "Teachers" response (1.5 s), then an immediate "Rooms" click | It ended on **`lens=teacher`**. The older response was applied last and pushed its URL after the newer one. |
+| Rapid record changes TA → TB → TC, with TA slowest | It ended on **TA**, not TC. |
+| Two fast Back steps, the first one slow | The URL showed TA but the page showed **TB**: the URL and the page disagreed. |
+
+**Fix (`plan-workspace.js`).**
+- Each navigation gets a monotonically increasing number and an `AbortController`. A new navigation aborts the previous request.
+- Only the latest response is applied. Only it clears the busy state, updates the status and moves the focus.
+- A link's URL is pushed into the history when it is followed, so the history keeps the order of the user's actions. Back and Forward never push.
+- An aborted or superseded request never triggers the full-page fallback. A real failure of the latest request still falls back to a full page load.
+- Without JavaScript nothing changes: every link is a plain GET.
+- The loader now has two parts: `fetchRegions()`, abortable, and `applyRegions()`.
+
+**Accepted exception to U10: inline custom properties**
+- The canvas sets its dynamic grid geometry as CSS custom properties on the elements: `--r1`, `--r2`, `--lane` and `--br` on blocks and rows, and `--days`, `--rows` and `--lanes` on the containers.
+- Every presentation rule stays in `plan-workspace.css`.
+- `PlanWorkspaceUiTest` asserts that every `style` attribute in the workspace holds only custom properties.
+
+**Tests added**
+- Functional: the regions endpoint records the context, sends max-age 0, and records nothing for a foreign or forged period, an unknown lens, a foreign selection, or another owner's plan.
+- Browser: the four `review.spec.js` cases.
+- The 20-transition history test still passes: 0 mismatches, 0 focus misses, 0 axe issues, 0 full loads.
+- The fixture's plan A has a second period, "Week A2", for the period-change case.

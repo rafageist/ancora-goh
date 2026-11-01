@@ -16,3 +16,7 @@
 
 # Divengine Codegen (#39): Composer dependencies of the build-time generator
 /dev/codegen/vendor/
+
+# Browser tests of the planning workspace (#141): npm packages and run output
+/dev/browser/node_modules/
+/dev/browser/test-results/

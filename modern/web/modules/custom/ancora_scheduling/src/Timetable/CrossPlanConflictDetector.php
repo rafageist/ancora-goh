@@ -180,7 +180,8 @@ final class CrossPlanConflictDetector {
    * @return list<array>
    *   One entry per pair of placements and resource: resource ("teacher" or
    *   "room"), resource_label, mine and other (activity, group, plan label
-   *   or NULL when not visible, period label, day, slot), and occurrences
+   *   or NULL when not visible, period label, day, slot, placement_id in
+   *   workspace mode), and occurrences
    *   (date, start and end of the common part as "HH:MM", after_end).
    */
   private function conflictsOf(array $mine, array $index, AccountInterface $account): array {
@@ -333,6 +334,8 @@ final class CrossPlanConflictDetector {
     return [
       'plan' => $visible ? (string) $plan->label() : NULL,
       'plan_id' => $visible ? $ref['plan'] : NULL,
+      // The placement entity (workspace mode), so a view can mark it (#141).
+      'placement_id' => $visible && str_starts_with($ref['key'], 'placement:') ? (int) substr($ref['key'], 10) : NULL,
       'period' => $visible ? (string) ($this->entityTypeManager->getStorage('ancora_period')->load($ref['period'])?->label() ?? '') : NULL,
       'activity' => $visible ? $ref['activity'] : NULL,
       'group' => $visible ? $ref['group'] : NULL,
