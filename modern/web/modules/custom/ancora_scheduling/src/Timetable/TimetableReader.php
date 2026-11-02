@@ -62,10 +62,12 @@ final class TimetableReader {
    *   - groups, teachers, rooms, resources: code => label, for the
    *     filters (resources: the owner's other resources, D9d);
    *   - scopes: list of scope arrays, each with specialty and level labels,
-   *     the job whose placements are shown ("job", NULL when none), "final"
-   *     (bool), "stale" (the data changed since the run), "active" (a queued
-   *     or running job, or NULL), "placements" (mapped placements) and
-   *     "error" (NULL, or a message without details).
+   *     the job whose placements are shown ("job", NULL when none), the
+   *     job source of the scope ("source": plan, period, specialty and
+   *     level ids), "final" (bool), "stale" (the data changed since the
+   *     run), "active" (a queued or running job, or NULL), "placements"
+   *     (mapped placements) and "error" (NULL, or a message without
+   *     details).
    */
   public function read(Plan $plan, Period $period): array {
     $export = $this->export->export($plan);
@@ -93,6 +95,8 @@ final class TimetableReader {
         'specialty' => $this->label($index['specialties'], $scope_job->scope->specialty),
         'level' => $this->label($index['levels'], $scope_job->scope->level),
         'job' => $shown,
+        // The plan, period, specialty and level ids of the scope.
+        'source' => $scope_job->source,
         'final' => $shown !== NULL && $shown->state === JobState::Succeeded,
         'stale' => $shown !== NULL && ($shown->result['input_hash'] ?? NULL) !== $hash,
         'active' => $active,
