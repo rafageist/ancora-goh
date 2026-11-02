@@ -20,3 +20,4 @@
 # Browser tests of the planning workspace (#141): npm packages and run output
 /dev/browser/node_modules/
 /dev/browser/test-results/
+/dev/browser/journey-results/

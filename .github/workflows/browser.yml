@@ -105,3 +105,22 @@ jobs:
           path: browser-results
           if-no-files-found: ignore
           retention-days: 14
+
+      # The complete planning journey on a second disposable site (#105,
+      # functional completion package item 4). The steps that need an open
+      # PR (#148, #153, #154) report "skipped: needs #N" until it is merged.
+      - name: Planning journey (synthetic, plan to move and undo)
+        if: ${{ !cancelled() }}
+        timeout-minutes: 20
+        env:
+          ANCORA_JOURNEY_OUT: ${{ github.workspace }}/journey-results
+        run: dev/sql/tools/with-ephemeral-pg.sh modern/scripts/planning-journey.sh
+
+      - name: Planning journey results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: journey-results
+          path: journey-results
+          if-no-files-found: ignore
+          retention-days: 14
