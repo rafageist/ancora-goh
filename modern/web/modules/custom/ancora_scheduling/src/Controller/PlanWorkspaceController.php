@@ -7,6 +7,7 @@ namespace Drupal\ancora_scheduling\Controller;
 use Drupal\ancora_academic\Entity\Plan;
 use Drupal\ancora_scheduling\Workspace\PlanWorkspace;
 use Drupal\ancora_scheduling\Workspace\ResumeStore;
+use Drupal\ancora_scheduling\Workspace\WorkspaceVarySubscriber;
 use Drupal\Core\Cache\CacheableMetadata;
 use Drupal\Core\Cache\CacheableResponse;
 use Drupal\Core\Controller\ControllerBase;
@@ -47,10 +48,20 @@ final class PlanWorkspaceController extends ControllerBase {
   /**
    * The workspace page.
    */
-  public function page(Plan $ancora_plan): array {
-    $state = $this->workspace->state($ancora_plan, $this->currentUser(), $this->requestStack->getCurrentRequest()->query);
+  public function page(Plan $ancora_plan): array|CacheableResponse {
+    $request = $this->requestStack->getCurrentRequest();
+    // A POST is a step of the move form in the inspector (S1b): the form
+    // processes it while the inspector is built, and redirects back here.
+    $state = $this->workspace->state($ancora_plan, $this->currentUser(), $request->query, $request->isMethod('POST') ? $request->request : NULL);
     $this->resume->record($this->currentUser(), $ancora_plan, $state['period']);
     $regions = $this->workspace->regions($state);
+    // The workspace script submits the move steps in place and asks for the
+    // regions only (the header is kept across the step's redirect); the
+    // route is not cached, so the page and the fragment never mix.
+    // Both answers vary by the header (WorkspaceVarySubscriber).
+    if ($request->headers->get(WorkspaceVarySubscriber::HEADER) === '1') {
+      return $this->fragment($ancora_plan, $regions);
+    }
     $build = [
       '#theme' => 'ancora_plan_workspace',
       '#bar' => $regions['bar'],
@@ -74,8 +85,14 @@ final class PlanWorkspaceController extends ControllerBase {
   public function regions(Plan $ancora_plan): CacheableResponse {
     $state = $this->workspace->state($ancora_plan, $this->currentUser(), $this->requestStack->getCurrentRequest()->query);
     $this->resume->record($this->currentUser(), $ancora_plan, $state['period']);
-    $build = $this->workspace->regions($state);
-    $this->workspace->cacheability($ancora_plan)->applyTo($build);
+    return $this->fragment($ancora_plan, $this->workspace->regions($state));
+  }
+
+  /**
+   * Regions as an HTML fragment, never cached.
+   */
+  private function fragment(Plan $plan, array $build): CacheableResponse {
+    $this->workspace->cacheability($plan)->applyTo($build);
     $html = (string) $this->renderer->renderInIsolation($build);
     $response = new CacheableResponse($html, 200, [
       'Content-Type' => 'text/html; charset=utf-8',

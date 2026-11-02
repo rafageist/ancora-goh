@@ -31,3 +31,5 @@ plan_workspace:
     - core/drupal
     - core/drupalSettings
     - core/once
+    # The move form of the inspector (S1b) can arrive with a region.
+    - ancora_scheduling/placement_move

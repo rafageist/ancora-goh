@@ -71,7 +71,9 @@ test('Resume, then the read-only journey in place (JavaScript)', async ({ page }
   await expect(page.locator('#ancora-inspector-title')).toBeFocused();
   await expect(page.locator('.ancora-inspector__conflicts')).toContainText('in plan Intensive B, period Week B, day 2, slot 2, on 2026-09-15 10:00–10:30');
   await expect(page.locator('.ancora-inspector')).toContainText('Day 2, slot 2 (10:00–11:30)');
-  await expect(page.locator('.ancora-inspector form, .ancora-inspector button')).toHaveCount(0);
+  // Its only form is the move of #130 (S1b), for those who may move it.
+  await expect(page.locator('.ancora-inspector form')).toHaveCount(1);
+  await expect(page.locator('.ancora-inspector form#ancora-move-form')).toHaveCount(1);
   await shot(page, '04-inspector-a1');
   await clean(page, 'inspector');
 

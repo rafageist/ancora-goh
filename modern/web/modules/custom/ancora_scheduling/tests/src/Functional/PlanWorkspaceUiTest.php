@@ -94,10 +94,11 @@ final class PlanWorkspaceUiTest extends AncoraBrowserTestBase {
     // The inspector: read-only, with the warning and the pivots.
     $this->drupalGet($this->path($r['plan:A']), ['query' => $query + ['sel' => $r['A1']->id()]]);
     $session->elementTextContains('css', '.ancora-inspector__conflicts', 'in plan Intensive B, period Week B, day 2, slot 2, on 2026-09-15 10:00–10:30');
-    $session->elementNotExists('css', '.ancora-inspector form');
-    $session->elementNotExists('css', '.ancora-inspector button');
+    // Its only form is the move of #130 (S1b), for those who may move it.
+    $session->elementsCount('css', '.ancora-inspector form', 1);
+    $session->elementExists('css', '.ancora-inspector form#ancora-move-form');
     $session->linkExists("Room L1's week");
-    $session->linkExists('Move this activity (opens the move page)');
+    $session->buttonExists('Find the valid destinations');
 
     // The undated plan: "not evaluated" everywhere, never "no overlap".
     $this->drupalGet($this->path($r['plan:U']), ['query' => ['sel' => $r['U1']->id()]]);
