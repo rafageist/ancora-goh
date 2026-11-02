@@ -181,6 +181,6 @@ This keeps every behavior change explicit in review. Exact placement cells (060)
 
 - Real-date restrictions (6.10, 6.11): case 129 shows that the branch has no effect (6.11: the period lookup by object id finds nothing), so 6.10 cannot happen except for an object whose id equals the period id. The intended behaviour is not characterized.
 - `zpriori` zones, `parche` / `parche1` / `compactar` / `buscalugar` options (6.15, 6.16), workload hygiene (6.21) and the teacher-load heuristic (6.14).
-- Performance and scale. The fixtures are tiny on purpose. Generation time on realistic datasets is unknown (historically 7 activities took 212 s).
+- Performance and scale. The fixtures are tiny on purpose. Generation time on realistic datasets is unknown (historically 7 activities took 212 s). The assessment and the proposed workload ladder are in `docs/evidence/workload-assessment.md` (#143).
 - Concurrency between two sessions generating at the same time (assessment §7).
 - PostgreSQL 17 and later. There is also no PHP or HTTP path.
