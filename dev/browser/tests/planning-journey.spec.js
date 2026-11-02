@@ -20,11 +20,13 @@
 //   and must not be read as a working timetable.
 // - plan P (step 10): the POSITIVE PATH, a second dataset in which the
 //   unchanged engine completes every requested scope (every run succeeded,
-//   every demand placed, no collision, no overflow). Two of its
-//   configuration choices exist only to stay clear of known defects (a LAB
+//   every demand placed, no collision, no overflow). Three of its
+//   configuration choices exist only to stay clear of legacy defects (a LAB
 //   restriction at the last slot, against 6.17 and the 2202E; two resource
-//   groups on the template that needs a resource, against case 142); see
-//   the fixture's "positive" command and docs/ux/planning-journey.md.
+//   groups on the template that needs a resource, against case 142; no lab
+//   room shared by activities that can run at the same time, against the
+//   first-slot-only room check of lugar_permanece_en(), 23505); see the
+//   fixture's "positive" command and docs/ux/planning-journey.md.
 // Step 11 then proves that the planner can create and edit, through the
 // Drupal UI, every record type that the fixture enters by the Entity API.
 //
@@ -823,7 +825,7 @@ test('10 positive path: every scope of plan P complete', async ({ page }) => {
   expect(before.demands, 'demands per scope of plan P').toEqual(POSITIVE_SCOPES);
   expect(before.jobs).toEqual([]);
   expect(before.resource_groups.map((g) => g.members), 'two resource groups on the analytical chemistry lab (case 142)').toEqual([['SPC'], ['FUM']]);
-  note('configuration chosen to stay clear of known defects: LAB restricted at slot 6 of every day (6.17 overflow, then 2202E); two resource groups on the template that needs a resource (case 142: the last group is never used)');
+  note('configuration chosen to stay clear of legacy defects: LAB restricted at slot 6 of every day (6.17 overflow, then 2202E); two resource groups on the template that needs a resource (case 142: the last group is never used); no lab room shared by activities that can run at the same time (lugar_permanece_en() checks only the first slot: 23505)');
   countLoads(page);
   await login(page, 'planner');
   const runs = [];

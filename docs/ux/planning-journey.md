@@ -158,7 +158,14 @@ One more choice is a known quirk rather than a defect of the result: every subje
 
 ### Positive-path outcome
 
-POSITIVE_RESULTS
+Integration run (step 10; the master-alone run gives the same counts):
+
+| Scope | Run | Demands | Placed | Unplaced | Collisions | Overflow | Engine time | Queued / run |
+|---|---|---|---|---|---|---|---|---|
+| PW/PH/Y3 | Succeeded | 8 | 8 | 0 | 0 | 0 | 7.2 s | 3 s / 9 s |
+| PW/CH/Y4 | Succeeded | 5 | 5 | 0 | 0 | 0 | 1.7 s | 3 s / 3 s |
+
+Server-side (derived from the stored placements, not from the run's metrics): 13 placements = 13 placed; no teacher, room, group, cohort or other resource in two places at once; no activity overflows the day; none of the 7 restricted cells occupied (the 5 LAB cells checked against the placements' activity types); one other-resource placement, ANC's lab of GH4A with SPC, also shown by the explorer ("Spectrometer: 1 activity"); both scopes labelled "Final timetable" on the plan timetable. The layout itself differs between the two runs (the heuristic reads the records in id order, and the sites differ), the counts do not.
 
 ## 6. What "it worked" means
 
@@ -185,7 +192,7 @@ The move and undo (steps 8, 8b) are (a) on a (d) result: they change one placeme
 
 ## 7. Results
 
-Integration: local branch of `master` (`f299f10`) + #148 (`134aad6`) + #153 (`812515f`) + #154 (`3a54d46`) + this branch, not pushed. Master alone: this branch.
+Integration: local merge of `integration/functional-acceptance` (`50fc47d`: `master` `f299f10` + #149, #150, #151, #152, #148, #153, #154, #155) with this branch, not pushed: 14 tests, 14 passed, 0 skipped. Master alone: this branch: 11 passed, 3 skipped (needs #148, #153, #154).
 
 | Step | Integration | Master alone | Page loads (integration / master) |
 |---|---|---|---|
@@ -201,6 +208,8 @@ Integration: local branch of `master` (`f299f10`) + #148 (`134aad6`) + #153 (`81
 | 8 move and undo, move page | pass | pass | 13 / 15 (the page reloads itself while the check runs) |
 | 8b move and undo in place | pass | skipped: needs #148 | 1 |
 | 9 reload and history | pass | pass | 1 (the reload) |
+| 10 positive path (plan P) | pass | pass | 18 / 19 |
+| 11 UI coverage of the fixture's record types | pass | pass | 60 / 60 |
 
 Generation (integration run): CS/Y1 8 demands, 8 placed, overflow 1, 4.5 s in the engine (queued 2 s, 6 s run); MA/Y2 failed after 1.7 s; plan K 1/1 in 0.2 s. Integrity: 0 occupancy collisions (teacher, room, group, cohort, other resource), 1 overflow, 1 activity across the break (a lab over slots 3–4, which legacy allows), no restricted cell occupied, BEN at most 2 activities a day (limit 3). Cross-plan: plan K's lecture did not meet ANA's plan J activities ("No cross-plan overlap").
 
@@ -225,6 +234,8 @@ Generation (integration run): CS/Y1 8 demands, 8 placed, overflow 1, 4.5 s in th
 3. The F2 quirk makes any owner with several plans prone to failed runs: a new period gets a breakdown for every subject of the owner, and a scope subject without a template in the period fails the run.
 4. **No placement uses the projector**, although PRG #1 and STA's first lab each have an essential group that needs it. With one resource group per template, `generar()` takes resources from every group but the last (`SharedResources`, case 142), so the explorer's other-resource view is empty. Legacy behaviour, reported.
 5. Without #148, #153 and #154 the journey is completable on master, with the extra page loads and re-entries above.
+6. **A room is checked only at an activity's first slot** (`lugar_permanece_en()`, observed while building the positive path): a 2-slot activity can be given a room booked at its second slot, and the run fails with 23505 on `restriccion_de_lugar`. Not in the parity inventory yet; legacy behaviour, reported, not fixed. The positive path keeps lab rooms out of reach of concurrent activities (section 5).
+7. **A complete timetable needs configuration that steers around three defects** (section 5). The positive path shows that the unchanged engine can complete several scopes; it does not show that it handles labs at the last slot, a single resource group, or a lab room shared by concurrent activities.
 
 ## 8. Proposal: a more representative private demo (for review, nothing done)
 
@@ -232,7 +243,7 @@ The private demo shows the 8-activity E2E organization. This proposal is for the
 
 1. **Dataset.** Use this journey's synthetic dataset (22 activities, two scopes, a second dated plan, restrictions, limits, an other resource) as the demo organization's content, instead of the 8-activity smoke set. It exercises every planner page this journey visits. No historical data.
 2. **Loading.** A new disposable organization (the existing tenant provisioning), a demo planner account, and the fixture's phases (`catalogue`, `structure`, `assignments`, `second-plan`) run with drush, plus the UI parts of steps 1–4 entered once by hand or by a small drush step that creates the same records. The worker generates the scopes through the normal request path, so the demo shows real runs, not imported placements.
-3. **The MA/Y2 failure.** Decide before loading: show it as it is (a failed run with its error, which is the legacy behaviour), or add a documented planner choice (for example, slot 6 restricted for the MA cohorts), stated on the demo's plan page. Either choice is a presentation decision for the maintainer, not an engine change.
+3. **The MA/Y2 failure.** Alternatively, load plan P (the positive path, section 5) as the demo's complete timetable and plan J as the documented characterization. Otherwise decide before loading: show it as it is (a failed run with its error, which is the legacy behaviour), or add a documented planner choice (for example, slot 6 restricted for the MA cohorts), stated on the demo's plan page. Either choice is a presentation decision for the maintainer, not an engine change.
 4. **Reset.** Rebuild the demo organization from the script instead of editing it in place, so every demonstration starts from the same state.
 5. **Prerequisites.** #148, #153 and #154 merged and deployed, so the demo shows the in-place journey; otherwise the demo shows the master routes of section 5.
 6. **Risks.** Demo users can change data (a reset is needed after each session); a larger dataset is still far from a real faculty and must not be presented as a benchmark.
