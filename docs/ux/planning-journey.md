@@ -96,7 +96,7 @@ Integration: local branch of `master` (`f299f10`) + #148 (`134aad6`) + #153 (`81
 
 | Step | Integration | Master alone | Page loads (integration / master) |
 |---|---|---|---|
-| 1 plan, period, break | pass | pass | 10 / 10 |
+| 1 plan, period, break | pass | pass | 9–10 (both) |
 | 2 catalogues | pass | pass | 14 / 14 (4 records) |
 | 3 group and templates | pass | pass | 5 / 16 (master includes the templates) |
 | 3b templates in place | pass | skipped: needs #153 | 14 / – |
