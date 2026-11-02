@@ -65,7 +65,7 @@ final class RequestRunForm extends FormBase {
       $form['empty'] = ['#markup' => '<p>' . $this->t('There is no plan yet.') . '</p>'];
       return $form;
     }
-    $requested = (int) $this->getRequest()->query->get('plan');
+    $requested = $this->requested('plan');
     $form['plan'] = [
       '#type' => 'select',
       '#title' => $this->t('Plan'),
@@ -102,6 +102,14 @@ final class RequestRunForm extends FormBase {
         '#options' => count($options) === 1 ? reset($options) : $options,
         '#required' => TRUE,
       ];
+      // The scope of the context (the plan page, the timetable): only an id
+      // the form offers here; anything else leaves the field as it was.
+      $requested = $this->requested($key);
+      foreach ($options as $group) {
+        if (isset($group[$requested])) {
+          $form[$key]['#default_value'] = $requested;
+        }
+      }
     }
     // The room strategy of the legacy generator window (D9c, A-2). Its
     // first, default choice reads "el más utilizado" but posts buscalugar =
@@ -197,6 +205,17 @@ final class RequestRunForm extends FormBase {
     );
     $this->messenger()->addStatus($this->t('Timetable requested (job @id). The engine worker runs it in the background.', ['@id' => $id]));
     $form_state->setRedirect('ancora_scheduling.job', ['job' => $id]);
+  }
+
+  /**
+   * A record id from the query (?plan, ?period, ?specialty, ?level), or 0.
+   *
+   * Only digits count; an array, an empty or a malformed value is 0, which
+   * no option has, so the field keeps its default.
+   */
+  private function requested(string $key): int {
+    $value = $this->getRequest()->query->all()[$key] ?? NULL;
+    return is_string($value) && ctype_digit($value) ? (int) $value : 0;
   }
 
   /**

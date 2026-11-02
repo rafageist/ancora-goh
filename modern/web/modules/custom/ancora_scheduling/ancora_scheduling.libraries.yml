@@ -18,6 +18,15 @@ placement_move:
     - core/drupal
     - core/once
 
+# The run page while the run is queued or running (FC-31): progressive
+# enhancement over its "Refresh" link.
+job_refresh:
+  js:
+    js/job-refresh.js: {}
+  dependencies:
+    - core/drupal
+    - core/once
+
 # The integrated planning workspace (#141): regions in place, history,
 # focus and keys; progressive enhancement over plain GET links.
 plan_workspace:

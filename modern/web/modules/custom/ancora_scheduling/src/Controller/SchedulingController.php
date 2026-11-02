@@ -109,12 +109,41 @@ final class SchedulingController extends ControllerBase {
       '#rows' => $rows,
       '#attributes' => ['class' => ['ancora-scheduling-job']],
     ];
+    // While the run is queued or running (FC-31): a "Refresh" link, and a
+    // script that reloads the page a bounded number of times. Once the run
+    // has ended, neither is there.
+    if (!$entry->state->isTerminal()) {
+      $build['pending'] = [
+        '#type' => 'container',
+        '#attributes' => [
+          'class' => ['ancora-scheduling-job__pending'],
+          'role' => 'status',
+          'data-ancora-job-pending' => $entry->id,
+        ],
+        'text' => ['#markup' => '<p>' . $this->t('The run has not ended yet. This page shows its state when it is loaded.') . '</p>'],
+        'refresh' => [
+          '#type' => 'link',
+          '#title' => $this->t('Refresh'),
+          '#url' => Url::fromRoute('ancora_scheduling.job', ['job' => $entry->id]),
+          '#attributes' => ['class' => ['button']],
+        ],
+        '#attached' => ['library' => ['ancora_scheduling/job_refresh']],
+      ];
+    }
     $links = [];
     if ($plan instanceof Plan && $plan->access('view')) {
       $links[] = [
         'title' => $this->t('Timetable of this plan'),
         'url' => Url::fromRoute('ancora_scheduling.timetable', ['ancora_plan' => $plan->id()], ['query' => ['period' => $entry->source->periodId]]),
       ];
+      // The integrated workspace of the plan, on the run's period (S1a).
+      $period = $records[(string) $this->t('Period')];
+      $workspace = Url::fromRoute('ancora_scheduling.plan_workspace', ['ancora_plan' => $plan->id()], [
+        'query' => $period instanceof Period && $period->getPlanId() === (int) $plan->id() ? ['period' => $period->id()] : [],
+      ]);
+      if ($workspace->access()) {
+        $links[] = ['title' => $this->t('Open in the workspace'), 'url' => $workspace];
+      }
       $links[] = [
         'title' => $this->t('Plan page'),
         'url' => Url::fromRoute('ancora_scheduling.plan', ['ancora_plan' => $plan->id()]),
@@ -221,6 +250,8 @@ final class SchedulingController extends ControllerBase {
     $update = $plan->access('update', NULL, TRUE);
     $cache->addCacheableDependency($update);
     $movable = $update->isAllowed() && $this->modification->isAvailable();
+    $request_url = Url::fromRoute('ancora_scheduling.request', [], ['query' => ['plan' => $plan->id()]]);
+    $may_request = $request_url->access();
     $scopes = [];
     foreach ($data['scopes'] as $scope) {
       if ($scope['error'] !== NULL) {
@@ -230,6 +261,16 @@ final class SchedulingController extends ControllerBase {
         $p['move_url'] = $movable && !empty($p['placement_id']) ? Url::fromRoute('ancora_scheduling.placement_move', ['ancora_placement' => $p['placement_id']])->toString() : NULL;
       }
       unset($p);
+      // The request form with this scope (FC-29), while no run of it is
+      // queued or running.
+      $rerun = $may_request && $scope['active'] === NULL ? Url::fromRoute('ancora_scheduling.request', [], [
+        'query' => [
+          'plan' => $scope['source']->planId,
+          'period' => $scope['source']->periodId,
+          'specialty' => $scope['source']->specialtyId,
+          'level' => $scope['source']->levelId,
+        ],
+      ]) : NULL;
       $placements = array_filter($scope['placements'], static function (array $p) use ($filters): bool {
         return ($filters['group']['value'] === '' || $p['group_code'] === $filters['group']['value'])
           && ($filters['teacher']['value'] === '' || $p['teacher_code'] === $filters['teacher']['value'])
@@ -248,6 +289,7 @@ final class SchedulingController extends ControllerBase {
         ]),
         'error' => $scope['error'] === NULL ? NULL : $this->t('The scheduling engine could not be reached; try again later.'),
         'job_url' => $scope['job'] === NULL ? NULL : Url::fromRoute('ancora_scheduling.job', ['job' => $scope['job']->id])->toString(),
+        'rerun_url' => $rerun?->toString(),
         'count' => count($scope['placements']),
         'shown' => count($placements),
         'grid' => $scope['job'] === NULL ? NULL : $this->grid($period, $placements),
@@ -263,7 +305,6 @@ final class SchedulingController extends ControllerBase {
         'current' => $id === (int) $period->id(),
       ];
     }
-    $request_url = Url::fromRoute('ancora_scheduling.request', [], ['query' => ['plan' => $plan->id()]]);
 
     $build = [
       '#theme' => 'ancora_scheduling_timetable',
@@ -274,7 +315,7 @@ final class SchedulingController extends ControllerBase {
       '#filtered' => $filtered,
       '#reset_url' => Url::fromRoute('ancora_scheduling.timetable', ['ancora_plan' => $plan->id()], ['query' => ['period' => $period->id()]])->toString(),
       '#scopes' => $scopes,
-      '#request_url' => $request_url->access() ? $request_url->toString() : NULL,
+      '#request_url' => $may_request ? $request_url->toString() : NULL,
       '#plan_url' => $plan_url,
       '#explorer_url' => Url::fromRoute('ancora_scheduling.explorer', [], ['query' => ['period' => $period->id()]])->toString(),
       '#attached' => ['library' => ['ancora_scheduling/timetable']],

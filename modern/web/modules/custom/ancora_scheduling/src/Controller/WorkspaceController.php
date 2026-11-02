@@ -155,7 +155,8 @@ final class WorkspaceController extends ControllerBase {
       $actions[] = ['title' => $this->t('Edit plan'), 'url' => $edit];
     }
     $request = Url::fromRoute('ancora_scheduling.request', [], ['query' => ['plan' => $plan->id()]]);
-    if ($request->access()) {
+    $may_request = $request->access();
+    if ($may_request) {
       $actions[] = ['title' => $this->t('Request a timetable'), 'url' => $request];
     }
     $actions[] = [
@@ -178,6 +179,15 @@ final class WorkspaceController extends ControllerBase {
           'url' => Url::fromRoute('ancora_scheduling.timetable', ['ancora_plan' => $plan->id()], ['query' => ['period' => $period->id()]]),
         ],
       ];
+      // The request form with this plan and period (FC-29).
+      if ($may_request) {
+        $links['generate'] = [
+          'title' => $this->t('Generate'),
+          'url' => Url::fromRoute('ancora_scheduling.request', [], [
+            'query' => ['plan' => $plan->id(), 'period' => $period->id()],
+          ]),
+        ];
+      }
       $period_edit = $period->toUrl('edit-form', ['query' => $this->getDestinationArray()]);
       if ($period_edit->access()) {
         $links['edit'] = ['title' => $this->t('Edit'), 'url' => $period_edit];
@@ -443,7 +453,8 @@ final class WorkspaceController extends ControllerBase {
       ],
     ];
     $request = Url::fromRoute('ancora_scheduling.request', [], ['query' => ['plan' => $plan->id()]]);
-    if ($request->access()) {
+    $may_request = $request->access();
+    if ($may_request) {
       $links['generate'] = [
         'title' => $this->t('Generate'),
         'url' => $request,
