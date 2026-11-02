@@ -296,3 +296,7 @@ Dependencies first, then the largest effect on what `generar()` computes:
 8. **Presentation (D14, D9; PAR-091, 092).** **Explorer done** (#119: brigade, teacher, room and other-resource views, with every user's teachers and rooms per A-5). **Viewer done** for authenticated users (#121, PAR-092); its anonymous mode waits for #62 (Q-37). No row is missing any more (PAR-004 is an intentional security difference, PAR-013 was done in D9b).
 
 Each slice ships with the differential parity harness of #70 (the same synthetic scenario through the legacy path and through Drupal; identical normalized engine tables and `generar()` outcome). No LBR retirement is claimed for any row until its parity is verified.
+
+## Functional completeness of the planner journey (Phase 2)
+
+The rows above compare what each system computes. Whether a planner can complete every PHP workflow through the Drupal UI is recorded in the companion [functional-completeness.md](functional-completeness.md) (functional completion package, 2026-11-01, item 2). It maps the wired PHP screens and events to Drupal routes, forms and services in 45 workflow rows (FC-01…FC-45) that cite these PAR ids, classifies each one (22 implemented and accessible, 3 hard to complete, 2 partial, 1 missing, 11 intentionally different, 6 deferred), ranks the journey gaps and proposes two Phase 3 slices. Its §8 lists "Drupal today" cells of this inventory that predate the ownership slice (PAR-001, 002, 003, 008, 050, 054, 110); they are not changed here.
