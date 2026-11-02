@@ -7,8 +7,9 @@
 #
 # Requires modern/vendor (composer install), jq, and dev/browser/node_modules
 # (npm ci) with a Playwright Chromium. It is a functional application test,
-# not a benchmark: a synthetic dataset of 22 activities in two generation
-# scopes (scripts/lib/planning-journey/fixture.php), small enough for the
+# not a benchmark: synthetic datasets of 22 activities in two generation
+# scopes (plan J), 1 (plan K) and 13 in two scopes (plan P, the positive
+# path) (scripts/lib/planning-journey/fixture.php), small enough for the
 # default 120 s run limit. Nothing leaves the disposable cluster.
 #
 # One workspace-mode site database ("ancora_ws") holds Drupal and the
@@ -29,6 +30,15 @@
 #   8. move one activity and undo it (in place with #148, otherwise the
 #      move page), checked on the server;
 #   9. reload, back and forward, with the context kept.
+#  10. the positive path: a second plan (P) whose two scopes the unchanged
+#      engine completes (every run succeeded, every demand placed, no
+#      collision, no overflow, one other-resource placement), requested
+#      through the UI and checked on the server;
+#  11. UI coverage: the planner creates and edits, through the Drupal UI,
+#      every record type that the fixture enters by the Entity API.
+# Plan J's run outcomes (steps 5-6) are a characterization of historical
+# behaviour (CS/Y1 with one overflowing lab, labelled "Final"; MA/Y2 failed
+# with 2202E), not a working timetable; step 10 is the complete outcome.
 # The parts of the dataset that a step does not enter through the UI come
 # from the fixture script, called by the step itself, and each step records
 # which route it used (UI page, admin form or fixture).
@@ -42,8 +52,9 @@
 #   #154 (slice A, generate from the context): ancora_scheduling js/job-refresh.js
 #
 # Results go to ${ANCORA_JOURNEY_OUT:-dev/browser/journey-results}:
-# journey.json (per step: outcome, route, page loads, notes), inspect.json
-# (the server's view after generation and after the undo), report.json
+# journey.json (per step: outcome, route, page loads, notes),
+# inspect-after-generation.json, inspect-after-undo.json and
+# inspect-positive.json (the server's view), report.json
 # (Playwright) and screenshots/. Playwright writes into a short temporary
 # directory first (long paths broke trace files before), then the results
 # are copied.

@@ -12,6 +12,24 @@
 // of the work is then done by the route that exists on master, in the step
 // before it.
 //
+// Two scenarios share the site:
+// - plan J (steps 1-9): the journey itself. Its run outcomes are a
+//   CHARACTERIZATION of historical behaviour: with this ordinary dataset the
+//   unchanged engine leaves one lab overflowing the day in CS/Y1 (6.17, still
+//   labelled "Final") and fails MA/Y2 with 2202E. Both are pinned in step 6
+//   and must not be read as a working timetable.
+// - plan P (step 10): the POSITIVE PATH, a second dataset in which the
+//   unchanged engine completes every requested scope (every run succeeded,
+//   every demand placed, no collision, no overflow). Three of its
+//   configuration choices exist only to stay clear of legacy defects (a LAB
+//   restriction at the last slot, against 6.17 and the 2202E; two resource
+//   groups on the template that needs a resource, against case 142; no lab
+//   room shared by activities that can run at the same time, against the
+//   first-slot-only room check of lugar_permanece_en(), 23505); see the
+//   fixture's "positive" command and docs/ux/planning-journey.md.
+// Step 11 then proves that the planner can create and edit, through the
+// Drupal UI, every record type that the fixture enters by the Entity API.
+//
 // The tests share the site, run in file order (one worker) and keep their
 // state in files, so a failed step does not stop the next ones; a step whose
 // input is missing is skipped as "blocked".
@@ -31,8 +49,10 @@ test.use({ actionTimeout: 20000, navigationTimeout: 30000 });
 const features = JSON.parse(process.env.ANCORA_JOURNEY_FEATURES || '{}');
 const NEEDS = { 148: 'skipped: needs #148', 153: 'skipped: needs #153', 154: 'skipped: needs #154' };
 const TEACHERS = { ANA: 'Ana Example', BEN: 'Ben Example', CAR: 'Carla Example', DIA: 'Diego Example', EVA: 'Eva Example' };
-// The outcome of each scope's run with this dataset, on the unchanged
-// engine (scope: period/specialty/level).
+// CHARACTERIZATION of historical behaviour, not a target: the outcome of
+// each scope's run with plan J's dataset, on the unchanged engine (scope:
+// period/specialty/level). CS/Y1 succeeds with one overflowing lab (6.17);
+// MA/Y2 fails (2202E). The complete outcome is the positive path (step 10).
 const EXPECTED_RUNS = {
   'JW/CS/Y1': { state: 'succeeded', why: 'all 8 demands placed' },
   // A 2-slot lab placed at the last slot overflows the day (6.17); its
@@ -621,18 +641,9 @@ test('7 timetable perspectives', async ({ page }) => {
   step.data.workspace_full_loads = step.page_loads - loadsAtWorkspace;
 
   const r = ids();
-  const explore = async (selector, id, label, expected) => {
-    // From the plan timetable's link, which carries the period.
-    await page.goto(`/ancora/planning/${s.plan}/timetable?period=${s.period}`);
-    await link(page, 'Explore by cohort, teacher, room or other resource');
-    await expect(page.locator('#ancora-explorer-period')).toHaveValue(String(s.period));
-    await page.selectOption(`#ancora-explorer-${selector}`, String(id));
-    await Promise.all([page.waitForNavigation(), page.locator('.ancora-explorer__form button[type="submit"], .ancora-explorer__form input[type="submit"]').first().click()]);
-    await expect(page.locator('caption').first()).toHaveText(new RegExp(`^${label}: ${expected} activit`));
-  };
   const before = step.page_loads;
-  await explore('brigade', r.cohort.C1A, 'Cohort C1A', count((p) => p.cohorts.includes('C1A')));
-  await explore('resource', r.resource.PRJ, 'Projector cart', count((p) => p.resources.includes('PRJ')));
+  await explore(page, s, 'brigade', r.cohort.C1A, 'Cohort C1A', count((p) => p.cohorts.includes('C1A')));
+  await explore(page, s, 'resource', r.resource.PRJ, 'Projector cart', count((p) => p.resources.includes('PRJ')));
   await shot(page, 'j07-explorer-resource');
   step.data.explorer_loads = step.page_loads - before;
   note('cohort and other-resource timetables only in the explorer (no workspace lens; FC-36/G5)');
@@ -640,6 +651,17 @@ test('7 timetable perspectives', async ({ page }) => {
     note('no placement uses an other resource: with one resource group per template, generar() takes resources from every group but the last (SharedResources, case 142), so the other-resource view is empty');
   }
 });
+
+/** Opens the explorer from the plan timetable; checks one object's count. */
+async function explore(page, s, selector, id, label, expected) {
+  // From the plan timetable's link, which carries the period.
+  await page.goto(`/ancora/planning/${s.plan}/timetable?period=${s.period}`);
+  await link(page, 'Explore by cohort, teacher, room or other resource');
+  await expect(page.locator('#ancora-explorer-period')).toHaveValue(String(s.period));
+  await page.selectOption(`#ancora-explorer-${selector}`, String(id));
+  await Promise.all([page.waitForNavigation(), page.locator('.ancora-explorer__form button[type="submit"], .ancora-explorer__form input[type="submit"]').first().click()]);
+  await expect(page.locator('caption').first()).toHaveText(new RegExp(`^${label}: ${expected} activit`));
+}
 
 /** The placements as "id: day.slot teacher room", for the move checks. */
 const layout = (server) => Object.fromEntries(server.placements.map((p) => [p.id, `${p.day}.${p.slot} ${p.teacher} ${p.room} ${p.group}`]));
@@ -787,4 +809,225 @@ test('9 reload, back and forward keep the context', async ({ page }) => {
   if (await resume.count()) {
     step.data.resume = (await resume.textContent()).trim();
   }
+});
+
+// ------------------------------------------------------------ positive path
+
+// Plan P's scopes and their demands (fixture command "positive").
+const POSITIVE_SCOPES = { 'PW/PH/Y3': 8, 'PW/CH/Y4': 5 };
+
+test('10 positive path: every scope of plan P complete', async ({ page }) => {
+  test.setTimeout(420000);
+  begin('10 positive path (plan P)', 'fixture: plan P dataset (Entity API); ui: plan page › Request a timetable for PH/Y3 and CH/Y4 › run page; server: fixture inspect P; ui: plan timetable, explorer (other resource)');
+  // Independent of plan J: own catalogue, dates and scopes.
+  const p = fixture('positive');
+  const before = fixture('inspect', 'P');
+  expect(before.demands, 'demands per scope of plan P').toEqual(POSITIVE_SCOPES);
+  expect(before.jobs).toEqual([]);
+  expect(before.resource_groups.map((g) => g.members), 'two resource groups on the analytical chemistry lab (case 142)').toEqual([['SPC'], ['FUM']]);
+  note('configuration chosen to stay clear of legacy defects: LAB restricted at slot 6 of every day (6.17 overflow, then 2202E); two resource groups on the template that needs a resource (case 142: the last group is never used); no lab room shared by activities that can run at the same time (lugar_permanece_en() checks only the first slot: 23505)');
+  countLoads(page);
+  await login(page, 'planner');
+  const runs = [];
+  for (const [specialty, level] of [['PH', 'Y3'], ['CH', 'Y4']]) {
+    const loads = step.page_loads;
+    const url = await requestScope(page, p, specialty, level, false);
+    await waitForRun(page, !features[154]);
+    const outcome = (await page.locator('table.ancora-scheduling-job').textContent()).match(TERMINAL)[0];
+    runs.push({ scope: `${specialty}/${level}`, job: Number(url.match(/(\d+)$/)[1]), outcome, page_loads: step.page_loads - loads });
+  }
+  step.data.runs = runs;
+  await shot(page, 'j10-run');
+
+  // Every run of P has ended (bounded wait).
+  let server;
+  for (let i = 0; i < 60; i++) {
+    server = fixture('inspect', 'P');
+    if (server.jobs.length === 2 && !server.jobs.some((j) => /queued|running/.test(j.state))) {
+      break;
+    }
+    await new Promise((resolve) => setTimeout(resolve, 2000));
+  }
+  writeOut('inspect-positive.json', server);
+  step.data.jobs = server.jobs.map((j) => ({ id: j.id, scope: `${j.period}/${j.specialty}/${j.level}`, state: j.state, queued_s: j.queued_s, run_s: j.run_s, ...j.metrics, input_hash: undefined }));
+  step.data.placements = server.count;
+  step.data.collisions = server.collisions;
+  step.data.overflow = server.overflow;
+  step.data.break_crossing = server.break_crossing;
+  step.data.restricted_cells = server.restricted_cells;
+  const scopes = Object.fromEntries(server.jobs.map((j) => [`${j.period}/${j.specialty}/${j.level}`, j]));
+  expect(Object.keys(scopes).sort(), 'one run per requested scope').toEqual(Object.keys(POSITIVE_SCOPES).sort());
+  for (const [scope, demands] of Object.entries(POSITIVE_SCOPES)) {
+    const j = scopes[scope];
+    expect(j.state, `run of ${scope}: succeeded (${j.error || 'no error'})`).toBe('succeeded');
+    expect(j.metrics.demands, `${scope}: demands`).toBe(demands);
+    expect(j.metrics.placed, `${scope}: every demand placed`).toBe(demands);
+    expect(j.metrics.unplaced || 0, `${scope}: nothing unplaced`).toBe(0);
+    expect(j.metrics.collisions || 0, `${scope}: no collision reported by the run`).toBe(0);
+    expect(j.metrics.overflow || 0, `${scope}: no overflow reported by the run`).toBe(0);
+  }
+  // The stored result, derived on the server: hard assertions.
+  const placed = server.jobs.reduce((n, j) => n + (j.metrics.placed || 0), 0);
+  expect(server.count, 'stored placements = placed by the runs').toBe(placed);
+  expect(server.count, 'every demand of plan P placed').toBe(Object.values(POSITIVE_SCOPES).reduce((a, b) => a + b, 0));
+  expect(server.collisions, 'no teacher, room, group, cohort or other resource in two places at once').toEqual([]);
+  expect(server.overflow, 'no activity overflows the day').toEqual([]);
+  expect(server.restricted_cells.filter((r) => r.kind === 'activity_type').length, 'LAB restricted at slot 6 of five days').toBe(5);
+  expect(server.restricted_cells.filter((r) => r.occupied_by.length), 'no restricted cell occupied').toEqual([]);
+  const withResource = server.placements.filter((x) => x.resources.length);
+  expect(withResource.map((x) => `${x.subject}/${x.type}/${x.group}:${x.resources.join('+')}`), 'the spectrometer is placed with the analytical chemistry lab; the last group (fume hood) never is').toEqual(['ANC/LAB/GH4A:SPC']);
+  save({ positive: { plan: p.plan, period: p.period } });
+
+  // The plan timetable: both scopes final, none draft.
+  await page.goto(`/ancora/planning/${p.plan}/timetable?period=${p.period}`);
+  const labels = await scopeLabels(page);
+  step.data.timetable_labels = labels;
+  expect(labels.map((l) => l.timetable).sort(), 'both scopes labelled final').toEqual(['final', 'final']);
+  await shot(page, 'j10-timetable');
+  // The other resource's timetable, from the explorer.
+  await explore(page, p, 'resource', ids().resource.SPC, 'Spectrometer', 1);
+  await shot(page, 'j10-explorer-resource');
+});
+
+// ------------------------------------------------- UI coverage of the fixture
+
+/** Opens a record's edit form, fills fields, saves, and checks no error. */
+async function editRecord(page, segment, id, fields) {
+  await page.goto(`/admin/ancora/${segment}/${id}/edit`);
+  for (const [selector, value] of Object.entries(fields)) {
+    if (typeof value === 'boolean') {
+      await page.locator(selector).setChecked(value);
+    }
+    else {
+      await page.fill(selector, value);
+    }
+  }
+  await submit(page, 'Save');
+  await noError(page);
+  await expect(page.locator('body')).toContainText('Updated the');
+}
+
+test('11 the fixture\'s record types are created and edited through the UI', async ({ page }) => {
+  test.setTimeout(300000);
+  const s = requires('plan', 'assignments', 'generated');
+  begin('11 UI coverage of the fixture\'s record types', 'ui: catalogue section "Add …" links, edit forms, assignment editor, template resources, restriction grid, daily load limits (as planner); server: fixture show and inspect');
+  countLoads(page);
+  await login(page, 'planner');
+  const r = ids();
+  const show = (type, id) => fixture('show', type, String(id));
+  const covered = {};
+
+  // Created through the UI: the catalogue types that only the fixture
+  // creates in the journey (specialty, level, cohort, subject).
+  const addFromCatalogues = async (label, fields, selects = {}) => {
+    await page.goto('/ancora/planning/catalogues');
+    await link(page, label);
+    for (const [id, value] of Object.entries(fields)) {
+      await page.fill(id, value);
+    }
+    for (const [id, value] of Object.entries(selects)) {
+      await page.selectOption(id, String(value));
+    }
+    await submit(page, 'Save');
+    await noError(page);
+  };
+  await addFromCatalogues('Add specialty', { '#edit-label-0-value': 'UI specialty', '#edit-code-0-value': 'UXS' });
+  await addFromCatalogues('Add level', { '#edit-label-0-value': 'UI level', '#edit-code-0-value': 'UXL' });
+  const uxs = fixture('find', 'ancora_specialty', 'UXS').id;
+  const uxl = fixture('find', 'ancora_level', 'UXL').id;
+  await addFromCatalogues('Add cohort', { '#edit-label-0-value': 'UI cohort', '#edit-code-0-value': 'UXC', '#edit-enrollment-0-value': '15' }, { '#edit-specialty': uxs, '#edit-level': uxl });
+  await addFromCatalogues('Add subject', { '#edit-label-0-value': 'UI subject', '#edit-code-0-value': 'UXJ' }, { '#edit-specialty': uxs, '#edit-level': uxl });
+  expect(show('ancora_specialty', uxs)).toMatchObject({ code: 'UXS', label: 'UI specialty' });
+  expect(show('ancora_level', uxl)).toMatchObject({ code: 'UXL', label: 'UI level' });
+  expect(show('ancora_cohort', fixture('find', 'ancora_cohort', 'UXC').id)).toMatchObject({ code: 'UXC', specialty: uxs, level: uxl, enrollment: 15 });
+  expect(show('ancora_subject', fixture('find', 'ancora_subject', 'UXJ').id)).toMatchObject({ code: 'UXJ', specialty: uxs, level: uxl });
+  Object.assign(covered, { specialty: 'created', level: 'created', cohort: 'created', subject: 'created' });
+
+  const t = r.template;
+  // Teacher and room assignments of a fixture-created template: the
+  // assignment editor (priority of ANA 2 -> 1, of Room 101 2 -> 1; the
+  // editor offers 1..max + 1, or 1..max when the priorities are 1..n).
+  await openEditor(page, s, t['Calculus II #1 (JW)'], 'Calculus II #1 (JW)');
+  for (const label of ['Ana Example', 'Room 101']) {
+    await page.getByLabel(`Priority of ${label}`, { exact: true }).selectOption('1');
+    await press(page, `Set the priority of ${label}`);
+  }
+  const calEligibility = fixture('inspect', 'J').eligibility['Calculus II #1 (JW)'];
+  expect(calEligibility.teachers).toContain('ANA:1:GML');
+  expect(calEligibility.rooms).toContain('R101:1');
+  covered.teacher_assignment = 'edited';
+  covered.room_assignment = 'edited';
+
+  // The resource group of STA's first lab (fixture): not essential any
+  // more, and a second member added, through the template resources page.
+  expect(t['Statistics #3 (JW)'], 'STA\'s first lab').toBeTruthy();
+  await page.goto(`/ancora/planning/template-resources?template=${t['Statistics #3 (JW)']}`);
+  const group1 = page.locator('details', { hasText: 'Group 1' });
+  await group1.getByLabel('Essential').uncheck();
+  await group1.getByLabel('Spectrometer').check();
+  await press(page, 'Save group 1');
+  const staGroup = fixture('inspect', 'J').resource_groups.find((g) => g.template === 'Statistics #3 (JW)');
+  expect(staGroup).toMatchObject({ essential: false });
+  expect(staGroup.members.sort()).toEqual(['PRJ', 'SPC']);
+  covered.resource_group = 'edited';
+  covered.resource_member = 'created';
+
+  // Edited through the edit forms: one fixture-created record of each type.
+  const calTemplate = t['Calculus II #3 (JW)'];
+  expect(calTemplate, 'a fixture-created template without placements (MA/Y2 failed)').toBeTruthy();
+  const edits = [
+    ['ancora_activity_type', 'activity-types', r.type.LEC, { '#edit-label-0-value': 'Lecture (edited)' }, { label: 'Lecture (edited)' }],
+    ['ancora_specialty', 'specialties', r.specialty.MA, { '#edit-label-0-value': 'Mathematics (edited)' }, { label: 'Mathematics (edited)' }],
+    ['ancora_level', 'levels', r.level.Y2, { '#edit-label-0-value': 'Year 2 (edited)' }, { label: 'Year 2 (edited)' }],
+    ['ancora_cohort', 'cohorts', r.cohort.M2B, { '#edit-enrollment-0-value': '22' }, { enrollment: 22 }],
+    ['ancora_teacher', 'teachers', r.teacher.CAR, { '#edit-label-0-value': 'Carla Example (edited)' }, { label: 'Carla Example (edited)' }],
+    ['ancora_room', 'rooms', r.room.LABA, { '#edit-capacity-0-value': '32' }, { capacity: 32 }],
+    ['ancora_other_resource', 'other-resources', r.resource.FUM, { '#edit-label-0-value': 'Fume hood (edited)' }, { label: 'Fume hood (edited)' }],
+    ['ancora_student_group', 'groups', r.group.G2B, { '#edit-label-0-value': 'Lab group M2B (edited)' }, { label: 'Lab group M2B (edited)' }],
+    ['ancora_activity_template', 'templates', calTemplate, { '#edit-requires-room-value': false }, { requires_room: 0 }],
+    ['ancora_activity_template', 'templates', calTemplate, { '#edit-requires-room-value': true }, { requires_room: 1 }],
+    ['ancora_plan', 'plans', r.plan.K, { '#edit-label-0-value': 'Journey intensive K (edited)' }, { label: 'Journey intensive K (edited)' }],
+    ['ancora_period', 'periods', r.period.KW, { '#edit-label-0-value': 'Intensive week (edited)' }, { label: 'Intensive week (edited)' }],
+    ['ancora_subject', 'subjects', r.subject.CAL, { '#edit-label-0-value': 'Calculus II (edited)' }, { label: 'Calculus II (edited)' }],
+  ];
+  for (const [type, segment, id, fields, stored] of edits) {
+    await editRecord(page, segment, id, fields);
+    expect(show(type, id), `${type} ${id} as stored after the edit`).toMatchObject(stored);
+    covered[type.replace('ancora_', '')] = covered[type.replace('ancora_', '')] || 'edited';
+  }
+
+  // Time restrictions (the grid): fixture-created period and room cells of
+  // JW removed; period, activity-type and room cells created in plan K.
+  const grid = async (period, kind, target, cells) => {
+    await page.goto(`/ancora/planning/restrictions?period=${period}&kind=${kind}${target ? `&target=${target}` : ''}`);
+    for (const [cell, on] of cells) {
+      await page.getByLabel(`Day ${cell[0]}, slot ${cell[1]} restricted`, { exact: true }).setChecked(on);
+    }
+    await press(page, 'Save restrictions');
+  };
+  await grid(s.period, 'period', null, [[[5, 6], false]]);
+  await grid(s.period, 'room', r.room.AUD, [[[3, 6], false]]);
+  const kw = r.period.KW;
+  await grid(kw, 'period', null, [[[5, 6], true]]);
+  await grid(kw, 'activity_type', r.type.LAB, [[[1, 6], true]]);
+  await grid(kw, 'room', r.room.R101, [[[4, 1], true]]);
+  const jCells = fixture('inspect', 'J').restricted_cells;
+  expect(jCells.filter((c) => c.kind === 'period' || c.kind === 'room'), 'the fixture\'s period and room cells of JW removed').toEqual([]);
+  const kCells = fixture('inspect', 'K').restricted_cells.map((c) => `${c.kind}:${c.cell}`).sort();
+  expect(kCells).toEqual([`activity_type:${kw}.1.6`, `period:${kw}.5.6`, `room:${kw}.4.1`].sort());
+  covered.time_restriction = 'created and edited';
+
+  // Daily load limits: the fixture's cohort limit of M2A 4 -> 5; a new
+  // cohort limit for I1A in plan K.
+  await page.goto(`/ancora/planning/load-limits?period=${s.period}`);
+  await page.getByLabel('Maximum daily load of Cohort M2A', { exact: true }).fill('5');
+  await press(page, 'Save');
+  await page.goto(`/ancora/planning/load-limits?period=${kw}`);
+  await page.getByLabel('Maximum daily load of Cohort I1A', { exact: true }).fill('4');
+  await press(page, 'Save');
+  expect(fixture('inspect', 'J').loads).toContainEqual(expect.objectContaining({ kind: 'cohort', object: 'M2A', max_daily_load: 5 }));
+  expect(fixture('inspect', 'K').loads).toContainEqual(expect.objectContaining({ kind: 'cohort', object: 'I1A', max_daily_load: 4 }));
+  covered.load_limit = 'created and edited';
+  step.data.covered = covered;
+  await shot(page, 'j11-load-limits');
 });
