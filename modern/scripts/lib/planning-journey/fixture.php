@@ -345,6 +345,224 @@ switch ($command) {
     ], $in + ['priority' => 1]);
     break;
 
+  case 'positive':
+    // The positive-path dataset (plan P): ordinary academic configuration
+    // in which the unchanged generator places every demand of both scopes.
+    // Independent of plan J: its own specialties, levels, cohorts, subjects,
+    // teachers, rooms and other resources, and later dates; only the
+    // activity types LEC and LAB are shared (found or created). Three
+    // choices exist ONLY to stay clear of legacy defects, and are
+    // documented as such (docs/ux/planning-journey.md, "Positive path"):
+    // - LAB (2 slots) is restricted at the last slot of every day (an
+    //   activity-type restriction, the ordinary "no lab in the last hour"
+    //   rule). Without it a lab may start at slot 6 and overflow the day
+    //   (6.17), and the run then fails with 2202E in dia_minimo_impacto()
+    //   (the characterization of plan J, scope MA/Y2).
+    // - The analytical chemistry lab has TWO resource groups: the
+    //   spectrometer (group 1) and the fume hood (group 2). generar() takes
+    //   resources from every group but the template's last one (case 142,
+    //   Q-31), so with one group no resource would be placed; with two, the
+    //   spectrometer is placed and the fume hood never is.
+    // - No lab room is shared by two activities that can run at the same
+    //   time: one lab group per scope (all its cohorts), and each scope its
+    //   own lab rooms. lugar_permanece_en() checks a room only at the
+    //   activity's first slot, so a 2-slot lab can be given a room that is
+    //   booked at its second slot, and the run fails with 23505 on
+    //   restriccion_de_lugar (observed while building this dataset, with
+    //   shared lab rooms and with two lab groups per scope).
+    $lec = $ensure('ancora_activity_type', ['code' => 'LEC'], [
+      'label' => 'Lecture',
+      'duration_slots' => 1,
+      'priority' => 1,
+      'cost' => 1,
+    ]);
+    $lab = $ensure('ancora_activity_type', ['code' => 'LAB'], [
+      'label' => 'Laboratory',
+      'duration_slots' => 2,
+      'cost' => 1,
+    ]);
+    $ph = $ensure('ancora_specialty', ['code' => 'PH'], ['label' => 'Physics']);
+    $ch = $ensure('ancora_specialty', ['code' => 'CH'], ['label' => 'Chemistry']);
+    $y3 = $ensure('ancora_level', ['code' => 'Y3'], ['label' => 'Year 3']);
+    $y4 = $ensure('ancora_level', ['code' => 'Y4'], ['label' => 'Year 4']);
+    $phy3 = ['specialty' => $id($ph), 'level' => $id($y3)];
+    $chy4 = ['specialty' => $id($ch), 'level' => $id($y4)];
+    $cohorts = [];
+    foreach (['P3A' => [$phy3, 24], 'P3B' => [$phy3, 24], 'H4A' => [$chy4, 28]] as $code => [$of, $n]) {
+      $cohorts[$code] = $id($ensure('ancora_cohort', ['code' => $code], $of + ['label' => "Cohort $code", 'enrollment' => $n]));
+    }
+    $subjects = [];
+    foreach ([
+      'MEC' => ['Mechanics', $phy3],
+      'OPT' => ['Optics', $phy3],
+      'ORG' => ['Organic chemistry', $chy4],
+      'THE' => ['Thermodynamics', $phy3],
+      'ANC' => ['Analytical chemistry', $chy4],
+    ] as $code => [$label, $of]) {
+      $subjects[$code] = $ensure('ancora_subject', ['code' => $code], $of + ['label' => $label]);
+    }
+    $teachers = [];
+    foreach (['FAY' => 'Fay Example', 'GUS' => 'Gus Example', 'HAL' => 'Hal Example', 'IDA' => 'Ida Example'] as $code => $label) {
+      $teachers[$code] = $id($ensure('ancora_teacher', ['code' => $code], ['label' => $label]));
+    }
+    $rooms = [];
+    foreach (['HALL' => ['Lecture hall', 80], 'R201' => ['Room 201', 60], 'LABC' => ['Physics lab C', 50], 'LABD' => ['Physics lab D', 50], 'LABE' => ['Chemistry lab', 30]] as $code => [$label, $capacity]) {
+      $rooms[$code] = $id($ensure('ancora_room', ['code' => $code], ['label' => $label, 'capacity' => $capacity]));
+    }
+    $spc = $ensure('ancora_other_resource', ['code' => 'SPC'], ['label' => 'Spectrometer']);
+    $fum = $ensure('ancora_other_resource', ['code' => 'FUM'], ['label' => 'Fume hood']);
+    $plan = $ensure('ancora_plan', ['code' => 'P'], [
+      'label' => 'Positive spring 2027',
+      'starts_on' => '2027-03-01',
+      'ends_on' => '2027-03-26',
+    ]);
+    $in = ['plan' => $id($plan)];
+    $period = $ensure('ancora_period', ['code' => 'PW', 'plan' => $id($plan)], [
+      'label' => 'Positive week',
+      'days' => 5,
+      'slots_per_day' => 6,
+      'start_hour' => 8,
+      'slot_duration' => 1,
+      'plan_days' => [1],
+    ]);
+    $groups = [];
+    foreach ([
+      'GPL' => ['Physics lecture group', $phy3, $lec, ['P3A', 'P3B']],
+      'GPX' => ['Physics lab group', $phy3, $lab, ['P3A', 'P3B']],
+      'GHL' => ['Chemistry lecture group', $chy4, $lec, ['H4A']],
+      'GH4A' => ['Chemistry lab group H4A', $chy4, $lab, ['H4A']],
+    ] as $code => [$label, $of, $type, $members]) {
+      $groups[$code] = $id($ensure('ancora_student_group', ['code' => $code, 'plan' => $id($plan)], $of + [
+        'label' => $label,
+        'activity_type' => $id($type),
+        'cohorts' => array_map(static fn (string $c): int => $cohorts[$c], $members),
+      ]));
+    }
+    // Subject => [activity type, [teacher => priority], groups] per
+    // template, in order. Rooms: lectures HALL then R201, labs LABC then
+    // LABD. HAL teaches in both scopes.
+    $types = ['LEC' => $lec, 'LAB' => $lab];
+    $layout = [
+      'MEC' => [
+        ['LEC', ['FAY' => 1, 'GUS' => 2], ['GPL']],
+        ['LEC', ['FAY' => 1, 'GUS' => 2], ['GPL']],
+        ['LAB', ['GUS' => 1, 'FAY' => 2], ['GPX']],
+      ],
+      'OPT' => [
+        ['LEC', ['HAL' => 1, 'FAY' => 2], ['GPL']],
+        ['LAB', ['HAL' => 1, 'GUS' => 2], ['GPX']],
+      ],
+      'THE' => [
+        ['LEC', ['GUS' => 1, 'HAL' => 2], ['GPL']],
+        ['LEC', ['GUS' => 1, 'HAL' => 2], ['GPL']],
+        ['LAB', ['FAY' => 1, 'GUS' => 2], ['GPX']],
+      ],
+      'ORG' => [
+        ['LEC', ['IDA' => 1, 'HAL' => 2], ['GHL']],
+        ['LEC', ['IDA' => 1, 'HAL' => 2], ['GHL']],
+        ['LAB', ['IDA' => 1, 'HAL' => 2], ['GH4A']],
+      ],
+      'ANC' => [
+        ['LEC', ['HAL' => 1, 'IDA' => 2], ['GHL']],
+        ['LAB', ['HAL' => 1, 'IDA' => 2], ['GH4A']],
+      ],
+    ];
+    $room_layout = [
+      'PH' => ['LEC' => ['HALL' => 1, 'R201' => 2], 'LAB' => ['LABC' => 1, 'LABD' => 2]],
+      'CH' => ['LEC' => ['HALL' => 1, 'R201' => 2], 'LAB' => ['LABE' => 1]],
+    ];
+    $specialty_of = ['MEC' => 'PH', 'OPT' => 'PH', 'THE' => 'PH', 'ORG' => 'CH', 'ANC' => 'CH'];
+    foreach ($layout as $subject_code => $rows) {
+      $existing = $templates_of($subjects[$subject_code], $period);
+      foreach ($rows as $n => [$t, $by_teacher, $group_codes]) {
+        $template = $existing[$n] ?? $create('ancora_activity_template', $in + [
+          'subject' => $id($subjects[$subject_code]),
+          'period' => $id($period),
+          'activity_type' => $id($types[$t]),
+        ]);
+        foreach ($by_teacher as $code => $priority) {
+          $ensure('ancora_teacher_assignment', ['template' => $id($template), 'teacher' => $teachers[$code]], $in + [
+            'priority' => $priority,
+            'groups' => array_map(static fn (string $g): int => $groups[$g], $group_codes),
+          ]);
+        }
+        foreach ($room_layout[$specialty_of[$subject_code]][$t] as $code => $priority) {
+          $ensure('ancora_room_assignment', ['template' => $id($template), 'room' => $rooms[$code]], $in + ['priority' => $priority]);
+        }
+        if ($subject_code === 'ANC' && $t === 'LAB' && !$find('ancora_resource_group', ['template' => $id($template)])) {
+          foreach ([[1, $spc], [2, $fum]] as [$priority, $resource]) {
+            $group = $create('ancora_resource_group', $in + [
+              'template' => $id($template),
+              'priority' => $priority,
+              'needed' => 1,
+              'essential' => TRUE,
+            ]);
+            $create('ancora_resource_member', $in + [
+              'resource_group' => $id($group),
+              'other_resource' => $id($resource),
+              'priority' => 1,
+            ]);
+          }
+        }
+      }
+    }
+    // No lab in the last hour of the day (see above), and an ordinary
+    // teacher restriction: IDA is not available on day 2, slots 1 and 2.
+    for ($day = 1; $day <= 5; $day++) {
+      $ensure('ancora_time_restriction', [
+        'kind' => 'activity_type',
+        'activity_type' => $id($lab),
+        'period' => $id($period),
+        'day' => $day,
+        'slot' => 6,
+      ], $in);
+    }
+    foreach ([1, 2] as $slot) {
+      $ensure('ancora_time_restriction', [
+        'kind' => 'teacher',
+        'teacher' => $teachers['IDA'],
+        'period' => $id($period),
+        'day' => 2,
+        'slot' => $slot,
+      ], $in);
+    }
+    $out = ['plan' => $id($plan), 'period' => $id($period)];
+    break;
+
+  case 'show':
+    // One record's stored field values (UI coverage checks): scalar values
+    // and target ids (integers and booleans as numbers), multi-valued
+    // fields as lists.
+    [, , $entity_id] = $extra + [NULL, NULL, NULL];
+    $storage = $etm->getStorage($arg);
+    $storage->resetCache();
+    $record = $storage->load($entity_id);
+    if ($record === NULL) {
+      throw new \RuntimeException("No $arg $entity_id.");
+    }
+    $out = ['id' => (int) $record->id(), 'label' => $record->label()];
+    foreach ($record->getFields(FALSE) as $name => $items) {
+      if (in_array($name, ['uuid', 'created', 'changed'], TRUE)) {
+        continue;
+      }
+      $values = [];
+      foreach ($items as $item) {
+        $main = $item->mainPropertyName();
+        $value = $item->get($main)->getValue();
+        // Integers (ids, numbers, booleans as 0/1) as numbers.
+        $values[] = is_string($value) && preg_match('/^-?\d+$/', $value) ? (int) $value : (is_bool($value) ? (int) $value : $value);
+      }
+      $out[$name] = count($values) === 1 && $items->getFieldDefinition()->getFieldStorageDefinition()->getCardinality() === 1 ? $values[0] : $values;
+    }
+    break;
+
+  case 'find':
+    // The id of the planner's record of a type with the given code (UI
+    // coverage checks), or NULL.
+    $record = $find($arg, ['code' => $extra[2] ?? '']);
+    $out = ['id' => $record === NULL ? NULL : (int) $record->id()];
+    break;
+
   case 'inspect':
     $plan = $plan_of($arg ?? 'J');
     $out = inspect_plan($plan, $etm, $assignments);
@@ -447,6 +665,7 @@ function inspect_plan($plan, $etm, TemplateAssignments $assignments): array {
   // Placements and the cells each occupies.
   $placements = [];
   $occupancy = [];
+  $type_cells = [];
   $overflow = [];
   $crossing = [];
   $storage = $etm->getStorage('ancora_placement');
@@ -495,6 +714,9 @@ function inspect_plan($plan, $etm, TemplateAssignments $assignments): array {
       'resource' => $row['resources'],
     ];
     for ($k = 0; $k < $length; $k++) {
+      // The cells of each activity type (restriction checks only; two
+      // activities of one type in a cell are not a collision).
+      $type_cells[$row['type']]["$period_id.$day." . ($slot + $k)][] = $row['id'];
       foreach ($owners as $kind => $codes) {
         foreach (array_filter($codes) as $c) {
           $occupancy["$kind:$c"]["$period_id.$day." . ($slot + $k)][] = $row['id'];
@@ -521,6 +743,10 @@ function inspect_plan($plan, $etm, TemplateAssignments $assignments): array {
     $hits = [];
     if ($who !== NULL) {
       $hits = $occupancy[$who][$cell] ?? [];
+    }
+    elseif ($kind === 'activity_type') {
+      $who = 'activity_type:' . $code($r->get('activity_type')->entity);
+      $hits = $type_cells[$code($r->get('activity_type')->entity)][$cell] ?? [];
     }
     elseif ($kind === 'period') {
       foreach ($occupancy as $w => $cells) {
