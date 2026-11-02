@@ -1261,7 +1261,7 @@ One small accessibility fix also applies to the move page: the preview's cross-p
 - It keeps the form's redirect flow, so the form needs no second path.
 - It adds no jQuery.
 
-The AJAX prototype was 37 ms faster at p50 on the preview step, only because it replaced less. The fetch request carries `X-Ancora-Regions: 1`, so the workspace route answers with the regions fragment instead of the full page. The header survives the step's redirect, and the route is not cached. Before the header, the fetch answer was the full page (36 KB) and its p50 was about 930 ms, against 420 ms for AJAX in that same run (a busier machine). With the header, the answer is 30 KB and the p50 is 408 ms, against 371 ms for AJAX in the run alone.
+The AJAX prototype was 37 ms faster at p50 on the preview step, only because it replaced less. The fetch request carries `X-Ancora-Regions: 1`, so the workspace route answers with the regions fragment instead of the full page. The header survives the step's redirect, and the route is not cached. Every response of the workspace page and of `/regions` carries **`Vary: X-Ancora-Regions`** (`WorkspaceVarySubscriber`, appended to any existing `Vary`), so no cache between the browser and Drupal can mix the page and the fragment (a review fix on #148). Before the header, the fetch answer was the full page (36 KB) and its p50 was about 930 ms, against 420 ms for AJAX in that same run (a busier machine). With the header, the answer is 30 KB and the p50 is 408 ms, against 371 ms for AJAX in the run alone.
 
 **Concurrency** (the S1a guard, extended to writes).
 - Navigations and polls share a sequence number and abort each other.

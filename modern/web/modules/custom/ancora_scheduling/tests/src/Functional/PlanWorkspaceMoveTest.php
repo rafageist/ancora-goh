@@ -219,6 +219,49 @@ final class PlanWorkspaceMoveTest extends AncoraBrowserTestBase {
   }
 
   /**
+   * The page and its regions fragment: both vary by X-Ancora-Regions.
+   *
+   * The same URL answers with the full page, or with the regions only when
+   * the workspace script asks for them; both say so (Vary), both are not
+   * cached, and they differ.
+   */
+  public function testVaryByRegionsHeader(): void {
+    $planner = $this->drupalCreateUser(self::PLANNER);
+    $this->r = $this->workspaceFixture((int) $planner->id());
+    $this->drupalLogin($planner);
+    $session = $this->getSession();
+    [$path, $options] = $this->a4();
+    $responses = [];
+    foreach (['page' => [], 'fragment' => ['X-Ancora-Regions' => '1']] as $kind => $headers) {
+      $responses[$kind] = $this->drupalGet($path, $options, $headers);
+      $this->assertSession()->statusCodeEquals(200);
+      $vary = array_map('trim', explode(',', (string) $session->getResponseHeader('Vary')));
+      $this->assertContains('X-Ancora-Regions', $vary, "$kind: Vary");
+      $this->assertStringContainsString('no-cache', (string) $session->getResponseHeader('Cache-Control'), "$kind: Cache-Control");
+      $this->assertStringContainsString('private', (string) $session->getResponseHeader('Cache-Control'), "$kind: Cache-Control");
+      // Where the dynamic page cache runs, it never stores either answer.
+      $dynamic = $session->getResponseHeader('X-Drupal-Dynamic-Cache');
+      if ($dynamic !== NULL) {
+        $this->assertStringStartsWith('UNCACHEABLE', (string) $dynamic, "$kind: dynamic page cache");
+      }
+      $this->assertStringStartsWith('0', (string) $session->getResponseHeader('X-Drupal-Cache-Max-Age'), "$kind: max-age");
+    }
+    // The page has the shell; the fragment has only the regions.
+    $this->assertStringContainsString('<html', $responses['page']);
+    $this->assertStringContainsString('data-ancora-workspace', $responses['page']);
+    $this->assertStringNotContainsString('<html', $responses['fragment']);
+    $this->assertStringNotContainsString('data-ancora-workspace', $responses['fragment']);
+    $this->assertSame(4, substr_count($responses['fragment'], 'data-ancora-region='));
+    $this->assertNotSame($responses['page'], $responses['fragment']);
+    // A page again, after the fragment: still the page (nothing cached).
+    // Mink keeps request headers between requests, so say "not 1".
+    $this->assertStringContainsString('<html', $this->drupalGet($path, $options, ['X-Ancora-Regions' => '0']));
+    // The regions endpoint (GET) says the same.
+    $this->drupalGet($path . '/regions', $options);
+    $this->assertContains('X-Ancora-Regions', array_map('trim', explode(',', (string) $session->getResponseHeader('Vary'))));
+  }
+
+  /**
    * Access, forged values, two users and the form token.
    */
   public function testAccess(): void {

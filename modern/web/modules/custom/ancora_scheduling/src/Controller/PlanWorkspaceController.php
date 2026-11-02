@@ -7,6 +7,7 @@ namespace Drupal\ancora_scheduling\Controller;
 use Drupal\ancora_academic\Entity\Plan;
 use Drupal\ancora_scheduling\Workspace\PlanWorkspace;
 use Drupal\ancora_scheduling\Workspace\ResumeStore;
+use Drupal\ancora_scheduling\Workspace\WorkspaceVarySubscriber;
 use Drupal\Core\Cache\CacheableMetadata;
 use Drupal\Core\Cache\CacheableResponse;
 use Drupal\Core\Controller\ControllerBase;
@@ -57,7 +58,8 @@ final class PlanWorkspaceController extends ControllerBase {
     // The workspace script submits the move steps in place and asks for the
     // regions only (the header is kept across the step's redirect); the
     // route is not cached, so the page and the fragment never mix.
-    if ($request->headers->get('X-Ancora-Regions') === '1') {
+    // Both answers vary by the header (WorkspaceVarySubscriber).
+    if ($request->headers->get(WorkspaceVarySubscriber::HEADER) === '1') {
       return $this->fragment($ancora_plan, $regions);
     }
     $build = [

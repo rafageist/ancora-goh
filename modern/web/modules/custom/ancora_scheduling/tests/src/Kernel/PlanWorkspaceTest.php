@@ -8,12 +8,14 @@ use Drupal\ancora_engine\EngineSettings;
 use Drupal\ancora_scheduling\Workspace\CanvasLayout;
 use Drupal\ancora_scheduling\Workspace\PlanWorkspace;
 use Drupal\ancora_scheduling\Workspace\ResumeStore;
+use Drupal\ancora_scheduling\Workspace\WorkspaceVarySubscriber;
 use Drupal\Core\Site\Settings;
 use Drupal\Tests\ancora_academic\Kernel\AcademicKernelTestBase;
 use Drupal\Tests\ancora_scheduling\Traits\WorkspaceFixtureTrait;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Group;
 use Symfony\Component\HttpFoundation\InputBag;
+use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 /**
@@ -25,6 +27,7 @@ use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 #[CoversClass(CanvasLayout::class)]
 #[CoversClass(PlanWorkspace::class)]
 #[CoversClass(ResumeStore::class)]
+#[CoversClass(WorkspaceVarySubscriber::class)]
 #[Group('ancora_scheduling')]
 final class PlanWorkspaceTest extends AcademicKernelTestBase {
 
@@ -214,6 +217,19 @@ final class PlanWorkspaceTest extends AcademicKernelTestBase {
     }
     $this->assertFalse($regions['bar']['#cross']['evaluated']);
     $this->assertStringContainsString('not evaluated (the plan has no first day)', (string) $regions['inspector']['#cross_text']);
+  }
+
+  /**
+   * Vary: X-Ancora-Regions is appended, an existing Vary is kept.
+   */
+  public function testVary(): void {
+    $response = new Response('', 200, ['Vary' => 'Cookie, Accept-Encoding']);
+    WorkspaceVarySubscriber::addVary($response);
+    WorkspaceVarySubscriber::addVary($response);
+    $this->assertSame(['Cookie', 'Accept-Encoding', 'X-Ancora-Regions'], $response->getVary());
+    $plain = new Response();
+    WorkspaceVarySubscriber::addVary($plain);
+    $this->assertSame(['X-Ancora-Regions'], $plain->getVary());
   }
 
   /**
