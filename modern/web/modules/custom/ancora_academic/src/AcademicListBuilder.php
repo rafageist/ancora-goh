@@ -7,6 +7,9 @@ namespace Drupal\ancora_academic;
 use Drupal\ancora_academic\Controller\OrderController;
 use Drupal\ancora_academic\Entity\ActivityTemplate;
 use Drupal\ancora_academic\Entity\Breakdown;
+use Drupal\Component\Render\MarkupInterface;
+use Drupal\Core\Cache\CacheableMetadata;
+use Drupal\Core\Entity\EntityAccessControlHandlerInterface;
 use Drupal\Core\Entity\EntityFieldManagerInterface;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\EntityListBuilder;
@@ -14,6 +17,7 @@ use Drupal\Core\Entity\EntityStorageInterface;
 use Drupal\Core\Entity\EntityTypeInterface;
 use Drupal\Core\Entity\Query\QueryInterface;
 use Drupal\Core\Field\EntityReferenceFieldItemListInterface;
+use Drupal\Core\Link;
 use Drupal\Core\Url;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
@@ -56,12 +60,18 @@ final class AcademicListBuilder extends EntityListBuilder {
   private EntityStorageInterface $templateStorage;
 
   /**
+   * The activity template access control handler.
+   */
+  private EntityAccessControlHandlerInterface $templateAccess;
+
+  /**
    * {@inheritdoc}
    */
   public static function createInstance(ContainerInterface $container, EntityTypeInterface $entity_type): static {
     $instance = parent::createInstance($container, $entity_type);
     $instance->fieldManager = $container->get('entity_field.manager');
     $instance->templateStorage = $container->get('entity_type.manager')->getStorage('ancora_activity_template');
+    $instance->templateAccess = $container->get('entity_type.manager')->getAccessControlHandler('ancora_activity_template');
     $query = $container->get('request_stack')->getCurrentRequest()?->query;
     foreach (self::FILTERS as $filter) {
       $value = $query?->get($filter);
@@ -131,7 +141,11 @@ final class AcademicListBuilder extends EntityListBuilder {
     assert($entity instanceof AcademicEntityInterface);
     $row = [];
     foreach ($this->columns() as $name) {
-      $row[$name] = $name === 'label' ? $entity->toLink() : $this->renderValue($entity, $name);
+      $row[$name] = match (TRUE) {
+        $name === 'label' => $entity->toLink(),
+        $name === 'templates' && $entity instanceof Breakdown => ['data' => $this->templatesOf($entity)],
+        default => $this->renderValue($entity, $name),
+      };
     }
     return $row + parent::buildRow($entity);
   }
@@ -140,9 +154,6 @@ final class AcademicListBuilder extends EntityListBuilder {
    * Renders a field as plain text for a table cell.
    */
   private function renderValue(AcademicEntityInterface $entity, string $name): string {
-    if ($name === 'templates' && $entity instanceof Breakdown) {
-      return $this->templatesOf($entity);
-    }
     $items = $entity->get($name);
     if ($items instanceof EntityReferenceFieldItemListInterface) {
       $labels = [];
@@ -160,22 +171,104 @@ final class AcademicListBuilder extends EntityListBuilder {
   }
 
   /**
-   * The activity templates of a breakdown in their order: "1 Lecture, 2 Lab".
+   * The activity templates of a breakdown in their order, with their actions.
+   *
+   * The legacy breakdown browser (desglose_detalles.tpl:17-38) shows the
+   * templates of each breakdown in their order, each with a left arrow (not
+   * on the first), a right arrow (not on the last) and its teachers, rooms
+   * and other resources, and a "+" that adds a template to this breakdown
+   * (get_form_new_plantilla.php). Here "1 Lecture" links to the template;
+   * Move up and Move down are the OrderController moves (D13), back to this
+   * list; "Teachers, groups and rooms" and "Other resources" open the
+   * template's editors; "Add activity template" opens the template form
+   * with ?breakdown= (AcademicEntityForm). The write actions are shown only
+   * to a user who may update the template, or the breakdown for the add.
+   *
+   * @return array<string, mixed>
+   *   A render array.
    */
-  private function templatesOf(Breakdown $breakdown): string {
+  private function templatesOf(Breakdown $breakdown): array {
     $storage = $this->templateStorage;
     $ids = $storage->getQuery()
       ->accessCheck(TRUE)
       ->condition('subject', $breakdown->get('subject')->target_id)
       ->condition('period', $breakdown->get('period')->target_id)
       ->sort('sequence')
+      ->sort('id')
       ->execute();
-    $labels = [];
-    foreach ($storage->loadMultiple($ids) as $template) {
+    $templates = array_values($storage->loadMultiple($ids));
+    $cacheability = (new CacheableMetadata())
+      ->addCacheTags($storage->getEntityType()->getListCacheTags())
+      ->addCacheContexts(['user']);
+    $items = [];
+    $last = count($templates) - 1;
+    foreach ($templates as $i => $template) {
       assert($template instanceof ActivityTemplate);
-      $labels[] = $template->getSequence() . ' ' . ($template->getActivityType()?->label() ?? '?');
+      $cacheability->addCacheableDependency($template);
+      $title = $template->getSequence() . ' ' . ($template->getActivityType()?->label() ?? '?');
+      $label = $template->label();
+      $item = ['label' => Link::fromTextAndUrl($title, $template->toUrl())->toRenderable()];
+      $update = $template->access('update', NULL, TRUE);
+      $cacheability->addCacheableDependency($update);
+      if ($update->isAllowed()) {
+        $arguments = ['@label' => $label];
+        $query = ['query' => ['template' => $template->id()]];
+        $actions = [];
+        if ($i > 0) {
+          $actions[] = $this->action($this->t('Move up<span class="visually-hidden"> @label</span>', $arguments), $this->ensureDestination($this->moveUrl($template, 'up')));
+        }
+        if ($i < $last) {
+          $actions[] = $this->action($this->t('Move down<span class="visually-hidden"> @label</span>', $arguments), $this->ensureDestination($this->moveUrl($template, 'down')));
+        }
+        $actions[] = $this->action($this->t('Teachers, groups and rooms<span class="visually-hidden"> of @label</span>', $arguments), Url::fromRoute('ancora_academic.assignment_editor', [], $query));
+        $actions[] = $this->action($this->t('Other resources<span class="visually-hidden"> of @label</span>', $arguments), Url::fromRoute('ancora_academic.template_resources', [], $query));
+        $item['actions'] = [
+          '#theme' => 'item_list',
+          '#items' => $actions,
+          '#attributes' => ['class' => ['ancora-breakdown-templates__actions']],
+        ];
+      }
+      $items[] = $item;
     }
-    return $labels === [] ? (string) $this->t('None') : implode(', ', $labels);
+    $build = [
+      'templates' => [
+        '#theme' => 'item_list',
+        '#list_type' => 'ol',
+        '#items' => $items,
+        '#empty' => $this->t('None'),
+        '#attributes' => ['class' => ['ancora-breakdown-templates']],
+      ],
+    ];
+    $add = $breakdown->access('update', NULL, TRUE)->andIf($this->templateAccess->createAccess(NULL, NULL, [], TRUE));
+    $cacheability->addCacheableDependency($add);
+    if ($add->isAllowed()) {
+      $url = Url::fromRoute('entity.ancora_activity_template.add_form', [], ['query' => ['breakdown' => $breakdown->id()]]);
+      $build['add'] = $this->action($this->t('Add activity template<span class="visually-hidden"> to @label</span>', ['@label' => $breakdown->label()]), $this->ensureDestination($url));
+      $build['add']['#attributes']['class'][] = 'ancora-breakdown-templates__add';
+    }
+    $cacheability->applyTo($build);
+    return $build;
+  }
+
+  /**
+   * The URL of a move of a template (OrderController, D13).
+   */
+  private function moveUrl(ActivityTemplate $template, string $direction): Url {
+    return Url::fromRoute('ancora_academic.order.move', [
+      'type' => array_search('ancora_activity_template', OrderController::TYPES, TRUE),
+      'id' => $template->id(),
+      'direction' => $direction,
+    ]);
+  }
+
+  /**
+   * A link render element.
+   *
+   * @return array<string, mixed>
+   *   A render array.
+   */
+  private function action(MarkupInterface $title, Url $url): array {
+    return ['#type' => 'link', '#title' => $title, '#url' => $url];
   }
 
   /**
