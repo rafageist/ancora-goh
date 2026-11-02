@@ -389,7 +389,10 @@ switch ($command) {
     $chy4 = ['specialty' => $id($ch), 'level' => $id($y4)];
     $cohorts = [];
     foreach (['P3A' => [$phy3, 24], 'P3B' => [$phy3, 24], 'H4A' => [$chy4, 28]] as $code => [$of, $n]) {
-      $cohorts[$code] = $id($ensure('ancora_cohort', ['code' => $code], $of + ['label' => "Cohort $code", 'enrollment' => $n]));
+      $cohorts[$code] = $id($ensure('ancora_cohort', ['code' => $code], $of + [
+        'label' => "Cohort $code",
+        'enrollment' => $n,
+      ]));
     }
     $subjects = [];
     foreach ([
@@ -406,7 +409,14 @@ switch ($command) {
       $teachers[$code] = $id($ensure('ancora_teacher', ['code' => $code], ['label' => $label]));
     }
     $rooms = [];
-    foreach (['HALL' => ['Lecture hall', 80], 'R201' => ['Room 201', 60], 'LABC' => ['Physics lab C', 50], 'LABD' => ['Physics lab D', 50], 'LABE' => ['Chemistry lab', 30]] as $code => [$label, $capacity]) {
+    $room_list = [
+      'HALL' => ['Lecture hall', 80],
+      'R201' => ['Room 201', 60],
+      'LABC' => ['Physics lab C', 50],
+      'LABD' => ['Physics lab D', 50],
+      'LABE' => ['Chemistry lab', 30],
+    ];
+    foreach ($room_list as $code => [$label, $capacity]) {
       $rooms[$code] = $id($ensure('ancora_room', ['code' => $code], ['label' => $label, 'capacity' => $capacity]));
     }
     $spc = $ensure('ancora_other_resource', ['code' => 'SPC'], ['label' => 'Spectrometer']);
