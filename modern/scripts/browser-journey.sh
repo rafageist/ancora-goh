@@ -111,7 +111,12 @@ for _ in $(seq 1 120); do
 done
 [ "$state" = succeeded ] || { echo "the E2E run ended as '$state'"; tail -n 20 "$work/worker.log"; exit 1; }
 placements=$(drush php:eval '$u = current(\Drupal::entityTypeManager()->getStorage("user")->loadByProperties(["name" => "other"])); $p = current(\Drupal::entityTypeManager()->getStorage("ancora_plan")->loadByProperties(["code" => "P", "uid" => $u->id()])); echo json_encode(array_map("intval", array_values(\Drupal::entityQuery("ancora_placement")->accessCheck(FALSE)->condition("plan", $p->id())->sort("id")->execute())));')
-jq -c --argjson p "$placements" '. + {e2e: {placements: $p}}' "$work/fixture.json" >"$work/ids.json"
+# Its scope ids and the input snapshot hash of this first run (enqueue.php
+# queues what the request form queues): the generate journey (FC-29, FC-31)
+# requests the same scope through the form and compares the hashes.
+scope=$(drush php:eval '$etm = \Drupal::entityTypeManager(); $u = current($etm->getStorage("user")->loadByProperties(["name" => "other"])); $p = current($etm->getStorage("ancora_plan")->loadByProperties(["code" => "P", "uid" => $u->id()])); $one = fn ($t, $c) => (int) current($etm->getStorage($t)->loadByProperties($c))->id(); echo json_encode(["plan" => (int) $p->id(), "period" => $one("ancora_period", ["code" => "PER", "plan" => $p->id()]), "specialty" => $one("ancora_specialty", ["code" => "E", "uid" => $u->id()]), "level" => $one("ancora_level", ["code" => "N", "uid" => $u->id()])]);')
+input_hash=$(drush ancora-engine:job "$job" 2>/dev/null | jq -r .result.input_hash)
+jq -c --argjson p "$placements" --argjson s "$scope" --arg h "$input_hash" '. + {e2e: ({placements: $p, input_hash: $h} + $s)}' "$work/fixture.json" >"$work/ids.json"
 echo "    fixture: $(cat "$work/ids.json")"
 
 echo "==> Playwright"

@@ -21,6 +21,8 @@
  *   - active: A message about a queued or running job, or NULL.
  *   - error: A message when the engine could not be read, or NULL.
  *   - job_url: The run's status page.
+ *   - rerun_url: The request form with this scope, or NULL (no access, or
+ *     a run of the scope is queued or running).
  *   - count: The number of placements (before the filters).
  *   - shown: The number of placements the filters keep.
  *   - grid: NULL, or days (list of day numbers) and slots, each with number,
@@ -89,6 +91,7 @@
       <p class="ancora-timetable__status">
         {{ scope.status }}
         {% if scope.job_url %}<a href="{{ scope.job_url }}">{{ 'Run details'|t }}</a>{% endif %}
+        {% if scope.rerun_url %}<a class="ancora-timetable__rerun" href="{{ scope.rerun_url }}">{{ 'Run this scope again'|t }}</a>{% endif %}
       </p>
       {% if scope.stale %}
         <p class="ancora-timetable__stale">{{ 'The planning data changed after this run; request a new timetable to include the changes.'|t }}</p>
