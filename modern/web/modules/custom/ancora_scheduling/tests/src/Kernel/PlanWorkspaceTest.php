@@ -8,12 +8,14 @@ use Drupal\ancora_engine\EngineSettings;
 use Drupal\ancora_scheduling\Workspace\CanvasLayout;
 use Drupal\ancora_scheduling\Workspace\PlanWorkspace;
 use Drupal\ancora_scheduling\Workspace\ResumeStore;
+use Drupal\ancora_scheduling\Workspace\WorkspaceVarySubscriber;
 use Drupal\Core\Site\Settings;
 use Drupal\Tests\ancora_academic\Kernel\AcademicKernelTestBase;
 use Drupal\Tests\ancora_scheduling\Traits\WorkspaceFixtureTrait;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Group;
 use Symfony\Component\HttpFoundation\InputBag;
+use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 /**
@@ -25,6 +27,7 @@ use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 #[CoversClass(CanvasLayout::class)]
 #[CoversClass(PlanWorkspace::class)]
 #[CoversClass(ResumeStore::class)]
+#[CoversClass(WorkspaceVarySubscriber::class)]
 #[Group('ancora_scheduling')]
 final class PlanWorkspaceTest extends AcademicKernelTestBase {
 
@@ -123,7 +126,7 @@ final class PlanWorkspaceTest extends AcademicKernelTestBase {
     $this->assertCount(4, $state['placements']);
     // Teachers: the owner's; groups: the plan's.
     $this->assertSame(['Teacher TA', 'Teacher TB', 'Teacher TC'], array_values($state['options']['teacher']));
-    $this->assertSame(['Group GA1', 'Group GA2', 'Group GA3'], array_values($state['options']['group']));
+    $this->assertSame(['Group GA1', 'Group GA2', 'Group GA3', 'Group GA4'], array_values($state['options']['group']));
 
     $state = $workspace->state($plan, $this->owner, new InputBag([
       'period' => (string) $this->r['period:A']->id(),
@@ -137,6 +140,14 @@ final class PlanWorkspaceTest extends AcademicKernelTestBase {
       '/ancora/planning/' . $plan->id() . '/workspace?period=' . $this->r['period:A']->id() . '&lens=room&obj=' . $this->r['L1']->id() . '&sel=' . $this->r['A2']->id(),
       $workspace->url($state, ['obj' => (int) $this->r['L1']->id(), 'lens' => 'room'])->toString(),
     );
+    // A move (S1b) belongs to its selection and period.
+    $moving = ['check' => 7, 'undo' => 3] + $state;
+    $this->assertStringEndsWith('&sel=' . $this->r['A2']->id() . '&check=7&undo=3', $workspace->url($moving, ['lens' => 'room'])->toString());
+    $this->assertStringNotContainsString('check=', $workspace->url($moving, ['sel' => (int) $this->r['A1']->id()])->toString());
+    $this->assertStringNotContainsString('check=', $workspace->url($moving, ['period' => (int) $this->r['period:A2']->id()])->toString());
+    $query = new InputBag(['sel' => (string) $this->r['A2']->id(), 'check' => '7']);
+    $state = $workspace->state($plan, $this->owner, $query);
+    $this->assertSame([7, NULL, TRUE], [$state['check'], $state['undo'], $state['movable']]);
     // "All": no lens and no record in the URL.
     $this->assertStringNotContainsString('lens', $workspace->url($state, ['lens' => 'all'])->toString());
 
@@ -151,6 +162,9 @@ final class PlanWorkspaceTest extends AcademicKernelTestBase {
       'a placement of another period' => ['sel' => (string) $this->r['B1']->id()],
       "another owner's placement" => ['sel' => (string) $this->o['A1']->id()],
       'an array' => ['sel' => ['1']],
+      'a check without a selection' => ['check' => '7'],
+      'a check that is not an id' => ['sel' => (string) $this->r['A2']->id(), 'check' => '7a'],
+      'an undo that is not an id' => ['sel' => (string) $this->r['A2']->id(), 'undo' => '-1'],
     ] as $case => $query) {
       try {
         $workspace->state($plan, $this->owner, new InputBag($query));
@@ -203,6 +217,19 @@ final class PlanWorkspaceTest extends AcademicKernelTestBase {
     }
     $this->assertFalse($regions['bar']['#cross']['evaluated']);
     $this->assertStringContainsString('not evaluated (the plan has no first day)', (string) $regions['inspector']['#cross_text']);
+  }
+
+  /**
+   * Vary: X-Ancora-Regions is appended, an existing Vary is kept.
+   */
+  public function testVary(): void {
+    $response = new Response('', 200, ['Vary' => 'Cookie, Accept-Encoding']);
+    WorkspaceVarySubscriber::addVary($response);
+    WorkspaceVarySubscriber::addVary($response);
+    $this->assertSame(['Cookie', 'Accept-Encoding', 'X-Ancora-Regions'], $response->getVary());
+    $plain = new Response();
+    WorkspaceVarySubscriber::addVary($plain);
+    $this->assertSame(['X-Ancora-Regions'], $plain->getVary());
   }
 
   /**

@@ -66,9 +66,13 @@ services:
   # The integrated planning workspace (#141, S1a): read-only regions, and
   # the last plan of each account for "Resume" (user.data).
   Drupal\ancora_scheduling\Workspace\PlanWorkspace:
-    arguments: ['@entity_type.manager', '@ancora_scheduling.timetable', '@Drupal\ancora_academic\PeriodInputs', '@ancora_scheduling.cross_plan_conflicts', '@Drupal\ancora_scheduling\Timetable\CrossPlanConflictView', '@ancora_scheduling.placement_modification', '@date.formatter', '@entity.last_installed_schema.repository']
+    arguments: ['@entity_type.manager', '@ancora_scheduling.timetable', '@Drupal\ancora_academic\PeriodInputs', '@ancora_scheduling.cross_plan_conflicts', '@Drupal\ancora_scheduling\Timetable\CrossPlanConflictView', '@ancora_scheduling.placement_modification', '@date.formatter', '@entity.last_installed_schema.repository', '@form_builder']
   Drupal\ancora_scheduling\Workspace\ResumeStore:
     arguments: ['@user.data', '@entity_type.manager']
+  # Vary: X-Ancora-Regions on the workspace page and its regions (S1b).
+  Drupal\ancora_scheduling\Workspace\WorkspaceVarySubscriber:
+    tags:
+      - { name: event_subscriber }
   ancora_scheduling.workspace_resume:
     class: Drupal\ancora_scheduling\Workspace\ResumeBuilder
     arguments: ['@Drupal\ancora_scheduling\Workspace\ResumeStore', '@current_user']

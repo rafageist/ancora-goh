@@ -23,6 +23,10 @@
  *   PlanWorkspace::canvas(): url, selected, warnings, not_evaluated).
  * - template: The grid row sizes (the day header, then each row).
  * - status: The text announced after the canvas changes.
+ * - overlay: The destinations of the move in progress (S1b), or NULL:
+ *   valid, undo, evaluated, reason, activity; each day's cells (in
+ *   day.overlay) are a submit button of the inspector's move form when
+ *   valid (the form attribute), or a refused cell with its reasons.
  */
 #}
 <section class="ancora-canvas" data-ancora-region="canvas" id="ancora-workspace-canvas" aria-labelledby="ancora-canvas-title" data-ancora-status-text="{{ status }}">
@@ -36,6 +40,22 @@
       <span><span aria-hidden="true">◌</span> {{ 'cross-plan not evaluated (dates unknown)'|t }}</span>
       <span><span class="ancora-canvas__swatch" aria-hidden="true"></span> {{ 'break'|t }}</span>
     </div>
+    {% if overlay %}
+      <div class="ancora-canvas__moving" id="ancora-canvas-moving" role="note">
+        <p>
+          <strong>{{ overlay.undo ? 'Undo: where %activity can go back to.'|t({'%activity': overlay.activity}) : 'Destinations of %activity in this period.'|t({'%activity': overlay.activity}) }}</strong>
+          {{ overlay.valid == 1 ? 'One valid cell.'|t : '@count valid cells.'|t({'@count': overlay.valid}) }}
+          {{ 'Choose one to preview the move; the list in the inspector says the same.'|t }}
+        </p>
+        <p>
+          {% if overlay.evaluated %}
+            {{ 'Cross-plan warnings (⚠) are shown per cell; they do not block the move.'|t }}
+          {% else %}
+            <span aria-hidden="true">◌</span> <strong>{{ 'Cross-plan conflicts not evaluated: dates unknown (@reason).'|t({'@reason': overlay.reason}) }}</strong>
+          {% endif %}
+        </p>
+      </div>
+    {% endif %}
     <div class="ancora-canvas__grid" style="--days: {{ days|length }}; --rows: {{ template }};" data-ancora-canvas>
       <div class="ancora-canvas__axis" aria-hidden="true">
         <span class="ancora-canvas__corner"></span>
@@ -75,6 +95,24 @@
                 </span>
               </span>
             </a>
+          {% endfor %}
+          {% for cell in day.overlay %}
+            {% if cell.allowed %}
+              <button type="submit" form="ancora-move-form" name="{{ cell.name }}" value="{{ cell.value }}"
+                      class="ancora-dest is-valid{{ cell.cross_count ? ' has-warning' }}{{ cell.preview ? ' is-preview' }}"
+                      style="--r1: {{ cell.line }};" data-ancora-dest="{{ cell.day }}.{{ cell.slot }}">
+                <span class="ancora-dest__label">{{ 'Move here: day @day, slot @slot'|t({'@day': cell.day, '@slot': cell.slot}) }}</span>
+                {% if cell.preview %}<span class="ancora-dest__note">{{ 'previewed'|t }}</span>{% endif %}
+                {% for warning in cell.warnings %}<span class="ancora-dest__note">{{ 'Warning: @w.'|t({'@w': warning}) }}</span>{% endfor %}
+                {% if cell.cross %}<span class="ancora-dest__cross"><span aria-hidden="true">⚠</span> {{ cell.cross }}</span>{% elseif not overlay.evaluated %}<span class="ancora-dest__note"><span aria-hidden="true">◌</span> {{ 'cross-plan not evaluated'|t }}</span>{% endif %}
+              </button>
+            {% else %}
+              <span class="ancora-dest is-refused{{ cell.here ? ' is-here' }}" style="--r1: {{ cell.line }};" data-ancora-dest="{{ cell.day }}.{{ cell.slot }}">
+                <span class="ancora-dest__label">{{ cell.here ? 'Here now'|t : 'Not a destination'|t }}</span>
+                <span class="visually-hidden">{{ 'Day @day, slot @slot:'|t({'@day': cell.day, '@slot': cell.slot}) }}</span>
+                <span class="ancora-dest__note">{{ cell.reasons|join('; ') }}</span>
+              </span>
+            {% endif %}
           {% endfor %}
         </section>
       {% endfor %}
