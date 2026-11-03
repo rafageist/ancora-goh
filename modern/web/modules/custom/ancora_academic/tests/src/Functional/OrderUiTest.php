@@ -58,9 +58,33 @@ final class OrderUiTest extends AncoraBrowserTestBase {
     $this->assertSession()->fieldNotExists('sequence[0][value]');
     $this->assertSession()->fieldDisabled('subject');
     $this->assertSession()->fieldDisabled('period');
+    $template_storage = \Drupal::entityTypeManager()->getStorage('ancora_activity_template');
+    $sequences = static function () use ($template_storage): array {
+      $template_storage->resetCache();
+      $sequences = array_map(static fn ($t): int => (int) $t->get('sequence')->value, $template_storage->loadMultiple());
+      ksort($sequences);
+      return $sequences;
+    };
+    $before = $sequences();
+    $this->assertSame(1, $before[$template]);
     $this->drupalGet('/admin/ancora/templates');
     $this->clickLink('Move down', 0);
     $this->assertSession()->pageTextContains('Moved');
+    $moved = $sequences();
+    $this->assertSame(2, $moved[$template]);
+
+    // The same move from the breakdown list (legacy desglose_detalles.tpl
+    // arrows, FC-17) goes through the same route and renumbers the same
+    // way: moving it back up restores the order.
+    $this->drupalGet('/admin/ancora/breakdowns');
+    $this->clickLink('Move up Subject Alpha #2 (PER)');
+    $this->assertSession()->pageTextContains('Moved Subject Alpha #2 (PER).');
+    $this->assertSession()->addressEquals('/admin/ancora/breakdowns');
+    $this->assertSame($before, $sequences());
+    // The first template of a breakdown has no Move up there (legacy: no
+    // left arrow on the first), the last one no Move down.
+    $this->assertSession()->linkNotExists('Move up Subject Alpha #1 (PER)');
+    $this->assertSession()->linkNotExists('Move down Subject Alpha #2 (PER)');
 
     // Another planner sees neither the records nor the arrows; the move
     // route refuses them.
