@@ -375,10 +375,10 @@ async function openEditor(page, s, template, label) {
 async function press(page, name, inPlace = true) {
   if (inPlace && (name.startsWith('Assign ') || name.startsWith('Set the priority of '))) {
     const state = await page.locator('input[name="state"]').inputValue();
-    const loads = step.page_loads;
+    const documentOrigin = await page.evaluate(() => performance.timeOrigin);
     await page.getByRole('button', { name, exact: true }).click();
     await expect(page.locator('input[name="state"]')).not.toHaveValue(state);
-    expect(step.page_loads, `${name} stays in the editor`).toBe(loads);
+    expect(await page.evaluate(() => performance.timeOrigin), `${name} stays in the editor`).toBe(documentOrigin);
     await expect(page.locator('.ancora-assign__feedback[role="status"]')).toBeVisible();
     const focus = await page.locator('[data-ancora-in-place-focus]').getAttribute('data-ancora-in-place-focus');
     await expect(page.locator(`#${focus}`)).toBeFocused();
