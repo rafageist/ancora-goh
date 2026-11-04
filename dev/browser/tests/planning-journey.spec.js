@@ -374,6 +374,12 @@ async function openEditor(page, s, template, label) {
 /** Presses a button of the assignment editor through its current form path. */
 async function press(page, name, inPlace = true) {
   if (inPlace && (name.startsWith('Assign ') || name.startsWith('Set the priority of '))) {
+    // On a fast runner the editor's HTML can appear before Drupal has
+    // attached its Ajax behavior. Wait for this button's actual instance.
+    await page.waitForFunction((label) => {
+      const button = [...document.querySelectorAll('input[type="submit"]')].find((el) => el.getAttribute('aria-label') === label);
+      return !!button && !!window.Drupal?.ajax?.instances?.some((instance) => instance?.element === button);
+    }, name);
     const state = await page.locator('input[name="state"]').inputValue();
     const documentOrigin = await page.evaluate(() => performance.timeOrigin);
     await page.getByRole('button', { name, exact: true }).click();
