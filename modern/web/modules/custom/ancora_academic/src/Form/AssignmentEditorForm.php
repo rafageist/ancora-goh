@@ -716,6 +716,9 @@ final class AssignmentEditorForm extends FormBase {
       '#attributes' => $attributes + ['class' => []],
     ];
     if ($in_place) {
+      // Drupal's default Ajax refocus runs after the inserted form's
+      // behaviors and would move focus away from the changed card.
+      $button['#attributes']['data-disable-refocus'] = 'true';
       $button['#ajax'] = [
         'callback' => '::ajaxRefresh',
         'wrapper' => 'ancora-assign-editor-wrapper',
