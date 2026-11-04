@@ -95,7 +95,12 @@ final class AssignmentEditorForm extends FormBase {
     $tid = (int) $template->id();
     $form['#attributes']['class'][] = 'ancora-assign';
     $form['#attributes']['data-ancora-assign'] = $tid;
+    $form['#prefix'] = '<div id="ancora-assign-editor-wrapper">';
+    $form['#suffix'] = '</div>';
     $form['#cache']['max-age'] = 0;
+    if ($focus = $form_state->get('in_place_focus')) {
+      $form['#attributes']['data-ancora-in-place-focus'] = $focus;
+    }
 
     $form['state'] = ['#type' => 'hidden', '#value' => $this->assignments->state($template)];
     $form['drop'] = [
@@ -163,6 +168,13 @@ final class AssignmentEditorForm extends FormBase {
       $this->store()->delete($this->key('undo', (int) $template->id()));
     }
     $this->finish($form_state, $template, $messages, $messages === [] ? $status : NULL, $focus);
+  }
+
+  /**
+   * Replaces the editor after an Assign or Set Priority submit.
+   */
+  public function ajaxRefresh(array &$form, FormStateInterface $form_state): array {
+    return $form;
   }
 
   /**
@@ -312,6 +324,11 @@ final class AssignmentEditorForm extends FormBase {
     }
     elseif ($status !== NULL) {
       $this->store()->set($this->key('feedback', $tid), ['type' => 'status', 'messages' => [$status]]);
+    }
+    if (isset($form_state->getTriggeringElement()['#ajax'])) {
+      $form_state->set('in_place_focus', $focus ?? 'ancora-assign-feedback');
+      $form_state->setRebuild();
+      return;
     }
     $query = ['template' => $tid];
     $search = (string) $form_state->get('search');
@@ -543,7 +560,7 @@ final class AssignmentEditorForm extends FormBase {
       '#name' => "priority[$kind][$id]",
       '#attributes' => ['class' => ['ancora-assign__priority']],
     ];
-    $card['set_priority'] = $this->button($this->t('Set priority'), ['priority', $kind, $id], ['aria-label' => $this->t('Set the priority of @label', ['@label' => $label])]);
+    $card['set_priority'] = $this->button($this->t('Set priority'), ['priority', $kind, $id], ['aria-label' => $this->t('Set the priority of @label', ['@label' => $label])], TRUE);
 
     if ($assignment instanceof TeacherAssignment) {
       $card['#attributes']['data-drop-kind'] = 'group';
@@ -662,7 +679,7 @@ final class AssignmentEditorForm extends FormBase {
             'data-search' => mb_strtolower($label . ' ' . $resource->get('code')->value),
           ],
           'label' => ['#markup' => '<span class="ancora-assign__name">' . htmlspecialchars($label, ENT_QUOTES) . '</span>' . $meta],
-          'assign' => $this->button($this->t('Assign'), ['assign', $kind, $rid], ['aria-label' => $this->t('Assign @label', ['@label' => $label])]),
+          'assign' => $this->button($this->t('Assign'), ['assign', $kind, $rid], ['aria-label' => $this->t('Assign @label', ['@label' => $label])], TRUE),
         ];
       }
       $panel[$kind] = [
@@ -686,10 +703,10 @@ final class AssignmentEditorForm extends FormBase {
   /**
    * A submit button of one operation, without validation of other fields.
    */
-  private function button(mixed $title, array $op, array $attributes = []): array {
+  private function button(mixed $title, array $op, array $attributes = [], bool $in_place = FALSE): array {
     // One name per operation: the triggering button is found by its name,
     // the same in every build of the form.
-    return [
+    $button = [
       '#type' => 'submit',
       '#value' => $title,
       '#name' => preg_replace('/[^a-z0-9_]+/', '_', 'op_' . implode('_', array_map('strval', $op))),
@@ -698,6 +715,13 @@ final class AssignmentEditorForm extends FormBase {
       '#submit' => ['::submitForm'],
       '#attributes' => $attributes + ['class' => []],
     ];
+    if ($in_place) {
+      $button['#ajax'] = [
+        'callback' => '::ajaxRefresh',
+        'wrapper' => 'ancora-assign-editor-wrapper',
+      ];
+    }
+    return $button;
   }
 
   /**

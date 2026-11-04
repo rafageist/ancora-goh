@@ -93,6 +93,14 @@
       once('ancora-assign', 'form.ancora-assign', context).forEach((form) => {
         let dragged = null;
         form.classList.add('is-enhanced');
+        if (form.dataset.ancoraInPlaceFocus) {
+          const target = document.getElementById(form.dataset.ancoraInPlaceFocus);
+          target?.focus();
+          const feedback = form.querySelector('#ancora-assign-feedback');
+          if (feedback?.textContent.trim()) {
+            Drupal.announce(feedback.textContent.trim());
+          }
+        }
 
         form.querySelectorAll('[data-drag-kind]').forEach((item) => {
           item.addEventListener('dragstart', (event) => {
@@ -160,7 +168,10 @@
 
       // After a change, the focus goes to the changed element; an error is
       // also shown in a dialog.
-      once('ancora-assign-feedback', '.ancora-assign', context).forEach(() => {
+      once('ancora-assign-feedback', '.ancora-assign', context).forEach((form) => {
+        if (form.dataset.ancoraInPlaceFocus) {
+          return;
+        }
         const target = window.location.hash ? document.getElementById(window.location.hash.slice(1)) : null;
         const feedback = document.getElementById('ancora-assign-feedback');
         if (feedback && feedback.dataset.ancoraFeedback === 'error') {
