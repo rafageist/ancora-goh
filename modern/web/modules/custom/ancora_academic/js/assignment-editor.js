@@ -28,6 +28,11 @@
    * Fills the drop fields and submits the form.
    */
   function submitDrop(form, values) {
+    form.querySelectorAll('[data-ancora-drop]').forEach((field) => {
+      if (field.type === 'hidden') {
+        field.value = '';
+      }
+    });
     Object.entries(values).forEach(([name, value]) => {
       const field = form.querySelector(`[data-ancora-drop="${name}"]`);
       if (field) {
@@ -37,7 +42,9 @@
     form.setAttribute('aria-busy', 'true');
     form.classList.add('is-busy');
     Drupal.announce(Drupal.t('Saving the change…'));
-    form.querySelector('[data-ancora-drop="apply"]').click();
+    // Form API Ajax binds submit buttons to mousedown. A scripted click()
+    // alone would use the full-post fallback instead of that handler.
+    form.querySelector('[data-ancora-drop="apply"]').dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true }));
   }
 
   /**

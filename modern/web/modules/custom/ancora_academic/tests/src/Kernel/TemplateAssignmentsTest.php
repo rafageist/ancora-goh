@@ -83,6 +83,8 @@ final class TemplateAssignmentsTest extends AcademicKernelTestBase {
     $this->assertSame([1, 2], $service->priorityOptions($a1, 'teacher'), 'max 2 = 2 teachers: 1..2');
     $this->assertSame(['The priority must be one of 1, 2.'], $service->setPriority($a1, $assignment, 3));
     $this->assertSame(['The priority must be one of 1, 2.'], $service->setPriority($a1, $assignment, '1 OR 1=1'));
+    $this->assertSame(2, $service->assignment($a1, 'teacher', $assignment->id())->getPriority());
+    $this->assertSame([['TA', 1], ['TB', 2]], array_map(static fn (array $r): array => [$r['profesor'], $r['prioridad']], $this->rows($plan, 'profesor_para_actividad', 'A1')));
 
     // Groups among the template's (form_edit_pxact.tpl).
     $this->assertSame([], $service->setGroups($a1, $assignment, [$g2]));
