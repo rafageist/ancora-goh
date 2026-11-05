@@ -2,11 +2,11 @@
 
 The teachers, groups and rooms of one activity template, edited in one screen: `/ancora/planning/assignment-editor?template=<id>` (`ancora_academic.assignment_editor`). Without `template`, the page lists the user's templates.
 
-## P1-a: Assign and Set Priority in place
+## P1-a: Existing operations in place
 
-The visible teacher and room **Assign** and **Set priority** buttons use Drupal Form API AJAX to rebuild the complete editor wrapper. The rebuilt form includes the feedback region, all assignment and available panels, and a fresh concurrency token. The existing submit path, access check, validation and `TemplateAssignments` calls remain the source of each write. A JavaScript re-attachment focuses the changed card (or feedback on refusal) and announces the message. Without JavaScript, the same buttons still post and redirect as before. Group, removal, undo and drop actions still use their existing full posts.
+Teacher and room **Assign** and **Set priority** buttons, teacher group changes, removal confirmation and cancellation, Undo, and drag/drop use Drupal Form API AJAX to rebuild the complete editor wrapper. The rebuilt form includes feedback, all assignment and available panels, and a fresh concurrency token. The existing submit path, access check, validation and `TemplateAssignments` calls remain the source of each write. JavaScript re-attachment focuses the changed card or feedback and announces the message. Drupal's automatic AJAX refocus is disabled on these buttons so it does not override that focus. Drag removal still asks in a dialog before submitting. Without JavaScript, the same buttons post and redirect; visible removal still requires its confirmation step.
 
-The synthetic journey compares the same PRG lecture assignment sequence entered without JavaScript and through AJAX, excluding entity and template ids. Stored teacher, group, room and priority values, plus the three exported MPI assignment tables, match. Its editor load count was **31 before P1-a** and **19 after P1-a** (the separate no-JavaScript comparison login is excluded). The remaining loads come from opening editors and the group actions that are outside this slice.
+The synthetic journey compares the same PRG lecture assignment sequence entered without JavaScript and through AJAX, excluding entity and template ids. It also removes and restores groups, teachers and rooms through buttons and drag/drop, then checks the stored values and all three exported MPI assignment tables again. Editor full-page loads were **31 before P1-a**, **19–20 after the first slice**, and **6 after completing P1-a** in the local step-4 run. The six are editor-opening loads; the no-JavaScript comparison is recorded separately.
 
 ## 1. Characterized actions
 

@@ -11,6 +11,7 @@ use Drupal\ancora_academic\TemplateAssignments;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Form\FormBase;
+use Drupal\Core\Form\FormBuilderInterface;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\TempStore\PrivateTempStore;
 use Drupal\Core\TempStore\PrivateTempStoreFactory;
@@ -151,6 +152,7 @@ final class AssignmentEditorForm extends FormBase {
     }
     $action = $op[0] ?? '';
     if ($action === 'cancel') {
+      $form_state->set('confirm', NULL);
       $this->finish($form_state, $template, NULL, NULL, $op[3] ?? NULL);
       return;
     }
@@ -171,7 +173,7 @@ final class AssignmentEditorForm extends FormBase {
   }
 
   /**
-   * Replaces the editor after an Assign or Set Priority submit.
+   * Replaces the editor after an in-place operation.
    */
   public function ajaxRefresh(array &$form, FormStateInterface $form_state): array {
     return $form;
@@ -261,6 +263,9 @@ final class AssignmentEditorForm extends FormBase {
           return $invalid;
         }
         $form_state->set('confirm', [$kind, (int) $id]);
+        if ($this->getRequest()->query->has(FormBuilderInterface::AJAX_FORM_REQUEST)) {
+          $form_state->set('in_place_focus', $this->cardId($kind, (int) $id));
+        }
         $form_state->setRebuild();
         return [NULL, NULL, NULL];
 
@@ -325,7 +330,7 @@ final class AssignmentEditorForm extends FormBase {
     elseif ($status !== NULL) {
       $this->store()->set($this->key('feedback', $tid), ['type' => 'status', 'messages' => [$status]]);
     }
-    if (isset($form_state->getTriggeringElement()['#ajax'])) {
+    if ($this->getRequest()->query->has(FormBuilderInterface::AJAX_FORM_REQUEST)) {
       $form_state->set('in_place_focus', $focus ?? 'ancora-assign-feedback');
       $form_state->setRebuild();
       return;
@@ -560,7 +565,7 @@ final class AssignmentEditorForm extends FormBase {
       '#name' => "priority[$kind][$id]",
       '#attributes' => ['class' => ['ancora-assign__priority']],
     ];
-    $card['set_priority'] = $this->button($this->t('Set priority'), ['priority', $kind, $id], ['aria-label' => $this->t('Set the priority of @label', ['@label' => $label])], TRUE);
+    $card['set_priority'] = $this->button($this->t('Set priority'), ['priority', $kind, $id], ['aria-label' => $this->t('Set the priority of @label', ['@label' => $label])]);
 
     if ($assignment instanceof TeacherAssignment) {
       $card['#attributes']['data-drop-kind'] = 'group';
@@ -679,7 +684,7 @@ final class AssignmentEditorForm extends FormBase {
             'data-search' => mb_strtolower($label . ' ' . $resource->get('code')->value),
           ],
           'label' => ['#markup' => '<span class="ancora-assign__name">' . htmlspecialchars($label, ENT_QUOTES) . '</span>' . $meta],
-          'assign' => $this->button($this->t('Assign'), ['assign', $kind, $rid], ['aria-label' => $this->t('Assign @label', ['@label' => $label])], TRUE),
+          'assign' => $this->button($this->t('Assign'), ['assign', $kind, $rid], ['aria-label' => $this->t('Assign @label', ['@label' => $label])]),
         ];
       }
       $panel[$kind] = [
@@ -703,7 +708,7 @@ final class AssignmentEditorForm extends FormBase {
   /**
    * A submit button of one operation, without validation of other fields.
    */
-  private function button(mixed $title, array $op, array $attributes = [], bool $in_place = FALSE): array {
+  private function button(mixed $title, array $op, array $attributes = []): array {
     // One name per operation: the triggering button is found by its name,
     // the same in every build of the form.
     $button = [
@@ -715,15 +720,13 @@ final class AssignmentEditorForm extends FormBase {
       '#submit' => ['::submitForm'],
       '#attributes' => $attributes + ['class' => []],
     ];
-    if ($in_place) {
-      // Drupal's default Ajax refocus runs after the inserted form's
-      // behaviors and would move focus away from the changed card.
-      $button['#attributes']['data-disable-refocus'] = 'true';
-      $button['#ajax'] = [
-        'callback' => '::ajaxRefresh',
-        'wrapper' => 'ancora-assign-editor-wrapper',
-      ];
-    }
+    // Drupal's default Ajax refocus runs after the inserted form's behaviors
+    // and would move focus away from the changed card.
+    $button['#attributes']['data-disable-refocus'] = 'true';
+    $button['#ajax'] = [
+      'callback' => '::ajaxRefresh',
+      'wrapper' => 'ancora-assign-editor-wrapper',
+    ];
     return $button;
   }
 

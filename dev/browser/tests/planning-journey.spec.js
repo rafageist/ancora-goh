@@ -371,23 +371,35 @@ async function openEditor(page, s, template, label) {
   await expect(page).toHaveURL(new RegExp(`assignment-editor\\?template=${template}`));
 }
 
+/** Waits for one editor button's Drupal Ajax behavior and checks its rebuild. */
+async function editorAction(page, name, { change = true, feedback = 'status' } = {}) {
+  // On a fast runner the editor's HTML can appear before Drupal has
+  // attached its Ajax behavior. Wait for this button's actual instance.
+  const button = page.locator('form.ancora-assign').getByRole('button', { name, exact: true });
+  await page.waitForFunction((element) => !!window.Drupal?.ajax?.instances?.some((instance) => instance?.element === element), await button.elementHandle());
+  const state = await page.locator('input[name="state"]').inputValue();
+  const build = await page.locator('input[name="form_build_id"]').inputValue();
+  const documentOrigin = await page.evaluate(() => performance.timeOrigin);
+  await button.click();
+  await expect(page.locator('input[name="form_build_id"]')).not.toHaveValue(build);
+  if (change) {
+    await expect(page.locator('input[name="state"]')).not.toHaveValue(state);
+  }
+  else {
+    await expect(page.locator('input[name="state"]')).toHaveValue(state);
+  }
+  expect(await page.evaluate(() => performance.timeOrigin), `${name} stays in the editor`).toBe(documentOrigin);
+  if (feedback) {
+    await expect(page.locator(`.ancora-assign__feedback[role="${feedback}"]`)).toBeVisible();
+  }
+  const focus = await page.locator('[data-ancora-in-place-focus]').getAttribute('data-ancora-in-place-focus');
+  await expect(page.locator(`#${focus}`)).toBeFocused();
+}
+
 /** Presses a button of the assignment editor through its current form path. */
 async function press(page, name, inPlace = true) {
-  if (inPlace && (name.startsWith('Assign ') || name.startsWith('Set the priority of '))) {
-    // On a fast runner the editor's HTML can appear before Drupal has
-    // attached its Ajax behavior. Wait for this button's actual instance.
-    await page.waitForFunction((label) => {
-      const button = [...document.querySelectorAll('input[type="submit"]')].find((el) => el.getAttribute('aria-label') === label);
-      return !!button && !!window.Drupal?.ajax?.instances?.some((instance) => instance?.element === button);
-    }, name);
-    const state = await page.locator('input[name="state"]').inputValue();
-    const documentOrigin = await page.evaluate(() => performance.timeOrigin);
-    await page.getByRole('button', { name, exact: true }).click();
-    await expect(page.locator('input[name="state"]')).not.toHaveValue(state);
-    expect(await page.evaluate(() => performance.timeOrigin), `${name} stays in the editor`).toBe(documentOrigin);
-    await expect(page.locator('.ancora-assign__feedback[role="status"]')).toBeVisible();
-    const focus = await page.locator('[data-ancora-in-place-focus]').getAttribute('data-ancora-in-place-focus');
-    await expect(page.locator(`#${focus}`)).toBeFocused();
+  if (inPlace && await page.locator('form.ancora-assign').getByRole('button', { name, exact: true }).count()) {
+    await editorAction(page, name);
   }
   else {
     await Promise.all([page.waitForNavigation(), page.getByRole('button', { name, exact: true }).click()]);
@@ -395,12 +407,43 @@ async function press(page, name, inPlace = true) {
   await noError(page);
 }
 
+/** Checks a drag submitted through the hidden Form API Ajax button. */
+async function dragChange(page, source, target) {
+  const state = await page.locator('input[name="state"]').inputValue();
+  const documentOrigin = await page.evaluate(() => performance.timeOrigin);
+  await source.dragTo(target);
+  await expect(page.locator('input[name="state"]')).not.toHaveValue(state);
+  expect(await page.evaluate(() => performance.timeOrigin), 'drag stays in the editor').toBe(documentOrigin);
+  await expect(page.locator('#ancora-assign-feedback[role="status"]')).toBeVisible();
+  const focus = await page.locator('[data-ancora-in-place-focus]').getAttribute('data-ancora-in-place-focus');
+  await expect(page.locator(`#${focus}`)).toBeFocused();
+}
+
+/** Sends an invalid drop through the Form API path and checks its refusal. */
+async function rejectedDrop(page, values, message) {
+  await page.waitForFunction(() => {
+    const button = document.querySelector('[data-ancora-drop="apply"]');
+    return !!window.Drupal?.ajax?.instances?.some((instance) => instance?.element === button);
+  });
+  const state = await page.locator('input[name="state"]').inputValue();
+  const build = await page.locator('input[name="form_build_id"]').inputValue();
+  const origin = await page.evaluate(() => performance.timeOrigin);
+  await page.evaluate((drop) => {
+    document.querySelectorAll('input[type="hidden"][data-ancora-drop]').forEach((field) => { field.value = drop[field.dataset.ancoraDrop] || ''; });
+  }, values);
+  await page.locator('[data-ancora-drop="apply"]').dispatchEvent('mousedown', { bubbles: true, cancelable: true });
+  await expect(page.locator('input[name="form_build_id"]')).not.toHaveValue(build);
+  await expect(page.locator('#ancora-assign-feedback[role="alert"]')).toContainText(message);
+  await expect(page.locator('input[name="state"]')).toHaveValue(state);
+  expect(await page.evaluate(() => performance.timeOrigin), 'invalid drop stays in the editor').toBe(origin);
+}
+
 /** Assigns a teacher with a priority and groups in the assignment editor. */
 async function assignTeacher(page, label, priority, groups, inPlace = true) {
   await press(page, `Assign ${label}`, inPlace);
   for (const group of groups) {
     await page.getByLabel(`Group to add to ${label}`, { exact: true }).selectOption({ label: group });
-    await press(page, `Add the chosen group to ${label}`);
+    await press(page, `Add the chosen group to ${label}`, inPlace);
   }
   if (priority !== 1) {
     await page.getByLabel(`Priority of ${label}`, { exact: true }).selectOption(String(priority));
@@ -431,6 +474,7 @@ test('4 teachers, rooms, resources, restrictions and limits', async ({ page, bro
     ['Programming #3 (JW)', [['Ben Example', 1, ['Lab group C1A', 'Lab group C1B']], ['Carla Example', 2, ['Lab group C1A', 'Lab group C1B']]], [['Lab A', 1], ['Lab B', 2]]],
   ];
   const loadsBefore = step.page_loads;
+  let inPlaceLoads = 0;
   let comparisonLoginLoads = 0;
   for (const [index, [label, teachers, rooms]] of plan.entries()) {
     const editor = index === 0 ? await browser.newContext({ baseURL: process.env.BASE_URL, javaScriptEnabled: false }) : null;
@@ -441,6 +485,7 @@ test('4 teachers, rooms, resources, restrictions and limits', async ({ page, bro
       await login(activePage, 'planner');
       comparisonLoginLoads = step.page_loads - beforeLogin;
     }
+    const editorLoadsBefore = step.page_loads;
     await openEditor(activePage, s, t[label], label);
     for (const [teacher, priority, groups] of teachers) {
       await assignTeacher(activePage, teacher, priority, groups, !editor);
@@ -451,11 +496,15 @@ test('4 teachers, rooms, resources, restrictions and limits', async ({ page, bro
     if (editor) {
       await editor.close();
     }
+    else {
+      inPlaceLoads += step.page_loads - editorLoadsBefore;
+    }
   }
   step.data.assignment_editor_page_loads = step.page_loads - loadsBefore - comparisonLoginLoads;
+  step.data.in_place_editor_page_loads = inPlaceLoads;
   step.data.no_js_comparison_login_loads = comparisonLoginLoads;
-  expect(step.data.assignment_editor_page_loads, 'fewer full loads than the 31-load baseline').toBeLessThan(31);
   expect(fixture('assignment-parity').equal, 'no-JavaScript and in-place rows and MPI inputs match').toBe(true);
+  const extraLoadsBefore = step.page_loads;
   await openEditor(page, s, t['Programming #2 (JW)'], 'Programming #2 (JW)');
   const stale = await page.context().newPage();
   await stale.goto(page.url());
@@ -471,6 +520,61 @@ test('4 teachers, rooms, resources, restrictions and limits', async ({ page, bro
   await page.getByLabel('Priority of Ben Example', { exact: true }).selectOption('2');
   await press(page, 'Set the priority of Ben Example');
   expect(fixture('assignment-parity').equal, 'stale refusal and restoration keep MPI parity').toBe(true);
+
+  // Keyboard group removal followed by an actual group drag restores the rows.
+  await press(page, 'Remove group CS lecture group from Ben Example');
+  await dragChange(page, page.locator('.ancora-assign__template [data-drag-kind="group"]').first(), page.locator('[data-drop-kind="group"][aria-label="Ben Example"]'));
+  expect(fixture('assignment-parity').equal, 'group button and drag restore stored and MPI rows').toBe(true);
+
+  // The visible removal path rebuilds a question before it can write.
+  await editorAction(page, 'Remove Ben Example from this template', { change: false, feedback: null });
+  await expect(page.getByText('Remove Ben Example from this template?')).toBeVisible();
+  expect(fixture('assignment-parity').equal, 'requesting confirmation writes nothing').toBe(true);
+  await editorAction(page, 'Cancel', { change: false, feedback: null });
+  await expect(page.getByText('Remove Ben Example from this template?')).toHaveCount(0);
+  await editorAction(page, 'Remove Ben Example from this template', { change: false, feedback: null });
+  await editorAction(page, 'Confirm removal');
+  await press(page, 'Undo: assign Ben Example again');
+  expect(fixture('assignment-parity').equal, 'confirm and undo restore stored and MPI rows').toBe(true);
+
+  // A room drag also asks first; cancelling its dialog leaves every row.
+  const roomCard = page.locator('[data-drag-kind="room-assignment"][aria-label="Room 101"]');
+  const availableDrop = page.locator('.ancora-assign__available').getByRole('heading', { name: 'Available' });
+  await expect(page.locator('form.ancora-assign')).toHaveClass(/is-enhanced/);
+  await page.setViewportSize({ width: 1440, height: 1600 });
+  await roomCard.scrollIntoViewIfNeeded();
+  await availableDrop.scrollIntoViewIfNeeded();
+  const roomBox = await roomCard.boundingBox();
+  expect(await page.evaluate(({ x, y }) => document.elementFromPoint(x, y)?.closest('[data-drag-kind]')?.dataset.label, { x: roomBox.x + 10, y: roomBox.y + 10 })).toBe('Room 101');
+  await roomCard.dragTo(availableDrop, { sourcePosition: { x: 10, y: 10 } });
+  await expect(page.getByRole('dialog', { name: 'Remove an assignment' })).toContainText('Remove Room 101 from this template?');
+  expect(fixture('assignment-parity').equal, 'drag cancellation has not written').toBe(true);
+  await page.getByRole('dialog', { name: 'Remove an assignment' }).getByRole('button', { name: 'Cancel' }).click();
+  await roomCard.dragTo(availableDrop, { sourcePosition: { x: 10, y: 10 } });
+  await expect(page.getByRole('dialog', { name: 'Remove an assignment' })).toContainText('Remove Room 101 from this template?');
+  const stateBeforeDropRemoval = await page.locator('input[name="state"]').inputValue();
+  const originBeforeDropRemoval = await page.evaluate(() => performance.timeOrigin);
+  await page.getByRole('dialog', { name: 'Remove an assignment' }).getByRole('button', { name: 'Remove' }).click();
+  await expect(page.locator('input[name="state"]')).not.toHaveValue(stateBeforeDropRemoval);
+  expect(await page.evaluate(() => performance.timeOrigin), 'confirmed removal drag stays in the editor').toBe(originBeforeDropRemoval);
+  await press(page, 'Undo: assign Room 101 again');
+  expect(fixture('assignment-parity').equal, 'drag removal and undo restore stored and MPI rows').toBe(true);
+
+  // A forged token is refused by the same concurrent-edit guard.
+  await page.locator('input[name="state"]').evaluate((field) => { field.value = 'forged'; });
+  await page.getByLabel('Priority of Ben Example', { exact: true }).selectOption('1');
+  const forgedOrigin = await page.evaluate(() => performance.timeOrigin);
+  await page.getByRole('button', { name: 'Set the priority of Ben Example' }).click();
+  await expect(page.locator('#ancora-assign-feedback[role="alert"]')).toContainText('Nothing was changed');
+  expect(await page.evaluate(() => performance.timeOrigin), 'forged token is refused in place').toBe(forgedOrigin);
+  expect(fixture('assignment-parity').equal, 'forged token writes nothing').toBe(true);
+  const benId = await page.locator('[data-drop-kind="group"][aria-label="Ben Example"]').getAttribute('data-id');
+  const groupId = await page.locator('.ancora-assign__template [data-drag-kind="group"]').first().getAttribute('data-id');
+  await rejectedDrop(page, { op: 'add_group', target: benId, item: '999999' }, 'That group does not attend this activity template.');
+  await rejectedDrop(page, { op: 'add_group', target: '999999', item: groupId }, 'That assignment is not one of this template.');
+  expect(fixture('assignment-parity').equal, 'invalid and forged ids write nothing').toBe(true);
+  step.data.in_place_editor_page_loads += step.page_loads - extraLoadsBefore;
+  expect(step.data.in_place_editor_page_loads, 'only editor opening loads after P1-a').toBeLessThanOrEqual(6);
   await shot(page, 'j04-editor');
 
   // The projector for PRG's first lecture: the template resources editor.

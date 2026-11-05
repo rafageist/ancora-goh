@@ -86,6 +86,7 @@ final class AssignmentEditorUiTest extends AncoraBrowserTestBase {
     $this->assertSession()->elementTextContains('css', '.ancora-assign__available', 'None left.');
     // Accessible names of the controls, and the drop fields.
     $this->assertSession()->elementExists('css', "input[aria-label=\"Assign Teacher Beta\"][name=\"op_assign_teacher_$tb\"]");
+    $this->assertSession()->elementExists('css', "input[aria-label=\"Assign Teacher Beta\"][data-disable-refocus=\"true\"]");
     $this->assertSession()->elementExists('css', '[role="region"][aria-labelledby="ancora-assign-teacher-panel-title"]');
     $this->assertSession()->elementExists('css', '[data-drag-kind="teacher"][data-id="' . $tb . '"][draggable="true"]');
     $this->assertSession()->elementExists('css', 'input[name="op_drop"][tabindex="-1"]');
@@ -119,6 +120,7 @@ final class AssignmentEditorUiTest extends AncoraBrowserTestBase {
     $this->assertSession()->pageTextContains('Teacher Beta now gives the activity to Group 2.');
     $this->assertSame([$g2], $this->teacherAssignment($aid)->getGroupIds());
     $this->assertSession()->elementExists('css', "input[aria-label=\"Remove group Group 2 from Teacher Beta\"]");
+    $this->assertSession()->elementExists('css', "input[aria-label=\"Remove group Group 2 from Teacher Beta\"][data-disable-refocus=\"true\"]");
     $this->getSession()->getPage()->pressButton("op_remove_group_teacher_{$aid}_$g2");
     $this->assertSession()->pageTextContains('Teacher Beta no longer gives the activity to Group 2.');
     $this->assertSame([], $this->teacherAssignment($aid)->getGroupIds());
@@ -152,12 +154,15 @@ final class AssignmentEditorUiTest extends AncoraBrowserTestBase {
     // Remove asks first; cancel keeps it; confirm removes; undo restores.
     $this->getSession()->getPage()->pressButton("op_remove_teacher_$aid");
     $this->assertSession()->pageTextContains('Remove Teacher Beta from this template?');
+    $this->assertSession()->elementExists('css', 'input[name="op_confirm_remove_teacher_' . $aid . '"][data-disable-refocus="true"]');
+    $this->assertSession()->elementExists('css', 'input[value="Cancel"][data-disable-refocus="true"]');
     $this->assertNotNull($this->teacherAssignment($aid), 'nothing removed before the confirmation');
     $this->getSession()->getPage()->pressButton('Cancel');
     $this->assertSession()->pageTextNotContains('Remove Teacher Beta from this template?');
     $this->getSession()->getPage()->pressButton("op_remove_teacher_$aid");
     $this->getSession()->getPage()->pressButton('Confirm removal');
     $this->assertSession()->pageTextContains('Removed Teacher Beta from this template.');
+    $this->assertSession()->elementExists('css', 'input[value="Undo: assign Teacher Beta again"][data-disable-refocus="true"]');
     $this->assertNull($this->teacherAssignment($aid));
     $this->assertSession()->elementTextContains('css', '.ancora-assign__available', 'Teacher Beta');
     $this->getSession()->getPage()->pressButton('Undo: assign Teacher Beta again');
