@@ -371,35 +371,53 @@ async function openEditor(page, s, template, label) {
   await expect(page).toHaveURL(new RegExp(`assignment-editor\\?template=${template}`));
 }
 
-/** Presses a button of the assignment editor (a full form post). */
-async function press(page, name) {
-  await Promise.all([page.waitForNavigation(), page.getByRole('button', { name, exact: true }).click()]);
+/** Presses a button of the assignment editor through its current form path. */
+async function press(page, name, inPlace = true) {
+  if (inPlace && (name.startsWith('Assign ') || name.startsWith('Set the priority of '))) {
+    // On a fast runner the editor's HTML can appear before Drupal has
+    // attached its Ajax behavior. Wait for this button's actual instance.
+    await page.waitForFunction((label) => {
+      const button = [...document.querySelectorAll('input[type="submit"]')].find((el) => el.getAttribute('aria-label') === label);
+      return !!button && !!window.Drupal?.ajax?.instances?.some((instance) => instance?.element === button);
+    }, name);
+    const state = await page.locator('input[name="state"]').inputValue();
+    const documentOrigin = await page.evaluate(() => performance.timeOrigin);
+    await page.getByRole('button', { name, exact: true }).click();
+    await expect(page.locator('input[name="state"]')).not.toHaveValue(state);
+    expect(await page.evaluate(() => performance.timeOrigin), `${name} stays in the editor`).toBe(documentOrigin);
+    await expect(page.locator('.ancora-assign__feedback[role="status"]')).toBeVisible();
+    const focus = await page.locator('[data-ancora-in-place-focus]').getAttribute('data-ancora-in-place-focus');
+    await expect(page.locator(`#${focus}`)).toBeFocused();
+  }
+  else {
+    await Promise.all([page.waitForNavigation(), page.getByRole('button', { name, exact: true }).click()]);
+  }
   await noError(page);
 }
 
 /** Assigns a teacher with a priority and groups in the assignment editor. */
-async function assignTeacher(page, label, priority, groups) {
-  await press(page, `Assign ${label}`);
+async function assignTeacher(page, label, priority, groups, inPlace = true) {
+  await press(page, `Assign ${label}`, inPlace);
   for (const group of groups) {
     await page.getByLabel(`Group to add to ${label}`, { exact: true }).selectOption({ label: group });
     await press(page, `Add the chosen group to ${label}`);
   }
   if (priority !== 1) {
     await page.getByLabel(`Priority of ${label}`, { exact: true }).selectOption(String(priority));
-    await press(page, `Set the priority of ${label}`);
+    await press(page, `Set the priority of ${label}`, inPlace);
   }
 }
 
 /** Assigns a room with a priority in the assignment editor. */
-async function assignRoom(page, label, priority) {
-  await press(page, `Assign ${label}`);
+async function assignRoom(page, label, priority, inPlace = true) {
+  await press(page, `Assign ${label}`, inPlace);
   if (priority !== 1) {
     await page.getByLabel(`Priority of ${label}`, { exact: true }).selectOption(String(priority));
-    await press(page, `Set the priority of ${label}`);
+    await press(page, `Set the priority of ${label}`, inPlace);
   }
 }
 
-test('4 teachers, rooms, resources, restrictions and limits', async ({ page }) => {
+test('4 teachers, rooms, resources, restrictions and limits', async ({ page, browser }) => {
   test.setTimeout(240000);
   const s = requires('plan', 'catalogue', 'group', 'templates');
   begin('4 assignments', `fixture: the other groups and templates; ui: assignment editor (${features[153] ? 'from the breakdown list' : 'from the template page'}) for PRG, template resources, restriction grid, daily load limits; fixture: the other subjects' assignments`);
@@ -413,16 +431,46 @@ test('4 teachers, rooms, resources, restrictions and limits', async ({ page }) =
     ['Programming #3 (JW)', [['Ben Example', 1, ['Lab group C1A', 'Lab group C1B']], ['Carla Example', 2, ['Lab group C1A', 'Lab group C1B']]], [['Lab A', 1], ['Lab B', 2]]],
   ];
   const loadsBefore = step.page_loads;
-  for (const [label, teachers, rooms] of plan) {
-    await openEditor(page, s, t[label], label);
+  let comparisonLoginLoads = 0;
+  for (const [index, [label, teachers, rooms]] of plan.entries()) {
+    const editor = index === 0 ? await browser.newContext({ baseURL: process.env.BASE_URL, javaScriptEnabled: false }) : null;
+    const activePage = editor ? await editor.newPage() : page;
+    if (editor) {
+      countLoads(activePage);
+      const beforeLogin = step.page_loads;
+      await login(activePage, 'planner');
+      comparisonLoginLoads = step.page_loads - beforeLogin;
+    }
+    await openEditor(activePage, s, t[label], label);
     for (const [teacher, priority, groups] of teachers) {
-      await assignTeacher(page, teacher, priority, groups);
+      await assignTeacher(activePage, teacher, priority, groups, !editor);
     }
     for (const [room, priority] of rooms) {
-      await assignRoom(page, room, priority);
+      await assignRoom(activePage, room, priority, !editor);
+    }
+    if (editor) {
+      await editor.close();
     }
   }
-  step.data.assignment_editor_page_loads = step.page_loads - loadsBefore;
+  step.data.assignment_editor_page_loads = step.page_loads - loadsBefore - comparisonLoginLoads;
+  step.data.no_js_comparison_login_loads = comparisonLoginLoads;
+  expect(step.data.assignment_editor_page_loads, 'fewer full loads than the 31-load baseline').toBeLessThan(31);
+  expect(fixture('assignment-parity').equal, 'no-JavaScript and in-place rows and MPI inputs match').toBe(true);
+  await openEditor(page, s, t['Programming #2 (JW)'], 'Programming #2 (JW)');
+  const stale = await page.context().newPage();
+  await stale.goto(page.url());
+  const oldState = await stale.locator('input[name="state"]').inputValue();
+  await page.getByLabel('Priority of Ben Example', { exact: true }).selectOption('1');
+  await press(page, 'Set the priority of Ben Example');
+  await stale.getByLabel('Priority of Ben Example', { exact: true }).selectOption('1');
+  await stale.getByRole('button', { name: 'Set the priority of Ben Example' }).click();
+  await expect(stale.locator('#ancora-assign-feedback[role="alert"]')).toContainText('Nothing was changed');
+  await expect(stale.locator('input[name="state"]')).not.toHaveValue(oldState);
+  await expect(stale.getByLabel('Priority of Ben Example', { exact: true })).toHaveValue('1');
+  await stale.close();
+  await page.getByLabel('Priority of Ben Example', { exact: true }).selectOption('2');
+  await press(page, 'Set the priority of Ben Example');
+  expect(fixture('assignment-parity').equal, 'stale refusal and restoration keep MPI parity').toBe(true);
   await shot(page, 'j04-editor');
 
   // The projector for PRG's first lecture: the template resources editor.

@@ -2,6 +2,12 @@
 
 The teachers, groups and rooms of one activity template, edited in one screen: `/ancora/planning/assignment-editor?template=<id>` (`ancora_academic.assignment_editor`). Without `template`, the page lists the user's templates.
 
+## P1-a: Assign and Set Priority in place
+
+The visible teacher and room **Assign** and **Set priority** buttons use Drupal Form API AJAX to rebuild the complete editor wrapper. The rebuilt form includes the feedback region, all assignment and available panels, and a fresh concurrency token. The existing submit path, access check, validation and `TemplateAssignments` calls remain the source of each write. A JavaScript re-attachment focuses the changed card (or feedback on refusal) and announces the message. Without JavaScript, the same buttons still post and redirect as before. Group, removal, undo and drop actions still use their existing full posts.
+
+The synthetic journey compares the same PRG lecture assignment sequence entered without JavaScript and through AJAX, excluding entity and template ids. Stored teacher, group, room and priority values, plus the three exported MPI assignment tables, match. Its editor load count was **31 before P1-a** and **19 after P1-a** (the separate no-JavaScript comparison login is excluded). The remaining loads come from opening editors and the group actions that are outside this slice.
+
 ## 1. Characterized actions
 
 The PHP application of 2010 is the specification. The VB6 program is a reference for the affordances only.

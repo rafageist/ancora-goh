@@ -48,6 +48,8 @@
 declare(strict_types=1);
 
 use Drupal\ancora_academic\AcademicEntityTypes;
+use Drupal\ancora_academic\Export\AcademicExport;
+use Drupal\ancora_academic\Export\LegacyRows;
 use Drupal\ancora_academic\TemplateAssignments;
 
 // phpcs:ignore DrupalPractice.CodeAnalysis.VariableAnalysis.UndefinedVariable
@@ -141,6 +143,62 @@ $rooms_for = ['LEC' => ['AUD' => 1, 'R101' => 2], 'LAB' => ['LABA' => 1, 'LABB' 
 
 $out = NULL;
 switch ($command) {
+  case 'assignment-parity':
+    // PRG #1 was entered without JavaScript; PRG #2 used Form API AJAX.
+    // Both have the same intended assignments. Exclude template and entity
+    // ids, then compare stored values and the three exported MPI tables.
+    $export = \Drupal::service(AcademicExport::class)->export($plan_of('J'));
+    $rows = \Drupal::service(LegacyRows::class)->build($export, 'u1');
+    $templates = array_values(array_filter(
+      $export['activity_templates'],
+      static fn (array $t): bool => $t['subject_code'] === 'PRG' && in_array($t['sequence'], [1, 2], TRUE),
+    ));
+    if (count($templates) !== 2) {
+      throw new \RuntimeException('Expected two PRG lecture templates.');
+    }
+    $groups = array_column($export['student_groups'], 'code', 'key');
+    $normalized = [];
+    foreach ($templates as $template) {
+      $key = $template['key'];
+      $code = 'PRG' . $template['sequence'];
+      $stored = ['teachers' => [], 'rooms' => []];
+      foreach ($export['teacher_assignments'] as $a) {
+        if ($a['template'] === $key) {
+          $group_codes = array_map(static fn (string $g): string => $groups[$g], $a['groups']);
+          sort($group_codes);
+          $stored['teachers'][] = [$a['teacher_code'], $a['priority'], $group_codes];
+        }
+      }
+      foreach ($export['room_assignments'] as $a) {
+        if ($a['template'] === $key) {
+          $stored['rooms'][] = [$a['room_code'], $a['priority']];
+        }
+      }
+      sort($stored['teachers']);
+      sort($stored['rooms']);
+      $engine = [];
+      foreach (['profesor_para_actividad', 'profesor_para_grupo', 'lugar_para_actividad'] as $table) {
+        $engine[$table] = [];
+        foreach ($rows[$table] ?? [] as $row) {
+          if (($row['plantilla'] ?? strtok($row['profesor_para_actividad'], '@')) !== $code) {
+            continue;
+          }
+          unset($row['plantilla']);
+          if (isset($row['id'])) {
+            $row['id'] = substr($row['id'], strlen($code) + 1);
+          }
+          if (isset($row['profesor_para_actividad'])) {
+            $row['profesor_para_actividad'] = substr($row['profesor_para_actividad'], strlen($code) + 1);
+          }
+          $engine[$table][] = $row;
+        }
+        sort($engine[$table]);
+      }
+      $normalized[] = ['stored' => $stored, 'mpi' => $engine];
+    }
+    $out = ['equal' => $normalized[0] === $normalized[1], 'baseline' => $normalized[0], 'in_place' => $normalized[1]];
+    break;
+
   case 'catalogue':
     $ui('ancora_activity_type', ['code' => 'LAB']);
     $ui('ancora_teacher', ['code' => 'EVA']);

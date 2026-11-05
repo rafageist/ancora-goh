@@ -7,6 +7,7 @@ assignment_editor:
     js/assignment-editor.js: {}
   dependencies:
     - core/drupal
+    - core/drupal.ajax
     - core/once
     - core/drupal.announce
     - core/drupal.dialog.ajax
