@@ -207,6 +207,9 @@ final class AssignmentEditorForm extends FormBase {
           $assignment ? $this->cardId($kind, (int) $assignment->id()) : $this->panelId($kind),
         ];
 
+      case 'assign_selected':
+        return $this->assignSelected($template, $input);
+
       case 'priority':
         $assignment = $this->assignments->assignment($template, $kind, (string) $id);
         if ($assignment === NULL) {
@@ -221,6 +224,38 @@ final class AssignmentEditorForm extends FormBase {
             '@priority' => $value,
           ]),
           $this->cardId($kind, (int) $id),
+        ];
+
+      case 'save_teacher':
+        $assignment = $this->assignments->assignment($template, 'teacher', (string) $id);
+        if (!$assignment instanceof TeacherAssignment) {
+          return $invalid;
+        }
+        $label = $this->resourceLabel($assignment);
+        $checked = $input['save_groups'][$id] ?? [];
+        $group_ids = [];
+        foreach ((array) $checked as $group_id => $value) {
+          if (!empty($value)) {
+            $group_ids[] = (string) $group_id;
+          }
+        }
+        $before = $assignment->getGroupIds();
+        $messages = $this->assignments->setGroups($template, $assignment, $group_ids);
+        if ($messages !== []) {
+          return [$messages, NULL, $this->cardId('teacher', (int) $id)];
+        }
+        $priority = $input['priority']['teacher'][$id] ?? '';
+        $messages = $this->assignments->setPriority($template, $assignment, is_scalar($priority) ? (string) $priority : '');
+        if ($messages !== []) {
+          if ($before !== $assignment->getGroupIds()) {
+            array_unshift($messages, (string) $this->t('Saved groups for %label; priority was not saved.', ['%label' => $label]));
+          }
+          return [$messages, NULL, $this->cardId('teacher', (int) $id)];
+        }
+        return [
+          [],
+          (string) $this->t('Saved groups and priority for %label.', ['%label' => $label]),
+          $this->cardId('teacher', (int) $id),
         ];
 
       case 'add_group':
@@ -295,6 +330,53 @@ final class AssignmentEditorForm extends FormBase {
         ];
     }
     return [[(string) $this->t('That change is not possible here.')], NULL, NULL];
+  }
+
+  /**
+   * Assigns checked candidates in their displayed order, stopping on refusal.
+   */
+  private function assignSelected(ActivityTemplate $template, array $input): array {
+    $selected = is_array($input['selected'] ?? NULL) ? $input['selected'] : [];
+    $applied = [];
+    $any = FALSE;
+    foreach (TemplateAssignments::KINDS as $kind => $definition) {
+      $checked = is_array($selected[$kind] ?? NULL) ? $selected[$kind] : [];
+      $wanted = array_filter($checked, static fn ($value): bool => !empty($value));
+      $candidates = $this->assignments->candidates($template, $kind);
+      $ids = array_merge(
+        array_intersect(array_keys($candidates), array_keys($wanted)),
+        array_diff(array_keys($wanted), array_keys($candidates)),
+      );
+      foreach ($ids as $id) {
+        $any = TRUE;
+        [$messages, $assignment] = $this->assignments->assign($template, $kind, (string) $id);
+        if ($messages !== []) {
+          $applied[] = (string) $this->t('Stopped at selected @kind @id; it was not assigned.', [
+            '@kind' => $kind,
+            '@id' => $id,
+          ]);
+          return [
+            array_merge($applied, $messages),
+            NULL,
+            'ancora-assign-available-panel',
+          ];
+        }
+        $label = (string) ($assignment?->get($definition[1])->entity?->label() ?? '');
+        $applied[] = (string) $this->t('Assigned %label with priority 1.', ['%label' => $label]);
+      }
+    }
+    if (!$any) {
+      return [
+        [(string) $this->t('Select at least one available teacher or room.')],
+        NULL,
+        'ancora-assign-available-panel',
+      ];
+    }
+    return [
+      [],
+      (string) $this->t('Assigned @count selected teachers and rooms with priority 1.', ['@count' => count($applied)]),
+      'ancora-assign-available-panel',
+    ];
   }
 
   /**
@@ -571,6 +653,16 @@ final class AssignmentEditorForm extends FormBase {
       $card['#attributes']['data-drop-kind'] = 'group';
       $card['#attributes']['data-drop-op'] = 'add_group';
       $mine = $assignment->getGroupIds();
+      $card['save_groups'] = [
+        '#type' => 'checkboxes',
+        '#title' => $this->t('Groups of @label', ['@label' => $label]),
+        '#options' => array_map(static fn ($group): string => (string) $group->label(), $groups),
+        '#default_value' => $mine,
+        '#parents' => ['save_groups', (string) $id],
+      ];
+      $card['save_teacher'] = $this->button($this->t('Save groups and priority'), ['save_teacher', 'teacher', $id], [
+        'aria-label' => $this->t('Save groups and priority of @label', ['@label' => $label]),
+      ]);
       $card['groups'] = [
         '#type' => 'container',
         '#attributes' => ['class' => ['ancora-assign__groups']],
@@ -650,8 +742,10 @@ final class AssignmentEditorForm extends FormBase {
       '#type' => 'container',
       '#attributes' => [
         'class' => ['ancora-assign__panel', 'ancora-assign__available'],
+        'id' => 'ancora-assign-available-panel',
         'role' => 'region',
         'aria-labelledby' => 'ancora-assign-available-title',
+        'tabindex' => '-1',
         'data-drop-kind' => 'teacher-assignment room-assignment',
         'data-drop-op' => 'remove',
       ],
@@ -684,6 +778,11 @@ final class AssignmentEditorForm extends FormBase {
             'data-search' => mb_strtolower($label . ' ' . $resource->get('code')->value),
           ],
           'label' => ['#markup' => '<span class="ancora-assign__name">' . htmlspecialchars($label, ENT_QUOTES) . '</span>' . $meta],
+          'selected' => [
+            '#type' => 'checkbox',
+            '#title' => $this->t('Select @label for assignment', ['@label' => $label]),
+            '#name' => "selected[$kind][$rid]",
+          ],
           'assign' => $this->button($this->t('Assign'), ['assign', $kind, $rid], ['aria-label' => $this->t('Assign @label', ['@label' => $label])]),
         ];
       }
@@ -702,6 +801,9 @@ final class AssignmentEditorForm extends FormBase {
           ] + $items,
       ];
     }
+    $panel['assign_selected'] = $this->button($this->t('Assign selected'), ['assign_selected', 'teacher', ''], [
+      'aria-label' => $this->t('Assign selected teachers and rooms'),
+    ]);
     return $panel;
   }
 

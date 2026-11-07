@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Drupal\Tests\ancora_academic\Functional;
 
 use Drupal\ancora_academic\Entity\TeacherAssignment;
+use Drupal\ancora_academic\Export\AcademicExport;
+use Drupal\ancora_academic\Export\LegacyRows;
 use Drupal\ancora_academic\Fixture\SyntheticFixture;
 use Drupal\ancora_academic\TemplateAssignments;
 use Drupal\Tests\ancora\Functional\AncoraBrowserTestBase;
@@ -59,6 +61,109 @@ final class AssignmentEditorUiTest extends AncoraBrowserTestBase {
       $page->find('css', "input[name=\"drop[$name]\"]")->setValue((string) $value);
     }
     $page->pressButton('op_drop');
+  }
+
+  /**
+   * Equivalent sequential and batch edits, including exported engine rows.
+   */
+  public function testBatchAndSequentialEquivalence(): void {
+    $owner = $this->drupalCreateUser(['view academic data', 'edit academic data']);
+    $plan = \Drupal::service(SyntheticFixture::class)->load(TRUE, $owner);
+    $storage = \Drupal::entityTypeManager()->getStorage('ancora_activity_template');
+    $source = $storage->load($this->template('A', 1));
+    $fresh = static function () use ($storage, $source) {
+      $template = $storage->create([
+        'plan' => $source->getPlanId(),
+        'subject' => $source->get('subject')->target_id,
+        'period' => $source->get('period')->target_id,
+        'activity_type' => $source->get('activity_type')->target_id,
+        'requires_teacher' => 1,
+        'requires_room' => 1,
+      ]);
+      $template->save();
+      return $template;
+    };
+    $batch = $fresh();
+    $single = $fresh();
+    $ta = $this->id('ancora_teacher', 'TA');
+    $tb = $this->id('ancora_teacher', 'TB');
+    $l1 = $this->id('ancora_room', 'L1');
+    $l2 = $this->id('ancora_room', 'L2');
+    $g1 = $this->id('ancora_student_group', 'G1');
+    $service = \Drupal::service(TemplateAssignments::class);
+    $this->drupalLogin($owner);
+
+    $this->drupalGet('/ancora/planning/assignment-editor', ['query' => ['template' => $batch->id()]]);
+    foreach (['teacher' => [$ta, $tb], 'room' => [$l1, $l2]] as $kind => $ids) {
+      foreach ($ids as $id) {
+        $this->getSession()->getPage()->checkField("selected[$kind][$id]");
+      }
+    }
+    $this->getSession()->getPage()->pressButton('Assign selected');
+    $this->assertSession()->pageTextContains('Assigned 4 selected teachers and rooms with priority 1.');
+    $teacher_rows = $service->assignments($batch, 'teacher');
+    $tb_assignment = end($teacher_rows);
+    $this->assertSame([1, []], [$tb_assignment->getPriority(), $tb_assignment->getGroupIds()]);
+    $this->getSession()->getPage()->checkField("save_groups[{$tb_assignment->id()}][$g1]");
+    $this->getSession()->getPage()->selectFieldOption("priority[teacher][{$tb_assignment->id()}]", '2');
+    $this->getSession()->getPage()->pressButton("op_save_teacher_teacher_{$tb_assignment->id()}");
+    $this->assertSession()->pageTextContains('Saved groups and priority for Teacher Beta.');
+
+    $this->drupalGet('/ancora/planning/assignment-editor', ['query' => ['template' => $single->id()]]);
+    foreach (['teacher' => [$ta, $tb], 'room' => [$l1, $l2]] as $kind => $ids) {
+      foreach ($ids as $id) {
+        $this->getSession()->getPage()->pressButton("op_assign_{$kind}_$id");
+      }
+    }
+    $teacher_rows = $service->assignments($single, 'teacher');
+    $tb_single = end($teacher_rows);
+    $this->getSession()->getPage()->selectFieldOption("add_group[{$tb_single->id()}]", (string) $g1);
+    $this->getSession()->getPage()->pressButton("op_add_group_teacher_{$tb_single->id()}");
+    $this->getSession()->getPage()->selectFieldOption("priority[teacher][{$tb_single->id()}]", '2');
+    $this->getSession()->getPage()->pressButton("op_priority_teacher_{$tb_single->id()}");
+
+    $normalized = static function ($template) use ($service, $plan): array {
+      $stored = [];
+      foreach (['teacher', 'room'] as $kind) {
+        foreach ($service->assignments($template, $kind) as $assignment) {
+          $resource = $assignment->get($kind)->entity;
+          $stored[$kind][] = [
+            $resource->getCode(),
+            $assignment->getPriority(),
+            $kind === 'teacher' ? $assignment->getGroupIds() : [],
+          ];
+        }
+        sort($stored[$kind]);
+      }
+      $tables = \Drupal::service(LegacyRows::class)->build(\Drupal::service(AcademicExport::class)->export($plan), 'u1');
+      $engine_template = 'A' . $template->get('sequence')->value;
+      $teacher_ids = [];
+      $teacher_rows = [];
+      foreach ($tables['profesor_para_actividad'] as $row) {
+        if ($row['plantilla'] === $engine_template) {
+          $teacher_ids[$row['id']] = $row['profesor'];
+          $teacher_rows[] = [$row['profesor'], $row['prioridad']];
+        }
+      }
+      $group_rows = [];
+      foreach ($tables['profesor_para_grupo'] as $row) {
+        if (isset($teacher_ids[$row['profesor_para_actividad']])) {
+          $group_rows[] = [$teacher_ids[$row['profesor_para_actividad']], $row['grupo']];
+        }
+      }
+      $room_rows = [];
+      foreach ($tables['lugar_para_actividad'] as $row) {
+        if ($row['plantilla'] === $engine_template) {
+          $room_rows[] = [$row['lugar'], $row['prioridad']];
+        }
+      }
+      sort($teacher_rows);
+      sort($group_rows);
+      sort($room_rows);
+      return [$stored, $teacher_rows, $group_rows, $room_rows];
+    };
+    $this->assertSame($normalized($single), $normalized($batch), 'stored assignments and all three MPI tables match sequential posts');
+
   }
 
   /**

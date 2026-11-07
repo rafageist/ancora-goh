@@ -438,26 +438,22 @@ async function rejectedDrop(page, values, message) {
   expect(await page.evaluate(() => performance.timeOrigin), 'invalid drop stays in the editor').toBe(origin);
 }
 
-/** Assigns a teacher with a priority and groups in the assignment editor. */
-async function assignTeacher(page, label, priority, groups, inPlace = true) {
-  await press(page, `Assign ${label}`, inPlace);
-  for (const group of groups) {
-    await page.getByLabel(`Group to add to ${label}`, { exact: true }).selectOption({ label: group });
-    await press(page, `Add the chosen group to ${label}`, inPlace);
+/** The checked teachers and rooms use one ordered form submission. */
+async function assignSelected(page, teachers, rooms, inPlace = true) {
+  for (const label of [...teachers, ...rooms]) {
+    await page.getByRole('checkbox', { name: `Select ${label} for assignment` }).check();
   }
-  if (priority !== 1) {
-    await page.getByLabel(`Priority of ${label}`, { exact: true }).selectOption(String(priority));
-    await press(page, `Set the priority of ${label}`, inPlace);
-  }
+  await press(page, 'Assign selected teachers and rooms', inPlace);
 }
 
-/** Assigns a room with a priority in the assignment editor. */
-async function assignRoom(page, label, priority, inPlace = true) {
-  await press(page, `Assign ${label}`, inPlace);
-  if (priority !== 1) {
-    await page.getByLabel(`Priority of ${label}`, { exact: true }).selectOption(String(priority));
-    await press(page, `Set the priority of ${label}`, inPlace);
+/** The PHP dialog's group-then-priority order, in one form submission. */
+async function saveTeacher(page, label, priority, groups, inPlace = true) {
+  const card = page.locator(`[data-drag-kind="teacher-assignment"][aria-label="${label}"]`);
+  for (const group of groups) {
+    await card.getByRole('checkbox', { name: group, exact: true }).check();
   }
+  await card.getByLabel(`Priority of ${label}`, { exact: true }).selectOption(String(priority));
+  await press(page, `Save groups and priority of ${label}`, inPlace);
 }
 
 test('4 teachers, rooms, resources, restrictions and limits', async ({ page, browser }) => {
@@ -476,6 +472,7 @@ test('4 teachers, rooms, resources, restrictions and limits', async ({ page, bro
   const loadsBefore = step.page_loads;
   let inPlaceLoads = 0;
   let comparisonLoginLoads = 0;
+  let setupSubmits = 0;
   for (const [index, [label, teachers, rooms]] of plan.entries()) {
     const editor = index === 0 ? await browser.newContext({ baseURL: process.env.BASE_URL, javaScriptEnabled: false }) : null;
     const activePage = editor ? await editor.newPage() : page;
@@ -487,11 +484,18 @@ test('4 teachers, rooms, resources, restrictions and limits', async ({ page, bro
     }
     const editorLoadsBefore = step.page_loads;
     await openEditor(activePage, s, t[label], label);
+    await assignSelected(activePage, teachers.map(([teacher]) => teacher), rooms.map(([room]) => room), !editor);
+    setupSubmits++;
     for (const [teacher, priority, groups] of teachers) {
-      await assignTeacher(activePage, teacher, priority, groups, !editor);
+      await saveTeacher(activePage, teacher, priority, groups, !editor);
+      setupSubmits++;
     }
     for (const [room, priority] of rooms) {
-      await assignRoom(activePage, room, priority, !editor);
+      if (priority !== 1) {
+        await activePage.getByLabel(`Priority of ${room}`, { exact: true }).selectOption(String(priority));
+        await press(activePage, `Set the priority of ${room}`, !editor);
+        setupSubmits++;
+      }
     }
     if (editor) {
       await editor.close();
@@ -502,6 +506,8 @@ test('4 teachers, rooms, resources, restrictions and limits', async ({ page, bro
   }
   step.data.assignment_editor_page_loads = step.page_loads - loadsBefore - comparisonLoginLoads;
   step.data.in_place_editor_page_loads = inPlaceLoads;
+  step.data.assignment_setup_submits = setupSubmits;
+  expect(setupSubmits, 'P1-b batches the step-4 assignment setup').toBeLessThanOrEqual(15);
   step.data.no_js_comparison_login_loads = comparisonLoginLoads;
   expect(fixture('assignment-parity').equal, 'no-JavaScript and in-place rows and MPI inputs match').toBe(true);
   const extraLoadsBefore = step.page_loads;
@@ -520,6 +526,39 @@ test('4 teachers, rooms, resources, restrictions and limits', async ({ page, bro
   await page.getByLabel('Priority of Ben Example', { exact: true }).selectOption('2');
   await press(page, 'Set the priority of Ben Example');
   expect(fixture('assignment-parity').equal, 'stale refusal and restoration keep MPI parity').toBe(true);
+
+  // The combined action saves groups first. A refused priority keeps that
+  // group change, just as the two separate buttons do.
+  const benCard = page.locator('[data-drag-kind="teacher-assignment"][aria-label="Ben Example"]');
+  await benCard.getByRole('checkbox', { name: 'CS lecture group' }).uncheck();
+  await benCard.getByLabel('Priority of Ben Example', { exact: true }).evaluate((select) => {
+    select.add(new Option('9', '9'));
+    select.value = '9';
+  });
+  await editorAction(page, 'Save groups and priority of Ben Example', { feedback: 'alert' });
+  await expect(page.locator('#ancora-assign-feedback')).toContainText('Saved groups for Ben Example; priority was not saved.');
+  await expect(page.locator('#ancora-assign-feedback')).toContainText('The priority must be one of 1, 2.');
+  expect(fixture('assignment-parity').equal, 'only the valid group sub-operation was saved').toBe(false);
+  await saveTeacher(page, 'Ben Example', 2, ['CS lecture group']);
+  expect(fixture('assignment-parity').equal, 'combined save restores the exact MPI rows').toBe(true);
+
+  // A forged later item stops the batch after its valid first item. Remove
+  // the temporary assignment to restore the journey's expected input.
+  await page.getByRole('checkbox', { name: 'Select Carla Example for assignment' }).check();
+  await page.locator('form.ancora-assign').evaluate((form) => {
+    const forged = document.createElement('input');
+    forged.type = 'hidden';
+    forged.name = 'selected[teacher][999999]';
+    forged.value = '1';
+    form.append(forged);
+  });
+  await editorAction(page, 'Assign selected teachers and rooms', { feedback: 'alert' });
+  await expect(page.locator('#ancora-assign-feedback')).toContainText('Assigned Carla Example with priority 1.');
+  await expect(page.locator('#ancora-assign-feedback')).toContainText('Stopped at selected teacher 999999');
+  await expect(page.locator('#ancora-assign-feedback')).toContainText('That record does not exist any more.');
+  await editorAction(page, 'Remove Carla Example from this template', { change: false, feedback: null });
+  await editorAction(page, 'Confirm removal');
+  expect(fixture('assignment-parity').equal, 'batch partial success and cleanup restore MPI rows').toBe(true);
 
   // Keyboard group removal followed by an actual group drag restores the rows.
   await press(page, 'Remove group CS lecture group from Ben Example');

@@ -8,6 +8,14 @@ Teacher and room **Assign** and **Set priority** buttons, teacher group changes,
 
 The synthetic journey compares the same PRG lecture assignment sequence entered without JavaScript and through AJAX, excluding entity and template ids. It also removes and restores groups, teachers and rooms through buttons and drag/drop, then checks the stored values and all three exported MPI assignment tables again. Editor full-page loads were **31 before P1-a**, **19–20 after the first slice**, and **6 after completing P1-a** in the local step-4 run. The six are editor-opening loads; the no-JavaScript comparison is recorded separately.
 
+## P1-b: Batch assignment actions
+
+The Available panel offers checkboxes for its teachers and rooms and one **Assign selected** button. It calls the existing `TemplateAssignments::assign()` for each checked record in displayed order: teachers first, then rooms, each at priority 1 and with no teacher groups. A teacher card also offers group checkboxes and **Save groups and priority**. That button calls `setGroups()` before `setPriority()`, matching the legacy dialog's order. The existing single buttons and drag/drop controls remain available.
+
+Both buttons use the same Form API submission, CSRF token, template access check, concurrency token, AJAX rebuild, feedback and focus handling as P1-a. They also work as ordinary full posts without JavaScript. A batch stops at the first refused sub-operation and keeps earlier successful writes. Feedback names the applied assignments and the refusal; when the combined teacher save's priority is refused, it reports that a successful group change was kept. No batch transaction or new domain validation was added.
+
+The Functional test compares batch and individual full-submit operations on fresh templates: normalized stored teacher/room rows and exported `profesor_para_actividad`, `profesor_para_grupo` and `lugar_para_actividad` rows are identical. The Playwright journey checks partial batch effects, AJAX focus and token refresh, no-JavaScript batch posts, and the existing removal/Undo and drag/drop paths. In journey step 4, assignment setup uses **12 submits** (26 before P1-b), with **6 in-place editor page loads**; the separate no-JavaScript comparison adds four full posts.
+
 ## 1. Characterized actions
 
 The PHP application of 2010 is the specification. The VB6 program is a reference for the affordances only.
