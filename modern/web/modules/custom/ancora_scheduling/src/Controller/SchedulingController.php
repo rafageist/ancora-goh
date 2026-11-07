@@ -13,6 +13,7 @@ use Drupal\ancora_engine\JobRepository;
 use Drupal\ancora_scheduling\Timetable\CrossPlanConflictDetector;
 use Drupal\ancora_scheduling\Timetable\CrossPlanConflictView;
 use Drupal\ancora_scheduling\Timetable\PlacementModification;
+use Drupal\ancora_scheduling\Timetable\RunExplanation;
 use Drupal\ancora_scheduling\Timetable\TimetableReader;
 use Drupal\Core\Access\AccessResult;
 use Drupal\Core\Access\AccessResultInterface;
@@ -103,6 +104,9 @@ final class SchedulingController extends ControllerBase {
     }
     if ($entry->error !== NULL) {
       $rows[] = [$this->t('Error'), $entry->error];
+    }
+    if ($entry->state->isTerminal()) {
+      $build['explanation'] = (new RunExplanation())->build($entry);
     }
     $build['details'] = [
       '#type' => 'table',

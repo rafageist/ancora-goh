@@ -791,6 +791,19 @@ test('6 runs and placements on the server', async ({ page }) => {
   // Final or draft, as the plan timetable says it, against the run states.
   countLoads(page);
   await login(page, 'planner');
+  const maY2 = server.jobs.find((j) => j.specialty === 'MA' && j.level === 'Y2');
+  const csY1 = server.jobs.find((j) => j.specialty === 'CS' && j.level === 'Y1');
+  expect(maY2?.state, 'MA/Y2 historical array error').toBe('failed');
+  expect(csY1?.state, 'CS/Y1 successful legacy overflow').toBe('succeeded');
+  await page.goto(`/ancora/scheduling/jobs/${maY2.id}`);
+  const failedExplanation = page.locator('.ancora-scheduling-job__explanation');
+  await expect(failedExplanation).toContainText('What happened');
+  await expect(failedExplanation).toContainText('Q-39');
+  await expect(failedExplanation).toContainText('Quirk 3');
+  await expect(failedExplanation).toContainText('Quirk 2');
+  await expect(failedExplanation).toContainText('does not identify which, if any');
+  await page.goto(`/ancora/scheduling/jobs/${csY1.id}`);
+  await expect(page.locator('.ancora-scheduling-job__explanation')).toContainText('1 activity extends past the last slot');
   await page.goto(`/ancora/planning/${s.plan}/timetable?period=${s.period}`);
   const labels = await scopeLabels(page);
   step.data.timetable_labels = labels;
