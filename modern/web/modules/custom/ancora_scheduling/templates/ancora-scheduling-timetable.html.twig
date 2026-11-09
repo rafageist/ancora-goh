@@ -93,6 +93,9 @@
         {% if scope.job_url %}<a href="{{ scope.job_url }}">{{ 'Run details'|t }}</a>{% endif %}
         {% if scope.rerun_url %}<a class="ancora-timetable__rerun" href="{{ scope.rerun_url }}">{{ 'Run this scope again'|t }}</a>{% endif %}
       </p>
+      {% if scope.latest_failure %}
+        <p class="ancora-timetable__latest-failure" role="status">{{ scope.latest_failure.text }} <a href="{{ scope.latest_failure.url }}">{{ 'See why'|t }}</a></p>
+      {% endif %}
       {% if scope.stale %}
         <p class="ancora-timetable__stale">{{ 'The planning data changed after this run; request a new timetable to include the changes.'|t }}</p>
       {% endif %}

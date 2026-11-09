@@ -286,6 +286,7 @@ final class SchedulingController extends ControllerBase {
         'final' => $scope['final'],
         'draft' => $scope['job'] !== NULL && !$scope['final'],
         'status' => $this->scopeStatus($scope),
+        'latest_failure' => self::latestFailureNotice($scope),
         'stale' => $scope['stale'],
         'active' => $scope['active'] === NULL ? NULL : $this->t('Job @id is @state.', [
           '@id' => $scope['active']->id,
@@ -399,6 +400,32 @@ final class SchedulingController extends ControllerBase {
       return $this->t('No final timetable. Draft of job @id: some activities could not be placed.', ['@id' => $job->id]);
     }
     return $this->t('No final timetable. Draft of job @id: the run was cancelled, these are the placements made before the cancellation.', ['@id' => $job->id]);
+  }
+
+  /**
+   * A newer failed run never replaces the job whose placements are shown.
+   *
+   * The reader already has the newest job from its single forSource() query.
+   * The linked job page retains its own route permission and plan access check.
+   *
+   * @return array{text: \Drupal\Core\StringTranslation\TranslatableMarkup, url: string}|null
+   *   The notice and P2-a explanation URL, or NULL.
+   */
+  public static function latestFailureNotice(array $scope): ?array {
+    $latest = $scope['latest'] ?? NULL;
+    $shown = $scope['job'] ?? NULL;
+    if (!$latest instanceof Job
+      || !in_array($latest->state, [JobState::Failed, JobState::TimedOut], TRUE)
+      || ($shown instanceof Job && $latest->id <= $shown->id)) {
+      return NULL;
+    }
+    $text = $latest->state === JobState::Failed
+      ? new TranslatableMarkup('The latest run of this scope (job @id) failed.', ['@id' => $latest->id])
+      : new TranslatableMarkup('The latest run of this scope (job @id) timed out.', ['@id' => $latest->id]);
+    return [
+      'text' => $text,
+      'url' => Url::fromRoute('ancora_scheduling.job', ['job' => $latest->id])->toString(),
+    ];
   }
 
   /**

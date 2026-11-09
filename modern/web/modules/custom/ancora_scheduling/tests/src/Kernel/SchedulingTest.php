@@ -201,6 +201,7 @@ final class SchedulingTest extends AcademicKernelTestBase {
     $read = $reader->read($plan, $period);
     $this->assertCount(1, $read['scopes']);
     $this->assertSame($succeeded, $read['scopes'][0]['job']->id);
+    $this->assertSame($succeeded, $read['scopes'][0]['latest']->id);
     $this->assertTrue($read['scopes'][0]['final']);
     $this->assertTrue($read['scopes'][0]['stale'], 'the input hash differs from the current export');
     // No engine database is configured in this test.
@@ -214,6 +215,9 @@ final class SchedulingTest extends AcademicKernelTestBase {
 
     $failed = $run(JobState::Failed, ['kept' => 'none']);
     $this->assertFalse(JobRepository::changedPlacements($jobs->load($failed)));
+    $read = $reader->read($plan, $period);
+    $this->assertSame($failed, $read['scopes'][0]['latest']->id);
+    $this->assertSame($draft, $read['scopes'][0]['job']->id, 'the failed run leaves the draft visible');
     $hard = $run(JobState::Cancelled, ['kept' => 'none']);
     $this->assertFalse(JobRepository::changedPlacements($jobs->load($hard)));
     $read = $reader->read($plan, $period);
@@ -222,8 +226,15 @@ final class SchedulingTest extends AcademicKernelTestBase {
     $final = $run(JobState::Succeeded, ['kept' => 'placements']);
     $read = $reader->read($plan, $period);
     $this->assertSame($final, $read['scopes'][0]['job']->id);
+    $this->assertSame($final, $read['scopes'][0]['latest']->id);
     $this->assertTrue($read['scopes'][0]['final']);
     $this->assertSame([$final, $hard, $failed, $draft, $succeeded], array_keys($jobs->forSource((int) $plan->id(), (int) $period->id())));
+
+    $timeout = $run(JobState::TimedOut, ['kept' => 'none']);
+    $read = $reader->read($plan, $period);
+    $this->assertSame($timeout, $read['scopes'][0]['latest']->id);
+    $this->assertSame($final, $read['scopes'][0]['job']->id, 'the timed-out run leaves the final timetable visible');
+    $this->assertTrue($read['scopes'][0]['final']);
   }
 
 }
