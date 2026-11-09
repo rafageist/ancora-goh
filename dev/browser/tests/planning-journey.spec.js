@@ -802,8 +802,13 @@ test('6 runs and placements on the server', async ({ page }) => {
   await expect(failedExplanation).toContainText('Quirk 3');
   await expect(failedExplanation).toContainText('Quirk 2');
   await expect(failedExplanation).toContainText('does not identify which, if any');
+  await expect(page.locator('.ancora-scheduling-job__activities')).toContainText('kept no placements');
+  await expect(page.locator('.ancora-scheduling-job__activities')).toContainText('does not show which activities would have failed placement');
+  await expect(page.locator('.ancora-scheduling-job__activity-list tbody tr')).not.toHaveCount(0);
   await page.goto(`/ancora/scheduling/jobs/${csY1.id}`);
   await expect(page.locator('.ancora-scheduling-job__explanation')).toContainText('1 activity extends past the last slot');
+  await expect(page.locator('.ancora-scheduling-job__activities')).toContainText('Placements extending beyond the final daily slot');
+  await expect(page.locator('.ancora-scheduling-job__activity-list tbody tr')).toHaveCount(1);
   await page.goto(`/ancora/planning/${s.plan}/timetable?period=${s.period}`);
   const timetableFailure = page.locator('.ancora-timetable__latest-failure');
   await expect(timetableFailure).toContainText(`job ${maY2.id}`);

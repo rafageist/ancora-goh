@@ -14,6 +14,7 @@ use Drupal\ancora_scheduling\Timetable\CrossPlanConflictDetector;
 use Drupal\ancora_scheduling\Timetable\CrossPlanConflictView;
 use Drupal\ancora_scheduling\Timetable\PlacementModification;
 use Drupal\ancora_scheduling\Timetable\RunExplanation;
+use Drupal\ancora_scheduling\Timetable\RunActivities;
 use Drupal\ancora_scheduling\Timetable\TimetableReader;
 use Drupal\Core\Access\AccessResult;
 use Drupal\Core\Access\AccessResultInterface;
@@ -54,6 +55,7 @@ final class SchedulingController extends ControllerBase {
     #[Autowire(service: 'ancora_scheduling.cross_plan_conflicts')]
     private readonly CrossPlanConflictDetector $conflicts,
     private readonly CrossPlanConflictView $conflictView,
+    private readonly RunActivities $runActivities,
   ) {}
 
   /**
@@ -67,6 +69,7 @@ final class SchedulingController extends ControllerBase {
     $result = $entry->result ?? [];
     $rows = [];
     $plan = NULL;
+    $period = NULL;
     if ($entry->source !== NULL) {
       $storage = $this->entityTypeManager();
       $plan = $storage->getStorage('ancora_plan')->load($entry->source->planId);
@@ -76,6 +79,7 @@ final class SchedulingController extends ControllerBase {
         (string) $this->t('Specialty') => $storage->getStorage('ancora_specialty')->load($entry->source->specialtyId),
         (string) $this->t('Level') => $storage->getStorage('ancora_level')->load($entry->source->levelId),
       ];
+      $period = $records[(string) $this->t('Period')];
       foreach ($records as $title => $record) {
         $rows[] = [$title, $record === NULL ? $this->t('(deleted)') : $record->label()];
       }
@@ -107,6 +111,9 @@ final class SchedulingController extends ControllerBase {
     }
     if ($entry->state->isTerminal()) {
       $build['explanation'] = (new RunExplanation())->build($entry);
+      if ($plan instanceof Plan && $period instanceof Period && $period->getPlanId() === (int) $plan->id()) {
+        $build['activities'] = $this->runActivities->build($entry, $plan, $period);
+      }
     }
     $build['details'] = [
       '#type' => 'table',
