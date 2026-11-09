@@ -104,6 +104,7 @@
 }
 .ancora-timetable__draft-label,
 .ancora-timetable__stale,
+.ancora-timetable__latest-failure,
 .ancora-timetable__error {
   padding: 0.5rem;
   border-inline-start: 4px solid #c47f00;

@@ -10,7 +10,7 @@
  * - period: The period label, or NULL.
  * - periods: The plan's periods: label, url, current.
  * - scopes: Each scope's label, state (final, draft, none, error), text,
- *   stale, active and job_url.
+ *   stale, active, job_url and latest_failure (when the newest run failed).
  * - cross: evaluated, count, reason (when not evaluated) and url.
  * - links: The plan page, classic timetable and request links.
  */
@@ -48,6 +48,7 @@
           {% if scope.job_url %}<a href="{{ scope.job_url }}">{{ scope.text }}</a>{% else %}{{ scope.text }}{% endif %}
           {% if scope.stale %}<span class="ancora-wsbar__note">{{ 'inputs changed since this run'|t }}</span>{% endif %}
           {% if scope.active %}<span class="ancora-wsbar__note">{{ scope.active }}</span>{% endif %}
+          {% if scope.latest_failure %}<span class="ancora-wsbar__note ancora-wsbar__latest-failure" role="status">{{ scope.latest_failure.text }} <a href="{{ scope.latest_failure.url }}">{{ 'See why'|t }}</a></span>{% endif %}
         </li>
       {% endfor %}
     </ul>

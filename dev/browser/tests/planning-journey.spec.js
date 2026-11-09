@@ -805,6 +805,10 @@ test('6 runs and placements on the server', async ({ page }) => {
   await page.goto(`/ancora/scheduling/jobs/${csY1.id}`);
   await expect(page.locator('.ancora-scheduling-job__explanation')).toContainText('1 activity extends past the last slot');
   await page.goto(`/ancora/planning/${s.plan}/timetable?period=${s.period}`);
+  const timetableFailure = page.locator('.ancora-timetable__latest-failure');
+  await expect(timetableFailure).toContainText(`job ${maY2.id}`);
+  await expect(timetableFailure).toContainText('failed');
+  await expect(timetableFailure.locator('a')).toHaveAttribute('href', new RegExp(`/ancora/scheduling/jobs/${maY2.id}$`));
   const labels = await scopeLabels(page);
   step.data.timetable_labels = labels;
   const finals = server.jobs.filter((j) => j.state === 'succeeded').length;
@@ -815,6 +819,11 @@ test('6 runs and placements on the server', async ({ page }) => {
     note('a run that left an activity overflowing the day is labelled "Final timetable" (workspace mode keeps 6.17 overflow, placement-promotion.md)');
   }
   await shot(page, 'j06-timetable');
+  await page.goto(`/ancora/planning/${s.plan}/workspace?period=${s.period}`);
+  const workspaceFailure = page.locator('.ancora-wsbar__latest-failure');
+  await expect(workspaceFailure).toContainText(`job ${maY2.id}`);
+  await expect(workspaceFailure).toContainText('failed');
+  await expect(workspaceFailure.locator('a')).toHaveAttribute('href', new RegExp(`/ancora/scheduling/jobs/${maY2.id}$`));
 });
 
 test('7 timetable perspectives', async ({ page }) => {

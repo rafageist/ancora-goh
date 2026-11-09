@@ -9,6 +9,7 @@ use Drupal\ancora_academic\Entity\Period;
 use Drupal\ancora_academic\Entity\Plan;
 use Drupal\ancora_academic\PeriodInputs;
 use Drupal\ancora_engine\JobRepository;
+use Drupal\ancora_scheduling\Controller\SchedulingController;
 use Drupal\ancora_scheduling\Entity\Placement;
 use Drupal\ancora_scheduling\Form\PlacementMoveForm;
 use Drupal\ancora_scheduling\Timetable\CrossPlanConflictDetector;
@@ -341,6 +342,7 @@ final class PlanWorkspace {
           '@id' => $scope['active']->id,
           '@state' => $scope['active']->state->value,
         ]),
+        'latest_failure' => SchedulingController::latestFailureNotice($scope),
         'job_url' => $scope['job'] === NULL ? NULL : Url::fromRoute('ancora_scheduling.job', ['job' => $scope['job']->id])->toString(),
       ];
     }

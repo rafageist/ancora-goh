@@ -125,6 +125,12 @@
   color: var(--ancora-muted);
 }
 
+.ancora-wsbar__latest-failure {
+  display: block;
+  color: var(--ancora-ws-warning);
+  font-weight: 600;
+}
+
 .ancora-wsbar__cross {
   font-size: 0.9rem;
 }
