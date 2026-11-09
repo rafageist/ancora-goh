@@ -6,9 +6,9 @@ namespace Drupal\Tests\ancora_scheduling\Functional;
 
 use Drupal\ancora_academic\Fixture\SyntheticFixture;
 use Drupal\ancora_engine\Job\JobOptions;
-use Drupal\ancora_engine\Job\JobScope;
 use Drupal\ancora_engine\Job\JobSource;
 use Drupal\ancora_engine\Job\JobState;
+use Drupal\ancora_scheduling\ScopeMapper;
 use Drupal\Tests\ancora\Functional\AncoraBrowserTestBase;
 use PHPUnit\Framework\Attributes\Group;
 
@@ -36,7 +36,7 @@ final class RunExplanationPageTest extends AncoraBrowserTestBase {
     $specialty = $one('ancora_specialty', ['uid' => $planner->id(), 'code' => 'E']);
     $level = $one('ancora_level', ['uid' => $planner->id(), 'code' => 'N']);
     $source = new JobSource((int) $plan->id(), (int) $period->id(), (int) $specialty->id(), (int) $level->id(), ':');
-    $scope = new JobScope('E', 'N', 'PER');
+    $scope = ScopeMapper::scope($plan, $period, $specialty, $level);
     $jobs = \Drupal::service('ancora_engine.job_repository');
 
     $cases = [
@@ -86,14 +86,21 @@ final class RunExplanationPageTest extends AncoraBrowserTestBase {
         'state' => JobState::TimedOut,
         'result' => ['kept' => 'none'],
         'error' => 'The run exceeded its time limit of 30 s and was rolled back.',
-        'text' => ['exceeded its time limit', 'previous timetable is unchanged'],
+        'text' => [
+          'exceeded its time limit', 'previous timetable is unchanged',
+          'scope’s 8 current activities', 'does not show which activities would have failed placement',
+          'Subject Alpha #1',
+        ],
         'absent' => ['activities could not be placed'],
       ],
       [
         'state' => JobState::Failed,
         'result' => ['kept' => 'none'],
         'error' => '[2202E] array subscript out of range',
-        'text' => ['Q-39', 'Quirk 3', 'Quirk 2', 'does not identify which, if any'],
+        'text' => [
+          'Q-39', 'Quirk 3', 'Quirk 2', 'does not identify which, if any',
+          'scope’s 8 current activities', 'computed from current academic data',
+        ],
         'absent' => ['activities could not be placed'],
       ],
       [

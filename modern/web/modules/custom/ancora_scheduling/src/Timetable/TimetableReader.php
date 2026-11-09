@@ -160,6 +160,7 @@ final class TimetableReader {
         'resource_codes' => array_map(self::strip(...), $row['otros_recursos'] ?? []),
         // The explorer (D14) selects by record, not by code.
         'activity_type' => $template['type'] ?? '',
+        'template_id' => self::entityId($row['plantilla']),
         'group_id' => self::entityId($row['grupo']),
         'teacher_id' => self::entityId($row['profesor']),
         'room_id' => self::entityId($row['lugar']),
@@ -223,6 +224,7 @@ final class TimetableReader {
         'resources' => array_map(static fn ($r): string => (string) $r->label(), $resources),
         'resource_codes' => array_map(static fn ($r): string => $r->getCode(), $resources),
         'activity_type' => $type === NULL ? '' : (string) $type->label(),
+        'template_id' => $template === NULL ? NULL : (int) $template->id(),
         'group_id' => $group === NULL ? NULL : (int) $group->id(),
         'teacher_id' => $teacher === NULL ? NULL : (int) $teacher->id(),
         'room_id' => $room === NULL ? NULL : (int) $room->id(),
