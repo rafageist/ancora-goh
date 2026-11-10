@@ -578,7 +578,7 @@ test('4 teachers, rooms, resources, restrictions and limits', async ({ page, bro
 
   // A room drag also asks first; cancelling its dialog leaves every row.
   const roomCard = page.locator('[data-drag-kind="room-assignment"][aria-label="Room 101"]');
-  const availableDrop = page.locator('.ancora-assign__available').getByRole('heading', { name: 'Available' });
+  const availableDrop = page.getByRole('region', { name: 'Available' });
   await expect(page.locator('form.ancora-assign')).toHaveClass(/is-enhanced/);
   await page.setViewportSize({ width: 1440, height: 1600 });
   await availableDrop.scrollIntoViewIfNeeded();
