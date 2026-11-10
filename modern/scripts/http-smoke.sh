@@ -48,7 +48,8 @@ fetch /
 check "front page answers 200" status_is 200
 check "X-Content-Type-Options: nosniff" header_has '^x-content-type-options: nosniff'
 check "X-Frame-Options: SAMEORIGIN" header_has '^x-frame-options: SAMEORIGIN'
-check "front page uses the Áncora theme" body_has 'class="site-header"'
+check "front page uses the Gin Áncora shell" body_has 'class="ancora-shell"'
+check "front page renders the academic sidebar" body_has 'ancora-sidebar'
 check "no PHP error text on the front page" bash -c "! grep -qiE 'fatal error|stack trace|warning:' '$work/body'"
 
 fetch /ancora/status
