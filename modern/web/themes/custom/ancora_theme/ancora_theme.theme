@@ -28,7 +28,7 @@ function ancora_theme_preprocess_menu(array &$variables): void {
   $route = \Drupal::routeMatch()->getRouteName() ?? '';
   $target = NULL;
   if (preg_match('/^entity\.(ancora_[a-z_]+)\./', $route, $matches)) {
-    foreach (AcademicEntityTypes::SECTIONS as $section => $types) {
+    foreach (AcademicEntityTypes::SECTIONS as $types) {
       if (in_array($matches[1], $types, TRUE)) {
         $target = 'entity.' . $matches[1] . '.collection';
         break;
