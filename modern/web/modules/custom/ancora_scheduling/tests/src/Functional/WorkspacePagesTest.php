@@ -104,7 +104,7 @@ final class WorkspacePagesTest extends AncoraBrowserTestBase {
       'Timetables',
     ];
     foreach ($navigation as $title) {
-      $this->assertSession()->elementExists('xpath', "//header//nav//a[normalize-space()='$title']");
+      $this->assertSession()->elementExists('xpath', "//aside[contains(concat(' ', normalize-space(@class), ' '), ' ancora-sidebar ')]//nav[@aria-label='Academic navigation']//a[normalize-space()='$title']");
     }
     $quick_links = [
       'Planning',

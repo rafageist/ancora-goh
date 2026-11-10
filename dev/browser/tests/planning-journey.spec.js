@@ -581,8 +581,10 @@ test('4 teachers, rooms, resources, restrictions and limits', async ({ page, bro
   const availableDrop = page.locator('.ancora-assign__available').getByRole('heading', { name: 'Available' });
   await expect(page.locator('form.ancora-assign')).toHaveClass(/is-enhanced/);
   await page.setViewportSize({ width: 1440, height: 1600 });
-  await roomCard.scrollIntoViewIfNeeded();
   await availableDrop.scrollIntoViewIfNeeded();
+  // Keep the source in the viewport for the hit-test; scrolling the distant
+  // drop target after it moves the source outside elementFromPoint's viewport.
+  await roomCard.scrollIntoViewIfNeeded();
   const roomBox = await roomCard.boundingBox();
   expect(await page.evaluate(({ x, y }) => document.elementFromPoint(x, y)?.closest('[data-drag-kind]')?.dataset.label, { x: roomBox.x + 10, y: roomBox.y + 10 })).toBe('Room 101');
   await roomCard.dragTo(availableDrop, { sourcePosition: { x: 10, y: 10 } });

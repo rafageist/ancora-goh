@@ -49,22 +49,13 @@
 .ancora-shell__main, .ancora-shell__content { min-width: 0; }
 .ancora-shell__main .layout-container { width: auto; max-width: none; margin-inline: var(--gin-spacing-xl); }
 .ancora-shell__main .page-content { width: 100%; max-width: none; }
+.ancora-shell .ancora-canvas__title { scroll-margin-block-start: 6rem; }
 .ancora-shell__content :is(table, .ancora-timetable__grid) { max-width: 100%; }
 /* The sidebar consumes room that the workspace's viewport breakpoints do not
  * account for. Move its inspector below the canvas until the content is wide. */
 @media (max-width: 1600px) {
   .ancora-shell .ancora-ws__body { grid-template-columns: 12rem minmax(0, 1fr); }
   .ancora-shell .ancora-inspector { grid-column: 1 / -1; }
-  html.js .ancora-shell .ancora-inspector.has-selection {
-    position: fixed;
-    z-index: 100;
-    inset-block: 0;
-    inset-inline-end: 0;
-    overflow-y: auto;
-    width: min(26rem, 100%);
-    border-radius: 0;
-    box-shadow: -4px 0 16px rgb(0 0 0 / 25%);
-  }
 }
 @media (max-width: 800px) {
   .ancora-shell { display: block; }
