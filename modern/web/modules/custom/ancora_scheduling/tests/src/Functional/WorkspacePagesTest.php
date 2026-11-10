@@ -100,7 +100,7 @@ final class WorkspacePagesTest extends AncoraBrowserTestBase {
       'Plans & periods',
       'Academic catalogues',
       'Assignments & templates',
-      'Generate',
+      'Generate timetable',
       'Timetables',
     ];
     foreach ($navigation as $title) {
