@@ -1,26 +1,35 @@
-{#
-/**
- * @file
- * Page layout of the Áncora theme.
- *
- * Available variables: see core/modules/system/templates/page.html.twig.
- * - page.header, page.highlighted, page.content, page.footer: Regions.
- */
-#}
-<div class="layout-container">
-  <header class="site-header" role="banner">
-    {{ page.header }}
-  </header>
-
-  <main class="site-main" role="main">
-    <a id="main-content" tabindex="-1"></a>
-    {{ page.highlighted }}
-    {{ page.content }}
-  </main>
-
-  {% if page.footer %}
-    <footer class="site-footer" role="contentinfo">
-      {{ page.footer }}
-    </footer>
-  {% endif %}
+{# A single Gin shell on both application and administration routes. #}
+<div class="ancora-shell">
+  <aside class="ancora-sidebar" aria-label="{{ 'Site navigation'|t }}">
+    <div class="ancora-sidebar__brand">{{ page.header.ancora_theme_branding }}</div>
+    <button class="ancora-sidebar__toggle" type="button" aria-controls="ancora-sidebar-content" aria-expanded="true" hidden>{{ 'Menu'|t }}</button>
+    <div id="ancora-sidebar-content" class="ancora-sidebar__content">
+      <nav aria-label="{{ 'Academic navigation'|t }}">{{ page.sidebar.ancora_theme_main_menu }}</nav>
+      {% if is_admin %}
+        <details class="ancora-sidebar__admin" {% if route_name starts with 'system.' or route_name starts with 'user.' %}open{% endif %}>
+          <summary>{{ 'Administration'|t }}</summary>
+          <nav aria-label="{{ 'Administration navigation'|t }}">{{ page.sidebar.ancora_theme_admin }}</nav>
+        </details>
+      {% endif %}
+      <div class="ancora-sidebar__account">{{ page.header.ancora_theme_account_menu }}</div>
+    </div>
+  </aside>
+  <div class="ancora-shell__main">
+    <div class="gin-secondary-toolbar layout-container">{{ page.highlighted.ancora_theme_breadcrumbs }}</div>
+    <div class="region-sticky-watcher"></div>
+    <header class="region region-sticky {{ gin_form_actions_class }}">
+      <div class="layout-container region-sticky__items">
+        <div class="region-sticky__items__inner">
+          {{ page.content.ancora_theme_page_title }}
+          {{ gin_form_actions }}
+        </div>
+      </div>
+    </header>
+    <div class="layout-container ancora-shell__content">
+      <main class="page-content clearfix" id="main-content" tabindex="-1" role="main">
+        {{ page.highlighted|without('ancora_theme_breadcrumbs') }}
+        {{ page.content|without('ancora_theme_page_title') }}
+      </main>
+    </div>
+  </div>
 </div>

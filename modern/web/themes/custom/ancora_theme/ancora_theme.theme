@@ -1,0 +1,79 @@
+<?php
+
+/**
+ * @file
+ * Small menu integration for the shared Gin application shell.
+ */
+
+use Drupal\ancora_academic\AcademicEntityTypes;
+
+/**
+ * Implements hook_preprocess_HOOK() for menu.
+ */
+function ancora_theme_preprocess_menu(array &$variables): void {
+  if ($variables['menu_name'] === 'admin') {
+    // Academic pages already live in the primary navigation. Keep the
+    // administration section for Drupal's other tools, without duplication.
+    foreach ($variables['items'] as $key => $item) {
+      if ($item['url']->isRouted() && $item['url']->getRouteName() === 'ancora_academic.planning') {
+        unset($variables['items'][$key]);
+      }
+    }
+    return;
+  }
+  if ($variables['menu_name'] !== 'main') {
+    return;
+  }
+
+  $route = \Drupal::routeMatch()->getRouteName() ?? '';
+  $target = NULL;
+  if (preg_match('/^entity\.(ancora_[a-z_]+)\./', $route, $matches)) {
+    foreach (AcademicEntityTypes::SECTIONS as $section => $types) {
+      if (in_array($matches[1], $types, TRUE)) {
+        $target = 'entity.' . $matches[1] . '.collection';
+        break;
+      }
+    }
+  }
+  elseif (in_array($route, ['ancora_scheduling.plan', 'ancora_scheduling.plan_workspace'], TRUE)) {
+    $target = 'ancora_scheduling.timetables';
+  }
+  elseif (in_array($route, ['ancora_scheduling.timetable', 'ancora_scheduling.placement_move'], TRUE)) {
+    $target = 'ancora_scheduling.timetables';
+  }
+  elseif ($route === 'ancora_scheduling.job') {
+    $target = 'ancora_scheduling.jobs';
+  }
+  if ($target !== NULL) {
+    ancora_theme_clear_active_menu($variables['items']);
+    ancora_theme_mark_active_menu($variables['items'], $target);
+  }
+}
+
+/**
+ * Removes an inherited trail when the contextual route belongs elsewhere.
+ */
+function ancora_theme_clear_active_menu(array &$items): void {
+  foreach ($items as &$item) {
+    $item['in_active_trail'] = FALSE;
+    if (!empty($item['below'])) {
+      ancora_theme_clear_active_menu($item['below']);
+    }
+  }
+}
+
+/**
+ * Marks a contextual form's collection link and its ancestors as active.
+ */
+function ancora_theme_mark_active_menu(array &$items, string $target): bool {
+  $found = FALSE;
+  foreach ($items as &$item) {
+    $self = $item['url']->isRouted() && $item['url']->getRouteName() === $target;
+    $child = !empty($item['below']) && ancora_theme_mark_active_menu($item['below'], $target);
+    if ($self || $child) {
+      $item['in_active_trail'] = TRUE;
+      $found = TRUE;
+    }
+  }
+  return $found;
+}

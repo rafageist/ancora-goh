@@ -12,16 +12,16 @@ _core:
   default_config_hash: O-D8Nl1TR7UCNonzFkR4yexcwpIbqT5arx6HdRFMzYU
 id: ancora_theme_admin
 theme: ancora_theme
-region: footer
+region: sidebar
 weight: 1
 provider: null
 plugin: 'system_menu_block:admin'
 settings:
   id: 'system_menu_block:admin'
   label: Administration
-  label_display: visible
+  label_display: '0'
   provider: system
-  level: 1
-  depth: null
+  level: 2
+  depth: 2
   expand_all_items: false
 visibility: {  }

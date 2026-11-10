@@ -1,14 +1,14 @@
 name: Áncora
 type: theme
-description: 'Minimal front-end theme of the Áncora GOH platform: Twig templates and Single Directory Components, no JavaScript framework.'
+description: 'Áncora application shell on Gin for academic and administration pages.'
 package: Áncora
 core_version_requirement: ^11.4
-base theme: false
+base theme: gin
 enforce_prop_schemas: true
 libraries:
   - ancora_theme/global
 regions:
   header: Header
+  sidebar: Navigation
   highlighted: Highlighted
   content: Content
-  footer: Footer

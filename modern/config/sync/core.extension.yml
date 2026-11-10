@@ -24,4 +24,5 @@ module:
 theme:
   ancora_theme: 0
   claro: 0
+  gin: 0
 profile: minimal

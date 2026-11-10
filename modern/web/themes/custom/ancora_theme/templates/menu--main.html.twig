@@ -1,21 +1,15 @@
-{#
-/**
- * @file
- * The main menu: the planner navigation (#105).
- *
- * The header block shows the first level; the section block of the content
- * region shows the children of the active section. Items in the active trail
- * carry the class "is-active-trail".
- *
- * Available variables: see core/modules/system/templates/menu.html.twig.
- */
-#}
-{% if items %}
-  <ul{{ attributes.addClass('menu', 'menu--main') }}>
-    {% for item in items %}
-      <li{{ item.attributes.addClass('menu__item', item.in_active_trail ? 'is-active-trail') }}>
-        {{ link(item.title, item.url, item.in_active_trail ? {'class': ['is-active-trail']} : {}) }}
-      </li>
-    {% endfor %}
-  </ul>
-{% endif %}
+{# Drupal's access-checked menu tree is the only application navigation. #}
+{% import _self as menus %}
+{{ menus.render(items, attributes, 0) }}
+{% macro render(items, attributes, depth) %}
+  {% if items %}
+    <ul{{ attributes.addClass(depth == 0 ? 'ancora-menu' : 'ancora-menu__children') }}>
+      {% for item in items %}
+        <li{{ item.attributes.addClass('ancora-menu__item', item.in_active_trail ? 'is-active-trail') }}>
+          {{ link(item.title, item.url, item.in_active_trail ? {'class': ['is-active-trail']} : {}) }}
+          {{ _self.render(item.below, create_attribute(), depth + 1) }}
+        </li>
+      {% endfor %}
+    </ul>
+  {% endif %}
+{% endmacro %}

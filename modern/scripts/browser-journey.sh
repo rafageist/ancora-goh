@@ -43,7 +43,7 @@ mkdir -p "$work/secrets" "$work/private" "$work/tmp"
 chmod 700 "$work/secrets"
 random_hex() { od -An -N"$1" -tx1 /dev/urandom | tr -d ' \n'; }
 (umask 077
-  for f in db-password hash-salt worker-password planner other viewer; do random_hex 16 >"$work/secrets/$f"; done)
+  for f in db-password hash-salt worker-password admin planner other viewer; do random_hex 16 >"$work/secrets/$f"; done)
 
 psql -X -q -v ON_ERROR_STOP=1 -d postgres <<SQL
 \set db_password \`cat "$work/secrets/db-password"\`
@@ -71,7 +71,7 @@ cd "$project"
 drush() { vendor/bin/drush --yes "$@"; }
 echo "==> a disposable workspace-mode site"
 drush site:install --existing-config --site-name=Áncora --site-mail=noreply@example.invalid \
-  --account-name=admin --account-mail=admin@example.invalid --account-pass="$(random_hex 16)" >"$work/install.log" 2>&1 \
+  --account-name=admin --account-mail=admin@example.invalid --account-pass="$(cat "$work/secrets/admin")" >"$work/install.log" 2>&1 \
   || { cat "$work/install.log"; exit 1; }
 "$repo/dev/workspace/install.sh" --worker ancora_ws_worker ancora_ws >"$work/engine.log" 2>&1 || { cat "$work/engine.log"; exit 1; }
 {

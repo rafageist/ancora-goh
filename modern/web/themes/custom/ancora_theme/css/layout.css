@@ -1,140 +1,87 @@
-/**
- * @file
- * Page layout: a single readable column with a header and a footer.
- */
-
-.layout-container {
-  display: flex;
-  flex-direction: column;
+/** Gin page chrome with one persistent navigation rail. */
+.ancora-shell {
+  display: grid;
+  grid-template-columns: 16.5rem minmax(0, 1fr);
   min-height: 100vh;
+  background: var(--gin-bg-app);
+  color: var(--gin-color-text);
 }
-
-.site-header,
-.site-footer {
-  padding: var(--ancora-space);
-  background: var(--ancora-surface);
+.ancora-sidebar {
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow-y: auto;
+  padding: var(--gin-spacing-m);
+  border-inline-end: 1px solid var(--gin-border-color-layer);
+  background: var(--gin-bg-layer);
 }
-
-.site-header {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  border-bottom: 1px solid var(--ancora-line);
-  gap: var(--ancora-space);
+.ancora-sidebar__brand {
+  margin-block-end: var(--gin-spacing-l);
+  font-size: var(--gin-font-size-l);
+  font-weight: var(--gin-font-weight-bold);
 }
-
-.site-header ul.menu {
-  display: flex;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-  gap: var(--ancora-space);
-}
-
-.site-header ul.menu,
-.site-header nav ul {
-  display: flex;
-  flex-wrap: wrap;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-  gap: 0.25rem var(--ancora-space);
-}
-
-.site-header > div {
-  display: flex;
-  flex: 1;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--ancora-space);
-}
-
-/* The planner navigation (#105): first level in the header. */
-.site-header .menu--main a {
-  display: inline-block;
-  padding: 0.35rem 0.6rem;
-  text-decoration: none;
-  border-radius: var(--ancora-radius);
-}
-
-.site-header .menu--main a:hover,
-.site-header .menu--main a:focus-visible {
-  background: var(--ancora-canvas);
-}
-
-.site-header .menu--main a.is-active-trail {
-  font-weight: 700;
-  box-shadow: inset 0 -3px 0 var(--ancora-accent);
-}
-
-/* The children of the active section, above the page title. */
-.site-main .menu--main {
-  display: flex;
-  flex-wrap: wrap;
-  margin: 0 0 var(--ancora-space);
-  padding: 0;
-  list-style: none;
-  gap: 0.25rem 0.75rem;
-  font-size: 0.95rem;
-}
-
-.site-main .menu--main a.is-active-trail {
-  font-weight: 700;
+.ancora-sidebar__brand a { color: var(--gin-color-title); text-decoration: none; }
+.ancora-sidebar__toggle { display: none; }
+.ancora-sidebar nav ul, .ancora-sidebar__account ul { margin: 0; padding: 0; list-style: none; }
+.ancora-sidebar a {
+  display: block;
+  padding: .45rem .65rem;
+  border-radius: var(--gin-border-m);
+  color: var(--gin-color-text);
   text-decoration: none;
 }
-
-.site-main nav[aria-labelledby="system-breadcrumb"] ol {
-  display: flex;
-  flex-wrap: wrap;
-  margin: 0 0 0.5rem;
-  padding: 0;
-  list-style: none;
-  font-size: 0.875rem;
-  gap: 0.25rem;
+.ancora-sidebar a:hover, .ancora-sidebar a:focus-visible, .ancora-sidebar a.is-active-trail {
+  background: var(--gin-bg-layer2);
+  color: var(--gin-color-primary);
 }
-
-.site-main nav[aria-labelledby="system-breadcrumb"] li + li::before {
-  content: "/";
-  margin-inline-end: 0.25rem;
-  color: var(--ancora-muted);
+.ancora-sidebar a.is-active-trail {
+  font-weight: var(--gin-font-weight-bold);
+  box-shadow: inset 3px 0 var(--gin-color-primary);
 }
-
-.site-footer ul {
-  display: flex;
-  flex-wrap: wrap;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-  gap: 0.25rem var(--ancora-space);
+.ancora-menu__children { padding-inline-start: .75rem !important; border-inline-start: 1px solid var(--gin-border-color-layer); }
+.ancora-menu__children a { font-size: var(--gin-font-size-s); }
+.ancora-sidebar__admin, .ancora-sidebar__account {
+  margin-block-start: var(--gin-spacing-m);
+  padding-block-start: var(--gin-spacing-s);
+  border-block-start: 1px solid var(--gin-border-color-layer);
 }
-
-.site-footer h2 {
-  margin: 0 0 0.25rem;
-  font-size: 0.875rem;
+.ancora-sidebar__admin summary { cursor: pointer; padding: .45rem .65rem; font-weight: var(--gin-font-weight-bold); }
+.ancora-shell__main, .ancora-shell__content { min-width: 0; }
+.ancora-shell__main .layout-container { width: auto; max-width: none; margin-inline: var(--gin-spacing-xl); }
+.ancora-shell__main .page-content { width: 100%; max-width: none; }
+.ancora-shell__content :is(table, .ancora-timetable__grid) { max-width: 100%; }
+/* The sidebar consumes room that the workspace's viewport breakpoints do not
+ * account for. Move its inspector below the canvas until the content is wide. */
+@media (max-width: 1600px) {
+  .ancora-shell .ancora-ws__body { grid-template-columns: 12rem minmax(0, 1fr); }
+  .ancora-shell .ancora-inspector { grid-column: 1 / -1; }
+  html.js .ancora-shell .ancora-inspector.has-selection {
+    position: fixed;
+    z-index: 100;
+    inset-block: 0;
+    inset-inline-end: 0;
+    overflow-y: auto;
+    width: min(26rem, 100%);
+    border-radius: 0;
+    box-shadow: -4px 0 16px rgb(0 0 0 / 25%);
+  }
 }
-
-.site-branding__name {
-  font-size: 1.25rem;
-  font-weight: 700;
+@media (max-width: 800px) {
+  .ancora-shell { display: block; }
+  .ancora-sidebar {
+    position: relative;
+    height: auto;
+    overflow: visible;
+    padding: var(--gin-spacing-s);
+    border-inline-end: 0;
+    border-block-end: 1px solid var(--gin-border-color-layer);
+  }
+  .ancora-sidebar__brand { display: inline-block; margin: 0; }
+  .ancora-sidebar__toggle:not([hidden]) { display: inline-block; float: right; }
+  .ancora-sidebar.is-collapsed .ancora-sidebar__content { display: none; }
+  .ancora-sidebar__content { clear: both; padding-block-start: var(--gin-spacing-s); }
+  .ancora-shell__main .layout-container { margin-inline: var(--gin-spacing-s); }
 }
-
-.site-branding__name a {
-  text-decoration: none;
-  color: inherit;
-}
-
-.site-main {
-  flex: 1;
-  width: 100%;
-  max-width: 72rem;
-  margin-inline: auto;
-  padding: var(--ancora-space);
-}
-
-.site-footer {
-  color: var(--ancora-muted);
-  border-top: 1px solid var(--ancora-line);
-  font-size: 0.875rem;
+@media (max-width: 767px) {
+  .ancora-shell .ancora-ws__body { grid-template-columns: minmax(0, 1fr); }
 }
