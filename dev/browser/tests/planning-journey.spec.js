@@ -589,11 +589,15 @@ test('4 teachers, rooms, resources, restrictions and limits', async ({ page, bro
   const roomBox = await roomDragHandle.boundingBox();
   const roomPoint = { x: roomBox.x + roomBox.width / 2, y: roomBox.y + roomBox.height / 2 };
   expect(await page.evaluate(({ x, y }) => document.elementFromPoint(x, y)?.closest('[data-drag-kind]')?.dataset.label, roomPoint)).toBe('Room 101');
-  await roomDragHandle.dragTo(availableDrop);
+  const availableBox = await availableDrop.boundingBox();
+  const availablePosition = { x: availableBox.width / 2, y: availableBox.height - 20 };
+  const availablePoint = { x: availableBox.x + availablePosition.x, y: availableBox.y + availablePosition.y };
+  expect(await page.evaluate(({ x, y }) => document.elementFromPoint(x, y)?.closest('[data-drop-op="remove"]')?.id, availablePoint)).toBe('ancora-assign-available-panel');
+  await roomDragHandle.dragTo(availableDrop, { targetPosition: availablePosition });
   await expect(page.getByRole('dialog', { name: 'Remove an assignment' })).toContainText('Remove Room 101 from this template?');
   expect(fixture('assignment-parity').equal, 'drag cancellation has not written').toBe(true);
   await page.getByRole('dialog', { name: 'Remove an assignment' }).getByRole('button', { name: 'Cancel' }).click();
-  await roomDragHandle.dragTo(availableDrop);
+  await roomDragHandle.dragTo(availableDrop, { targetPosition: availablePosition });
   await expect(page.getByRole('dialog', { name: 'Remove an assignment' })).toContainText('Remove Room 101 from this template?');
   const stateBeforeDropRemoval = await page.locator('input[name="state"]').inputValue();
   const originBeforeDropRemoval = await page.evaluate(() => performance.timeOrigin);
