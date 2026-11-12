@@ -53,7 +53,7 @@ final class WorkspacePagesTest extends AncoraBrowserTestBase {
     $this->config('system.site')->set('page.front', '/ancora')->save();
     // The blocks of config/sync that the workspace relies on.
     $menu = ['level' => 1, 'depth' => 1];
-    $this->drupalPlaceBlock('system_menu_block:main', ['id' => 'main_nav', 'region' => 'header'] + $menu);
+    $this->drupalPlaceBlock('system_menu_block:main', ['id' => 'ancora_theme_main_menu', 'region' => 'sidebar'] + $menu);
     $section = ['level' => 2, 'depth' => 1, 'weight' => -40];
     $this->drupalPlaceBlock('system_menu_block:main', ['id' => 'section_nav', 'region' => 'content'] + $section);
     $this->drupalPlaceBlock('system_menu_block:account', ['id' => 'account_nav', 'region' => 'header']);
@@ -100,11 +100,11 @@ final class WorkspacePagesTest extends AncoraBrowserTestBase {
       'Plans & periods',
       'Academic catalogues',
       'Assignments & templates',
-      'Generate',
+      'Generate timetable',
       'Timetables',
     ];
     foreach ($navigation as $title) {
-      $this->assertSession()->elementExists('xpath', "//header//nav//a[normalize-space()='$title']");
+      $this->assertSession()->elementExists('xpath', "//aside[contains(concat(' ', normalize-space(@class), ' '), ' ancora-sidebar ')]//nav[@aria-label='Academic navigation']//a[normalize-space()='$title']");
     }
     $quick_links = [
       'Planning',

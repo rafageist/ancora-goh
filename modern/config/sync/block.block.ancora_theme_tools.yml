@@ -1,6 +1,6 @@
 uuid: c4233f6c-1a33-4162-a7ca-f04de44018d6
 langcode: en
-status: true
+status: false
 dependencies:
   config:
     - system.menu.tools
@@ -12,7 +12,7 @@ _core:
   default_config_hash: 21gTvrC3-X1nBOt2rLuxMV9LqgyW8pnzfKXMeq-dnPI
 id: ancora_theme_tools
 theme: ancora_theme
-region: footer
+region: sidebar
 weight: 0
 provider: null
 plugin: 'system_menu_block:tools'

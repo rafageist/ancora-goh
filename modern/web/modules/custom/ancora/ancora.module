@@ -1,0 +1,19 @@
+<?php
+
+/**
+ * @file
+ * Theme cache integration for the shared academic navigation.
+ */
+
+use Drupal\Core\Block\BlockPluginInterface;
+
+/**
+ * Implements hook_block_view_alter().
+ */
+function ancora_block_view_alter(array &$build, BlockPluginInterface $block): void {
+  if ($block->getPluginId() === 'system_menu_block:main') {
+    // Contextual workspace, job and entity form routes can share the same
+    // Drupal menu active trail. The shell highlights their owning section.
+    $build['#cache']['contexts'][] = 'route';
+  }
+}

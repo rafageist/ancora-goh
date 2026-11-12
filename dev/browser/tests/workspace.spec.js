@@ -143,21 +143,20 @@ test('Without JavaScript: the same state through plain links', async ({ browser 
 test('Keyboard only: perspective, record, roving focus, inspector, Escape', async ({ page }) => {
   await login(page, 'planner');
   await page.goto(workspace());
-  const active = () => page.evaluate(() => (document.activeElement.textContent || '').trim().replace(/\s+/g, ' '));
-  const tabTo = async (text, key = 'Tab') => {
+  const tabTo = async (locator, key = 'Tab') => {
     for (let i = 0; i < 60; i++) {
       await page.keyboard.press(key);
-      if ((await active()).startsWith(text)) {
+      if (await locator.evaluate((element) => element === document.activeElement)) {
         return;
       }
     }
-    throw new Error(`no focusable "${text}"`);
+    throw new Error(`no focus on ${await locator.evaluate((element) => element.outerHTML)}`);
   };
-  await tabTo('Teachers');
+  await tabTo(page.locator('#ancora-workspace-nav [data-ancora-nav="lens"]').filter({ hasText: /^Teachers/ }));
   await page.keyboard.press('Enter');
   await settled(page);
   await expect(page.locator('#ancora-canvas-title')).toBeFocused();
-  await tabTo('Teacher TA', 'Shift+Tab');
+  await tabTo(page.locator('#ancora-workspace-nav [data-ancora-nav="record"]').filter({ hasText: /^Teacher TA/ }), 'Shift+Tab');
   await page.keyboard.press('Enter');
   await settled(page);
   await expect(page.locator('#ancora-canvas-title')).toBeFocused();
