@@ -1,4 +1,5 @@
 {# A single Gin shell on both application and administration routes. #}
+{% set local_actions_block = active_admin_theme ~ '_local_actions' %}
 <div class="ancora-shell">
   <aside class="ancora-sidebar" aria-label="{{ 'Site navigation'|t }}">
     <div class="ancora-sidebar__brand">{{ page.header.ancora_theme_branding }}</div>
@@ -21,6 +22,7 @@
       <div class="layout-container region-sticky__items">
         <div class="region-sticky__items__inner">
           {{ page.content.ancora_theme_page_title }}
+          {{ page.content[local_actions_block] }}
           {{ gin_form_actions }}
         </div>
       </div>
@@ -28,7 +30,7 @@
     <div class="layout-container ancora-shell__content">
       <main class="page-content clearfix" id="main-content" tabindex="-1" role="main">
         {{ page.highlighted|without('ancora_theme_breadcrumbs') }}
-        {{ page.content|without('ancora_theme_page_title') }}
+        {{ page.content|without('ancora_theme_page_title', local_actions_block) }}
       </main>
     </div>
   </div>

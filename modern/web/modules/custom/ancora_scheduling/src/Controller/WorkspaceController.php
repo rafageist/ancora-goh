@@ -122,7 +122,6 @@ final class WorkspaceController extends ControllerBase {
       '#create' => $create,
       '#getting_started' => $rows === [] ? $this->gettingStarted() : NULL,
       '#catalogues' => $this->catalogueCounts($cache),
-      '#quick_links' => $this->quickLinks($plans),
       '#runs' => $this->runsTable($this->jobs->forPlans(array_keys($plans), self::RECENT_RUNS), NULL, FALSE),
       '#attached' => ['library' => ['ancora_scheduling/workspace']],
     ];
@@ -498,40 +497,12 @@ final class WorkspaceController extends ControllerBase {
         'label' => $entity_type->getCollectionLabel(),
         'count' => $this->count($entity_type_id, $cache),
         'url' => Url::fromRoute("entity.$entity_type_id.collection")->toString(),
+        'add' => $entity_type->hasLinkTemplate('add-form')
+          ? $this->addLink($entity_type_id, $this->t('Add @type', ['@type' => $entity_type->getSingularLabel()]), $cache)
+          : NULL,
       ];
     }
     return $items;
-  }
-
-  /**
-   * The demo entry links (#104 item 5), each only when the user may use it.
-   *
-   * @param \Drupal\ancora_academic\Entity\Plan[] $plans
-   *   The user's plans.
-   */
-  private function quickLinks(array $plans): array {
-    $timetable = count($plans) === 1
-      ? Url::fromRoute('ancora_scheduling.timetable', ['ancora_plan' => array_key_first($plans)])
-      : Url::fromRoute('ancora_scheduling.timetables');
-    $candidates = [
-      'planning' => [$this->t('Planning'), Url::fromRoute('ancora_academic.planning')],
-      'plans' => [$this->t('Plans'), Url::fromRoute('entity.ancora_plan.collection')],
-      'periods' => [$this->t('Periods'), Url::fromRoute('entity.ancora_period.collection')],
-      'teachers' => [$this->t('Teachers'), Url::fromRoute('entity.ancora_teacher.collection')],
-      'rooms' => [$this->t('Rooms'), Url::fromRoute('entity.ancora_room.collection')],
-      'subjects' => [$this->t('Subjects'), Url::fromRoute('entity.ancora_subject.collection')],
-      'groups' => [$this->t('Groups'), Url::fromRoute('entity.ancora_student_group.collection')],
-      'generate' => [$this->t('Generate timetable'), Url::fromRoute('ancora_scheduling.request')],
-      'timetable' => [$this->t('View timetable'), $timetable],
-      'jobs' => [$this->t('Job status'), Url::fromRoute('ancora_scheduling.jobs')],
-    ];
-    $links = [];
-    foreach ($candidates as $key => [$title, $url]) {
-      if ($url->access()) {
-        $links[$key] = ['title' => $title, 'url' => $url];
-      }
-    }
-    return ['#theme' => 'links', '#links' => $links, '#attributes' => ['class' => ['ancora-quick-links']]];
   }
 
   /**

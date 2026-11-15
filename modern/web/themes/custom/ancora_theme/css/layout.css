@@ -23,6 +23,19 @@
 .ancora-sidebar__brand a { color: var(--gin-color-title); text-decoration: none; }
 .ancora-sidebar__toggle { display: none; }
 .ancora-sidebar nav ul, .ancora-sidebar__account ul { margin: 0; padding: 0; list-style: none; }
+.ancora-menu__item-row { display: flex; align-items: center; gap: .2rem; }
+.ancora-menu__item-row > a { flex: 1; min-width: 0; }
+.ancora-menu__toggle {
+  flex: none;
+  min-width: 2rem;
+  border: 0;
+  border-radius: var(--gin-border-m);
+  padding: .35rem;
+  background: transparent;
+  color: var(--gin-color-text);
+  cursor: pointer;
+}
+.ancora-menu__toggle:hover, .ancora-menu__toggle:focus-visible { background: var(--gin-bg-layer2); color: var(--gin-color-primary); }
 .ancora-sidebar a {
   display: block;
   padding: .45rem .65rem;
