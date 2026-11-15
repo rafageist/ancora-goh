@@ -85,6 +85,12 @@ jobs:
             echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] https://apt.postgresql.org/pub/repos/apt ${VERSION_CODENAME}-pgdg main" \
               | sudo tee /etc/apt/sources.list.d/pgdg.list >/dev/null
             sudo apt-get update -q
+            # Ubuntu's libpq-dev is upgraded with libpq5, but the PGDG dev
+            # package conflicts with postgresql-common's /usr/bin/pg_config.
+            # These server-only jobs do not need the development headers.
+            if [ "${{ matrix.postgres }}" = "18" ]; then
+              sudo apt-get remove -y -q libpq-dev
+            fi
             sudo apt-get install -y -q "postgresql-${{ matrix.postgres }}"
           fi
           # Only disposable clusters are used; stop any packaged server.
@@ -188,6 +194,11 @@ jobs:
             echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] https://apt.postgresql.org/pub/repos/apt ${VERSION_CODENAME}-pgdg main" \
               | sudo tee /etc/apt/sources.list.d/pgdg.list >/dev/null
             sudo apt-get update -q
+            # The runner's libpq-dev conflicts with PGDG's matching package
+            # when it upgrades libpq5; server-only CI jobs do not need headers.
+            if [ "${{ matrix.postgres }}" = "18" ]; then
+              sudo apt-get remove -y -q libpq-dev
+            fi
             sudo apt-get install -y -q "postgresql-${{ matrix.postgres }}"
           fi
           sudo systemctl stop postgresql || true
@@ -275,6 +286,11 @@ jobs:
             echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] https://apt.postgresql.org/pub/repos/apt ${VERSION_CODENAME}-pgdg main" \
               | sudo tee /etc/apt/sources.list.d/pgdg.list >/dev/null
             sudo apt-get update -q
+            # The runner's libpq-dev conflicts with PGDG's matching package
+            # when it upgrades libpq5; server-only CI jobs do not need headers.
+            if [ "${{ matrix.postgres }}" = "18" ]; then
+              sudo apt-get remove -y -q libpq-dev
+            fi
             sudo apt-get install -y -q "postgresql-${{ matrix.postgres }}"
           fi
           sudo systemctl stop postgresql || true
@@ -335,6 +351,11 @@ jobs:
             echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] https://apt.postgresql.org/pub/repos/apt ${VERSION_CODENAME}-pgdg main" \
               | sudo tee /etc/apt/sources.list.d/pgdg.list >/dev/null
             sudo apt-get update -q
+            # The runner's libpq-dev conflicts with PGDG's matching package
+            # when it upgrades libpq5; server-only CI jobs do not need headers.
+            if [ "${{ matrix.postgres }}" = "18" ]; then
+              sudo apt-get remove -y -q libpq-dev
+            fi
             sudo apt-get install -y -q "postgresql-${{ matrix.postgres }}"
           fi
           sudo systemctl stop postgresql || true
@@ -395,6 +416,11 @@ jobs:
             echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] https://apt.postgresql.org/pub/repos/apt ${VERSION_CODENAME}-pgdg main" \
               | sudo tee /etc/apt/sources.list.d/pgdg.list >/dev/null
             sudo apt-get update -q
+            # The runner's libpq-dev conflicts with PGDG's matching package
+            # when it upgrades libpq5; server-only CI jobs do not need headers.
+            if [ "${{ matrix.postgres }}" = "18" ]; then
+              sudo apt-get remove -y -q libpq-dev
+            fi
             sudo apt-get install -y -q "postgresql-${{ matrix.postgres }}"
           fi
           sudo systemctl stop postgresql || true

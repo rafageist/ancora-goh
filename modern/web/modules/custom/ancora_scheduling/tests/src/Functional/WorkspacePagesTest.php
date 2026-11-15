@@ -106,21 +106,9 @@ final class WorkspacePagesTest extends AncoraBrowserTestBase {
     foreach ($navigation as $title) {
       $this->assertSession()->elementExists('xpath', "//aside[contains(concat(' ', normalize-space(@class), ' '), ' ancora-sidebar ')]//nav[@aria-label='Academic navigation']//a[normalize-space()='$title']");
     }
-    $quick_links = [
-      'Planning',
-      'Plans',
-      'Periods',
-      'Teachers',
-      'Rooms',
-      'Subjects',
-      'Groups',
-      'Generate timetable',
-      'View timetable',
-      'Job status',
-    ];
-    foreach ($quick_links as $title) {
-      $this->assertSession()->elementExists('xpath', "//ul[contains(@class, 'ancora-quick-links')]//a[normalize-space()='$title']");
-    }
+    // The planner sees the academic sidebar.
+    // The administrator-only section stays hidden.
+    $this->assertSession()->elementNotExists('css', '.ancora-sidebar__admin');
     // The plan row: periods, groups and templates of the plan.
     $row = $this->assertSession()->elementExists('xpath', "//table[contains(@class, 'ancora-workspace__plans')]//tr[td/a[normalize-space()='Plan']]");
     $cells = array_map(static fn ($cell): string => trim($cell->getText()), $row->findAll('css', 'td'));
@@ -201,8 +189,9 @@ final class WorkspacePagesTest extends AncoraBrowserTestBase {
     $this->drupalGet('/ancora/scheduling/jobs/1');
     $this->assertSession()->pageTextContains('Succeeded: final timetable');
 
-    // Landing → View timetable: the timetable in two clicks.
+    // Landing → timetable: open the plan, then its timetable.
     $this->drupalGet('');
+    $this->getSession()->getPage()->find('xpath', "//table//a[normalize-space()='Plan']")->click();
     $this->clickLink('View timetable');
     $this->assertSession()->addressEquals("/ancora/planning/$plan_id/timetable");
     $this->assertSession()->elementTextEquals('css', 'h1', 'Timetable: Plan');

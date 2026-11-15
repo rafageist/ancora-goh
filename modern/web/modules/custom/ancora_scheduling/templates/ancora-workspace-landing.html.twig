@@ -10,7 +10,6 @@
  * - create: A "Create a plan" link, or NULL without permission.
  * - getting_started: The ordered first steps (only without plans), or NULL.
  * - catalogues: The user's catalogue lists, each with label, count and url.
- * - quick_links: The demo entry links (links render array).
  * - runs: A table of the recent runs of the user's plans.
  */
 #}
@@ -38,11 +37,6 @@
     {% endif %}
   </section>
 
-  <section class="ancora-workspace__section" aria-labelledby="ancora-workspace-links">
-    <h2 id="ancora-workspace-links">{{ 'Go to'|t }}</h2>
-    <nav aria-labelledby="ancora-workspace-links">{{ quick_links }}</nav>
-  </section>
-
   {% if catalogues %}
     <section class="ancora-workspace__section" aria-labelledby="ancora-workspace-catalogues">
       <h2 id="ancora-workspace-catalogues">{{ 'Your catalogues'|t }}</h2>
@@ -50,6 +44,7 @@
         {% for item in catalogues %}
           <li class="ancora-counts__item">
             <a href="{{ item.url }}"><span class="ancora-counts__value">{{ item.count }}</span> <span class="ancora-counts__label">{{ item.label }}</span></a>
+            {% if item.add %}<div>{{ item.add }}</div>{% endif %}
           </li>
         {% endfor %}
       </ul>

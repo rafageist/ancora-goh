@@ -1,13 +1,19 @@
 {# Drupal's access-checked menu tree is the only application navigation. #}
 {% import _self as menus %}
-{{ menus.render(items, attributes, 0) }}
-{% macro render(items, attributes, depth) %}
+{{ menus.render(items, attributes, 0, 'root', '') }}
+{% macro render(items, attributes, depth, path, list_id) %}
   {% if items %}
-    <ul{{ attributes.addClass(depth == 0 ? 'ancora-menu' : 'ancora-menu__children') }}>
+    <ul{{ attributes.addClass(depth == 0 ? 'ancora-menu' : 'ancora-menu__children') }}{% if list_id %} id="{{ list_id }}"{% endif %}>
       {% for item in items %}
         <li{{ item.attributes.addClass('ancora-menu__item', item.in_active_trail ? 'is-active-trail') }}>
-          {{ link(item.title, item.url, item.in_active_trail ? {'class': ['is-active-trail']} : {}) }}
-          {{ _self.render(item.below, create_attribute(), depth + 1) }}
+          <div class="ancora-menu__item-row">
+            {{ link(item.title, item.url, item.in_active_trail ? {'class': ['is-active-trail']} : {}) }}
+            {% if item.below %}
+              {% set submenu_id = 'ancora-menu-sub-' ~ path ~ '-' ~ loop.index %}
+              <button class="ancora-menu__toggle" type="button" aria-controls="{{ submenu_id }}" aria-expanded="{{ item.in_active_trail ? 'true' : 'false' }}" aria-label="{{ item.in_active_trail ? 'Collapse @section submenu'|t({'@section': item.title}) : 'Expand @section submenu'|t({'@section': item.title}) }}" data-expand-label="{{ 'Expand @section submenu'|t({'@section': item.title}) }}" data-collapse-label="{{ 'Collapse @section submenu'|t({'@section': item.title}) }}" hidden><span aria-hidden="true">{{ item.in_active_trail ? '−' : '+' }}</span></button>
+            {% endif %}
+          </div>
+          {% if item.below %}{{ _self.render(item.below, create_attribute(), depth + 1, path ~ '-' ~ loop.index, submenu_id) }}{% endif %}
         </li>
       {% endfor %}
     </ul>

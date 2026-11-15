@@ -18,6 +18,22 @@
           if (event.key === 'Escape' && mobile.matches && !sidebar.classList.contains('is-collapsed')) setCollapsed(true);
         });
         mobile.addEventListener('change', (event) => setCollapsed(event.matches));
+
+        sidebar.querySelectorAll('.ancora-menu__toggle').forEach((submenuToggle) => {
+          const submenu = document.getElementById(submenuToggle.getAttribute('aria-controls'));
+          if (!submenu) return;
+          const setExpanded = (expanded) => {
+            submenu.hidden = !expanded;
+            submenuToggle.setAttribute('aria-expanded', String(expanded));
+            submenuToggle.setAttribute('aria-label', expanded ? submenuToggle.dataset.collapseLabel : submenuToggle.dataset.expandLabel);
+            submenuToggle.querySelector('span').textContent = expanded ? '−' : '+';
+          };
+          setExpanded(submenuToggle.getAttribute('aria-expanded') === 'true');
+          submenuToggle.hidden = false;
+          submenuToggle.addEventListener('click', () => {
+            setExpanded(submenuToggle.getAttribute('aria-expanded') !== 'true');
+          });
+        });
       });
     },
   };
