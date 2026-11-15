@@ -106,7 +106,8 @@ final class WorkspacePagesTest extends AncoraBrowserTestBase {
     foreach ($navigation as $title) {
       $this->assertSession()->elementExists('xpath', "//aside[contains(concat(' ', normalize-space(@class), ' '), ' ancora-sidebar ')]//nav[@aria-label='Academic navigation']//a[normalize-space()='$title']");
     }
-    // The planner sees the academic sidebar, but not the administrator-only section.
+    // The planner sees the academic sidebar.
+    // The administrator-only section stays hidden.
     $this->assertSession()->elementNotExists('css', '.ancora-sidebar__admin');
     // The plan row: periods, groups and templates of the plan.
     $row = $this->assertSession()->elementExists('xpath', "//table[contains(@class, 'ancora-workspace__plans')]//tr[td/a[normalize-space()='Plan']]");
