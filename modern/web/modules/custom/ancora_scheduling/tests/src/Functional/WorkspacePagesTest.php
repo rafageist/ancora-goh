@@ -189,8 +189,9 @@ final class WorkspacePagesTest extends AncoraBrowserTestBase {
     $this->drupalGet('/ancora/scheduling/jobs/1');
     $this->assertSession()->pageTextContains('Succeeded: final timetable');
 
-    // Landing → View timetable: the timetable in two clicks.
+    // Landing → timetable: open the plan, then its timetable.
     $this->drupalGet('');
+    $this->getSession()->getPage()->find('xpath', "//table//a[normalize-space()='Plan']")->click();
     $this->clickLink('View timetable');
     $this->assertSession()->addressEquals("/ancora/planning/$plan_id/timetable");
     $this->assertSession()->elementTextEquals('css', 'h1', 'Timetable: Plan');
