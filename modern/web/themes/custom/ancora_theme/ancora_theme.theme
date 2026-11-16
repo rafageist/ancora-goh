@@ -51,6 +51,23 @@ function ancora_theme_preprocess_menu(array &$variables): void {
 }
 
 /**
+ * Keeps academic form actions in their standard form location.
+ *
+ * Gin's sticky action buttons are not reliable in the custom application
+ * shell, so academic forms keep their native Drupal actions in the form.
+ */
+function ancora_theme_gin_ignore_sticky_form_actions_alter(array &$form_ids): void {
+  $route_name = \Drupal::routeMatch()->getRouteName();
+  $is_academic_route = is_string($route_name) && (
+    str_starts_with($route_name, 'ancora_') ||
+    str_starts_with($route_name, 'entity.ancora_')
+  );
+  if ($is_academic_route && !in_array($route_name, $form_ids, TRUE)) {
+    $form_ids[] = $route_name;
+  }
+}
+
+/**
  * Removes an inherited trail when the contextual route belongs elsewhere.
  */
 function ancora_theme_clear_active_menu(array &$items): void {
