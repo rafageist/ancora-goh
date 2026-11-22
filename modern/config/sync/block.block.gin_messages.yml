@@ -1,0 +1,20 @@
+uuid: 0ad8e62d-2604-46d7-9767-8d56c0e7f0db
+langcode: en
+status: true
+dependencies:
+  module:
+    - system
+  theme:
+    - gin
+id: gin_messages
+theme: gin
+region: highlighted
+weight: 0
+provider: null
+plugin: system_messages_block
+settings:
+  id: system_messages_block
+  label: ''
+  label_display: ''
+  provider: core
+visibility: {  }

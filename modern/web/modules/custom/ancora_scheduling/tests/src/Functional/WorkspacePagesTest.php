@@ -28,7 +28,7 @@ final class WorkspacePagesTest extends AncoraBrowserTestBase {
   /**
    * {@inheritdoc}
    */
-  protected static $modules = ['ancora_scheduling', 'block'];
+  protected static $modules = ['ancora_scheduling', 'block', 'navigation'];
 
   /**
    * The permissions of a planner (scripts/r1-journey.sh).
@@ -38,6 +38,7 @@ final class WorkspacePagesTest extends AncoraBrowserTestBase {
     'edit academic data',
     'view ancora engine jobs',
     'request ancora engine jobs',
+    'access navigation',
   ];
 
   /**
@@ -51,12 +52,29 @@ final class WorkspacePagesTest extends AncoraBrowserTestBase {
     ];
     $this->writeSettings($settings);
     $this->config('system.site')->set('page.front', '/ancora')->save();
-    // The blocks of config/sync that the workspace relies on.
-    $menu = ['level' => 1, 'depth' => 1];
-    $this->drupalPlaceBlock('system_menu_block:main', ['id' => 'ancora_theme_main_menu', 'region' => 'sidebar'] + $menu);
+    // The core Navigation sidebar displays the same access-checked academic
+    // menu used by the production configuration.
+    $navigation = $this->config('navigation.block_layout');
+    $sections = $navigation->get('sections');
+    $uuid = \Drupal::service('uuid')->generate();
+    $sections[0]['components'][$uuid] = [
+      'uuid' => $uuid,
+      'region' => 'content',
+      'configuration' => [
+        'id' => 'navigation_menu:main',
+        'label' => 'Academic',
+        'label_display' => '0',
+        'provider' => 'navigation',
+        'level' => 1,
+        'depth' => 3,
+      ],
+      'weight' => 0,
+      'additional' => [],
+    ];
+    $navigation->set('sections', $sections)->save();
+    // The other blocks of config/sync that the workspace relies on.
     $section = ['level' => 2, 'depth' => 1, 'weight' => -40];
     $this->drupalPlaceBlock('system_menu_block:main', ['id' => 'section_nav', 'region' => 'content'] + $section);
-    $this->drupalPlaceBlock('system_menu_block:account', ['id' => 'account_nav', 'region' => 'header']);
     $this->drupalPlaceBlock('system_breadcrumb_block', ['region' => 'highlighted']);
     $this->drupalPlaceBlock('page_title_block', ['region' => 'content', 'weight' => -30]);
   }
@@ -104,11 +122,11 @@ final class WorkspacePagesTest extends AncoraBrowserTestBase {
       'Timetables',
     ];
     foreach ($navigation as $title) {
-      $this->assertSession()->elementExists('xpath', "//aside[contains(concat(' ', normalize-space(@class), ' '), ' ancora-sidebar ')]//nav[@aria-label='Academic navigation']//a[normalize-space()='$title']");
+      $this->assertSession()->elementExists('xpath', "//aside[@id='admin-toolbar']//a[normalize-space()='$title']");
     }
     // The planner sees the academic sidebar.
     // The administrator-only section stays hidden.
-    $this->assertSession()->elementNotExists('css', '.ancora-sidebar__admin');
+    $this->assertSession()->elementNotExists('xpath', "//aside[@id='admin-toolbar']//a[normalize-space()='Planning']");
     // The plan row: periods, groups and templates of the plan.
     $row = $this->assertSession()->elementExists('xpath', "//table[contains(@class, 'ancora-workspace__plans')]//tr[td/a[normalize-space()='Plan']]");
     $cells = array_map(static fn ($cell): string => trim($cell->getText()), $row->findAll('css', 'td'));
