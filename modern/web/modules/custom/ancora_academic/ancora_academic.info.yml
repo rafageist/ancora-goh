@@ -4,6 +4,7 @@ description: 'Academic planning data for the Áncora scheduling engine: plans, p
 package: Áncora
 core_version_requirement: ^11.4
 dependencies:
+  - ancora:ancora
   - drupal:datetime
   - drupal:user
   - drupal:views

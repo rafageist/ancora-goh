@@ -139,7 +139,9 @@ final class ViewerTest extends AncoraBrowserTestBase {
     }
     // Read-only viewer fields: no editor link, no job, no plan page.
     $this->assertSession()->linkByHrefNotExists('/edit');
-    $this->assertSession()->linkByHrefNotExists('/ancora/scheduling/jobs');
+    // The planner's global Navigation may expose this link by permission;
+    // the read-only viewer itself must not link to scheduling jobs.
+    $this->assertSession()->elementNotExists('xpath', "//main[contains(@class, 'page-content')]//a[@href='/ancora/scheduling/jobs']");
     $this->assertSession()->linkByHrefNotExists('/ancora/planning/' . $plan->id());
     $this->assertSession()->responseNotContains('job 1');
     // The plan of Alice stays private elsewhere.

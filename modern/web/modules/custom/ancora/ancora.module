@@ -2,10 +2,17 @@
 
 /**
  * @file
- * Theme cache integration for the shared academic navigation.
+ * Áncora application UI integration.
  */
 
 use Drupal\Core\Block\BlockPluginInterface;
+
+/**
+ * Implements hook_page_attachments().
+ */
+function ancora_page_attachments(array &$attachments): void {
+  $attachments['#attached']['library'][] = 'ancora/ui_tokens';
+}
 
 /**
  * Implements hook_block_view_alter().
@@ -16,4 +23,81 @@ function ancora_block_view_alter(array &$build, BlockPluginInterface $block): vo
     // Drupal menu active trail. The shell highlights their owning section.
     $build['#cache']['contexts'][] = 'route';
   }
+}
+
+/**
+ * Implements hook_navigation_menu_link_tree_alter().
+ */
+function ancora_navigation_menu_link_tree_alter(array &$tree): void {
+  ancora_remove_duplicate_planning_links($tree);
+
+  $route = \Drupal::routeMatch()->getRouteName();
+  $target = NULL;
+  if (is_string($route) && preg_match('/^entity\.(ancora_[a-z_]+)\./', $route, $matches)) {
+    $target = 'entity.' . $matches[1] . '.collection';
+  }
+  elseif (in_array($route, [
+    'ancora_scheduling.plan',
+    'ancora_scheduling.plan_workspace',
+    'ancora_scheduling.timetable',
+    'ancora_scheduling.placement_move',
+  ], TRUE)) {
+    $target = 'ancora_scheduling.timetables';
+  }
+  elseif ($route === 'ancora_scheduling.job') {
+    $target = 'ancora_scheduling.jobs';
+  }
+
+  if ($target !== NULL) {
+    ancora_clear_navigation_active_trail($tree);
+    ancora_mark_navigation_active_trail($tree, $target);
+  }
+}
+
+/**
+ * Removes the old admin-menu copy of links now available in Navigation.
+ *
+ * @param \Drupal\Core\Menu\MenuLinkTreeElement[] $tree
+ *   The access-checked Navigation menu tree.
+ */
+function ancora_remove_duplicate_planning_links(array &$tree): void {
+  foreach ($tree as $key => $element) {
+    if ($element->link->getPluginId() === 'ancora_academic.planning') {
+      unset($tree[$key]);
+      continue;
+    }
+    if ($element->subtree) {
+      ancora_remove_duplicate_planning_links($element->subtree);
+    }
+  }
+}
+
+/**
+ * Clears an inherited active trail before applying a contextual destination.
+ */
+function ancora_clear_navigation_active_trail(array &$tree): void {
+  foreach ($tree as $element) {
+    $element->inActiveTrail = FALSE;
+    if ($element->subtree) {
+      ancora_clear_navigation_active_trail($element->subtree);
+    }
+  }
+}
+
+/**
+ * Marks the active destination and its parent sections in the menu tree.
+ */
+function ancora_mark_navigation_active_trail(array &$tree, string $target): bool {
+  $found = FALSE;
+  foreach ($tree as $element) {
+    $self = $element->link->getRouteName() === $target;
+    $child = $element->subtree
+      ? ancora_mark_navigation_active_trail($element->subtree, $target)
+      : FALSE;
+    if ($self || $child) {
+      $element->inActiveTrail = TRUE;
+      $found = TRUE;
+    }
+  }
+  return $found;
 }

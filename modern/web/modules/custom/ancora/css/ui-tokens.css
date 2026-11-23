@@ -1,0 +1,12 @@
+/** Shared tokens used by academic and scheduling component styles. */
+:root {
+  --ancora-ink: var(--gin-color-text);
+  --ancora-muted: var(--gin-color-text-light);
+  --ancora-surface: var(--gin-bg-layer);
+  --ancora-canvas: var(--gin-bg-app);
+  --ancora-line: var(--gin-border-color-layer);
+  --ancora-accent: var(--gin-color-primary);
+  --ancora-danger: var(--gin-color-danger);
+  --ancora-radius: var(--gin-border-m);
+  --ancora-space: var(--gin-spacing-m);
+}
