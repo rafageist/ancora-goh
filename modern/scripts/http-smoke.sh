@@ -48,8 +48,7 @@ fetch /
 check "front page answers 200" status_is 200
 check "X-Content-Type-Options: nosniff" header_has '^x-content-type-options: nosniff'
 check "X-Frame-Options: SAMEORIGIN" header_has '^x-frame-options: SAMEORIGIN'
-check "front page uses the Gin Áncora shell" body_has 'class="ancora-shell"'
-check "front page renders the academic sidebar" body_has 'ancora-sidebar'
+check "front page uses the Gin page template" body_has 'id="main-content"'
 check "no PHP error text on the front page" bash -c "! grep -qiE 'fatal error|stack trace|warning:' '$work/body'"
 
 fetch /ancora/status
@@ -72,7 +71,7 @@ check "administrator login redirects (303)" status_is 303
 
 fetch /ancora/status
 check "status route allowed to the administrator (200)" status_is 200
-check "status page rendered by the status-card component" body_has 'class="status-card"'
+check "status page uses Áncora's default status template" body_has 'class="ancora-status"'
 check "status page reports PostgreSQL" body_has 'pgsql'
 
 code="SMOKE-$(od -An -N3 -tx1 /dev/urandom | tr -d ' \n')"
@@ -95,6 +94,8 @@ check "term in the Views listing" body_has "$code"
 fetch /ancora/planning
 check "planning overview allowed to the administrator (200)" status_is 200
 check "planning overview lists the academic records" body_has 'ancora-planning__step'
+check "planning overview renders the Navigation sidebar" body_has 'id="admin-toolbar"'
+check "academic sidebar links to teachers" body_has 'href="/admin/ancora/teachers"'
 fetch /admin/ancora/teachers
 check "teacher list shows the fixture teacher" body_has 'Teacher Alpha'
 fetch /ancora/planning/activities
