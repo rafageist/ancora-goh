@@ -143,7 +143,7 @@ final class WorkspacePagesTest extends AncoraBrowserTestBase {
     $this->assertSession()->elementExists('xpath', "//main//nav//a[normalize-space()='Teachers']");
     $this->clickLink('Teachers');
     $this->assertSession()->elementTextContains('css', 'table', 'Teacher Alpha');
-    $this->assertSession()->elementExists('xpath', "//main//nav//a[contains(@class, 'is-active-trail') and normalize-space()='Teachers']");
+    $this->assertSession()->elementExists('xpath', "//main//nav//a[contains(@class, 'is-active') and normalize-space()='Teachers']");
 
     // Click 1: the plan page.
     $this->drupalGet('');
